@@ -1,0 +1,21 @@
+# Platform flags for lcc
+ifneq ($(strip $(PORT)),)
+ifneq ($(strip $(PLAT)),)
+CFLAGS += -m$(PORT):$(PLAT)
+endif
+endif
+
+build-target: $(BINS)
+
+clean-target:
+	rm -rf $(OBJDIR) $(BINDIR)
+
+gb-clean:
+	$(MAKE) clean-target EXT=gb
+gb:
+	$(MAKE) build-target PORT=sm83 PLAT=gb EXT=gb
+
+gbc-clean:
+	$(MAKE) clean-target EXT=gbc
+gbc:
+	$(MAKE) build-target PORT=sm83 PLAT=gb EXT=gbc

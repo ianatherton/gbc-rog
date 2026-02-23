@@ -1,0 +1,7 @@
+# GBDK build
+obj/
+build/
+*.o *.lst *.map *.ihx *.sym *.cdb *.adb *.asm *.noi *.rst *.d
+
+# Downloaded toolchain (optional: remove to ignore)
+gbdk-linux64.tar.gz

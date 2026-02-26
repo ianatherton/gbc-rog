@@ -3,7 +3,8 @@ ifndef GBDK_HOME
 	GBDK_HOME = ./gbdk
 endif
 
-LCC = $(GBDK_HOME)/bin/lcc
+LCC       = $(GBDK_HOME)/bin/lcc
+PNG2ASSET = $(GBDK_HOME)/bin/png2asset
 
 # Build GBC ROM; add "gb" to also build DMG-compatible .gb
 TARGETS = gbc
@@ -22,19 +23,27 @@ ifdef GBDK_DEBUG
 endif
 
 PROJECTNAME = gbc-rog
-SRCDIR     = src
-OBJDIR     = obj/$(EXT)
-BINDIR     = build/$(EXT)
-MKDIRS     = $(OBJDIR) $(BINDIR)
+SRCDIR      = src
+OBJDIR      = obj/$(EXT)
+BINDIR      = build/$(EXT)
+MKDIRS      = $(OBJDIR) $(BINDIR)
 
-BINS       = $(BINDIR)/$(PROJECTNAME).$(EXT)
-CSOURCES   = $(foreach dir,$(SRCDIR),$(notdir $(wildcard $(dir)/*.c)))
-OBJS       = $(CSOURCES:%.c=$(OBJDIR)/%.o)
-DEPS       = $(OBJS:%.o=%.d)
+BINS        = $(BINDIR)/$(PROJECTNAME).$(EXT)
+CSOURCES    = $(foreach dir,$(SRCDIR),$(notdir $(wildcard $(dir)/*.c)))
+OBJS        = $(CSOURCES:%.c=$(OBJDIR)/%.o)
+DEPS        = $(OBJS:%.o=%.d)
+
+TILESET_PNG = res/tileset.png
+TILESET_C   = src/tileset.c
 
 -include $(DEPS)
 
-all: $(TARGETS)
+all: assets $(TARGETS)
+
+assets: $(TILESET_C)
+
+$(TILESET_C): $(TILESET_PNG)
+	$(PNG2ASSET) $< -c $@ -noflip
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(LCC) $(CFLAGS) -c -o $@ $<

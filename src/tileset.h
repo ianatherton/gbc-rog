@@ -13,10 +13,10 @@
 #define tileset_TILE_H 16
 #define tileset_WIDTH 128
 #define tileset_HEIGHT 128
-#define tileset_TILE_COUNT 26
-#define tileset_PALETTE_COUNT 3
+#define tileset_TILE_COUNT 30
+#define tileset_PALETTE_COUNT 2
 #define tileset_COLORS_PER_PALETTE 4
-#define tileset_TOTAL_COLORS 12
+#define tileset_TOTAL_COLORS 8
 #define tileset_PIVOT_X 64
 #define tileset_PIVOT_Y 64
 #define tileset_PIVOT_W 128
@@ -25,7 +25,7 @@ extern const metasprite_t* const tileset_metasprites[1];
 
 BANKREF_EXTERN(tileset)
 
-extern const palette_color_t tileset_palettes[12];
-extern const uint8_t tileset_tiles[416];
+extern const palette_color_t tileset_palettes[8];
+extern const uint8_t tileset_tiles[480];
 
 #endif

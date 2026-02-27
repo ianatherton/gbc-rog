@@ -36,7 +36,7 @@
 #define TILE_CLASS_1    6
 // Row 1 (16–31)
 #define TILE_GROUND_1   16
-#define TILE_WALL_2     17
+#define TILE_WALL_2     9
 #define TILE_MUSH_2     18
 #define TILE_PILLAR_1   19
 #define TILE_CHEST_1    20
@@ -68,7 +68,7 @@ static uint8_t corpse_y[MAX_CORPSES];  // corpse row
 static uint8_t num_corpses;  // count of corpses on level
 static uint8_t snake_anim_counter;  // frames until next S/s flip
 static uint8_t snake_anim_toggle;   // 0 = normal case, 1 = swapped
-static uint8_t wall_tileset_index = TILE_WALL_2;  // current wall tile (tileset-local index; debug-cyclable)
+static uint8_t wall_tileset_index = TILE_WALL_1;  // current wall tile (tileset-local index; debug-cyclable)
 static uint8_t wall_palette_index = 3;  // current wall palette index (debug-cyclable)
 
 #define SNAKE_DEAD 255       // sentinel: snake slot unused
@@ -95,7 +95,7 @@ static const palette_color_t pal_corpse[] = {
 	RGB(0, 0, 31), RGB(0, 8, 0), RGB(0, 5, 0), RGB(0, 3, 0)     // dark green
 };
 static const palette_color_t pal_player[] = {
-	RGB(0, 0, 31), RGB(31, 31, 31), RGB(24, 24, 24), RGB(18, 18, 18)  // silver
+	RGB(0, 0, 31), RGB(31, 20, 0), RGB(28, 14, 0), RGB(24, 10, 0)  // orange
 };
 static const palette_color_t pal_wall[] = {
 	RGB(0, 0, 31), RGB(12, 12, 12), RGB(8, 8, 8), RGB(5, 5, 5)  // gray
@@ -185,8 +185,6 @@ static void generate_level(void) {
 	uint16_t i;
 	uint8_t x = START_X, y = START_Y;  // walker starts at center
 	for (i = 0; i < MAP_SIZE; i++) map[i] = TILE_WALL;  // fill with walls
-
-	initrand(level_seed);  // seed RNG for this level
 	set_tile(x, y, TILE_FLOOR);  // carve start cell
 
 	for (i = 0; i < WALK_STEPS; i++) {
@@ -284,7 +282,7 @@ static void draw_screen(uint8_t px, uint8_t py) {
 				uint8_t si = snake_at(x, y);
 				uint8_t is_big = (snake_type[si] == 0);
 				setchar(is_big ? (snake_anim_toggle ? 's' : 'S') : (snake_anim_toggle ? 'S' : 's'));
-				set_bkg_attribute_xy(x, sy, is_big ? 2 : 1);  // big = gold/yellow (pal_player), small = green
+				set_bkg_attribute_xy(x, sy, is_big ? 0 : 1);  // big = default palette (pal_default), small = green
 			} else if (corpse_at(x, y)) {
 				setchar('x');  // corpse glyph
 				set_bkg_attribute_xy(x, sy, PAL_CORPSE);
@@ -312,7 +310,7 @@ static void draw_snake_cells(uint8_t px, uint8_t py) {
 		gotoxy(sx, DUNGEON_ROW(sy));
 		uint8_t is_big = (snake_type[i] == 0);
 		setchar(is_big ? (snake_anim_toggle ? 's' : 'S') : (snake_anim_toggle ? 'S' : 's'));
-		set_bkg_attribute_xy(sx, DUNGEON_ROW(sy), is_big ? 2 : 1);
+		set_bkg_attribute_xy(sx, DUNGEON_ROW(sy), is_big ? 0 : 1);  // big uses pal_default, small uses pal_snake
 	}
 }
 
@@ -362,17 +360,154 @@ static uint8_t move_snakes(uint8_t px, uint8_t py) {
 }
 
 static void enter_level(uint8_t *px, uint8_t *py, uint8_t from_pit) {
-	if (from_pit) floor_num++;  // next floor
-	else { floor_num = 1; player_hp = PLAYER_HP_MAX; }  // new game: reset floor and HP
+	if (from_pit) {
+		floor_num++;  // next floor
+		level_seed = (uint16_t)(level_seed * 1103u + 12345u);  // deterministic per-floor seed step
+	} else {
+		floor_num = 1;
+		player_hp = PLAYER_HP_MAX;  // new game: reset floor and HP
+		/* level_seed is set from run seed before first enter_level call */
+	}
 	num_corpses = 0;  // clear corpses
 	snake_anim_counter = 0;
 	snake_anim_toggle = 0;
-	wall_tileset_index = TILE_WALL_2; // reset debug wall tile per level
+	wall_tileset_index = TILE_WALL_1; // reset debug wall tile per level
 	wall_palette_index = 3; // reset wall palette per level (default pal_wall)
-	level_seed = randw();  // new seed per level
+	initrand(level_seed);  // seed RNG for this floor
 	generate_level();
 	spawn_snakes();
 	draw_screen(*px = START_X, *py = START_Y);  // set player to start and draw
+}
+
+/* Seed entry screen: 5-digit decimal seed with L/R digit select and U/D increment/decrement. */
+static uint16_t input_seed_screen(uint16_t initial_seed) {
+	uint8_t x, y;
+	uint8_t digit = 0;  // 0 = leftmost of 5 digits
+	uint8_t prev_j = 0;
+	uint8_t digits[5];
+	uint16_t tmp = (uint16_t)(initial_seed % 100000u);
+
+	/* Decompose initial seed into 5 decimal digits (most significant first). */
+	digits[4] = (uint8_t)(tmp % 10u); tmp /= 10u;
+	digits[3] = (uint8_t)(tmp % 10u); tmp /= 10u;
+	digits[2] = (uint8_t)(tmp % 10u); tmp /= 10u;
+	digits[1] = (uint8_t)(tmp % 10u); tmp /= 10u;
+	digits[0] = (uint8_t)(tmp % 10u);
+
+	for (y = 0; y < 18; y++)
+		for (x = 0; x < GRID_W; x++) {
+			gotoxy(x, y);
+			setchar(' ');  // clear screen
+		}
+
+	while (1) {
+		uint16_t shown_seed =
+			(uint16_t)(((((uint16_t)digits[0] * 10u + digits[1]) * 10u + digits[2]) * 10u + digits[3]) * 10u + digits[4]);
+
+		/* Draw seed and UI */
+		gotoxy(3, 7);
+		printf("SEED:");
+		gotoxy(9, 7);
+		printf("%05u", (unsigned)shown_seed);
+		gotoxy(9, 8);
+		printf("     ");
+		gotoxy(9 + digit, 8);
+		printf("^");
+		gotoxy(1, 10);
+		printf("L/R digit");
+		gotoxy(1, 11);
+		printf("U/D +/-");
+		gotoxy(1, 13);
+		printf("START=play");
+
+		{
+			uint8_t j = joypad();
+			uint8_t edge = (uint8_t)(j & (uint8_t)~prev_j);
+
+			if (edge & J_START) {
+				uint16_t final_seed =
+					(uint16_t)(((((uint16_t)digits[0] * 10u + digits[1]) * 10u + digits[2]) * 10u + digits[3]) * 10u + digits[4]);
+				final_seed &= 0xFFFFu;  // map 0–99999 into 16-bit
+				if (!final_seed) final_seed = 1;  // avoid zero seed
+				return final_seed;
+			}
+			if (edge & J_LEFT) {
+				digit = (digit == 0) ? 4 : (uint8_t)(digit - 1);
+			}
+			if (edge & J_RIGHT) {
+				digit = (uint8_t)((digit + 1) % 5);
+			}
+			if (edge & J_UP) {
+				digits[digit] = (uint8_t)((digits[digit] + 1u) % 10u);
+			}
+			if (edge & J_DOWN) {
+				digits[digit] = (uint8_t)((digits[digit] == 0u) ? 9u : (digits[digit] - 1u));
+			}
+
+			prev_j = j;
+		}
+
+		wait_vbl_done();  // one frame
+	}
+}
+
+/* Title screen: "Mara's Abyss" + START or SELECT=seed; returns final 16-bit run seed. */
+static uint16_t title_screen(void) {
+	uint8_t x, y;
+	uint16_t frame_counter = 0;
+	uint8_t blink_counter = 0;
+	uint8_t blink_visible = 1;
+	uint8_t prev_j = 0;
+
+	for (y = 0; y < 18; y++)
+		for (x = 0; x < GRID_W; x++) {
+			gotoxy(x, y);
+			setchar(' ');  // clear screen
+		}
+	gotoxy(4, 7);
+	printf("Mara's Abyss");
+	gotoxy(4, 12);
+	printf("SELECT=seed");
+
+	while (1) {
+		uint8_t j = joypad();
+		uint8_t edge = (uint8_t)(j & (uint8_t)~prev_j);
+
+		if (edge & J_START) {  // START from title: use frame-based seed directly
+			uint16_t seed = frame_counter;
+			if (!seed) seed = 1;  // avoid zero seed
+			return seed;
+		}
+		if (edge & J_SELECT) {  // SELECT: go to manual seed entry
+			uint16_t initial = frame_counter ? frame_counter : 12345u;
+			uint16_t seed = input_seed_screen(initial);
+			if (!seed) seed = 1;
+			return seed;
+		}
+
+		blink_counter++;
+		if (blink_counter >= 30) {
+			blink_counter = 0;
+			blink_visible ^= 1;
+			gotoxy(5, 10);
+			if (blink_visible) printf("PRESS START");
+			else printf("           ");  // erase prompt
+		}
+
+		frame_counter++;
+		wait_vbl_done();  // one frame
+		prev_j = j;
+	}
+}
+
+/* Start a full new run: title screen + frame-based RNG seed + fresh level. */
+static void start_new_run(uint8_t *px, uint8_t *py, uint8_t *prev_j) {
+	uint16_t seed = title_screen();  // unified seed source (frame or manual)
+	if (!seed) seed = 1;
+	level_seed = seed;  // base for this run's floors
+	initrand(seed);
+	*prev_j = 0;
+	enter_level(px, py, 0);
 }
 
 static void game_over_screen(void) {
@@ -409,14 +544,13 @@ int main(void) {
 	font_color(3, 0);
 	set_bkg_data(TILESET_VRAM_OFFSET, TILESET_NTILES, tileset_tiles);  // dungeon tiles above font
 
-	initrand(12345);
-	uint8_t px, py;
-	uint8_t prev_j = 0;
-	enter_level(&px, &py, 0);  // 0 = new game, not from pit
-
-	SHOW_BKG;  // show background layer
+	SHOW_BKG;  // show background layer for title/game
 	DISPLAY_ON;  // turn on LCD
 	enable_interrupts();  // allow VBL etc.
+
+	uint8_t px, py;
+	uint8_t prev_j = 0;
+	start_new_run(&px, &py, &prev_j);  // title + seeded new game
 
 	while (1) {
 		uint8_t j = joypad();  // read input
@@ -459,7 +593,7 @@ int main(void) {
 					draw_screen(px, py);
 					if (result == 2) {
 						game_over_screen();
-						enter_level(&px, &py, 0);
+						start_new_run(&px, &py, &prev_j);
 						continue;
 					}
 				}
@@ -484,7 +618,7 @@ int main(void) {
 						draw_screen(px, py);  // redraw after snake moves
 						if (result == 2) {
 							game_over_screen();
-							enter_level(&px, &py, 0);
+							start_new_run(&px, &py, &prev_j);
 							continue;
 						}
 					}

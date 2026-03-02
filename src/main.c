@@ -379,45 +379,80 @@ static void enter_level(uint8_t *px, uint8_t *py, uint8_t from_pit) {
 	draw_screen(*px = START_X, *py = START_Y);  // set player to start and draw
 }
 
-/* Seed entry screen: 5-digit decimal seed with L/R digit select and U/D increment/decrement. */
-static uint16_t input_seed_screen(uint16_t initial_seed) {
-	uint8_t x, y;
-	uint8_t digit = 0;  // 0 = leftmost of 5 digits
-	uint8_t prev_j = 0;
-	uint8_t digits[5];
-	uint16_t tmp = (uint16_t)(initial_seed % 100000u);
+#define SEED_WORDS_N 40
+/* Position 1 — Descriptor (5 letters max) */
+static const char *const seed_words_desc[SEED_WORDS_N] = {
+	"ASHEN","BLIND","BLEAK","BLOOD","BONED","COLD","CRUEL","DARK","DEAD","DEEP",
+	"DIRE","DREAD","DUSK","FELL","FOUL","GRIM","IRON","LOST","LUNAR","PALE",
+	"ROT","SHADE","SHORN","STILL","SUNK","TOXIC","VILE","VOID","GAUNT","BLUNT",
+	"BURNT","CURST","DENSE","DREAR","DULL","DUSTY","EMBER","FETID","MURKY","STARK"
+};
+/* Position 2 — Noun (5 letters max) */
+static const char *const seed_words_noun[SEED_WORDS_N] = {
+	"ASH","BONE","BRIER","CROW","DUST","FANG","FLAME","FROST","FUNGI","HORN",
+	"IRON","LARVA","MARA","MIRE","MIST","MOSS","MOTH","MURK","ROOT","RUIN",
+	"SHADE","SKULL","SLIME","SMOKE","SPINE","SPORE","STONE","THORN","TIDE","TOMB",
+	"VENOM","WORM","CRYPT","EMBER","BRIAR","PITH","COIL","BANE","FROND","BLOT"
+};
+/* Position 3 — Place (5 letters max) */
+static const char *const seed_words_place[SEED_WORDS_N] = {
+	"ABYSS","MOUND","BOG","CAIRN","CHASM","CRYPT","DEEP","DELVE","DUNES","FLATS",
+	"GULCH","NOOK","KEEP","MIRE","MOORS","PEAKS","PITS","RIFT","RUINS","SANDS",
+	"SPIRE","STEPS","TOMB","VALE","VAULT","WASTE","WILDS","BRINK","CAVES","CRAGS",
+	"DELL","GORGE","MARSH","SHELF","SHORE","SLOPE","WEALD","FELLS","HEATH","WOOD"
+};
 
-	/* Decompose initial seed into 5 decimal digits (most significant first). */
-	digits[4] = (uint8_t)(tmp % 10u); tmp /= 10u;
-	digits[3] = (uint8_t)(tmp % 10u); tmp /= 10u;
-	digits[2] = (uint8_t)(tmp % 10u); tmp /= 10u;
-	digits[1] = (uint8_t)(tmp % 10u); tmp /= 10u;
-	digits[0] = (uint8_t)(tmp % 10u);
+/* Seed = 1 + d + 40*n + 1600*p (d,n,p 0..39); 0 reserved. Words spaced 5 chars + gap. */
+static void put_word5(uint8_t x, uint8_t y, const char *s) {
+	uint8_t i;
+	for (i = 0; i < 5; i++) {
+		gotoxy((uint8_t)(x + i), y);
+		setchar(s[i] ? s[i] : ' ');
+	}
+}
+static uint16_t input_seed_words_screen(uint16_t initial_seed) {
+	uint8_t x, y;
+	uint8_t word_pos = 0;  // 0=desc, 1=noun, 2=place
+	uint8_t prev_j = 0;
+	uint16_t s = initial_seed ? initial_seed : 1u;
+	if (s > 64000u) s = 64000u;
+	s--;
+	uint8_t d = (uint8_t)(s % 40u);
+	uint8_t n = (uint8_t)((s / 40u) % 40u);
+	uint8_t p = (uint8_t)((s / 1600u) % 40u);
 
 	for (y = 0; y < 18; y++)
 		for (x = 0; x < GRID_W; x++) {
 			gotoxy(x, y);
-			setchar(' ');  // clear screen
+			setchar(' ');
 		}
 
 	while (1) {
-		uint16_t shown_seed =
-			(uint16_t)(((((uint16_t)digits[0] * 10u + digits[1]) * 10u + digits[2]) * 10u + digits[3]) * 10u + digits[4]);
-
-		/* Draw seed and UI */
-		gotoxy(3, 7);
-		printf("SEED:");
-		gotoxy(9, 7);
-		printf("%05u", (unsigned)shown_seed);
-		gotoxy(9, 8);
+		gotoxy(3, 1);
+		printf("SEED WORDS");
+		gotoxy(1, 3);
+		put_word5(1, 3, seed_words_desc[d]);
+		gotoxy(6, 3);
+		setchar(' ');
+		gotoxy(7, 3);
+		put_word5(7, 3, seed_words_noun[n]);
+		gotoxy(12, 3);
+		setchar(' ');
+		gotoxy(13, 3);
+		put_word5(13, 3, seed_words_place[p]);
+		gotoxy(1, 4);
 		printf("     ");
-		gotoxy(9 + digit, 8);
-		printf("^");
-		gotoxy(1, 10);
-		printf("L/R digit");
-		gotoxy(1, 11);
-		printf("U/D +/-");
-		gotoxy(1, 13);
+		gotoxy(6, 4);
+		printf("     ");
+		gotoxy(11, 4);
+		printf("     ");
+		gotoxy(1 + word_pos * 6, 4);
+		setchar('^');
+		gotoxy(1, 6);
+		printf("L/R word");
+		gotoxy(1, 7);
+		printf("U/D scroll");
+		gotoxy(1, 9);
 		printf("START=play");
 
 		{
@@ -425,29 +460,26 @@ static uint16_t input_seed_screen(uint16_t initial_seed) {
 			uint8_t edge = (uint8_t)(j & (uint8_t)~prev_j);
 
 			if (edge & J_START) {
-				uint16_t final_seed =
-					(uint16_t)(((((uint16_t)digits[0] * 10u + digits[1]) * 10u + digits[2]) * 10u + digits[3]) * 10u + digits[4]);
-				final_seed &= 0xFFFFu;  // map 0–99999 into 16-bit
-				if (!final_seed) final_seed = 1;  // avoid zero seed
+				uint16_t final_seed = (uint16_t)(1u + (uint16_t)d + 40u * (uint16_t)n + 1600u * (uint16_t)p);
+				if (!final_seed) final_seed = 1;
 				return final_seed;
 			}
-			if (edge & J_LEFT) {
-				digit = (digit == 0) ? 4 : (uint8_t)(digit - 1);
-			}
-			if (edge & J_RIGHT) {
-				digit = (uint8_t)((digit + 1) % 5);
-			}
+			if (edge & J_LEFT) word_pos = (word_pos == 0) ? 2 : (uint8_t)(word_pos - 1);
+			if (edge & J_RIGHT) word_pos = (uint8_t)((word_pos + 1) % 3);
 			if (edge & J_UP) {
-				digits[digit] = (uint8_t)((digits[digit] + 1u) % 10u);
+				if (word_pos == 0) d = (uint8_t)((d + 1) % SEED_WORDS_N);
+				else if (word_pos == 1) n = (uint8_t)((n + 1) % SEED_WORDS_N);
+				else p = (uint8_t)((p + 1) % SEED_WORDS_N);
 			}
 			if (edge & J_DOWN) {
-				digits[digit] = (uint8_t)((digits[digit] == 0u) ? 9u : (digits[digit] - 1u));
+				if (word_pos == 0) d = (uint8_t)(d == 0 ? SEED_WORDS_N - 1 : d - 1);
+				else if (word_pos == 1) n = (uint8_t)(n == 0 ? SEED_WORDS_N - 1 : n - 1);
+				else p = (uint8_t)(p == 0 ? SEED_WORDS_N - 1 : p - 1);
 			}
-
 			prev_j = j;
 		}
 
-		wait_vbl_done();  // one frame
+		wait_vbl_done();
 	}
 }
 
@@ -466,8 +498,8 @@ static uint16_t title_screen(void) {
 		}
 	gotoxy(4, 7);
 	printf("Mara's Abyss");
-	gotoxy(4, 12);
-	printf("SELECT=seed");
+	gotoxy(3, 12);
+	printf("SELECT=seed words");
 
 	while (1) {
 		uint8_t j = joypad();
@@ -478,9 +510,9 @@ static uint16_t title_screen(void) {
 			if (!seed) seed = 1;  // avoid zero seed
 			return seed;
 		}
-		if (edge & J_SELECT) {  // SELECT: go to manual seed entry
+		if (edge & J_SELECT) {  // SELECT: go to word seed entry
 			uint16_t initial = frame_counter ? frame_counter : 12345u;
-			uint16_t seed = input_seed_screen(initial);
+			uint16_t seed = input_seed_words_screen(initial);
 			if (!seed) seed = 1;
 			return seed;
 		}

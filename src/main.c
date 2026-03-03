@@ -2,11 +2,14 @@
  * Turn-based: player moves 1 tile then all snakes move 1 tile; 400ms delay between turns. */
 #include <gb/gb.h>        // GBDK core (display, joypad, etc.)
 #include <gb/cgb.h>       // Color Game Boy palettes
+#include <gb/hardware.h>  // DIV_REG for power-on timer
 #include <gbdk/console.h> // gotoxy, setchar, printf
 #include <gbdk/font.h>    // font_init, font_load
 #include <rand.h>         // initrand, rand, randw
 #include <stdint.h>       // uint8_t, uint16_t
 #include <stdio.h>        // printf
+
+#include "seed_entropy.h"
 
 #define GRID_W 20           // dungeon width in tiles
 #define GRID_H 17           // dungeon height
@@ -17,7 +20,7 @@
 #define NUM_PITS 6		// number of pits per level
 #define MAX_SNAKES 8		// max snakes per level
 #define NUM_SNAKES 5		// snakes per level
-#define TURN_DELAY_MS 300	// delay between turns
+#define TURN_DELAY_MS 60	// delay between turns
 #define SNAKE_ANIM_FRAMES 30   // flip S/s every 30 frames (~0.5s at 60fps)
 
 #define TILE_WALL  0   // wall tile id (logical)
@@ -382,24 +385,24 @@ static void enter_level(uint8_t *px, uint8_t *py, uint8_t from_pit) {
 #define SEED_WORDS_N 40
 /* Position 1 — Descriptor (5 letters max) */
 static const char *const seed_words_desc[SEED_WORDS_N] = {
-	"ASHEN","BLIND","BLEAK","BLOOD","BONED","COLD","CRUEL","DARK","DEAD","DEEP",
-	"DIRE","DREAD","DUSK","FELL","FOUL","GRIM","IRON","LOST","LUNAR","PALE",
-	"ROT","SHADE","SHORN","STILL","SUNK","TOXIC","VILE","VOID","GAUNT","BLUNT",
-	"BURNT","CURST","DENSE","DREAR","DULL","DUSTY","EMBER","FETID","MURKY","STARK"
+	"ASHEN","BLEAK","BLIND","BLOOD","BLUNT","BONED","BURNT","COLD","CRUEL","CURST",
+	"DARK","DEAD","DEEP","DENSE","DIRE","DREAD","DREAR","DULL","DUSK","DUSTY",
+	"EMBER","FELL","FETID","FOUL","GAUNT","GRIM","IRON","LOST","LUNAR","MURKY",
+	"PALE","ROT","SHADE","SHORN","STARK","STILL","SUNK","TOXIC","VILE","VOID"
 };
 /* Position 2 — Noun (5 letters max) */
 static const char *const seed_words_noun[SEED_WORDS_N] = {
-	"ASH","BONE","BRIER","CROW","DUST","FANG","FLAME","FROST","FUNGI","HORN",
-	"IRON","LARVA","MARA","MIRE","MIST","MOSS","MOTH","MURK","ROOT","RUIN",
-	"SHADE","SKULL","SLIME","SMOKE","SPINE","SPORE","STONE","THORN","TIDE","TOMB",
-	"VENOM","WORM","CRYPT","EMBER","BRIAR","PITH","COIL","BANE","FROND","BLOT"
+	"ASH","BANE","BLOT","BONE","BRIAR","BRIER","COIL","CROW","CRYPT","DUST",
+	"EMBER","FANG","FLAME","FROND","FROST","FUNGI","HORN","IRON","LARVA","MIRE",
+	"MIST","MOSS","MOTH","MURK","PITH","ROOT","RUIN","SHADE","SKULL","SLIME",
+	"SMOKE","SPINE","SPORE","STONE","THORN","TIDE","TOMB","VENOM","WISP","WORM"
 };
 /* Position 3 — Place (5 letters max) */
 static const char *const seed_words_place[SEED_WORDS_N] = {
-	"ABYSS","MOUND","BOG","CAIRN","CHASM","CRYPT","DEEP","DELVE","DUNES","FLATS",
-	"GULCH","NOOK","KEEP","MIRE","MOORS","PEAKS","PITS","RIFT","RUINS","SANDS",
-	"SPIRE","STEPS","TOMB","VALE","VAULT","WASTE","WILDS","BRINK","CAVES","CRAGS",
-	"DELL","GORGE","MARSH","SHELF","SHORE","SLOPE","WEALD","FELLS","HEATH","WOOD"
+	"ABYSS","BOG","BRINK","CAIRN","CAVES","CHASM","CRAGS","CRYPT","DEEP","DELL",
+	"DELVE","DUNES","FELLS","FLATS","GORGE","GULCH","HEATH","KEEP","MARSH","MIRE",
+	"MOORS","MOUND","NOOK","PEAKS","PITS","RIFT","RUINS","SANDS","SHELF","SHORE",
+	"SLOPE","SPIRE","STEPS","TOMB","VALE","VAULT","WASTE","WEALD","WILDS","WOOD"
 };
 
 /* Seed = 1 + d + 40*n + 1600*p (d,n,p 0..39); 0 reserved. Words spaced 5 chars + gap. */
@@ -410,10 +413,11 @@ static void put_word5(uint8_t x, uint8_t y, const char *s) {
 		setchar(s[i] ? s[i] : ' ');
 	}
 }
-static uint16_t input_seed_words_screen(uint16_t initial_seed) {
+static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t power_on_ticks) {
 	uint8_t x, y;
 	uint8_t word_pos = 0;  // 0=desc, 1=noun, 2=place
 	uint8_t prev_j = 0;
+	uint16_t frame_counter = 0;  // for entropy when pressing A
 	uint16_t s = initial_seed ? initial_seed : 1u;
 	if (s > 64000u) s = 64000u;
 	s--;
@@ -452,6 +456,8 @@ static uint16_t input_seed_words_screen(uint16_t initial_seed) {
 		printf("L/R word");
 		gotoxy(1, 7);
 		printf("U/D scroll");
+		gotoxy(1, 8);
+		printf("New seed: (A)");
 		gotoxy(1, 9);
 		printf("START=play");
 
@@ -463,6 +469,15 @@ static uint16_t input_seed_words_screen(uint16_t initial_seed) {
 				uint16_t final_seed = (uint16_t)(1u + (uint16_t)d + 40u * (uint16_t)n + 1600u * (uint16_t)p);
 				if (!final_seed) final_seed = 1;
 				return final_seed;
+			}
+			if (edge & J_A) {
+				uint16_t new_seed = seed_entropy_random_seed(power_on_ticks, frame_counter);
+				uint16_t t = new_seed;
+				if (t > 64000u) t = 64000u;
+				t--;
+				d = (uint8_t)(t % 40u);
+				n = (uint8_t)((t / 40u) % 40u);
+				p = (uint8_t)((t / 1600u) % 40u);
 			}
 			if (edge & J_LEFT) word_pos = (word_pos == 0) ? 2 : (uint8_t)(word_pos - 1);
 			if (edge & J_RIGHT) word_pos = (uint8_t)((word_pos + 1) % 3);
@@ -479,12 +494,14 @@ static uint16_t input_seed_words_screen(uint16_t initial_seed) {
 			prev_j = j;
 		}
 
+		frame_counter++;
 		wait_vbl_done();
 	}
 }
 
-/* Title screen: "Mara's Abyss" + START or SELECT=seed; returns final 16-bit run seed. */
-static uint16_t title_screen(void) {
+/* Title screen: "Mara's Abyss" + START or SELECT=seed; returns final 16-bit run seed.
+ * Seed combines power_on_ticks (DIV at boot) with frame_counter (time on title) for variety. */
+static uint16_t title_screen(uint16_t power_on_ticks) {
 	uint8_t x, y;
 	uint16_t frame_counter = 0;
 	uint8_t blink_counter = 0;
@@ -505,14 +522,14 @@ static uint16_t title_screen(void) {
 		uint8_t j = joypad();
 		uint8_t edge = (uint8_t)(j & (uint8_t)~prev_j);
 
-		if (edge & J_START) {  // START from title: use frame-based seed directly
-			uint16_t seed = frame_counter;
-			if (!seed) seed = 1;  // avoid zero seed
-			return seed;
+		/* Three independent 0..39 indices from entropy so all three words vary */
+		uint16_t mixed_seed = seed_entropy_random_seed(power_on_ticks, frame_counter);
+
+		if (edge & J_START) {
+			return mixed_seed;
 		}
-		if (edge & J_SELECT) {  // SELECT: go to word seed entry
-			uint16_t initial = frame_counter ? frame_counter : 12345u;
-			uint16_t seed = input_seed_words_screen(initial);
+		if (edge & J_SELECT) {
+			uint16_t seed = input_seed_words_screen(mixed_seed, power_on_ticks);
 			if (!seed) seed = 1;
 			return seed;
 		}
@@ -532,9 +549,9 @@ static uint16_t title_screen(void) {
 	}
 }
 
-/* Start a full new run: title screen + frame-based RNG seed + fresh level. */
-static void start_new_run(uint8_t *px, uint8_t *py, uint8_t *prev_j) {
-	uint16_t seed = title_screen();  // unified seed source (frame or manual)
+/* Start a full new run: title screen + combined seed + fresh level. */
+static void start_new_run(uint8_t *px, uint8_t *py, uint8_t *prev_j, uint16_t power_on_ticks) {
+	uint16_t seed = title_screen(power_on_ticks);
 	if (!seed) seed = 1;
 	level_seed = seed;  // base for this run's floors
 	initrand(seed);
@@ -580,9 +597,10 @@ int main(void) {
 	DISPLAY_ON;  // turn on LCD
 	enable_interrupts();  // allow VBL etc.
 
+	uint16_t power_on_ticks = (uint16_t)DIV_REG;  // time since reset (0–255), mixes into seed
 	uint8_t px, py;
 	uint8_t prev_j = 0;
-	start_new_run(&px, &py, &prev_j);  // title + seeded new game
+	start_new_run(&px, &py, &prev_j, power_on_ticks);  // title + seeded new game
 
 	while (1) {
 		uint8_t j = joypad();  // read input
@@ -625,7 +643,7 @@ int main(void) {
 					draw_screen(px, py);
 					if (result == 2) {
 						game_over_screen();
-						start_new_run(&px, &py, &prev_j);
+						start_new_run(&px, &py, &prev_j, power_on_ticks);
 						continue;
 					}
 				}
@@ -650,7 +668,7 @@ int main(void) {
 						draw_screen(px, py);  // redraw after snake moves
 						if (result == 2) {
 							game_over_screen();
-							start_new_run(&px, &py, &prev_j);
+							start_new_run(&px, &py, &prev_j, power_on_ticks);
 							continue;
 						}
 					}

@@ -1,0 +1,234 @@
+#include "map.h"
+
+/* ── Storage ─────────────────────────────────────────────────────────────── */
+uint8_t floor_bits[BITSET_BYTES];
+uint8_t pit_bits[BITSET_BYTES];
+NavNode nav_nodes[MAX_NAV_NODES];
+uint8_t num_nav_nodes;
+uint8_t wall_tileset_index = TILE_WALL_1;
+uint8_t wall_palette_index = 3;
+
+/* ── Direction tables (ROM, not RAM) ─────────────────────────────────────── */
+// Indices: 0=up 1=down 2=left 3=right
+static const int8_t NAV_DX[4] = {  0,  0, -1,  1 };   // column delta
+static const int8_t NAV_DY[4] = { -1,  1,  0,  0 };   // row delta
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* TILE ACCESSORS                                                            */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+uint8_t tile_at(uint8_t x, uint8_t y) {
+    uint16_t idx = TILE_IDX(x, y);
+    if (!BIT_GET(floor_bits, idx)) return TILE_WALL;
+    if ( BIT_GET(pit_bits,   idx)) return TILE_PIT;
+    return TILE_FLOOR;
+}
+
+void set_floor(uint8_t x, uint8_t y) {
+    BIT_SET(floor_bits, TILE_IDX(x, y));
+}
+
+void set_pit(uint8_t x, uint8_t y) {
+    uint16_t idx = TILE_IDX(x, y);
+    BIT_SET(floor_bits, idx);   // a pit is also walkable
+    BIT_SET(pit_bits,   idx);
+}
+
+uint8_t is_walkable(uint8_t x, uint8_t y) {
+    return BIT_GET(floor_bits, TILE_IDX(x, y));   // floor_bits covers both floor and pit
+}
+
+/* ── Rendering helpers ───────────────────────────────────────────────────── */
+
+char tile_char(uint8_t t) {
+    if (t == TILE_WALL) return '#';
+    if (t == TILE_PIT)  return '0';
+    return '.';
+}
+
+uint8_t tile_vram_index(uint8_t t) {
+    if (t == TILE_WALL) return (uint8_t)(TILESET_VRAM_OFFSET + wall_tileset_index);
+    return 0;   // 0 = use font glyph
+}
+
+uint8_t tile_palette(uint8_t t) {
+    if (t == TILE_WALL) return wall_palette_index;
+    if (t == TILE_PIT)  return 4;
+    return 0;
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* NAV GRAPH: INTERNAL HELPERS                                               */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+// Returns 1 if (x,y) is a plain straight corridor:
+// exactly two walkable neighbours that are directly opposite each other.
+static uint8_t is_straight_corridor(uint8_t x, uint8_t y) {
+    uint8_t n = (y > 0       && is_walkable(x,   y-1));
+    uint8_t s = (y < MAP_H-1 && is_walkable(x,   y+1));
+    uint8_t w = (x > 0       && is_walkable(x-1, y  ));
+    uint8_t e = (x < MAP_W-1 && is_walkable(x+1, y  ));
+    return ((n && s && !w && !e) || (w && e && !n && !s));
+}
+
+// Manhattan distance from (x,y) to the nearest existing node; 255 if none.
+static uint8_t min_dist_to_existing_node(uint8_t x, uint8_t y) {
+    uint8_t i, min_d = 255;
+    for (i = 0; i < num_nav_nodes; i++) {
+        uint8_t dx = (nav_nodes[i].x > x) ? nav_nodes[i].x - x : x - nav_nodes[i].x;
+        uint8_t dy = (nav_nodes[i].y > y) ? nav_nodes[i].y - y : y - nav_nodes[i].y;
+        uint8_t d  = dx + dy;
+        if (d < min_d) min_d = d;
+    }
+    return min_d;
+}
+
+// Returns the index of the node at exactly (x,y), or NAV_NO_LINK.
+static uint8_t find_node_at(uint8_t x, uint8_t y) {
+    uint8_t i;
+    for (i = 0; i < num_nav_nodes; i++)
+        if (nav_nodes[i].x == x && nav_nodes[i].y == y) return i;
+    return NAV_NO_LINK;
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* NAV GRAPH: CONSTRUCTION                                                   */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+static void build_nav_graph(void) {
+    uint8_t x, y, i, dir;
+    num_nav_nodes = 0;
+
+    // Pass 1: place nodes at junctions, open areas, and dead ends.
+    // Skip plain straight corridors — they carry no routing information.
+    for (y = 1; y < MAP_H-1 && num_nav_nodes < MAX_NAV_NODES; y++) {
+        for (x = 1; x < MAP_W-1 && num_nav_nodes < MAX_NAV_NODES; x++) {
+            if (!is_walkable(x, y))          continue;
+            if (is_straight_corridor(x, y))  continue;
+            if (num_nav_nodes > 0 && min_dist_to_existing_node(x, y) < NAV_MIN_SPACE) continue;
+            nav_nodes[num_nav_nodes].x      = x;
+            nav_nodes[num_nav_nodes].y      = y;
+            nav_nodes[num_nav_nodes].adj[0] = NAV_NO_LINK;
+            nav_nodes[num_nav_nodes].adj[1] = NAV_NO_LINK;
+            nav_nodes[num_nav_nodes].adj[2] = NAV_NO_LINK;
+            nav_nodes[num_nav_nodes].adj[3] = NAV_NO_LINK;
+            num_nav_nodes++;
+        }
+    }
+
+    // Pass 2: for each node trace outward in each cardinal direction.
+    // If we reach another node before hitting a wall, link them.
+    for (i = 0; i < num_nav_nodes; i++) {
+        for (dir = 0; dir < 4; dir++) {
+            uint8_t cx = nav_nodes[i].x;
+            uint8_t cy = nav_nodes[i].y;
+            uint8_t step;
+            for (step = 0; step < NAV_MAX_TRACE; step++) {
+                int16_t ncx = (int16_t)cx + NAV_DX[dir];
+                int16_t ncy = (int16_t)cy + NAV_DY[dir];
+                if (ncx <= 0 || ncx >= MAP_W-1 || ncy <= 0 || ncy >= MAP_H-1) break;
+                cx = (uint8_t)ncx;
+                cy = (uint8_t)ncy;
+                if (!is_walkable(cx, cy)) break;
+                uint8_t j = find_node_at(cx, cy);
+                if (j != NAV_NO_LINK && j != i) {
+                    nav_nodes[i].adj[dir] = j;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* NAV GRAPH: RUNTIME QUERIES                                                */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+uint8_t nearest_nav_node(uint8_t x, uint8_t y) {
+    uint8_t best = NAV_NO_LINK, best_dist = 255, i;
+    for (i = 0; i < num_nav_nodes; i++) {
+        uint8_t dx = (nav_nodes[i].x > x) ? nav_nodes[i].x - x : x - nav_nodes[i].x;
+        uint8_t dy = (nav_nodes[i].y > y) ? nav_nodes[i].y - y : y - nav_nodes[i].y;
+        uint8_t d  = dx + dy;
+        if (d < best_dist) { best_dist = d; best = i; }
+    }
+    return best;
+}
+
+uint8_t nav_next_step(uint8_t from, uint8_t to) {
+    // BFS on the nav graph; returns the index of the first-hop node.
+    uint8_t visited[MAX_NAV_NODES];
+    uint8_t parent[MAX_NAV_NODES];
+    uint8_t queue[MAX_NAV_NODES];
+    uint8_t qhead = 0, qtail = 0, i;
+
+    if (from == NAV_NO_LINK || to == NAV_NO_LINK || from == to) return NAV_NO_LINK;
+
+    for (i = 0; i < num_nav_nodes; i++) { visited[i] = 0; parent[i] = NAV_NO_LINK; }
+    visited[from]   = 1;
+    queue[qtail++]  = from;
+
+    while (qhead < qtail) {
+        uint8_t cur = queue[qhead++];
+        if (cur == to) break;
+        for (i = 0; i < 4; i++) {
+            uint8_t nb = nav_nodes[cur].adj[i];
+            if (nb == NAV_NO_LINK || visited[nb]) continue;
+            visited[nb]    = 1;
+            parent[nb]     = cur;
+            queue[qtail++] = nb;
+            if (qtail >= MAX_NAV_NODES) goto bfs_done;
+        }
+    }
+bfs_done:
+
+    if (!visited[to]) return NAV_NO_LINK;
+
+    // Walk parent chain back from `to` to find the first hop after `from`
+    uint8_t step = to;
+    while (step != NAV_NO_LINK && parent[step] != from)
+        step = parent[step];
+    return step;
+}
+
+/* ────────────────────────────────────────────────────────────────────────── */
+/* DUNGEON GENERATION                                                        */
+/* ────────────────────────────────────────────────────────────────────────── */
+
+void generate_level(void) {
+    uint16_t i;
+    uint8_t x = START_X, y = START_Y;
+
+    // Clear both bitsets to all-walls
+    for (i = 0; i < BITSET_BYTES; i++) { floor_bits[i] = 0; pit_bits[i] = 0; }
+
+    // Drunkard's walk: carve floor tiles
+    set_floor(x, y);
+    for (i = 0; i < WALK_STEPS; i++) {
+        uint8_t d  = rand() & 3;
+        uint8_t nx = x, ny = y;
+        if      (d == 0) ny = y > 1           ? y - 1 : y;
+        else if (d == 1) ny = y < MAP_H - 2   ? y + 1 : y;
+        else if (d == 2) nx = x > 1           ? x - 1 : x;
+        else             nx = x < MAP_W - 2   ? x + 1 : x;
+        set_floor(nx, ny);
+        x = nx; y = ny;
+    }
+
+    // Scatter pits
+    uint8_t placed = 0;
+    for (uint8_t attempts = 0; attempts < 200 && placed < NUM_PITS; attempts++) {
+        uint8_t tx = (uint8_t)(rand() % MAP_W);
+        uint8_t ty = (uint8_t)(rand() % MAP_H);
+        if ((tx != START_X || ty != START_Y)
+                && BIT_GET(floor_bits, TILE_IDX(tx, ty))
+                && !BIT_GET(pit_bits,  TILE_IDX(tx, ty))) {
+            set_pit(tx, ty);
+            placed++;
+        }
+    }
+
+    // Build nav graph from the finished bitsets
+    build_nav_graph();
+}
+

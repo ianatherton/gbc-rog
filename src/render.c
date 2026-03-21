@@ -1,6 +1,7 @@
 #include "render.h"
 #include "map.h"
 #include "enemy.h"
+#include "ui.h"
 
 /* ── CGB palette data ────────────────────────────────────────────────────── */
 static const palette_color_t pal_default[]  = { RGB(0,0,0),  RGB(8,8,8),   RGB(16,16,16), RGB(31,31,31) };
@@ -127,43 +128,27 @@ void draw_row_strip(uint8_t my, uint8_t px, uint8_t py) {
 /* Column helper: ring-wraps hud_vx + offset. */
 #define HUD_COL(n)  ((uint8_t)((UI_HUD_VX + (uint8_t)(n)) & 31u))
 
-/* ── Full-screen redraw (caller must wait_vbl_done first if LCD on) ─────── */
-void draw_screen(uint8_t px, uint8_t py) {
-    uint8_t x, y;
-
-    /* Snapshot ring positions once (macros read globals, keep them stable). */
-    uint8_t hvx  = UI_HUD_VX;
-    uint8_t hvy  = UI_HUD_VY;
-
-    /* ── Top HUD ──────────────────────────────────────────────────────── */
-    /*
-     * FIX: was gotoxy(0, UI_ROW_TOP=0) — wrote to tilemap row 0, a fixed
-     * position that scrolled off-screen as soon as SCY_REG was set to
-     * camera_py.  Now we write to the ring row that the hardware will
-     * display at screen row 0 after the corrected SCY_REG below.
-     */
+/* ── Top HUD into ring row (hvx, hvy); keeps HUD locked at screen row 0 ─── */
+static void draw_top_hud(uint8_t hvx, uint8_t hvy) {
+    uint8_t x;
     gotoxy(hvx, hvy);
     printf("FLR:%02d", floor_num);
     for (x = 0; x < 6; x++) {
         set_bkg_attribute_xy((uint8_t)((hvx + x) & 31u), hvy, PAL_UI);
         VBK_REG = 0;
     }
-
     gotoxy((uint8_t)((hvx + 6u) & 31u), hvy);
     setchar(' ');
     set_bkg_attribute_xy((uint8_t)((hvx + 6u) & 31u), hvy, PAL_UI);
     VBK_REG = 0;
-
     gotoxy((uint8_t)((hvx + 7u) & 31u), hvy);
     setchar('L');
     set_bkg_attribute_xy((uint8_t)((hvx + 7u) & 31u), hvy, PAL_LIFE_UI);
     VBK_REG = 0;
-
     gotoxy((uint8_t)((hvx + 8u) & 31u), hvy);
     setchar('[');
     set_bkg_attribute_xy((uint8_t)((hvx + 8u) & 31u), hvy, PAL_UI);
     VBK_REG = 0;
-
     {
         uint8_t k, pct = (uint8_t)((uint16_t)player_hp * 100u / PLAYER_HP_MAX);
         for (k = 0; k < LIFE_BAR_LEN; k++) {
@@ -177,18 +162,31 @@ void draw_screen(uint8_t px, uint8_t py) {
             VBK_REG = 0;
         }
     }
-
     gotoxy((uint8_t)((hvx + 9u + LIFE_BAR_LEN) & 31u), hvy);
     setchar(']');
     set_bkg_attribute_xy((uint8_t)((hvx + 9u + LIFE_BAR_LEN) & 31u), hvy, PAL_UI);
     VBK_REG = 0;
-
     gotoxy((uint8_t)((hvx + 10u + LIFE_BAR_LEN) & 31u), hvy);
     printf("%3d%%", (uint16_t)player_hp * 100u / PLAYER_HP_MAX);
     for (x = 10u + LIFE_BAR_LEN; x < GRID_W; x++) {
         set_bkg_attribute_xy((uint8_t)((hvx + x) & 31u), hvy, PAL_UI);
         VBK_REG = 0;
     }
+}
+
+/* Redraw top HUD + bottom UI into current ring slots so they stay fixed on screen. */
+void draw_ui_rows(void) {
+    uint8_t hvx = UI_HUD_VX, hvy = UI_HUD_VY;
+    draw_top_hud(hvx, hvy);
+    draw_bottom_ui();
+}
+
+/* ── Full-screen redraw (caller must wait_vbl_done first if LCD on) ─────── */
+void draw_screen(uint8_t px, uint8_t py) {
+    uint8_t x, y;
+    uint8_t hvx = UI_HUD_VX, hvy = UI_HUD_VY;
+
+    draw_top_hud(hvx, hvy);
 
     /* ── Dungeon viewport into ring buffer ────────────────────────────── */
     for (y = 0; y < GRID_H; y++) {
@@ -228,24 +226,15 @@ void draw_screen(uint8_t px, uint8_t py) {
 /* ── Bottom UI rows ──────────────────────────────────────────────────────── */
 void draw_bottom_ui(void) {
     uint8_t x;
-    /*
-     * FIX: was gotoxy(0, UI_ROW_BOTTOM_1/2) — same fixed-row problem as
-     * the top HUD.  Now computed from the current camera position so the
-     * two UI rows always track just below the dungeon in the ring buffer.
-     */
     uint8_t hvx  = UI_HUD_VX;
     uint8_t b1vy = UI_BOT1_VY;
     uint8_t b2vy = UI_BOT2_VY;
 
-    gotoxy(hvx, b1vy);
-    printf("ATK:-- DEF:-- SPD:--");
+    ui_draw_seed_words(run_seed, hvx, b1vy, b2vy);
     for (x = 0; x < GRID_W; x++) {
         set_bkg_attribute_xy((uint8_t)((hvx + x) & 31u), b1vy, PAL_UI);
         VBK_REG = 0;
     }
-
-    gotoxy(hvx, b2vy);
-    printf("[  ][  ][  ][  ][  ]");
     for (x = 0; x < GRID_W; x++) {
         set_bkg_attribute_xy((uint8_t)((hvx + x) & 31u), b2vy, PAL_UI);
         VBK_REG = 0;

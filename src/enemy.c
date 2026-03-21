@@ -23,8 +23,28 @@ uint8_t corpse_x[MAX_CORPSES];
 uint8_t corpse_y[MAX_CORPSES];
 uint8_t num_corpses;
 
-uint8_t enemy_anim_counter;
 uint8_t enemy_anim_toggle;
+
+static uint8_t   anim_last_div;
+static uint32_t anim_ticks;
+
+void enemy_anim_reset(void) {
+    anim_last_div = DIV_REG;
+    anim_ticks    = 0;
+}
+
+/* Returns 1 when a flip occurred and enemy cells should be redrawn. */
+uint8_t enemy_anim_update(void) {
+    uint8_t div = DIV_REG;
+    anim_ticks += (uint8_t)(div - anim_last_div);
+    anim_last_div = div;
+    if (anim_ticks >= ENEMY_ANIM_DIV_TICKS) {
+        anim_ticks -= ENEMY_ANIM_DIV_TICKS;
+        enemy_anim_toggle ^= 1;
+        return 1;
+    }
+    return 0;
+}
 
 /* ── Lookup helpers ──────────────────────────────────────────────────────── */
 
@@ -116,7 +136,7 @@ static void step_random(uint8_t sx, uint8_t sy,
                          uint8_t *nx, uint8_t *ny) {
     uint8_t attempt;
     for (attempt = 0; attempt < 4; attempt++) {
-        uint8_t d  = rand() & 3;
+        uint8_t d  = rand() >> 6; // top 2 bits — GBDK's LCG (×9) has garbage low bits
         uint8_t cx = sx, cy = sy;
         if      (d == 0 && sy > 0)         cy = sy - 1;
         else if (d == 1 && sy < MAP_H - 1) cy = sy + 1;

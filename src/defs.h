@@ -101,7 +101,8 @@ typedef struct {
 #define NUM_ENEMY_TYPES 6
 
 /* ── Animation ───────────────────────────────────────────────────────────── */
-#define ENEMY_ANIM_FRAMES 30   // frames between glyph ↔ glyph_alt flip
+// DIV_REG runs at 16384 Hz; 68266 ticks ≈ 4.16s between flips (≈250 frames at 60fps)
+#define ENEMY_ANIM_DIV_TICKS 18266UL
 
 /* ── Corpses ─────────────────────────────────────────────────────────────── */
 #define MAX_CORPSES MAX_ENEMIES
@@ -155,7 +156,7 @@ typedef struct {
 /* ── Globals defined in main.c ──────────────────────────────────────────── */
 extern uint8_t  player_hp;    // current hit points
 extern uint8_t  floor_num;    // current floor number (1-based)
-extern uint16_t level_seed;   // RNG seed for the current floor
+extern uint16_t run_seed;    // immutable run seed — never changes mid-run; floor seed derived from this
 extern uint16_t camera_px;    // pixel x of viewport top-left
 extern uint16_t camera_py;    // pixel y of viewport top-left
 #define CAM_TX (camera_px >> 3)

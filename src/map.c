@@ -205,7 +205,7 @@ void generate_level(void) {
     // Drunkard's walk: carve floor tiles
     set_floor(x, y);
     for (i = 0; i < WALK_STEPS; i++) {
-        uint8_t d  = rand() & 3;
+        uint8_t d  = rand() >> 6; // top 2 bits — GBDK's LCG (×9) has garbage low bits
         uint8_t nx = x, ny = y;
         if      (d == 0) ny = y > 1           ? y - 1 : y;
         else if (d == 1) ny = y < MAP_H - 2   ? y + 1 : y;

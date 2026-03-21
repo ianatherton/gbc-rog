@@ -27,7 +27,23 @@ static void put_word5(uint8_t x, uint8_t y, const char *s) {
     for (i = 0; i < 5; i++) { gotoxy((uint8_t)(x+i), y); setchar(s[i] ? s[i] : ' '); }
 }
 
-static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t power_on_ticks) {
+void ui_draw_seed_words(uint16_t seed, uint8_t hvx, uint8_t b1vy, uint8_t b2vy) {
+    uint16_t s = seed;
+    uint8_t x, d, n, p;
+    if (s < 1u) s = 1u;
+    if (s > 64000u) s = 64000u;
+    s--;
+    d = (uint8_t)(s % 40u);
+    n = (uint8_t)((s / 40u) % 40u);
+    p = (uint8_t)((s / 1600u) % 40u);
+    put_word5(hvx,       b1vy, seed_words_desc[d]);
+    put_word5((uint8_t)(hvx + 6), b1vy, seed_words_noun[n]);
+    for (x = 11; x < GRID_W; x++) { gotoxy((uint8_t)(hvx + x), b1vy); setchar(' '); }
+    put_word5(hvx,       b2vy, seed_words_place[p]);
+    for (x = 5; x < GRID_W; x++) { gotoxy((uint8_t)(hvx + x), b2vy); setchar(' '); }
+}
+
+static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t entropy_hint) {
     uint8_t  x, y, word_pos = 0, prev_j = 0;
     uint16_t frame_counter = 0;
     uint16_t s = initial_seed ? initial_seed : 1u;
@@ -64,7 +80,7 @@ static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t power_on
                 return fs;
             }
             if (edge & J_A) {
-                uint16_t t = seed_entropy_random_seed(power_on_ticks, frame_counter);
+                uint16_t t = seed_entropy_random_seed(entropy_hint, frame_counter);
                 if (t > 64000u) t = 64000u; t--;
                 d = (uint8_t)(t % 40u); n = (uint8_t)((t/40u) % 40u); p = (uint8_t)((t/1600u) % 40u);
             }
@@ -87,7 +103,7 @@ static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t power_on
     }
 }
 
-uint16_t title_screen(uint16_t power_on_ticks) {
+uint16_t title_screen(uint16_t entropy_hint) {
     uint8_t  x, y, blink_counter = 0, blink_visible = 1, prev_j = 0;
     uint16_t frame_counter = 0;
 
@@ -99,10 +115,10 @@ uint16_t title_screen(uint16_t power_on_ticks) {
     while (1) {
         uint8_t  j    = joypad();
         uint8_t  edge = (uint8_t)(j & (uint8_t)~prev_j);
-        uint16_t mixed = seed_entropy_random_seed(power_on_ticks, frame_counter);
+        uint16_t mixed = seed_entropy_random_seed(entropy_hint, frame_counter);
         if (edge & J_START) return mixed;
         if (edge & J_SELECT) {
-            uint16_t seed = input_seed_words_screen(mixed, power_on_ticks);
+            uint16_t seed = input_seed_words_screen(mixed, entropy_hint);
             if (!seed) seed = 1;
             return seed;
         }

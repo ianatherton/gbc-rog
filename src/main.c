@@ -10,7 +10,7 @@
 /* ── Global game state ───────────────────────────────────────────────────── */
 uint8_t  player_hp  = PLAYER_HP_MAX;
 uint8_t  floor_num  = 1;
-uint16_t level_seed = 12345;
+uint16_t run_seed   = 12345;
 uint16_t camera_px  = 0;
 uint16_t camera_py  = 0;
 
@@ -31,12 +31,13 @@ static void scroll_toward(uint8_t target_tx, uint8_t target_ty, uint8_t px, uint
 
         wait_vbl_done();
         SCX_REG = (uint8_t)(camera_px & 0xFFu);
-        SCY_REG = (uint8_t)(camera_py & 0xFFu);
+        SCY_REG = (uint8_t)((camera_py - 8u) & 0xFFu);
 
         uint8_t new_col = (uint8_t)((camera_px >> 3) + GRID_W);
         uint8_t new_row = (uint8_t)((camera_py >> 3) + GRID_H);
         if (new_col != old_col) draw_col_strip(new_col, px, py);
         if (new_row != old_row) draw_row_strip(new_row, px, py);
+        draw_ui_rows();  // redraw UI into current ring slots so they stay fixed
     }
 }
 
@@ -45,17 +46,23 @@ static void scroll_toward(uint8_t target_tx, uint8_t target_ty, uint8_t px, uint
 static void enter_level(uint8_t *px, uint8_t *py, uint8_t from_pit) {
     if (from_pit) {
         floor_num++;
-        level_seed = (uint16_t)(level_seed * 1103u + 12345u);
     } else {
         floor_num = 1;
         player_hp = PLAYER_HP_MAX;
     }
-    num_corpses        = 0;
-    enemy_anim_counter = 0;
-    enemy_anim_toggle  = 0;
+    // Derive a unique seed per floor from the fixed run seed + floor number.
+    // floor_num differentiates floors; multiply+XOR scrambles bits so adjacent floors don't look like slight shifts of each other.
+    uint16_t floor_seed = (uint16_t)(run_seed * 2053u)
+                        ^ (uint16_t)(floor_num * 6364u)
+                        ^ 0xACE1u;
+    if (!floor_seed) floor_seed = 0xACE1u;
+
+    num_corpses       = 0;
+    enemy_anim_toggle = 0;
+    enemy_anim_reset();
     wall_tileset_index = TILE_WALL_1;
     wall_palette_index = 3;
-    initrand(level_seed);
+    initrand(floor_seed);
     generate_level();
     spawn_enemies();
     *px = START_X;
@@ -77,12 +84,15 @@ static void enter_level(uint8_t *px, uint8_t *py, uint8_t from_pit) {
 /* ── New run ─────────────────────────────────────────────────────────────── */
 
 static void start_new_run(uint8_t *px, uint8_t *py, uint8_t *prev_j,
-                           uint16_t power_on_ticks) {
-    uint16_t seed = title_screen(power_on_ticks);
-    if (!seed) seed = 1;
-    level_seed = seed;
-    initrand(seed);
-    *prev_j = 0;
+                           uint16_t *run_entropy) {
+    *run_entropy += 1u + (uint16_t)DIV_REG;
+    uint16_t seed = title_screen(*run_entropy);
+    if (!seed) seed = (uint16_t)(*run_entropy ^ 0xACE1u);
+    if (!seed) seed = 0xACE1u;
+
+    run_seed  = seed;
+    floor_num = 0;
+    *prev_j   = 0;
     enter_level(px, py, 0);
 }
 
@@ -102,9 +112,12 @@ int main(void) {
     DISPLAY_ON;
     enable_interrupts();
 
-    uint16_t power_on_ticks = (uint16_t)DIV_REG;
+    // 16-bit boot entropy (DIV is 8-bit; read twice so init timing varies the high byte)
+    uint16_t power_on_ticks = (uint16_t)DIV_REG | ((uint16_t)DIV_REG << 8);
+    static uint16_t run_entropy;
+    run_entropy = power_on_ticks;
     uint8_t px, py, prev_j = 0;
-    start_new_run(&px, &py, &prev_j, power_on_ticks);
+    start_new_run(&px, &py, &prev_j, &run_entropy);
 
     while (1) {
         uint8_t j  = joypad();
@@ -148,7 +161,7 @@ int main(void) {
                 draw_screen(px, py);
                 if (result == 2) {
                     game_over_screen();
-                    start_new_run(&px, &py, &prev_j, power_on_ticks);
+                    start_new_run(&px, &py, &prev_j, &run_entropy);
                     continue;
                 }
                 delay(TURN_DELAY_MS);
@@ -179,7 +192,7 @@ int main(void) {
 
                     if (result == 2) {
                         game_over_screen();
-                        start_new_run(&px, &py, &prev_j, power_on_ticks);
+                        start_new_run(&px, &py, &prev_j, &run_entropy);
                         continue;
                     }
                     delay(TURN_DELAY_MS);
@@ -187,9 +200,7 @@ int main(void) {
             }
         }
 
-        if (++enemy_anim_counter >= ENEMY_ANIM_FRAMES) {
-            enemy_anim_counter = 0;
-            enemy_anim_toggle ^= 1;
+        if (enemy_anim_update()) {
             wait_vbl_done();
             draw_enemy_cells(px, py);
         }

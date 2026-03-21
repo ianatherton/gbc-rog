@@ -4,11 +4,12 @@
 #include <stdint.h>
 #include "seed_entropy.h"
 
-uint16_t seed_entropy_mix(uint16_t power_on_ticks, uint16_t frame_counter) {
+uint16_t seed_entropy_mix(uint16_t entropy_hint, uint16_t frame_counter) {
 	uint8_t div0 = DIV_REG;
-	uint8_t div1 = DIV_REG;  // a few cycles later
-	uint16_t lo = (uint16_t)power_on_ticks + (uint16_t)frame_counter * 31u;
-	uint16_t hi = (uint16_t)(div0 * 257u) + (uint16_t)div1;
+	uint8_t ly   = LY_REG;   // scanline 0..153, adds spread between div reads
+	uint8_t div1 = DIV_REG;
+	uint16_t lo  = (uint16_t)entropy_hint + (uint16_t)frame_counter * 31u;
+	uint16_t hi  = (uint16_t)(div0 * 257u) + (uint16_t)div1 + (uint16_t)ly * 7u;
 	return (uint16_t)(lo ^ (hi << 5) ^ (hi >> 3));
 }
 

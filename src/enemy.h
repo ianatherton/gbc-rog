@@ -28,10 +28,11 @@ extern uint8_t corpse_y[MAX_CORPSES];
 extern uint8_t num_corpses;
 
 /* ── Animation state ─────────────────────────────────────────────────────── */
-extern uint8_t enemy_anim_counter;
 extern uint8_t enemy_anim_toggle;
 
 /* ── Functions ───────────────────────────────────────────────────────────── */
+void    enemy_anim_reset(void);           // call on level enter
+uint8_t enemy_anim_update(void);         // returns 1 if glyph flip happened (redraw)
 uint8_t enemy_at(uint8_t x, uint8_t y);    // slot index at (x,y), or ENEMY_DEAD
 uint8_t corpse_at(uint8_t x, uint8_t y);   // 1 if corpse at (x,y), else 0
 void    spawn_enemies(void);               // place NUM_ENEMIES on valid floor tiles

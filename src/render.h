@@ -10,6 +10,7 @@ void draw_col_strip(uint8_t mx, uint8_t px, uint8_t py);
 void draw_row_strip(uint8_t my, uint8_t px, uint8_t py);
 void draw_enemy_cells(uint8_t px, uint8_t py);
 void draw_bottom_ui(void);
+void draw_ui_rows(void);   // top HUD + bottom UI into current ring slots (keeps them locked)
 void screen_shake(void);
 
 #endif // RENDER_H

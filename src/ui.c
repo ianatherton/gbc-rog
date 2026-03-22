@@ -56,13 +56,20 @@ void ui_draw_top_hud(void) { // floor label + life bar in one ring row (coords f
     {
         uint8_t k, pct = (uint8_t)((uint16_t)player_hp * 100u / PLAYER_HP_MAX); // 0..100 for bar thresholds
         for (k = 0; k < LIFE_BAR_LEN; k++) { // LIFE_BAR_LEN segments × 20% each
-            char c; uint8_t pal;
-            if      (pct >= (uint8_t)(20u*(k+1u))) { c='='; pal=PAL_LIFE_UI; } // full segment
-            else if (pct >= (uint8_t)(20u*k+10u))  { c='-'; pal=PAL_LIFE_UI; } // half segment
-            else                                    { c='_'; pal=PAL_UI; }     // empty segment (dim)
-            gotoxy((uint8_t)((hvx + 9u + k) & 31u), hvy);
-            setchar(c);
-            set_bkg_attribute_xy((uint8_t)((hvx + 9u + k) & 31u), hvy, pal);
+            uint8_t tx = (uint8_t)((hvx + 9u + k) & 31u);
+            gotoxy(tx, hvy);
+            if (pct >= (uint8_t)(20u * (k + 1u))) {
+                uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_HEART_FULL);
+                set_bkg_tiles(tx, hvy, 1, 1, &vram);
+                set_bkg_attribute_xy(tx, hvy, PAL_LIFE_UI);
+            } else if (pct >= (uint8_t)(20u * k + 10u)) {
+                uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_HEART_HALF);
+                set_bkg_tiles(tx, hvy, 1, 1, &vram);
+                set_bkg_attribute_xy(tx, hvy, PAL_LIFE_UI);
+            } else {
+                setchar('_');
+                set_bkg_attribute_xy(tx, hvy, PAL_UI);
+            }
             VBK_REG = 0;
         }
     }

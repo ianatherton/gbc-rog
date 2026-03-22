@@ -118,27 +118,116 @@ typedef struct {
 #define TILE_PIT   2
 
 /* ── Tileset VRAM layout ─────────────────────────────────────────────────── */
-#define TILESET_VRAM_OFFSET 128
-#define TILESET_NTILES       26
-#define TILE_WALL_1    1
-#define TILE_MUSH_1    2
-#define TILE_TORCH_1   3
-#define TILE_TORCH_2   4
-#define TILE_SKULL_1   5
-#define TILE_CLASS_1   6
-#define TILE_GROUND_1 16
-#define TILE_WALL_2    9
-#define TILE_MUSH_2   18
-#define TILE_PILLAR_1 19
-#define TILE_CHEST_1  20
-#define TILE_BARREL_1 21
-#define TILE_CLASS_2  22
-#define TILE_ENEMY_1  23
-#define TILE_ENEMY_2  24
-#define TILE_ENEMY_3  25
-#define TILE_DOOR_1   33
-#define TILE_PILLAR_2 35
-#define TILE_CLASS_3  38
+#define TILESET_VRAM_OFFSET 128 // first tile index in VRAM reserved for this sheet (above font)
+#define TILESET_NTILES      256 // full 16×16 sheet; must match generated tileset_tiles[]
+
+/* ── Tileset tile indices (relative to TILESET_VRAM_OFFSET) ─────────────── */
+/* Sheet: 16×16 grid of 8×8 tiles = 256 tiles total (256×256px)             */
+/* Organized by column. Index = (row-1)*16 + col (A=0, B=1, … P=15)        */
+/* Add TILESET_VRAM_OFFSET (128) for actual VRAM index in set_bkg_tiles.    */
+
+/* ── A col — test tile + wall variants ──────────────────────────────────── */
+#define TILE_TEST            0   /* A1  - debug/test tile                   */
+#define TILE_WALL_A         16   /* A2  - wall variant 1 (default)          */
+#define TILE_WALL_B         32   /* A3  - wall variant 2                    */
+#define TILE_WALL_C         48   /* A4  - wall variant 3                    */
+#define TILE_WALL_D         64   /* A5  - wall variant 4                    */
+#define TILE_WALL_E         80   /* A6  - wall variant 5                    */
+#define TILE_WALL_F         96   /* A7  - wall variant 6                    */
+#define TILE_WALL_G        112   /* A8  - wall variant 7                    */
+
+/* wall_tileset_index should cycle TILE_WALL_A through TILE_WALL_G (7 variants) */
+#define TILE_WALL_FIRST    TILE_WALL_A
+#define TILE_WALL_LAST     TILE_WALL_G
+#define TILE_WALL_COUNT    7
+
+/* ── B col — player class sprites ───────────────────────────────────────── */
+#define TILE_CLASS_KNIGHT    1   /* B1  */
+#define TILE_CLASS_BERSERKER 17  /* B2  */
+#define TILE_CLASS_WITCH     33  /* B3  */
+#define TILE_CLASS_SCOUNDREL 49  /* B4  */
+
+/* ── C col — lighting objects (torches, lanterns, etc.) ─────────────────── */
+#define TILE_LIGHT_1         2   /* C1  */
+#define TILE_LIGHT_2        18   /* C2  */
+#define TILE_LIGHT_3        34   /* C3  */
+#define TILE_LIGHT_4        50   /* C4  */
+
+/* ── D col — decorative columns ─────────────────────────────────────────── */
+/* Placed when a wall tile has no orthogonal wall neighbour, or randomly.   */
+#define TILE_COLUMN_1        3   /* D1  */
+#define TILE_COLUMN_2       19   /* D2  */
+#define TILE_COLUMN_3       35   /* D3  */
+#define TILE_COLUMN_4       51   /* D4  */
+
+/* ── E col — ground / floor tiles ───────────────────────────────────────── */
+#define TILE_GROUND_A        4   /* E1  */
+#define TILE_GROUND_B       20   /* E2  */
+#define TILE_GROUND_C       36   /* E3  */
+#define TILE_GROUND_D       52   /* E4  */
+#define TILE_GROUND_E       68   /* E5  */
+
+/* ── F col — props ───────────────────────────────────────────────────────── */
+#define TILE_CHEST           5   /* F1  */
+#define TILE_BARREL         21   /* F2  */
+#define TILE_MUSHROOM       37   /* F3  */
+/* F4 (index 53) — unused, skip */
+
+/* ── G col — doors + shrine states ──────────────────────────────────────── */
+#define TILE_DOOR_OPEN       6   /* G1  */
+#define TILE_DOOR_CLOSED    22   /* G2  */
+#define TILE_SHRINE_ON_1    38   /* G3  - active shrine animation frame 1  */
+#define TILE_SHRINE_ON_2    54   /* G4  - active shrine animation frame 2  */
+#define TILE_SHRINE_OFF     70   /* G5  - inactive shrine                  */
+
+/* ── H col — stairs + pit ────────────────────────────────────────────────── */
+#define TILE_STAIRS_UP_1     7   /* H1  */
+#define TILE_LADDER_DOWN    23   /* H2  */
+#define TILE_STAIRS_UP_2    39   /* H3  */
+#define TILE_PIT_TILE       55   /* H4  - visual for pit hazard             */
+
+/* ── I col — items (10 slots) ───────────────────────────────────────────── */
+#define TILE_ITEM_1          8   /* I1  */
+#define TILE_ITEM_2         24   /* I2  */
+#define TILE_ITEM_3         40   /* I3  */
+#define TILE_ITEM_4         56   /* I4  */
+#define TILE_ITEM_5         72   /* I5  */
+#define TILE_ITEM_6         88   /* I6  */
+#define TILE_ITEM_7        104   /* I7  */
+#define TILE_ITEM_8        120   /* I8  */
+#define TILE_ITEM_9        136   /* I9  */
+#define TILE_ITEM_10       152   /* I10 */
+
+/* ── J col — enemy sprites ───────────────────────────────────────────────── */
+#define TILE_SPIDER_1        9   /* J1  - spider frame 1                   */
+#define TILE_SPIDER_2       25   /* J2  - spider frame 2                   */
+#define TILE_MONSTER_1      41   /* J3  */
+#define TILE_MONSTER_2      57   /* J4  */
+#define TILE_MONSTER_3      73   /* J5  */
+
+/* K col (offset 10) — empty, reserved */
+
+/* ── L col — floor decorations ──────────────────────────────────────────── */
+#define TILE_FLOOR_DECO_1   11   /* L1  */
+#define TILE_FLOOR_DECO_2   27   /* L2  */
+#define TILE_FLOOR_DECO_3   43   /* L3  */
+#define TILE_FLOOR_DECO_4   59   /* L4  */
+#define TILE_FLOOR_DECO_5   75   /* L5  */
+#define TILE_FLOOR_DECO_6   91   /* L6  */
+#define TILE_FLOOR_DECO_7  107   /* L7  */
+
+/* ── M col — directional arrows ─────────────────────────────────────────── */
+#define TILE_ARROW_NE       12   /* M1  - top-right diagonal               */
+#define TILE_ARROW_NW       28   /* M2  - top-left diagonal                */
+#define TILE_ARROW_SW       44   /* M3  - bottom-left diagonal             */
+#define TILE_ARROW_SE       60   /* M4  - bottom-right diagonal            */
+/* M5 (index 76) — unused */
+
+/* ── N+O col — HUD / UI tiles ───────────────────────────────────────────── */
+#define TILE_UI_FLOOR_L     13   /* N1  - left portion of "FLOOR" word     */
+#define TILE_UI_FLOOR_R     14   /* O1  - right portion of "FLOOR" word    */
+#define TILE_UI_HEART_FULL  29   /* N2  - full heart                       */
+#define TILE_UI_HEART_HALF  30   /* O2  - half heart                       */
 
 /* ── Player spawn ────────────────────────────────────────────────────────── */
 #define START_X (MAP_W / 2)
@@ -148,7 +237,12 @@ typedef struct {
 #define PLAYER_HP_MAX 10
 #define LIFE_BAR_LEN   5
 
+/* Sheet-relative tile for hero (swap for berserker / witch / scoundrel) */
+#define PLAYER_TILE_OFFSET TILE_CLASS_KNIGHT
+
 /* ── CGB palette slot assignments (0–7) ─────────────────────────────────── */
+#define PAL_WALL_BG 3   // dungeon walls; RGB data from wall_palette_table[wall_palette_index]
+#define PAL_PLAYER  2   // hero tile from tileset; RGB from pal_player in render.c
 #define PAL_UI      6   // white on black — HUD text
 #define PAL_LIFE_UI 5   // red on black   — life bar fill
 #define PAL_CORPSE  7   // dark green     — corpse 'x'

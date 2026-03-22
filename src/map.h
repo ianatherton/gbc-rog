@@ -3,51 +3,28 @@
 
 #include "defs.h"
 
-/* ── Tile storage ────────────────────────────────────────────────────────── */
-// Two bitsets replace the old single byte-per-tile map[] array.
-//
-//   floor_bits: bit=1 means the tile is open (floor OR pit).
-//               bit=0 means it is a wall.
-//
-//   pit_bits:   bit=1 means the tile is specifically a pit.
-//               Always a SUBSET of floor_bits (a pit is also open).
-//
-// Together they reconstruct the original three tile types:
-//   !floor             → TILE_WALL
-//    floor &&  pit     → TILE_PIT
-//    floor && !pit     → TILE_FLOOR
-//
-// Memory: 2 × 512 = 1 024 bytes instead of the old 4 096 bytes.
-extern uint8_t floor_bits[BITSET_BYTES];
-extern uint8_t pit_bits[BITSET_BYTES];
+extern uint8_t floor_bits[BITSET_BYTES]; // 1 = carved open (floor or pit)
+extern uint8_t pit_bits[BITSET_BYTES];   // 1 = pit (subset of floor_bits)
 
-/* ── Navigation graph ────────────────────────────────────────────────────── */
-extern NavNode  nav_nodes[MAX_NAV_NODES];
-extern uint8_t  num_nav_nodes;
+extern NavNode  nav_nodes[MAX_NAV_NODES]; // junction graph for chase AI
+extern uint8_t  num_nav_nodes;            // populated after generate_level
 
-/* ── Wall appearance (debug-cyclable) ────────────────────────────────────── */
-extern uint8_t wall_tileset_index;
-extern uint8_t wall_palette_index;
+extern uint8_t wall_tileset_index; // which wall tile in VRAM band (debug)
+extern uint8_t wall_palette_index; // wall_palette_table index; applied to PAL_WALL_BG slot
 
-/* ── Tile accessors ──────────────────────────────────────────────────────── */
-uint8_t tile_at(uint8_t x, uint8_t y);      // returns TILE_WALL / TILE_FLOOR / TILE_PIT
-void    set_floor(uint8_t x, uint8_t y);    // marks tile as open floor
-void    set_pit(uint8_t x, uint8_t y);      // marks tile as pit (also sets floor bit)
-uint8_t is_walkable(uint8_t x, uint8_t y);  // 1 for floor or pit, 0 for wall
+uint8_t tile_at(uint8_t x, uint8_t y); // TILE_WALL / TILE_FLOOR / TILE_PIT from bitsets
+void    set_floor(uint8_t x, uint8_t y); // carve floor-only
+void    set_pit(uint8_t x, uint8_t y); // carve pit (sets both bits)
+uint8_t is_walkable(uint8_t x, uint8_t y); // floor_bits only
 
-/* ── Rendering helpers ───────────────────────────────────────────────────── */
-char    tile_char(uint8_t t);        // '#', '.', '0'
-uint8_t tile_vram_index(uint8_t t);  // VRAM slot for custom graphic, or 0
-uint8_t tile_palette(uint8_t t);     // CGB palette index for this tile type
+char    tile_char(uint8_t t); // ASCII when not using custom tile
+uint8_t tile_vram_index(uint8_t t); // non-0 → set_bkg_tiles index
+uint8_t tile_palette(uint8_t t); // CGB palette for terrain
 
-/* ── Dungeon generation ──────────────────────────────────────────────────── */
-// Clears both bitsets, carves floor via drunkard's walk, scatters pits,
-// then calls build_nav_graph() automatically.
-void generate_level(void);
+void generate_level(void); // drunkard walk + pits + build_nav_graph
 
-/* ── Navigation graph queries ────────────────────────────────────────────── */
-uint8_t nearest_nav_node(uint8_t x, uint8_t y);   // closest node by Manhattan distance
-uint8_t nav_next_step(uint8_t from, uint8_t to);  // first-hop BFS from node to node
+uint8_t nearest_nav_node(uint8_t x, uint8_t y); // for mapping entity tiles to graph
+uint8_t nav_next_step(uint8_t from, uint8_t to); // BFS first hop on nav graph
 
 #endif // GAME_MAP_H
 

@@ -43,7 +43,7 @@ all: assets $(TARGETS)
 assets: $(TILESET_C)
 
 $(TILESET_C): $(TILESET_PNG)
-	$(PNG2ASSET) $< -c $@ -noflip
+	$(PNG2ASSET) $< -o $@ -map -keep_duplicate_tiles -noflip
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(LCC) $(CFLAGS) -c -o $@ $<

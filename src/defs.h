@@ -79,7 +79,7 @@ typedef struct {
 
 /* ── Level generation ────────────────────────────────────────────────────── */
 #define WALK_STEPS 4000   // scaled up from 350 to match the larger 64×64 map
-#define NUM_PITS    40    // scaled up from 6
+#define NUM_PITS     1    // single descent tile per floor
 
 /* ── Enemy roster ────────────────────────────────────────────────────────── */
 #define MAX_ENEMIES    20
@@ -119,7 +119,9 @@ typedef struct {
 
 /* ── Tileset VRAM layout ─────────────────────────────────────────────────── */
 #define TILESET_VRAM_OFFSET 128 // first tile index in VRAM reserved for this sheet (above font)
-#define TILESET_NTILES      256 // full 16×16 sheet; must match generated tileset_tiles[]
+#define TILESET_NTILES_ROM  256 // tiles in generated tileset_tiles[] (16×16 sheet)
+/* GB BG VRAM is only 256 tiles total; uploading past 255 wraps and overwrites low tiles (font). */
+#define TILESET_NTILES_VRAM ((uint8_t)(256u - TILESET_VRAM_OFFSET)) // =128: VRAM slots [128..255] only
 
 /* ── Tileset tile indices (relative to TILESET_VRAM_OFFSET) ─────────────── */
 /* Sheet: 16×16 grid of 8×8 tiles = 256 tiles total (256×256px)             */
@@ -243,6 +245,7 @@ typedef struct {
 /* ── CGB palette slot assignments (0–7) ─────────────────────────────────── */
 #define PAL_WALL_BG 3   // dungeon walls; RGB data from wall_palette_table[wall_palette_index]
 #define PAL_PLAYER  2   // hero tile from tileset; RGB from pal_player in render.c
+#define PAL_LADDER  4   // ladder-down tile; RGB from pal_ladder in render.c
 #define PAL_UI      6   // white on black — HUD text
 #define PAL_LIFE_UI 5   // red on black   — life bar fill
 #define PAL_CORPSE  7   // dark green     — corpse 'x'

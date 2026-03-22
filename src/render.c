@@ -7,7 +7,7 @@
 static const palette_color_t pal_default[]  = { RGB(0,0,0),  RGB(8,8,8),   RGB(16,16,16), RGB(31,31,31) }; // slot 0: floor text default
 static const palette_color_t pal_green[]    = { RGB(0,0,0),  RGB(0,20,0),  RGB(0,26,0),   RGB(0,31,0)   }; // slot 1: some enemies
 static const palette_color_t pal_player[]   = { RGB(0,0,0),  RGB(20,10,0), RGB(28,16,0),  RGB(31,24,0)  }; // slot PAL_PLAYER: class tile
-static const palette_color_t pal_pit[]      = { RGB(0,0,0),  RGB(0,0,4),   RGB(0,0,8),    RGB(0,0,12)   }; // slot 4: pit glyph/tile
+static const palette_color_t pal_ladder[]   = { RGB(0,0,0),  RGB(12,7,3),  RGB(22,14,6),  RGB(30,22,10) }; // PAL_LADDER: wood / amber (not pit-blue)
 static const palette_color_t pal_life_ui[]  = { RGB(0,0,0),  RGB(18,0,0),  RGB(25,2,2),   RGB(31,4,4)   }; // slot 5: bar fill
 static const palette_color_t pal_ui[]       = { RGB(0,0,0),  RGB(8,8,8),   RGB(16,16,16), RGB(31,31,31) }; // slot 6: HUD text
 static const palette_color_t pal_corpse[]   = { RGB(0,0,0),  RGB(0,4,0),   RGB(0,6,0),    RGB(0,10,0)   }; // slot 7: corpse 'x'
@@ -40,7 +40,7 @@ void load_palettes(void) { // slots 0–7 except walls: wall table entry 0 until
     set_bkg_palette(1, 1, pal_green);
     set_bkg_palette(2, 1, pal_player);
     set_bkg_palette(PAL_WALL_BG, 1, wall_palette_table[0]); // matches wall_palette_index default 0
-    set_bkg_palette(4, 1, pal_pit);
+    set_bkg_palette(PAL_LADDER, 1, pal_ladder);
     set_bkg_palette(5, 1, pal_life_ui);
     set_bkg_palette(6, 1, pal_ui);
     set_bkg_palette(7, 1, pal_corpse);

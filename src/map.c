@@ -39,14 +39,14 @@ char tile_char(uint8_t t) { // ASCII fallback when not using custom tile in VRAM
 
 uint8_t tile_vram_index(uint8_t t) { // non-zero → set_bkg_tiles uses ROM tile data
     if (t == TILE_WALL) return (uint8_t)(TILESET_VRAM_OFFSET + wall_tileset_index);
-    if (t == TILE_PIT)  return (uint8_t)(TILESET_VRAM_OFFSET + TILE_PIT_TILE);
+    if (t == TILE_PIT)  return (uint8_t)(TILESET_VRAM_OFFSET + TILE_LADDER_DOWN);
     if (t == TILE_FLOOR) return 0; // 0 = use setchar(tile_char(t)) for plain floor
     return 0;
 }
 
 uint8_t tile_palette(uint8_t t) { // CGB attribute palette index per terrain type
     if (t == TILE_WALL) return PAL_WALL_BG; // colors chosen by wall_palette_index via apply_wall_palette
-    if (t == TILE_PIT)  return 4;           // pal_pit from render.c
+    if (t == TILE_PIT)  return PAL_LADDER;  // bright ladder palette in render.c
     return 0;                               // default floor text color
 }
 
@@ -181,14 +181,28 @@ void generate_level(void) { // full regen: clears map, walks, pits, then nav gra
     }
 
     uint8_t placed = 0;
-    for (uint8_t attempts = 0; attempts < 200 && placed < NUM_PITS; attempts++) { // try up to 200 times
+    for (uint8_t attempts = 0; attempts < 200 && placed < NUM_PITS; attempts++) { // random floor tile, not spawn
         uint8_t tx = (uint8_t)(rand() % MAP_W);
         uint8_t ty = (uint8_t)(rand() % MAP_H);
-        if ((tx != START_X || ty != START_Y) // never pit the spawn tile
-                && BIT_GET(floor_bits, TILE_IDX(tx, ty)) // must be floor first
+        if ((tx != START_X || ty != START_Y) // never ladder on spawn
+                && BIT_GET(floor_bits, TILE_IDX(tx, ty))
                 && !BIT_GET(pit_bits,  TILE_IDX(tx, ty))) {
             set_pit(tx, ty);
             placed++;
+        }
+    }
+    if (placed < NUM_PITS) { // guarantee NUM_PITS ladders if RNG never hit an open tile
+        uint8_t fx, fy;
+        for (fy = 0; fy < MAP_H && placed < NUM_PITS; fy++) {
+            for (fx = 0; fx < MAP_W && placed < NUM_PITS; fx++) {
+                uint16_t idx = TILE_IDX(fx, fy);
+                if ((fx != START_X || fy != START_Y)
+                        && BIT_GET(floor_bits, idx)
+                        && !BIT_GET(pit_bits, idx)) {
+                    set_pit(fx, fy);
+                    placed++;
+                }
+            }
         }
     }
 

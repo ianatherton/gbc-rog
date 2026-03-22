@@ -96,7 +96,7 @@ int main(void) {
     font_init();
     font_load(font_ibm);      // built-in 8x8 font for '@' and UI glyphs
     font_color(3, 0);         // pen 3, paper 0 in font tile generator
-    set_bkg_data(TILESET_VRAM_OFFSET, TILESET_NTILES, tileset_tiles); // wall etc. after ASCII range
+    set_bkg_data(TILESET_VRAM_OFFSET, TILESET_NTILES_VRAM, tileset_tiles); // first 128 sheet tiles → VRAM [128..255]; no font clobber
     SCX_REG = 0;
     SCY_REG = 0;
     SHOW_BKG;

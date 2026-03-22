@@ -3,6 +3,7 @@
 #include "enemy.h"  // spawn_enemies, move_enemies, enemy_at, anim
 #include "render.h" // draw_screen, strips, shake, palettes
 #include "ui.h"     // title_screen, game_over_screen
+#include "music.h"  // background theme
 #include "wall_palettes.h" // NUM_WALL_PALETTES
 
 #define SCROLL_SPEED 2 // pixels per frame while camera eases toward target tile
@@ -79,6 +80,7 @@ static void enter_level(uint8_t *px, uint8_t *py, uint8_t from_pit) { // load or
 static void start_new_run(uint8_t *px, uint8_t *py, uint8_t *prev_j,
                            uint16_t *run_entropy) { // title → seed → floor 1
     *run_entropy += 1u + (uint16_t)DIV_REG; // mutate entropy each run so START timing matters
+    music_play_title(); // short Am menu loop until START / seed picker finishes
     uint16_t seed = title_screen(*run_entropy); // user may pick word seed or random START
     if (!seed) seed = (uint16_t)(*run_entropy ^ 0xACE1u); // fallback if title returns 0
     if (!seed) seed = 0xACE1u;
@@ -86,6 +88,7 @@ static void start_new_run(uint8_t *px, uint8_t *py, uint8_t *prev_j,
     run_seed  = seed;   // fixed for whole run; floors mix from this + floor_num
     floor_num = 0;      // enter_level will set 1 for new run (see from_pit branch)
     *prev_j   = 0;      // no stale edge triggers on first frame after title
+    music_play_game();  // long fugue-style loop for dungeon / pit descent
     enter_level(px, py, 0); // from_pit=0 → reset HP and floor counter inside
 }
 
@@ -102,6 +105,7 @@ int main(void) {
     SHOW_BKG;
     DISPLAY_ON;
     enable_interrupts();      // VBlank etc. available for wait_vbl_done
+    music_init();             // APU on + VBL-driven two-channel loop
 
     uint16_t power_on_ticks = (uint16_t)DIV_REG | ((uint16_t)DIV_REG << 8); // widen 8-bit DIV to 16 bits (timing jitter)
     static uint16_t run_entropy; // persists across game_over → new run within same power cycle

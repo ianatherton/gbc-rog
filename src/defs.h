@@ -66,16 +66,15 @@ typedef struct {
 } NavNode;
 
 /* ── Screen layout ───────────────────────────────────────────────────────── */
-//   Row  0          : top HUD  (floor number + life bar)
-//   Rows 1 – GRID_H : dungeon viewport  (15 rows)
-//   Row  GRID_H + 1 : bottom UI row 1   (stats)
-//   Row  GRID_H + 2 : bottom UI row 2   (item hotbar)
-//   Total: 1 + 15 + 2 = 18 rows  ✓ fills the GBC screen exactly.
-#define UI_ROW_TOP       0               // top HUD row
+//   Lines  0–7      : HUD — window layer row 0 (ISR: SHOW_WIN at VBL)
+//   Lines  8–127    : dungeon viewport — BKG scroll via camera (ISR: HIDE_WIN + SCX/SCY at LYC=8)
+//   Lines 128–143   : bottom seed panel — window layer rows 1–2 (ISR: SHOW_WIN at LYC=128)
+#define UI_ROW_TOP       0               // top HUD row (now window, not BKG)
 #define DUNGEON_ROW(y)   ((y) + 1)       // viewport row y → screen row y+1
 #define UI_ROW_BOTTOM_1  (GRID_H + 1)    // bottom UI row 1 = screen row 16
 #define UI_ROW_BOTTOM_2  (GRID_H + 2)    // bottom UI row 2 = screen row 17
-#define UI_ROW           UI_ROW_TOP      // shorthand alias used in render.c
+#define UI_ROW           UI_ROW_TOP      // shorthand alias
+#define UI_WINDOW_Y_START ((uint8_t)(8u + (GRID_H) * 8u)) // scanline where bottom window resumes (128 for GRID_H=15)
 
 /* ── Level generation ────────────────────────────────────────────────────── */
 #define WALK_STEPS 4000   // scaled up from 350 to match the larger 64×64 map
@@ -258,6 +257,7 @@ extern uint16_t camera_px;    // pixel x of viewport top-left
 extern uint16_t camera_py;    // pixel y of viewport top-left
 #define CAM_TX (camera_px >> 3)
 #define CAM_TY (camera_py >> 3)
+#define RING_BKG_VY_WORLD(my) ((uint8_t)(((uint8_t)(my) + 1u) & 31u)) // +1 offset: line-8 ISR applies SCY=camera_py, so BG pixel 8+camera_py → tile row (1+CAM_TY)&31 which matches this macro
 
 /* ── Tileset pixel data ──────────────────────────────────────────────────── */
 extern const uint8_t tileset_tiles[];

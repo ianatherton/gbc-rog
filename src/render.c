@@ -2,6 +2,7 @@
 #include "map.h"    // tile_at, wall_palette_index, CAM_TX/TY via camera globals in defs
 #include "enemy.h"  // enemy_at, defs, anim toggle
 #include "ui.h"     // ui_draw_top_hud, ui_draw_bottom_rows
+#include "lcd.h"    // line-8 ISR owns SCX/SCY during play; shake offsets
 #include "wall_palettes.h" // wall_palette_table, NUM_WALL_PALETTES
 
 static const palette_color_t pal_default[]  = { RGB(0,0,0),  RGB(8,8,8),   RGB(16,16,16), RGB(31,31,31) }; // slot 0: floor text default
@@ -78,27 +79,27 @@ static void draw_cell_at(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t my,
 }
 
 static void draw_ring_tile(uint8_t vx, uint8_t vy, uint8_t mx, uint8_t my,
-                           uint8_t px, uint8_t py) { // vx,vy = mx&31, my&31 — 32×32 BG ring addressing
+                           uint8_t px, uint8_t py) { // vx = mx&31; vy = RING_BKG_VY_WORLD(my) — row 0 reserved for HUD
     draw_cell_at(vx, vy, mx, my, px, py);
 }
 
 void draw_cell(uint8_t mx, uint8_t my, uint8_t px, uint8_t py) { // cheap update if cell is on-screen
     if (mx < CAM_TX || mx >= (uint8_t)(CAM_TX + GRID_W)) return; // off left/right of viewport
     if (my < CAM_TY || my >= (uint8_t)(CAM_TY + GRID_H)) return; // off top/bottom
-    draw_ring_tile((uint8_t)(mx & 31u), (uint8_t)(my & 31u), mx, my, px, py);
+    draw_ring_tile((uint8_t)(mx & 31u), RING_BKG_VY_WORLD(my), mx, my, px, py);
 }
 
 void draw_col_strip(uint8_t mx, uint8_t px, uint8_t py) { // refresh one world column at map x=mx
     uint8_t y, vx = (uint8_t)(mx & 31u); // ring X coordinate (constant for this strip)
     for (y = 0; y < GRID_H; y++) { // only dungeon rows — GRID_H not +1 so UI row 16 is not overwritten
         uint8_t my = (uint8_t)(CAM_TY + y); // world Y for this screen row
-        uint8_t vy = (uint8_t)(my & 31u);
+        uint8_t vy = RING_BKG_VY_WORLD(my);
         draw_ring_tile(vx, vy, mx, my, px, py);
     }
 }
 
 void draw_row_strip(uint8_t my, uint8_t px, uint8_t py) { // refresh one world row at map y=my
-    uint8_t x, vy = (uint8_t)(my & 31u);
+    uint8_t x, vy = RING_BKG_VY_WORLD(my);
     for (x = 0; x < GRID_W + 1u; x++) { // +1 covers sub-tile SCX scroll exposing partial column
         uint8_t mx = (uint8_t)(CAM_TX + x);
         uint8_t vx = (uint8_t)(mx & 31u);
@@ -111,25 +112,22 @@ void draw_ui_rows(void) { // call after scroll: UI must be rewritten into new ri
     ui_draw_bottom_rows();
 }
 
-void draw_screen(uint8_t px, uint8_t py) { // full repaint: HUD, dungeon, bottom UI, scroll regs
+void draw_screen(uint8_t px, uint8_t py) { // full repaint: dungeon, then HUD (row 0), then window UI
     uint8_t x, y;
 
     apply_wall_palette(); // keep slot PAL_WALL_BG in sync after floor load or A-button cycle
 
-    ui_draw_top_hud();
-
-    for (y = 0; y < GRID_H; y++) { // each visible dungeon row
+    for (y = 0; y < GRID_H; y++) { // dungeon first — vy = RING_BKG_VY_WORLD(my) keeps tilemap row 0 for HUD only
         for (x = 0; x < GRID_W; x++) {
             uint8_t mx = (uint8_t)(CAM_TX + x); // world map coordinate
             uint8_t my = (uint8_t)(CAM_TY + y);
-            draw_ring_tile((uint8_t)(mx & 31u), (uint8_t)(my & 31u), mx, my, px, py); // player tile inside draw_cell_at
+            draw_ring_tile((uint8_t)(mx & 31u), RING_BKG_VY_WORLD(my), mx, my, px, py); // player tile inside draw_cell_at
         }
     }
 
+    ui_draw_top_hud(); // after dungeon so row 0 cols 0..GRID_W-1 stay FLR/bar (same VRAM row scrolls in viewport below line 8)
     ui_draw_bottom_rows();
-
-    SCX_REG = (uint8_t)(camera_px & 0xFFu);           // horizontal fine scroll
-    SCY_REG = (uint8_t)((camera_py - 8u) & 0xFFu);   // -8px: pull HUD ring row into LCD row 0 (see defs UI layout)
+    // SCX/SCY: VBL + LYC=8 ISR (lcd.c) — do not write here during gameplay
 }
 
 void draw_enemy_cells(uint8_t px, uint8_t py) { // fast path when only anim toggle changed
@@ -142,27 +140,26 @@ void draw_enemy_cells(uint8_t px, uint8_t py) { // fast path when only anim togg
             if (my < CAM_TY || my >= (uint8_t)(CAM_TY + GRID_H)) continue;
             if (mx == px && my == py) continue; // player cell handled last
             {
-                uint8_t vx = (uint8_t)(mx & 31u), vy = (uint8_t)(my & 31u);
+                uint8_t vx = (uint8_t)(mx & 31u), vy = RING_BKG_VY_WORLD(my);
                 draw_enemy_at(vx, vy, &enemy_defs[enemy_type[i]]);
             }
         }
     }
     if (px >= CAM_TX && px < (uint8_t)(CAM_TX + GRID_W)
             && py >= CAM_TY && py < (uint8_t)(CAM_TY + GRID_H)) { // redraw hero on top if co-located in ring
-        draw_player_at((uint8_t)(px & 31u), (uint8_t)(py & 31u));
+        draw_player_at((uint8_t)(px & 31u), RING_BKG_VY_WORLD(py));
     }
+    ui_draw_top_hud(); // enemies/player can paint vy==0 (e.g. world row 31) — repaint HUD band on top
 }
 
-void screen_shake(void) { // brief SCX/SCY jitter relative to current camera (hit feedback)
+void screen_shake(void) { // jitter applied only in line-8 ISR so HUD stays fixed
     uint8_t f;
     const int8_t off[] = { 2, -2, -1, 1, -2, 2, 1, -1 }; // small pixel offsets alternating
-    uint8_t base_scx = (uint8_t)(camera_px & 0xFFu);           // same baseline as draw_screen
-    uint8_t base_scy = (uint8_t)((camera_py - 8u) & 0xFFu);
     for (f = 0; f < 8; f++) {
-        SCX_REG = (uint8_t)(base_scx + (uint8_t)off[f]);                    // X wobble
-        SCY_REG = (uint8_t)(base_scy + (uint8_t)off[(f + 2u) & 7u]);       // Y wobble out of phase
+        lcd_shake_x = off[f];
+        lcd_shake_y = off[(f + 2u) & 7u];
         wait_vbl_done();
     }
-    SCX_REG = base_scx; // restore exact scroll so HUD/dungeon stay aligned
-    SCY_REG = base_scy;
+    lcd_shake_x = 0;
+    lcd_shake_y = 0;
 }

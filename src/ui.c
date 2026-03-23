@@ -1,10 +1,8 @@
 #include "ui.h"          // title_screen, game_over_screen, playfield HUD
+#include "lcd.h"         // lcd_gameplay_active for title vs play raster
 #include "seed_entropy.h" // deterministic-ish random seed from hardware jitter
 
-#define UI_HUD_VX   ((uint8_t)(CAM_TX & 31u)) // HUD X aligns with viewport left in 32-wide ring
-#define UI_HUD_VY   ((uint8_t)((CAM_TY + 31u) & 31u)) // row above dungeon band; SCY-8 exposes it as screen row 0
-#define UI_BOT1_VY  ((uint8_t)((CAM_TY + GRID_H)      & 31u)) // first bottom UI row in ring
-#define UI_BOT2_VY  ((uint8_t)((CAM_TY + GRID_H + 1u) & 31u)) // second bottom UI row (seed words line 2)
+#define UI_HUD_WIN_Y 0u // window tilemap row 0 = HUD (ISR shows window at lines 0–7)
 
 #define SEED_WORDS_N 40 // vocabulary size per category; seed maps to triple index
 
@@ -18,7 +16,7 @@ static const char *const seed_words_noun[SEED_WORDS_N] = { // second word on row
     "ASH","BANE","BLOT","BONE","BRIAR","BRIER","COIL","CROW","CRYPT","DUST",
     "EMBER","FANG","FLAME","FROND","FROST","FUNGI","HORN","IRON","LARVA","MIRE",
     "MIST","MOSS","MOTH","MURK","PITH","ROOT","RUIN","SHADE","SKULL","SLIME",
-    "SMOKE","SPINE","SPORE","STONE","THORN","TIDE","TOMB","VENOM","WISP","WORM"
+    "SMOKE","SPINE","SPORE","STONE","THORN","TIDE","TOMB","VENOM","WILT","WORM"
 };
 static const char *const seed_words_place[SEED_WORDS_N] = { // row 2 place name
     "ABYSS","BOG","BRINK","CAIRN","CAVES","CHASM","CRAGS","CRYPT","DEEP","DELL",
@@ -27,95 +25,120 @@ static const char *const seed_words_place[SEED_WORDS_N] = { // row 2 place name
     "SLOPE","SPIRE","STEPS","TOMB","VALE","VAULT","WASTE","WEALD","WILDS","WOOD"
 };
 
-static void put_word5(uint8_t x, uint8_t y, const char *s) { // fixed 5-char word into tilemap via setchar
+static void set_win_attribute_xy(uint8_t x, uint8_t y, uint8_t a) { // CGB palette for window map
+    VBK_REG = VBK_ATTRIBUTES;
+    set_win_tile_xy(x, y, a);
+    VBK_REG = VBK_TILES;
+}
+
+static void win_putc(uint8_t x, uint8_t y, char c) { // IBM font tile indices match setchar (tile 0 = space)
+    uint8_t t = (uint8_t)((uint8_t)((unsigned char)c - 32u));
+    set_win_tile_xy(x, y, t);
+    set_win_attribute_xy(x, y, PAL_UI);
+}
+
+static void win_putc_pal(uint8_t x, uint8_t y, char c, uint8_t pal) { // char with explicit CGB palette
+    uint8_t t = (uint8_t)((uint8_t)((unsigned char)c - 32u));
+    set_win_tile_xy(x, y, t);
+    set_win_attribute_xy(x, y, pal);
+}
+
+static void win_puts(uint8_t x, uint8_t y, const char *s, uint8_t pal) { // null-terminated string to window row
+    while (*s) { win_putc_pal(x++, y, *s++, pal); }
+}
+
+static void win_put_uint8(uint8_t x, uint8_t y, uint8_t v, uint8_t width, uint8_t pal) { // right-justified decimal
+    char dig[3];
+    uint8_t i = 0, pad;
+    if (v == 0) { dig[i++] = '0'; }
+    else { while (v) { dig[i++] = (char)('0' + (v % 10u)); v /= 10u; } }
+    for (pad = i; pad < width; pad++) win_putc_pal(x++, y, ' ', pal); // space-pad leading
+    while (i--) win_putc_pal(x++, y, dig[i], pal);
+}
+
+static void win_put_space(uint8_t x, uint8_t y) { // blank space tile + UI palette
+    set_win_tile_xy(x, y, 0u);
+    set_win_attribute_xy(x, y, PAL_UI);
+}
+
+static void put_word5(uint8_t x, uint8_t y, const char *s) { // fixed 5-char word into BKG via setchar
     uint8_t i;
     for (i = 0; i < 5; i++) { gotoxy((uint8_t)(x+i), y); setchar(s[i] ? s[i] : ' '); } // pad short strings
 }
 
-void ui_draw_top_hud(void) { // floor label + life bar in one ring row (coords follow camera scroll)
-    uint8_t hvx = UI_HUD_VX, hvy = UI_HUD_VY;
-    uint8_t x;
-    gotoxy(hvx, hvy);
-    printf("FLR:%02d", floor_num); // two-digit floor
-    for (x = 0; x < 6; x++) { // palette for "FLR:NN"
-        set_bkg_attribute_xy((uint8_t)((hvx + x) & 31u), hvy, PAL_UI);
-        VBK_REG = 0;
-    }
-    gotoxy((uint8_t)((hvx + 6u) & 31u), hvy);
-    setchar(' ');
-    set_bkg_attribute_xy((uint8_t)((hvx + 6u) & 31u), hvy, PAL_UI);
-    VBK_REG = 0;
-    gotoxy((uint8_t)((hvx + 7u) & 31u), hvy);
-    setchar('L'); // start "L[===] pct" life cluster
-    set_bkg_attribute_xy((uint8_t)((hvx + 7u) & 31u), hvy, PAL_LIFE_UI);
-    VBK_REG = 0;
-    gotoxy((uint8_t)((hvx + 8u) & 31u), hvy);
-    setchar('[');
-    set_bkg_attribute_xy((uint8_t)((hvx + 8u) & 31u), hvy, PAL_UI);
-    VBK_REG = 0;
+static void put_word5_win(uint8_t x, uint8_t y, const char *s) { // same for window tilemap rows 0–1
+    uint8_t i;
+    for (i = 0; i < 5; i++) { win_putc((uint8_t)(x+i), y, s[i] ? s[i] : ' '); }
+}
+
+void window_ui_show(void) { // HUD row 0 + seed rows 1–2: ISR toggles window on/off per band
+    uint8_t wx, wy;
+    WX_REG = 7u;
+    WY_REG = 0u; // window starts at line 0; ISR hides it at line 8 and re-shows at bottom
+    fill_win_rect(0, 0, 32, 3, 1u);
+    for (wy = 0; wy < 3u; wy++)
+        for (wx = 0; wx < 32u; wx++)
+            set_win_attribute_xy(wx, wy, PAL_UI);
+}
+
+void window_ui_hide(void) {
+    HIDE_WIN;
+}
+
+void ui_draw_top_hud(void) { // floor label + life bar — window row 0 (ISR shows at lines 0–7)
+    uint8_t hy = UI_HUD_WIN_Y, x;
+    win_puts(0, hy, "FLR:", PAL_UI);
+    win_putc_pal(4, hy, (char)('0' + floor_num / 10u), PAL_UI); // tens digit (zero-padded)
+    win_putc_pal(5, hy, (char)('0' + floor_num % 10u), PAL_UI);
+    win_putc(6, hy, ' ');
+    win_putc_pal(7, hy, 'L', PAL_LIFE_UI);
+    win_putc(8, hy, '[');
     {
-        uint8_t k, pct = (uint8_t)((uint16_t)player_hp * 100u / PLAYER_HP_MAX); // 0..100 for bar thresholds
-        for (k = 0; k < LIFE_BAR_LEN; k++) { // LIFE_BAR_LEN segments × 20% each
-            uint8_t tx = (uint8_t)((hvx + 9u + k) & 31u);
-            gotoxy(tx, hvy);
+        uint8_t k, pct = (uint8_t)((uint16_t)player_hp * 100u / PLAYER_HP_MAX);
+        for (k = 0; k < LIFE_BAR_LEN; k++) {
+            uint8_t tx = (uint8_t)(9u + k);
             if (pct >= (uint8_t)(20u * (k + 1u))) {
                 uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_HEART_FULL);
-                set_bkg_tiles(tx, hvy, 1, 1, &vram);
-                set_bkg_attribute_xy(tx, hvy, PAL_LIFE_UI);
+                set_win_tile_xy(tx, hy, vram);
+                set_win_attribute_xy(tx, hy, PAL_LIFE_UI);
             } else if (pct >= (uint8_t)(20u * k + 10u)) {
                 uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_HEART_HALF);
-                set_bkg_tiles(tx, hvy, 1, 1, &vram);
-                set_bkg_attribute_xy(tx, hvy, PAL_LIFE_UI);
+                set_win_tile_xy(tx, hy, vram);
+                set_win_attribute_xy(tx, hy, PAL_LIFE_UI);
             } else {
-                setchar('_');
-                set_bkg_attribute_xy(tx, hvy, PAL_UI);
+                win_putc(tx, hy, '_');
             }
-            VBK_REG = 0;
         }
     }
-    gotoxy((uint8_t)((hvx + 9u + LIFE_BAR_LEN) & 31u), hvy);
-    setchar(']');
-    set_bkg_attribute_xy((uint8_t)((hvx + 9u + LIFE_BAR_LEN) & 31u), hvy, PAL_UI);
-    VBK_REG = 0;
-    gotoxy((uint8_t)((hvx + 10u + LIFE_BAR_LEN) & 31u), hvy);
-    printf("%3d%%", (uint16_t)player_hp * 100u / PLAYER_HP_MAX); // numeric percent after bar
-    for (x = 10u + LIFE_BAR_LEN; x < GRID_W; x++) { // pad rest of row to UI palette to end of viewport width
-        set_bkg_attribute_xy((uint8_t)((hvx + x) & 31u), hvy, PAL_UI);
-        VBK_REG = 0;
+    win_putc((uint8_t)(9u + LIFE_BAR_LEN), hy, ']');
+    {
+        uint8_t pct8 = (uint8_t)((uint16_t)player_hp * 100u / PLAYER_HP_MAX);
+        win_put_uint8((uint8_t)(10u + LIFE_BAR_LEN), hy, pct8, 3, PAL_UI);
+        win_putc((uint8_t)(13u + LIFE_BAR_LEN), hy, '%');
     }
+    for (x = (uint8_t)(14u + LIFE_BAR_LEN); x < GRID_W; x++) win_put_space(x, hy);
 }
 
-void ui_draw_bottom_rows(void) { // seed word lines + attribute fill
-    uint8_t x;
-    uint8_t hvx  = UI_HUD_VX;
-    uint8_t b1vy = UI_BOT1_VY;
-    uint8_t b2vy = UI_BOT2_VY;
-
-    ui_draw_seed_words(run_seed, hvx, b1vy, b2vy); // prints words then spaces to GRID_W
-    for (x = 0; x < GRID_W; x++) { // ensure palette even where printf left gaps
-        set_bkg_attribute_xy((uint8_t)((hvx + x) & 31u), b1vy, PAL_UI);
-        VBK_REG = 0;
-    }
-    for (x = 0; x < GRID_W; x++) { // second bottom row attributes
-        set_bkg_attribute_xy((uint8_t)((hvx + x) & 31u), b2vy, PAL_UI);
-        VBK_REG = 0;
-    }
+void ui_draw_bottom_rows(void) { // window layer rows 0–1 in win map (screen rows 16–17)
+    ui_draw_seed_words(run_seed, 0, 0, 0);
 }
 
-void ui_draw_seed_words(uint16_t seed, uint8_t hvx, uint8_t b1vy, uint8_t b2vy) { // inverse of input_seed_words_screen packing
+void ui_draw_seed_words(uint16_t seed, uint8_t hvx, uint8_t b1vy, uint8_t b2vy) { // seed words → window rows 1–2 (row 0 = HUD)
     uint16_t s = seed;
     uint8_t x, d, n, p;
-    if (s < 1u) s = 1u;       // clamp to valid encoded range
-    if (s > 64000u) s = 64000u; // 40*40*40 + 1 max
+    (void)b1vy;
+    (void)b2vy;
+    if (s < 1u) s = 1u;
+    if (s > 64000u) s = 64000u;
     s--;
-    d = (uint8_t)(s % 40u);                    // descriptor index
-    n = (uint8_t)((s / 40u) % 40u);             // noun index
-    p = (uint8_t)((s / 1600u) % 40u);           // place index (40*40 = 1600 combos per p)
-    put_word5(hvx,       b1vy, seed_words_desc[d]);
-    put_word5((uint8_t)(hvx + 6), b1vy, seed_words_noun[n]); // gap column between words on row 1
-    for (x = 11; x < GRID_W; x++) { gotoxy((uint8_t)(hvx + x), b1vy); setchar(' '); } // clear tail of row
-    put_word5(hvx,       b2vy, seed_words_place[p]);
-    for (x = 5; x < GRID_W; x++) { gotoxy((uint8_t)(hvx + x), b2vy); setchar(' '); } // place word is 5 wide at x
+    d = (uint8_t)(s % 40u);
+    n = (uint8_t)((s / 40u) % 40u);
+    p = (uint8_t)((s / 1600u) % 40u);
+    put_word5_win(hvx,       1, seed_words_desc[d]);
+    put_word5_win((uint8_t)(hvx + 6), 1, seed_words_noun[n]);
+    for (x = 11; x < GRID_W; x++) { win_put_space((uint8_t)(hvx + x), 1); }
+    put_word5_win(hvx,       2, seed_words_place[p]);
+    for (x = 5; x < GRID_W; x++) { win_put_space((uint8_t)(hvx + x), 2); }
 }
 
 static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t entropy_hint) { // interactive seed picker
@@ -182,6 +205,8 @@ uint16_t title_screen(uint16_t entropy_hint) { // blocking until START or SELECT
     uint8_t  x, y, blink_counter = 0, blink_visible = 1, prev_j = 0;
     uint16_t frame_counter = 0;
 
+    lcd_gameplay_active = 0u;
+    window_ui_hide();
     for (y = 0; y < 18; y++)
         for (x = 0; x < GRID_W; x++) { gotoxy(x, y); setchar(' '); }
     gotoxy(4,  7); printf("Mara's Abyss");
@@ -212,6 +237,8 @@ uint16_t title_screen(uint16_t entropy_hint) { // blocking until START or SELECT
 
 void game_over_screen(void) { // blocks until START
     uint8_t x, y;
+    lcd_gameplay_active = 0u;
+    window_ui_hide();
     for (y = 0; y < 18; y++)
         for (x = 0; x < GRID_W; x++) { gotoxy(x, y); setchar(' '); }
     gotoxy(6,  8); printf("GAME OVER");

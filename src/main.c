@@ -3,6 +3,7 @@
 #include "enemy.h"  // spawn_enemies, move_enemies, enemy_at, anim
 #include "render.h" // draw_screen, strips, shake, palettes
 #include "ui.h"     // title_screen, game_over_screen
+#include "lcd.h"    // raster HUD / viewport scroll split
 #include "music.h"  // background theme
 #include "wall_palettes.h" // NUM_WALL_PALETTES
 
@@ -12,7 +13,7 @@ uint8_t  player_hp  = PLAYER_HP_MAX; // remaining HP; reset on new run, not on p
 uint8_t  floor_num  = 1;             // 1-based floor index; incremented when taking a pit
 uint16_t run_seed   = 12345;         // default until title picks a seed; drives per-floor RNG
 uint16_t camera_px  = 0;             // viewport top-left in background pixels (sub-tile scroll)
-uint16_t camera_py  = 0;             // same for Y; SCY uses camera_py-8 so HUD row stays on screen
+uint16_t camera_py  = 0;             // viewport Y; line-8 ISR uses SCY=camera_py (dungeon ring is +1 row vs HUD)
 
 static void scroll_toward(uint8_t target_tx, uint8_t target_ty, uint8_t px, uint8_t py) { // smooth pan until camera tile matches target
     uint16_t target_px = (uint16_t)target_tx * 8u; // tile coords → pixel origin of that map tile
@@ -27,9 +28,7 @@ static void scroll_toward(uint8_t target_tx, uint8_t target_ty, uint8_t px, uint
         if (camera_py < target_py) { camera_py += SCROLL_SPEED; if (camera_py > target_py) camera_py = target_py; }
         else if (camera_py > target_py) { camera_py -= SCROLL_SPEED; if (camera_py < target_py) camera_py = target_py; }
 
-        wait_vbl_done(); // tear-free register writes during VBlank
-        SCX_REG = (uint8_t)(camera_px & 0xFFu);                    // hardware fine scroll X (wraps at 256 px)
-        SCY_REG = (uint8_t)((camera_py - 8u) & 0xFFu);            // +8px tile offset so row 0 shows HUD band
+        wait_vbl_done(); // tilemap writes; SCX/SCY only from lcd.c VBL + LYC=8 — never write here or HUD band flickers
 
         uint8_t new_col = (uint8_t)((camera_px >> 3) + GRID_W); // recompute after move
         uint8_t new_row = (uint8_t)((camera_py >> 3) + GRID_H);
@@ -40,6 +39,8 @@ static void scroll_toward(uint8_t target_tx, uint8_t target_ty, uint8_t px, uint
 }
 
 static void enter_level(uint8_t *px, uint8_t *py, uint8_t from_pit) { // load or descend floor; *px/*py become spawn
+    lcd_gameplay_active = 1u; // line-8 ISR applies camera scroll; title/menu keep 0
+    window_ui_show();         // WX/WY + bottom panel on window layer
     if (from_pit) {
         floor_num++; // deeper level without resetting HP
     } else {
@@ -104,8 +105,10 @@ int main(void) {
     SCY_REG = 0;
     SHOW_BKG;
     DISPLAY_ON;
-    enable_interrupts();      // VBlank etc. available for wait_vbl_done
+    lcd_init_raster();        // VBL: HUD scroll lock; LYC=8: game camera — before other VBL handlers
     music_init();             // APU on + VBL-driven two-channel loop
+    set_interrupts(VBL_IFLAG | LCD_IFLAG);
+    enable_interrupts();      // wait_vbl_done needs VBlank + LCD STAT for raster
 
     uint16_t power_on_ticks = (uint16_t)DIV_REG | ((uint16_t)DIV_REG << 8); // widen 8-bit DIV to 16 bits (timing jitter)
     static uint16_t run_entropy; // persists across game_over → new run within same power cycle
@@ -197,7 +200,7 @@ int main(void) {
 
         if (enemy_anim_update()) { // periodic glyph flip for living enemies
             wait_vbl_done();
-            draw_enemy_cells(px, py); // partial redraw: only visible enemy tiles + player on top
+            draw_enemy_cells(px, py); // redraws ring incl. row 0; draw_enemy_cells ends with HUD repaint
         }
         prev_j = j; // save for next frame edge detection
     }

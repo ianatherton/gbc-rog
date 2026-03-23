@@ -85,14 +85,14 @@ void window_ui_hide(void) {
     HIDE_WIN;
 }
 
-void ui_draw_top_hud(void) { // L:♥×5 HP% XPdd FLOORdd — window row 0 (fits GRID_W=20)
+void ui_draw_top_hud(void) { // L:♥×5 HP%XP%% FLOORdd — window row 0 (fits GRID_W=20)
     uint8_t hy = UI_HUD_WIN_Y, tx = 0;
-    uint8_t k, pct = (uint8_t)((uint16_t)player_hp * 100u / PLAYER_HP_MAX);
-    uint8_t pct8 = pct;
+    uint8_t k, pct = (uint8_t)((uint16_t)player_hp * 100u / player_hp_max);
+    uint8_t pct8 = pct, xp_pct;
     uint8_t vram;
 
     win_putc_pal(tx++, hy, 'L', PAL_LIFE_UI);
-    win_putc(tx++, hy, ':');
+    win_putc_pal(tx++, hy, ':', PAL_LIFE_UI);
     for (k = 0; k < LIFE_BAR_LEN; k++) {
         if (pct >= (uint8_t)(20u * (k + 1u))) {
             vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_HEART_FULL);
@@ -103,21 +103,24 @@ void ui_draw_top_hud(void) { // L:♥×5 HP% XPdd FLOORdd — window row 0 (fits
             set_win_tile_xy(tx, hy, vram);
             set_win_attribute_xy(tx, hy, PAL_LIFE_UI);
         } else {
-            win_putc(tx, hy, '_');
+            win_putc_pal(tx, hy, '_', PAL_LIFE_UI); // empty bar segment matches life color
         }
         tx++;
     }
-    win_put_uint8(tx, hy, pct8, 3, PAL_UI);
+    win_put_uint8(tx, hy, pct8, 3, PAL_LIFE_UI);
     tx = (uint8_t)(tx + 3u);
-    win_putc(tx++, hy, '%');
-    win_putc(tx++, hy, ' ');
-    win_putc(tx++, hy, 'X');
-    win_putc(tx++, hy, 'P');
+    win_putc_pal(tx++, hy, '%', PAL_LIFE_UI);
     {
-        uint8_t xpd = player_xp > 99u ? 99u : player_xp; // 2-digit HUD cap
-        win_putc_pal(tx++, hy, (char)('0' + xpd / 10u), PAL_UI);
-        win_putc_pal(tx++, hy, (char)('0' + xpd % 10u), PAL_UI);
+        uint16_t next_level_xp = (uint16_t)PLAYER_LEVEL_XP_BASE + (uint16_t)(player_level - 1u) * PLAYER_LEVEL_XP_STEP;
+        xp_pct = (player_xp >= next_level_xp) ? 99u : (uint8_t)((player_xp * 100u) / next_level_xp);
     }
+    win_putc_pal(tx++, hy, 'X', PAL_XP_UI);
+    win_putc_pal(tx++, hy, 'P', PAL_XP_UI);
+    {
+        win_putc_pal(tx++, hy, (char)('0' + xp_pct / 10u), PAL_XP_UI);
+        win_putc_pal(tx++, hy, (char)('0' + xp_pct % 10u), PAL_XP_UI);
+    }
+    win_putc_pal(tx++, hy, '%', PAL_XP_UI);
     vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_FLOOR_L);
     set_win_tile_xy(tx, hy, vram);
     set_win_attribute_xy(tx++, hy, PAL_UI);

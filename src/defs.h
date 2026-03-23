@@ -107,7 +107,7 @@ typedef struct {
 #define MAX_CORPSES MAX_ENEMIES
 
 /* ── Timing ──────────────────────────────────────────────────────────────── */
-#define TURN_DELAY_MS 60
+#define TURN_DELAY_MS 0 // extra ms after each resolved turn; 0 = only VBlank/scroll pacing (see main.c guard)
 
 /* ── Logical tile IDs (returned by tile_at() for render compatibility) ───── */
 // These are NOT stored in memory — tile_at() reconstructs them on-the-fly
@@ -235,7 +235,9 @@ typedef struct {
 #define START_Y (MAP_H / 2)
 
 /* ── Player stats ────────────────────────────────────────────────────────── */
-#define PLAYER_HP_MAX 10
+#define PLAYER_HP_BASE_MAX 10
+#define PLAYER_LEVEL_XP_BASE 15u
+#define PLAYER_LEVEL_XP_STEP 5u
 #define LIFE_BAR_LEN   5
 
 /* Sheet-relative tile for hero (swap for berserker / witch / scoundrel) */
@@ -247,11 +249,15 @@ typedef struct {
 #define PAL_LADDER  4   // ladder-down tile; RGB from pal_ladder in render.c
 #define PAL_UI      6   // white on black — HUD text
 #define PAL_LIFE_UI 5   // red on black   — life bar fill
-#define PAL_CORPSE  7   // dark green     — corpse 'x'
+#define PAL_XP_UI   7   // gold/yellow HUD — XP (slot shared: was corpse green; corpse now PAL_DEFAULT)
+#define PAL_CORPSE  0   // corpse 'x' uses default grayscale ramp (freed slot 7 for PAL_XP_UI)
 
 /* ── Globals defined in main.c ──────────────────────────────────────────── */
-extern uint8_t  player_hp;    // current hit points
-extern uint8_t  player_xp;    // XP for HUD (wire kills/level-up later)
+extern uint8_t  player_hp;     // current hit points
+extern uint8_t  player_hp_max; // runtime max HP (grows on level-up)
+extern uint8_t  player_level;  // starts at 1; each level adds max HP
+extern uint8_t  player_damage; // bump attack damage; +1 per level
+extern uint16_t player_xp;     // XP progress inside current level
 extern uint8_t  floor_num;    // current floor number (1-based)
 extern uint16_t run_seed;    // immutable run seed — never changes mid-run; floor seed derived from this
 extern uint16_t camera_px;    // pixel x of viewport top-left

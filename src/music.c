@@ -1,7 +1,7 @@
 #include <gb/gb.h>
 #include <stdint.h>
 
-#include "defs.h" // PLAYER_HP_MAX, player_hp — game fugue tempo vs HP %
+#include "defs.h" // player_hp/player_hp_max — game fugue tempo vs HP %
 #include "music.h"
 
 // GB period table (11-bit), same layout as gbdk/examples/gb/sound/sound.c — index = semitone from C0.
@@ -74,7 +74,7 @@ static const Song song_game  = { game_mel,  game_bas,  (uint16_t)(sizeof game_me
 
 // BPM feel → VBlanks per eighth (≈60 Hz): 1800/BPM — stately when healthy, frantic when hurt.
 static uint8_t health_bpm_vblanks(void) {
-    uint8_t pct = (uint8_t)((uint16_t)player_hp * 100u / PLAYER_HP_MAX);
+    uint8_t pct = (uint8_t)((uint16_t)player_hp * 100u / player_hp_max);
     if (pct >= 75u) {
         return 25u;
     } // 72 BPM

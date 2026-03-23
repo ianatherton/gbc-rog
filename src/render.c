@@ -11,7 +11,7 @@ static const palette_color_t pal_player[]   = { RGB(0,0,0),  RGB(20,10,0), RGB(2
 static const palette_color_t pal_ladder[]   = { RGB(0,0,0),  RGB(12,7,3),  RGB(22,14,6),  RGB(30,22,10) }; // PAL_LADDER: wood / amber (not pit-blue)
 static const palette_color_t pal_life_ui[]  = { RGB(0,0,0),  RGB(18,0,0),  RGB(25,2,2),   RGB(31,4,4)   }; // slot 5: bar fill
 static const palette_color_t pal_ui[]       = { RGB(0,0,0),  RGB(8,8,8),   RGB(16,16,16), RGB(31,31,31) }; // slot 6: HUD text
-static const palette_color_t pal_corpse[]   = { RGB(0,0,0),  RGB(0,4,0),   RGB(0,6,0),    RGB(0,10,0)   }; // slot 7: corpse 'x'
+static const palette_color_t pal_xp_ui[]    = { RGB(0,0,0),  RGB(18,14,0), RGB(26,22,4),  RGB(31,28,10) }; // slot 7: XP HUD (gold on black)
 
 void apply_wall_palette(void) { // copy chosen ROM ramp into hardware BG slot PAL_WALL_BG
     uint8_t i = wall_palette_index;
@@ -44,7 +44,7 @@ void load_palettes(void) { // slots 0–7 except walls: wall table entry 0 until
     set_bkg_palette(PAL_LADDER, 1, pal_ladder);
     set_bkg_palette(5, 1, pal_life_ui);
     set_bkg_palette(6, 1, pal_ui);
-    set_bkg_palette(7, 1, pal_corpse);
+    set_bkg_palette(PAL_XP_UI, 1, pal_xp_ui);
 }
 
 static void draw_cell_at(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t my,
@@ -60,12 +60,16 @@ static void draw_cell_at(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t my,
             return;
         }
     }
-    if (corpse_at(mx, my)) {
-        gotoxy(sx, sy);
-        setchar('x');
-        set_bkg_attribute_xy(sx, sy, PAL_CORPSE);
-        VBK_REG = 0;
-        return;
+    {
+        uint8_t coff = corpse_sheet_at(mx, my);
+        if (coff != 255) { // random L1–L5 floor deco (not font 'x')
+            uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + coff);
+            gotoxy(sx, sy);
+            set_bkg_tiles(sx, sy, 1, 1, &vram);
+            set_bkg_attribute_xy(sx, sy, PAL_CORPSE); // slot 0 — default ramp, matches floor text
+            VBK_REG = 0;
+            return;
+        }
     }
     {
         uint8_t t    = tile_at(mx, my);     // wall / floor / pit

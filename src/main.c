@@ -7,27 +7,53 @@
 #include "music.h"  // background theme
 #include "wall_palettes.h" // NUM_WALL_PALETTES
 
-#define SCROLL_SPEED 2 // pixels per frame while camera eases toward target tile
+#define SCROLL_SPEED 6 // px/frame; ≤8 keeps one tile column/row edge per frame (strip redraw safe); 6 balances speed vs smooth (8 jumps a full tile)
 
-uint8_t  player_hp  = PLAYER_HP_MAX; // remaining HP; reset on new run, not on pit descent
-uint8_t  player_xp  = 0;             // HUD XP counter; reset on new run only
+uint8_t  player_hp  = PLAYER_HP_BASE_MAX; // remaining HP; reset on new run, not on pit descent
+uint8_t  player_hp_max = PLAYER_HP_BASE_MAX; // runtime max HP; +10 per level
+uint8_t  player_level = 1;                 // XP needed scales: 15,20,25,30,...
+uint8_t  player_damage = 1;                // bump attack damage; +1 per level
+uint16_t player_xp  = 0;                   // XP progress inside current level
 uint8_t  floor_num  = 1;             // 1-based floor index; incremented when taking a pit
 uint16_t run_seed   = 12345;         // default until title picks a seed; drives per-floor RNG
 uint16_t camera_px  = 0;             // viewport top-left in background pixels (sub-tile scroll)
 uint16_t camera_py  = 0;             // viewport Y; line-8 ISR uses SCY=camera_py (dungeon ring is +1 row vs HUD)
 
+static void grant_xp_from_kill(uint8_t enemy_damage) {
+    uint16_t next_level_xp;
+    player_xp = (uint16_t)(player_xp + enemy_damage);
+    while (1) {
+        next_level_xp = (uint16_t)PLAYER_LEVEL_XP_BASE + (uint16_t)(player_level - 1u) * PLAYER_LEVEL_XP_STEP;
+        if (player_xp < next_level_xp) break;
+        player_xp = (uint16_t)(player_xp - next_level_xp);
+        if (player_level < 255u) player_level++;
+        if (player_damage < 255u) player_damage++;
+        if (player_hp_max <= 245u) player_hp_max = (uint8_t)(player_hp_max + 10u);
+        else player_hp_max = 255u;
+        player_hp = player_hp_max; // full heal on every level-up
+    }
+}
+
 static void scroll_toward(uint8_t target_tx, uint8_t target_ty, uint8_t px, uint8_t py) { // smooth pan until camera tile matches target
     uint16_t target_px = (uint16_t)target_tx * 8u; // tile coords → pixel origin of that map tile
     uint16_t target_py = (uint16_t)target_ty * 8u;
+    uint16_t guard_steps = 0u; // fail-safe: prevent endless camera loop on unexpected state corruption
 
     while (camera_px != target_px || camera_py != target_py) {
+        if (++guard_steps > 2048u) { camera_px = target_px; camera_py = target_py; break; }
         uint8_t old_col = (uint8_t)((camera_px >> 3) + GRID_W); // right edge column in map tiles (for strip invalidation)
         uint8_t old_row = (uint8_t)((camera_py >> 3) + GRID_H); // bottom edge row in map tiles
 
         if (camera_px < target_px) { camera_px += SCROLL_SPEED; if (camera_px > target_px) camera_px = target_px; } // nudge X toward target, clamp overshoot
-        else if (camera_px > target_px) { camera_px -= SCROLL_SPEED; if (camera_px < target_px) camera_px = target_px; }
+        else if (camera_px > target_px) {
+            if ((camera_px - target_px) <= SCROLL_SPEED) camera_px = target_px; // avoid uint16 underflow near 0
+            else camera_px -= SCROLL_SPEED;
+        }
         if (camera_py < target_py) { camera_py += SCROLL_SPEED; if (camera_py > target_py) camera_py = target_py; }
-        else if (camera_py > target_py) { camera_py -= SCROLL_SPEED; if (camera_py < target_py) camera_py = target_py; }
+        else if (camera_py > target_py) {
+            if ((camera_py - target_py) <= SCROLL_SPEED) camera_py = target_py; // avoid uint16 underflow near 0
+            else camera_py -= SCROLL_SPEED;
+        }
 
         wait_vbl_done(); // tilemap writes; SCX/SCY only from lcd.c VBL + LYC=8 — never write here or HUD band flickers
 
@@ -46,8 +72,11 @@ static void enter_level(uint8_t *px, uint8_t *py, uint8_t from_pit) { // load or
         floor_num++; // deeper level without resetting HP
     } else {
         floor_num = 1;           // brand-new run starts at floor 1
-        player_hp = PLAYER_HP_MAX; // full heal only on fresh run
-        player_xp = 0;             // XP resets with new run
+        player_hp_max = PLAYER_HP_BASE_MAX; // fresh run baseline stats
+        player_level = 1;
+        player_damage = 1;
+        player_xp = 0;
+        player_hp = player_hp_max;
     }
     // Derive a unique seed per floor from the fixed run seed + floor number.
     // floor_num differentiates floors; multiply+XOR scrambles bits so adjacent floors don't look like slight shifts of each other.
@@ -144,15 +173,18 @@ int main(void) {
             uint8_t result = 0;            // move_enemies return: 0 ok, 1 hit, 2 player dead
 
             if (ei != ENEMY_DEAD) { // bump-to-attack: player does not change tile
-                if (enemy_hp[ei] > 1) {
-                    enemy_hp[ei]--; // wound enemy
+                if (enemy_hp[ei] > player_damage) {
+                    enemy_hp[ei] = (uint8_t)(enemy_hp[ei] - player_damage); // wound enemy by scaled player damage
                 } else {
+                    uint8_t kill_xp = enemy_defs[enemy_type[ei]].damage;
                     if (num_corpses < MAX_CORPSES) {
-                        corpse_x[num_corpses] = enemy_x[ei]; // remember body for 'x' draw
+                        corpse_x[num_corpses] = enemy_x[ei];
                         corpse_y[num_corpses] = enemy_y[ei];
+                        corpse_tile[num_corpses] = corpse_deco_random(); // L1–L5 random deco
                         num_corpses++;
                     }
                     enemy_x[ei] = ENEMY_DEAD; // remove from AI and rendering
+                    grant_xp_from_kill(kill_xp);
                 }
 
                 result = move_enemies(px, py); // enemies act after player's attack
@@ -164,12 +196,15 @@ int main(void) {
                     start_new_run(&px, &py, &prev_j, &run_entropy);
                     continue;
                 }
-                delay(TURN_DELAY_MS); // pacing between turns
+#if TURN_DELAY_MS > 0
+                delay(TURN_DELAY_MS); // optional pacing between turns
+#endif
             } else {
                 uint8_t t = tile_at(nx, ny);
                 if (t == TILE_WALL) {
                     // solid: no movement, no enemy phase
                 } else if (t == TILE_PIT) {
+                    if (player_hp < player_hp_max) player_hp++; // heal 1 on successful move
                     wait_vbl_done();
                     draw_cell(px, py, px, py); // clear old '@' before teleport regen
                     enter_level(&px, &py, 1);   // new floor, keep HP, increment floor_num
@@ -178,6 +213,7 @@ int main(void) {
                     draw_cell(px, py, px, py); // erase player glyph at old map cell
                     px = nx; // commit walk
                     py = ny;
+                    if (player_hp < player_hp_max) player_hp++; // heal 1 on successful move
                     {
                         uint8_t target_cx = (px > GRID_W / 2) ? (uint8_t)(px - GRID_W / 2) : 0; // camera tile that keeps player centered
                         uint8_t target_cy = (py > GRID_H / 2) ? (uint8_t)(py - GRID_H / 2) : 0;
@@ -195,7 +231,9 @@ int main(void) {
                         start_new_run(&px, &py, &prev_j, &run_entropy);
                         continue;
                     }
+#if TURN_DELAY_MS > 0
                     delay(TURN_DELAY_MS);
+#endif
                 }
             }
         }

@@ -24,6 +24,7 @@ extern uint8_t num_enemies;
 /* ── Corpse state ────────────────────────────────────────────────────────── */
 extern uint8_t corpse_x[MAX_CORPSES];
 extern uint8_t corpse_y[MAX_CORPSES];
+extern uint8_t corpse_tile[MAX_CORPSES]; // TILE_FLOOR_DECO_1..5 sheet offset (picked at kill)
 extern uint8_t num_corpses;
 
 /* ── Animation state ─────────────────────────────────────────────────────── */
@@ -33,6 +34,8 @@ void    enemy_anim_reset(void); // reset DIV accumulator when entering a floor
 uint8_t enemy_anim_update(void); // 1 if toggled animation frame this call
 uint8_t enemy_at(uint8_t x, uint8_t y); // enemy slot occupying tile, else ENEMY_DEAD
 uint8_t corpse_at(uint8_t x, uint8_t y); // nonzero if a corpse marker sits here
+uint8_t corpse_sheet_at(uint8_t x, uint8_t y); // TILE_FLOOR_DECO_* offset or 255 if none
+uint8_t corpse_deco_random(void);                // random L1–L5 sheet offset for new corpse
 void    spawn_enemies(void); // fill world with NUM_ENEMIES instances
 uint8_t move_enemies(uint8_t px, uint8_t py); // enemy turn: 0 none, 1 player hit, 2 player dead
 

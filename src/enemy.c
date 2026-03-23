@@ -16,9 +16,14 @@ uint8_t enemy_type[MAX_ENEMIES]; // index into enemy_defs
 uint8_t enemy_hp[MAX_ENEMIES];   // hits remaining; player reduces before kill
 uint8_t num_enemies;             // live count ≤ NUM_ENEMIES after spawn
 
-uint8_t corpse_x[MAX_CORPSES]; // dead enemy positions for 'x' marker
+uint8_t corpse_x[MAX_CORPSES];
 uint8_t corpse_y[MAX_CORPSES];
+uint8_t corpse_tile[MAX_CORPSES]; // L1–L5 floor deco (random at kill)
 uint8_t num_corpses;
+
+static const uint8_t CORPSE_DECO_OFF[2] = { // defs.h L column — one picked per corpse
+    TILE_FLOOR_DECO_2, TILE_FLOOR_DECO_3
+};
 
 uint8_t enemy_anim_toggle; // flips each ENEMY_ANIM_DIV_TICKS of DIV accumulation
 
@@ -50,12 +55,16 @@ uint8_t enemy_at(uint8_t x, uint8_t y) { // O(n) scan; n small
     return ENEMY_DEAD;
 }
 
-uint8_t corpse_at(uint8_t x, uint8_t y) { // linear search corpses
+uint8_t corpse_sheet_at(uint8_t x, uint8_t y) { // sheet offset for corpse tile at (x,y)
     uint8_t i;
     for (i = 0; i < num_corpses; i++)
-        if (corpse_x[i] == x && corpse_y[i] == y) return 1;
-    return 0;
+        if (corpse_x[i] == x && corpse_y[i] == y) return corpse_tile[i];
+    return 255;
 }
+
+uint8_t corpse_at(uint8_t x, uint8_t y) { return corpse_sheet_at(x, y) != 255; }
+
+uint8_t corpse_deco_random(void) { return CORPSE_DECO_OFF[(uint8_t)(rand() % 2u)]; } // L2/L3
 
 void spawn_enemies(void) { // random placement with collision checks
     uint8_t i;

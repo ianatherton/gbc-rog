@@ -10,6 +10,7 @@
 #define SCROLL_SPEED 2 // pixels per frame while camera eases toward target tile
 
 uint8_t  player_hp  = PLAYER_HP_MAX; // remaining HP; reset on new run, not on pit descent
+uint8_t  player_xp  = 0;             // HUD XP counter; reset on new run only
 uint8_t  floor_num  = 1;             // 1-based floor index; incremented when taking a pit
 uint16_t run_seed   = 12345;         // default until title picks a seed; drives per-floor RNG
 uint16_t camera_px  = 0;             // viewport top-left in background pixels (sub-tile scroll)
@@ -46,6 +47,7 @@ static void enter_level(uint8_t *px, uint8_t *py, uint8_t from_pit) { // load or
     } else {
         floor_num = 1;           // brand-new run starts at floor 1
         player_hp = PLAYER_HP_MAX; // full heal only on fresh run
+        player_xp = 0;             // XP resets with new run
     }
     // Derive a unique seed per floor from the fixed run seed + floor number.
     // floor_num differentiates floors; multiply+XOR scrambles bits so adjacent floors don't look like slight shifts of each other.

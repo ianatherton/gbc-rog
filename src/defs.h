@@ -251,6 +251,7 @@ typedef struct {
 
 /* ── Globals defined in main.c ──────────────────────────────────────────── */
 extern uint8_t  player_hp;    // current hit points
+extern uint8_t  player_xp;    // XP for HUD (wire kills/level-up later)
 extern uint8_t  floor_num;    // current floor number (1-based)
 extern uint16_t run_seed;    // immutable run seed — never changes mid-run; floor seed derived from this
 extern uint16_t camera_px;    // pixel x of viewport top-left

@@ -75,7 +75,7 @@ void window_ui_show(void) { // HUD row 0 + seed rows 1–2: ISR toggles window o
     uint8_t wx, wy;
     WX_REG = 7u;
     WY_REG = 0u; // window starts at line 0; ISR hides it at line 8 and re-shows at bottom
-    fill_win_rect(0, 0, 32, 3, 1u);
+    fill_win_rect(0, 0, 32, 3, 0u); // tile 0 = font space (matches win_put_space)
     for (wy = 0; wy < 3u; wy++)
         for (wx = 0; wx < 32u; wx++)
             set_win_attribute_xy(wx, wy, PAL_UI);
@@ -85,38 +85,48 @@ void window_ui_hide(void) {
     HIDE_WIN;
 }
 
-void ui_draw_top_hud(void) { // floor label + life bar — window row 0 (ISR shows at lines 0–7)
-    uint8_t hy = UI_HUD_WIN_Y, x;
-    win_puts(0, hy, "FLR:", PAL_UI);
-    win_putc_pal(4, hy, (char)('0' + floor_num / 10u), PAL_UI); // tens digit (zero-padded)
-    win_putc_pal(5, hy, (char)('0' + floor_num % 10u), PAL_UI);
-    win_putc(6, hy, ' ');
-    win_putc_pal(7, hy, 'L', PAL_LIFE_UI);
-    win_putc(8, hy, '[');
-    {
-        uint8_t k, pct = (uint8_t)((uint16_t)player_hp * 100u / PLAYER_HP_MAX);
-        for (k = 0; k < LIFE_BAR_LEN; k++) {
-            uint8_t tx = (uint8_t)(9u + k);
-            if (pct >= (uint8_t)(20u * (k + 1u))) {
-                uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_HEART_FULL);
-                set_win_tile_xy(tx, hy, vram);
-                set_win_attribute_xy(tx, hy, PAL_LIFE_UI);
-            } else if (pct >= (uint8_t)(20u * k + 10u)) {
-                uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_HEART_HALF);
-                set_win_tile_xy(tx, hy, vram);
-                set_win_attribute_xy(tx, hy, PAL_LIFE_UI);
-            } else {
-                win_putc(tx, hy, '_');
-            }
+void ui_draw_top_hud(void) { // L:♥×5 HP% XPdd FLOORdd — window row 0 (fits GRID_W=20)
+    uint8_t hy = UI_HUD_WIN_Y, tx = 0;
+    uint8_t k, pct = (uint8_t)((uint16_t)player_hp * 100u / PLAYER_HP_MAX);
+    uint8_t pct8 = pct;
+    uint8_t vram;
+
+    win_putc_pal(tx++, hy, 'L', PAL_LIFE_UI);
+    win_putc(tx++, hy, ':');
+    for (k = 0; k < LIFE_BAR_LEN; k++) {
+        if (pct >= (uint8_t)(20u * (k + 1u))) {
+            vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_HEART_FULL);
+            set_win_tile_xy(tx, hy, vram);
+            set_win_attribute_xy(tx, hy, PAL_LIFE_UI);
+        } else if (pct >= (uint8_t)(20u * k + 10u)) {
+            vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_HEART_HALF);
+            set_win_tile_xy(tx, hy, vram);
+            set_win_attribute_xy(tx, hy, PAL_LIFE_UI);
+        } else {
+            win_putc(tx, hy, '_');
         }
+        tx++;
     }
-    win_putc((uint8_t)(9u + LIFE_BAR_LEN), hy, ']');
+    win_put_uint8(tx, hy, pct8, 3, PAL_UI);
+    tx = (uint8_t)(tx + 3u);
+    win_putc(tx++, hy, '%');
+    win_putc(tx++, hy, ' ');
+    win_putc(tx++, hy, 'X');
+    win_putc(tx++, hy, 'P');
     {
-        uint8_t pct8 = (uint8_t)((uint16_t)player_hp * 100u / PLAYER_HP_MAX);
-        win_put_uint8((uint8_t)(10u + LIFE_BAR_LEN), hy, pct8, 3, PAL_UI);
-        win_putc((uint8_t)(13u + LIFE_BAR_LEN), hy, '%');
+        uint8_t xpd = player_xp > 99u ? 99u : player_xp; // 2-digit HUD cap
+        win_putc_pal(tx++, hy, (char)('0' + xpd / 10u), PAL_UI);
+        win_putc_pal(tx++, hy, (char)('0' + xpd % 10u), PAL_UI);
     }
-    for (x = (uint8_t)(14u + LIFE_BAR_LEN); x < GRID_W; x++) win_put_space(x, hy);
+    vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_FLOOR_L);
+    set_win_tile_xy(tx, hy, vram);
+    set_win_attribute_xy(tx++, hy, PAL_UI);
+    vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_FLOOR_R);
+    set_win_tile_xy(tx, hy, vram);
+    set_win_attribute_xy(tx++, hy, PAL_UI);
+    win_putc_pal(tx++, hy, (char)('0' + floor_num / 10u), PAL_UI);
+    win_putc_pal(tx++, hy, (char)('0' + floor_num % 10u), PAL_UI);
+    while (tx < GRID_W) win_put_space(tx++, hy);
 }
 
 void ui_draw_bottom_rows(void) { // window layer rows 0–1 in win map (screen rows 16–17)

@@ -2,10 +2,13 @@
 
 uint8_t floor_bits[BITSET_BYTES]; // 1 = open tile (floor or pit); 0 = wall
 uint8_t pit_bits[BITSET_BYTES];   // subset of floor: 1 = pit hazard
+uint8_t floor_blank_bits[BITSET_BYTES]; // plain-floor deco: 1 = render as empty background (same bit layout as floor_bits)
 NavNode nav_nodes[MAX_NAV_NODES]; // junction graph for enemy pathing
 uint8_t num_nav_nodes;            // how many nodes after build_nav_graph
 uint8_t wall_tileset_index = TILE_WALL_FIRST; // offset within sheet for TILE_WALL (debug cycle)
 uint8_t wall_palette_index = 0;           // index into wall_palette_table; uploaded to PAL_WALL_BG
+
+static uint8_t floor_column_off = TILE_COLUMN_1; // one column style per floor (D1..D4), seeded in floor_ground_init
 
 static const int8_t NAV_DX[4] = {  0,  0, -1,  1 }; // 0=up 1=down 2=left 3=right: Δx per step
 static const int8_t NAV_DY[4] = { -1,  1,  0,  0 }; // Δy per step along corridor trace
@@ -48,6 +51,27 @@ uint8_t tile_palette(uint8_t t) { // CGB attribute palette index per terrain typ
     if (t == TILE_WALL) return PAL_WALL_BG; // colors chosen by wall_palette_index via apply_wall_palette
     if (t == TILE_PIT)  return PAL_LADDER;  // bright ladder palette in render.c
     return 0;                               // default floor text color
+}
+
+void floor_ground_init(uint16_t floor_seed) { // deterministic floor visuals from the same seed used for level generation
+    uint8_t col_idx = (uint8_t)(floor_seed & 3u); // 0..3 -> D1..D4
+    floor_column_off = (uint8_t)(TILE_COLUMN_1 + (uint8_t)(col_idx * 16u));
+}
+
+uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank (font space / tile 0)
+    uint16_t idx = TILE_IDX(x, y);
+    if (BIT_GET(floor_blank_bits, idx)) return 255u;
+    return TILE_GROUND_D;
+}
+
+uint8_t wall_tile_sheet_offset(uint8_t x, uint8_t y) { // convert specific wall neighbour counts into this floor's column tile
+    uint8_t n = 0;
+    if (y > 0 && tile_at(x, (uint8_t)(y - 1u)) == TILE_WALL) n++;
+    if (y < (uint8_t)(MAP_H - 1u) && tile_at(x, (uint8_t)(y + 1u)) == TILE_WALL) n++;
+    if (x > 0 && tile_at((uint8_t)(x - 1u), y) == TILE_WALL) n++;
+    if (x < (uint8_t)(MAP_W - 1u) && tile_at((uint8_t)(x + 1u), y) == TILE_WALL) n++;
+    if (n == 0u || n == 2u || n == 3u) return floor_column_off; // alone / in 2s / in 3s
+    return wall_tileset_index;
 }
 
 static uint8_t is_straight_corridor(uint8_t x, uint8_t y) { // NS-only or WE-only adjacency → no junction
@@ -166,7 +190,7 @@ void generate_level(void) { // full regen: clears map, walks, pits, then nav gra
     uint16_t i;
     uint8_t x = START_X, y = START_Y; // drunkard starts at same tile player will spawn on
 
-    for (i = 0; i < BITSET_BYTES; i++) { floor_bits[i] = 0; pit_bits[i] = 0; } // all wall
+    for (i = 0; i < BITSET_BYTES; i++) { floor_bits[i] = 0; pit_bits[i] = 0; floor_blank_bits[i] = 0; } // all wall; no blank scatter yet
 
     set_floor(x, y); // ensure spawn is open
     for (i = 0; i < WALK_STEPS; i++) {
@@ -202,6 +226,19 @@ void generate_level(void) { // full regen: clears map, walks, pits, then nav gra
                     set_pit(fx, fy);
                     placed++;
                 }
+            }
+        }
+    }
+
+    {
+        uint8_t bx, by; // ~10% of plain floor tiles → floor_blank_bits (same indices as floor_bits)
+        for (by = 0; by < MAP_H; by++) {
+            for (bx = 0; bx < MAP_W; bx++) {
+                uint16_t idx = TILE_IDX(bx, by);
+                if (!BIT_GET(floor_bits, idx)) continue;
+                if (BIT_GET(pit_bits, idx)) continue;
+                if (bx == START_X && by == START_Y) continue; // keep spawn on ground tile
+                if ((uint8_t)(rand() % 10u) == 0u) BIT_SET(floor_blank_bits, idx);
             }
         }
     }

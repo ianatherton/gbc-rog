@@ -3,11 +3,11 @@
 
 const EnemyDef enemy_defs[NUM_ENEMY_TYPES] = { // tile_* = defs.h J-col spider / monster art
     /* ENEMY_SERPENT  */ { TILE_SPIDER_1,   TILE_SPIDER_2,   2, 1, 1, MOVE_CHASE  },
-    /* ENEMY_ADDER    */ { TILE_MONSTER_1,  TILE_MONSTER_1,  1, 1, 0, MOVE_CHASE  },
-    /* ENEMY_RAT      */ { TILE_MONSTER_2,  TILE_MONSTER_2,  1, 1, 0, MOVE_WANDER },
-    /* ENEMY_BAT      */ { TILE_MONSTER_3,  TILE_MONSTER_3,  1, 1, 0, MOVE_RANDOM },
-    /* ENEMY_SKELETON */ { TILE_MONSTER_1,  TILE_MONSTER_2,  3, 2, 0, MOVE_CHASE  },
-    /* ENEMY_GOBLIN   */ { TILE_MONSTER_2,  TILE_MONSTER_3,  2, 2, 1, MOVE_CHASE  },
+    /* ENEMY_ADDER    */ { TILE_MONSTER_1,  TILE_MONSTER_1,  1, 1, 4, MOVE_CHASE  },
+    /* ENEMY_RAT      */ { TILE_MONSTER_2,  TILE_MONSTER_2,  1, 1, 5, MOVE_WANDER },
+    /* ENEMY_BAT      */ { TILE_MONSTER_3,  TILE_MONSTER_3,  1, 1, 7, MOVE_RANDOM },
+    /* ENEMY_SKELETON */ { TILE_MONSTER_1,  TILE_MONSTER_2,  3, 2, 6, MOVE_CHASE  },
+    /* ENEMY_GOBLIN   */ { TILE_MONSTER_2,  TILE_MONSTER_3,  2, 2, 2, MOVE_CHASE  },
 };
 
 uint8_t enemy_x[MAX_ENEMIES];    // map column; ENEMY_DEAD means slot unused
@@ -26,6 +26,7 @@ static const uint8_t CORPSE_DECO_OFF[2] = { // defs.h L column — one picked pe
 };
 
 uint8_t enemy_anim_toggle; // flips each ENEMY_ANIM_DIV_TICKS of DIV accumulation
+uint8_t enemy_attack_slot; // set when an enemy hits the player on its turn
 
 static uint8_t   anim_last_div; // previous DIV_REG sample for delta
 static uint32_t anim_ticks;     // running sum of DIV deltas (uint32 avoids overflow in long play)
@@ -140,6 +141,7 @@ static void step_random(uint8_t sx, uint8_t sy,
 
 uint8_t move_enemies(uint8_t px, uint8_t py) { // one full enemy phase; return hit/death code
     uint8_t i;
+    enemy_attack_slot = ENEMY_DEAD;
     for (i = 0; i < num_enemies; i++) {
         if (enemy_x[i] == ENEMY_DEAD) continue;
 
@@ -164,6 +166,7 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // one full enemy phase; return h
         if (enemy_at(nx, ny) != ENEMY_DEAD)    continue; // don't stack enemies
 
         if (nx == px && ny == py) { // combat on player's tile
+            enemy_attack_slot = i; // lunge anim in main before shake
             if (player_hp > def->damage) player_hp -= def->damage;
             else                         player_hp  = 0;
             return player_hp == 0 ? 2 : 1; // 2 = game over, 1 = damaged

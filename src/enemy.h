@@ -29,6 +29,7 @@ extern uint8_t num_corpses;
 
 /* ── Animation state ─────────────────────────────────────────────────────── */
 extern uint8_t enemy_anim_toggle;
+extern uint8_t enemy_attack_slot; // last enemy that attacked player this phase; ENEMY_DEAD if none
 
 void    enemy_anim_reset(void); // reset DIV accumulator when entering a floor
 uint8_t enemy_anim_update(void); // 1 if toggled animation frame this call

@@ -109,6 +109,36 @@ void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t d
     entity_sprites_refresh(px, py);
 }
 
+void entity_sprites_run_enemy_glide(uint8_t px, uint8_t py,
+                                     const uint8_t *old_ex, const uint8_t *old_ey) {
+    uint8_t i, any = 0;
+    for (i = 0; i < num_enemies; i++) {
+        if (enemy_x[i] == ENEMY_DEAD || old_ex[i] == ENEMY_DEAD) {
+            en_ofs_x[i] = 0; en_ofs_y[i] = 0;
+            continue;
+        }
+        en_ofs_x[i] = (int8_t)(((int16_t)old_ex[i] - (int16_t)enemy_x[i]) * 8);
+        en_ofs_y[i] = (int8_t)(((int16_t)old_ey[i] - (int16_t)enemy_y[i]) * 8);
+        if (en_ofs_x[i] || en_ofs_y[i]) any = 1;
+    }
+    if (!any) return;
+    while (1) {
+        any = 0;
+        for (i = 0; i < num_enemies; i++) {
+            if (en_ofs_x[i] > 0) en_ofs_x[i] = (en_ofs_x[i] > (int8_t)SCROLL_SPEED) ? (int8_t)(en_ofs_x[i] - SCROLL_SPEED) : 0;
+            else if (en_ofs_x[i] < 0) en_ofs_x[i] = (en_ofs_x[i] < -(int8_t)SCROLL_SPEED) ? (int8_t)(en_ofs_x[i] + SCROLL_SPEED) : 0;
+            if (en_ofs_y[i] > 0) en_ofs_y[i] = (en_ofs_y[i] > (int8_t)SCROLL_SPEED) ? (int8_t)(en_ofs_y[i] - SCROLL_SPEED) : 0;
+            else if (en_ofs_y[i] < 0) en_ofs_y[i] = (en_ofs_y[i] < -(int8_t)SCROLL_SPEED) ? (int8_t)(en_ofs_y[i] + SCROLL_SPEED) : 0;
+            if (en_ofs_x[i] || en_ofs_y[i]) any = 1;
+        }
+        entity_sprites_refresh(px, py);
+        wait_vbl_done();
+        if (!any) break;
+    }
+    memset(en_ofs_x, 0, sizeof en_ofs_x);
+    memset(en_ofs_y, 0, sizeof en_ofs_y);
+}
+
 void entity_sprites_run_enemy_lunge(uint8_t px, uint8_t py, uint8_t slot, uint8_t tgx, uint8_t tgy) {
     uint8_t t;
     int8_t sx = (int8_t)tgx - (int8_t)enemy_x[slot];

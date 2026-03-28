@@ -113,7 +113,7 @@ void draw_cell(uint8_t mx, uint8_t my, uint8_t px, uint8_t py) { // cheap update
 
 void draw_col_strip(uint8_t mx, uint8_t px, uint8_t py) { // refresh one world column at map x=mx
     uint8_t y, vx = (uint8_t)(mx & 31u); // ring X coordinate (constant for this strip)
-    for (y = 0; y < GRID_H; y++) { // only dungeon rows — GRID_H not +1 so UI row 16 is not overwritten
+    for (y = 0; y < GRID_H + 1u; y++) { // +1 covers sub-tile SCY scroll exposing partial row (bottom UI is window layer, not BG)
         uint8_t my = (uint8_t)(CAM_TY + y); // world Y for this screen row
         uint8_t vy = RING_BKG_VY_WORLD(my);
         draw_ring_tile(vx, vy, mx, my, px, py);

@@ -107,6 +107,7 @@ typedef struct {
 #define MAX_CORPSES MAX_ENEMIES
 
 /* ── Timing ──────────────────────────────────────────────────────────────── */
+#define SCROLL_SPEED 2 // px/frame; 2 = 4-frame glide per tile for smooth visible interpolation
 #define TURN_DELAY_MS 0 // extra ms after each resolved turn; 0 = only VBlank/scroll pacing (see main.c guard)
 
 /* ── Logical tile IDs (returned by tile_at() for render compatibility) ───── */

@@ -8,8 +8,6 @@
 #include "music.h"  // background theme
 #include "wall_palettes.h" // NUM_WALL_PALETTES
 
-#define SCROLL_SPEED 2 // px/frame; 2 = 4-frame glide per tile for smooth visible interpolation
-
 uint8_t  player_hp  = PLAYER_HP_BASE_MAX; // remaining HP; reset on new run, not on pit descent
 uint8_t  player_hp_max = PLAYER_HP_BASE_MAX; // runtime max HP; +10 per level
 uint8_t  player_level = 1;                 // XP needed scales: 15,20,25,30,...
@@ -243,7 +241,12 @@ int main(void) {
                     grant_xp_from_kill(kill_xp);
                 }
 
-                result = move_enemies(px, py); // enemies act after player's attack
+                {
+                    uint8_t old_ex[MAX_ENEMIES], old_ey[MAX_ENEMIES], k;
+                    for (k = 0; k < num_enemies; k++) { old_ex[k] = enemy_x[k]; old_ey[k] = enemy_y[k]; }
+                    result = move_enemies(px, py); // enemies act after player's attack
+                    entity_sprites_run_enemy_glide(px, py, old_ex, old_ey);
+                }
                 if (enemy_attack_slot != ENEMY_DEAD && (result == 1 || result == 2))
                     entity_sprites_run_enemy_lunge(px, py, enemy_attack_slot, px, py);
                 if (result == 1 || result == 2) screen_shake(); // feedback on damage or death
@@ -280,7 +283,12 @@ int main(void) {
                         if (target_cy > (uint8_t)(MAP_H - GRID_H)) target_cy = (uint8_t)(MAP_H - GRID_H);
                         scroll_toward(target_cx, target_cy, opx, opy, px, py);
                     }
-                    result = move_enemies(px, py); // enemy turn after player moved
+                    {
+                        uint8_t old_ex[MAX_ENEMIES], old_ey[MAX_ENEMIES], k;
+                        for (k = 0; k < num_enemies; k++) { old_ex[k] = enemy_x[k]; old_ey[k] = enemy_y[k]; }
+                        result = move_enemies(px, py); // enemy turn after player moved
+                        entity_sprites_run_enemy_glide(px, py, old_ex, old_ey);
+                    }
                     if (enemy_attack_slot != ENEMY_DEAD && (result == 1 || result == 2))
                         entity_sprites_run_enemy_lunge(px, py, enemy_attack_slot, px, py);
                     if (result == 1 || result == 2) screen_shake();

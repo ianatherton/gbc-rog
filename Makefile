@@ -17,6 +17,7 @@ LCCFLAGS += $(LCCFLAGS_$(EXT))
 LCCFLAGS += -Wl-j
 LCCFLAGS += -Wf-MMD -Wf-Wp-MP
 CFLAGS   += -Wf-MMD -Wf-Wp-MP
+CFLAGS   += -Wf--opt-code-speed
 
 ifdef GBDK_DEBUG
 	LCCFLAGS += -debug -v

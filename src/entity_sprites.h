@@ -11,10 +11,10 @@ void entity_sprites_clear_player_world(void); // use px*8, py*8 after scroll end
 
 void entity_sprites_refresh(uint8_t px, uint8_t py); // OAM from map + camera + lunges
 
-/* ~333ms at 60Hz; still readable bump. Lower = snappier turns. */
-#define ENTITY_LUNGE_FRAMES 20u
-void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dir_x, int8_t dir_y); // blocks on VBlank
+#define ENTITY_LUNGE_FRAMES 10u // ~167ms at 60Hz: snappy but readable
+void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dir_x, int8_t dir_y);
 void entity_sprites_run_enemy_lunge(uint8_t px, uint8_t py, uint8_t slot, uint8_t tgx, uint8_t tgy);
+void entity_sprites_run_enemy_lunges_batch(uint8_t px, uint8_t py, const uint8_t *slots, uint8_t count); // concurrent lunge for all attackers
 
 void entity_sprites_run_enemy_glide(uint8_t px, uint8_t py, // smooth slide from old to current positions over SCROLL_SPEED frames
                                      const uint8_t *old_ex, const uint8_t *old_ey);

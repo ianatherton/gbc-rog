@@ -73,7 +73,7 @@ void entity_sprites_refresh(uint8_t px, uint8_t py) {
     move_entity_oam(SP_PLAYER, pwx, pwy,
             (uint8_t)(TILESET_VRAM_OFFSET + PLAYER_TILE_OFFSET), PAL_PLAYER);
 
-    for (i = 0; i < MAX_ENEMIES; i++) {
+    for (i = 0; i < num_enemies; i++) {
         uint8_t sp = (uint8_t)(SP_ENEMY_BASE + i);
         if (enemy_x[i] == ENEMY_DEAD) {
             oam_hide(sp);
@@ -93,7 +93,7 @@ void entity_sprites_refresh(uint8_t px, uint8_t py) {
             move_entity_oam(sp, ewx, ewy, tt, def->palette);
         }
     }
-    for (i = (uint8_t)(SP_ENEMY_BASE + MAX_ENEMIES); i < 40u; i++) oam_hide(i);
+    for (i = (uint8_t)(SP_ENEMY_BASE + num_enemies); i < 40u; i++) oam_hide(i);
 }
 
 void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t dy) {
@@ -149,13 +149,41 @@ void entity_sprites_run_enemy_lunge(uint8_t px, uint8_t py, uint8_t slot, uint8_
     if (sy < -1) sy = -1;
     for (t = 0; t < ENTITY_LUNGE_FRAMES; t++) {
         uint8_t a = lunge_amt_for_frame(t);
-        memset(en_ofs_x, 0, sizeof en_ofs_x);
-        memset(en_ofs_y, 0, sizeof en_ofs_y);
         en_ofs_x[slot] = (int8_t)((int16_t)sx * (int16_t)a);
         en_ofs_y[slot] = (int8_t)((int16_t)sy * (int16_t)a);
         entity_sprites_refresh(px, py);
         wait_vbl_done();
     }
     en_ofs_x[slot] = en_ofs_y[slot] = 0;
+    entity_sprites_refresh(px, py);
+}
+
+void entity_sprites_run_enemy_lunges_batch(uint8_t px, uint8_t py,
+                                            const uint8_t *slots, uint8_t count) { // all attackers lunge toward player simultaneously
+    int8_t dir_x[MAX_ENEMIES], dir_y[MAX_ENEMIES];
+    uint8_t i, t;
+    for (i = 0; i < count; i++) {
+        uint8_t s = slots[i];
+        int8_t dx = (int8_t)px - (int8_t)enemy_x[s];
+        int8_t dy = (int8_t)py - (int8_t)enemy_y[s];
+        if (dx > 1) dx = 1; if (dx < -1) dx = -1;
+        if (dy > 1) dy = 1; if (dy < -1) dy = -1;
+        dir_x[i] = dx;
+        dir_y[i] = dy;
+    }
+    for (t = 0; t < ENTITY_LUNGE_FRAMES; t++) {
+        uint8_t a = lunge_amt_for_frame(t);
+        for (i = 0; i < count; i++) {
+            uint8_t s = slots[i];
+            en_ofs_x[s] = (int8_t)((int16_t)dir_x[i] * (int16_t)a);
+            en_ofs_y[s] = (int8_t)((int16_t)dir_y[i] * (int16_t)a);
+        }
+        entity_sprites_refresh(px, py);
+        wait_vbl_done();
+    }
+    for (i = 0; i < count; i++) {
+        uint8_t s = slots[i];
+        en_ofs_x[s] = en_ofs_y[s] = 0;
+    }
     entity_sprites_refresh(px, py);
 }

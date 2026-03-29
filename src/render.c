@@ -84,48 +84,29 @@ void load_palettes(void) { // slots 0–7 except walls: wall table entry 0 until
     set_sprite_palette(PAL_XP_UI, 1, pal_xp_ui);
 }
 
-static void draw_cell_at(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t my,
-                         uint8_t px, uint8_t py) { // write one logical map cell into ring coords (sx,sy)
-    if (mx == px && my == py) { // hero drawn as sprite; BG shows ground underfoot
-        draw_cell_terrain_only(sx, sy, mx, my);
-        return;
-    }
-    {
-        uint8_t idx = enemy_at(mx, my);
-        if (idx != ENEMY_DEAD) {
-            draw_cell_terrain_only(sx, sy, mx, my);
-            return;
-        }
-    }
-    draw_cell_terrain_only(sx, sy, mx, my);
+static void draw_ring_tile(uint8_t vx, uint8_t vy, uint8_t mx, uint8_t my) { // enemies are sprites; BG is always terrain-only
+    draw_cell_terrain_only(vx, vy, mx, my);
 }
 
-static void draw_ring_tile(uint8_t vx, uint8_t vy, uint8_t mx, uint8_t my,
-                           uint8_t px, uint8_t py) { // vx = mx&31; vy = RING_BKG_VY_WORLD(my) — row 0 reserved for HUD
-    draw_cell_at(vx, vy, mx, my, px, py);
+void draw_cell(uint8_t mx, uint8_t my) { // cheap update if cell is on-screen
+    if (mx < CAM_TX || mx >= (uint8_t)(CAM_TX + GRID_W)) return;
+    if (my < CAM_TY || my >= (uint8_t)(CAM_TY + GRID_H)) return;
+    draw_ring_tile((uint8_t)(mx & 31u), RING_BKG_VY_WORLD(my), mx, my);
 }
 
-void draw_cell(uint8_t mx, uint8_t my, uint8_t px, uint8_t py) { // cheap update if cell is on-screen
-    if (mx < CAM_TX || mx >= (uint8_t)(CAM_TX + GRID_W)) return; // off left/right of viewport
-    if (my < CAM_TY || my >= (uint8_t)(CAM_TY + GRID_H)) return; // off top/bottom
-    draw_ring_tile((uint8_t)(mx & 31u), RING_BKG_VY_WORLD(my), mx, my, px, py);
-}
-
-void draw_col_strip(uint8_t mx, uint8_t px, uint8_t py) { // refresh one world column at map x=mx
-    uint8_t y, vx = (uint8_t)(mx & 31u); // ring X coordinate (constant for this strip)
-    for (y = 0; y < GRID_H + 1u; y++) { // +1 covers sub-tile SCY scroll exposing partial row (bottom UI is window layer, not BG)
-        uint8_t my = (uint8_t)(CAM_TY + y); // world Y for this screen row
-        uint8_t vy = RING_BKG_VY_WORLD(my);
-        draw_ring_tile(vx, vy, mx, my, px, py);
+void draw_col_strip(uint8_t mx) { // refresh one world column at map x=mx
+    uint8_t y, vx = (uint8_t)(mx & 31u);
+    for (y = 0; y < GRID_H + 1u; y++) {
+        uint8_t my = (uint8_t)(CAM_TY + y);
+        draw_ring_tile(vx, RING_BKG_VY_WORLD(my), mx, my);
     }
 }
 
-void draw_row_strip(uint8_t my, uint8_t px, uint8_t py) { // refresh one world row at map y=my
+void draw_row_strip(uint8_t my) { // refresh one world row at map y=my
     uint8_t x, vy = RING_BKG_VY_WORLD(my);
-    for (x = 0; x < GRID_W + 1u; x++) { // +1 covers sub-tile SCX scroll exposing partial column
+    for (x = 0; x < GRID_W + 1u; x++) {
         uint8_t mx = (uint8_t)(CAM_TX + x);
-        uint8_t vx = (uint8_t)(mx & 31u);
-        draw_ring_tile(vx, vy, mx, my, px, py);
+        draw_ring_tile((uint8_t)(mx & 31u), vy, mx, my);
     }
 }
 
@@ -139,11 +120,11 @@ void draw_screen(uint8_t px, uint8_t py) { // full repaint: dungeon, then HUD (r
 
     apply_wall_palette(); // keep slot PAL_WALL_BG in sync after floor load or A-button cycle
 
-    for (y = 0; y < GRID_H; y++) { // dungeon first — vy = RING_BKG_VY_WORLD(my) keeps tilemap row 0 for HUD only
+    for (y = 0; y < GRID_H; y++) {
         for (x = 0; x < GRID_W; x++) {
-            uint8_t mx = (uint8_t)(CAM_TX + x); // world map coordinate
+            uint8_t mx = (uint8_t)(CAM_TX + x);
             uint8_t my = (uint8_t)(CAM_TY + y);
-            draw_ring_tile((uint8_t)(mx & 31u), RING_BKG_VY_WORLD(my), mx, my, px, py); // player tile inside draw_cell_at
+            draw_ring_tile((uint8_t)(mx & 31u), RING_BKG_VY_WORLD(my), mx, my);
         }
     }
 

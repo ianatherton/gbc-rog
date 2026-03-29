@@ -114,6 +114,16 @@ static void put_word5_win(uint8_t x, uint8_t y, const char *s) { // same for win
     for (i = 0; i < 5; i++) { win_putc((uint8_t)(x+i), y, s[i] ? s[i] : ' '); }
 }
 
+static void run_seed_to_triple(uint16_t seed, uint8_t *d, uint8_t *n, uint8_t *p) { // same logic as ui_draw_seed_words / picker
+    uint16_t s = seed;
+    if (s < 1u) s = 1u;
+    if (s > 64000u) s = 64000u;
+    s--;
+    *d = (uint8_t)(s % 40u);
+    *n = (uint8_t)((s / 40u) % 40u);
+    *p = (uint8_t)((s / 1600u) % 40u);
+}
+
 void window_ui_show(void) { // HUD row 0 + seed rows 1–2: ISR toggles window on/off per band
     uint8_t wx, wy;
     WX_REG = 7u;
@@ -126,6 +136,47 @@ void window_ui_show(void) { // HUD row 0 + seed rows 1–2: ISR toggles window o
 
 void window_ui_hide(void) {
     HIDE_WIN;
+}
+
+#define UI_LOAD_SKULL_OAM_L 38u // above SP_ENEMY_BASE+NUM_ENEMIES
+#define UI_LOAD_SKULL_OAM_R 39u
+
+volatile uint8_t ui_loading_active;
+static volatile uint8_t ui_load_phase;
+
+static const int8_t ui_load_bob12[12] = { 0, 1, 2, 2, 1, 0, -1, -2, -2, -1, 0, 0 }; // one gentle bounce / 12 VBlanks
+
+void ui_loading_vblank(void) {
+    int8_t dy;
+    uint8_t ph;
+    uint8_t hw_y;
+    if (!ui_loading_active) return;
+    ph = ui_load_phase++;
+    dy = ui_load_bob12[ph % 12u];
+    hw_y = (uint8_t)((int16_t)64 + 16 + (int16_t)dy); // screen row ~64px; hardware OAM Y includes +16
+    move_sprite(UI_LOAD_SKULL_OAM_L, (uint8_t)(24u + 8u), hw_y); // flanks 10-char label centered in GRID_W
+    move_sprite(UI_LOAD_SKULL_OAM_R, (uint8_t)(128u + 8u), hw_y);
+}
+
+void ui_loading_screen_begin(void) {
+    uint8_t tt = (uint8_t)(TILESET_VRAM_OFFSET + TILE_LOADING_SKULL);
+    ui_load_phase = 0;
+    ui_loading_active = 1u;
+    gotoxy(5, 8);
+    printf("Descending");
+    set_sprite_tile(UI_LOAD_SKULL_OAM_L, tt);
+    set_sprite_tile(UI_LOAD_SKULL_OAM_R, tt);
+    set_sprite_prop(UI_LOAD_SKULL_OAM_L, (uint8_t)(PAL_UI & 7u));
+    set_sprite_prop(UI_LOAD_SKULL_OAM_R, (uint8_t)(PAL_UI & 7u));
+    SHOW_SPRITES;
+    move_sprite(UI_LOAD_SKULL_OAM_L, 32u, 80u);
+    move_sprite(UI_LOAD_SKULL_OAM_R, 136u, 80u);
+}
+
+void ui_loading_screen_end(void) {
+    ui_loading_active = 0u;
+    move_sprite(UI_LOAD_SKULL_OAM_L, 0u, 0u);
+    move_sprite(UI_LOAD_SKULL_OAM_R, 0u, 0u);
 }
 
 void ui_draw_top_hud(void) { // L:♥×5 HP%XP%% FLOORdd — window row 0 (fits GRID_W=20)
@@ -181,16 +232,10 @@ void ui_draw_bottom_rows(void) { // window layer rows 0–1 in win map (screen r
 }
 
 void ui_draw_seed_words(uint16_t seed, uint8_t hvx, uint8_t b1vy, uint8_t b2vy) { // seed words → window rows 1–2 (row 0 = HUD)
-    uint16_t s = seed;
     uint8_t x, d, n, p;
     (void)b1vy;
     (void)b2vy;
-    if (s < 1u) s = 1u;
-    if (s > 64000u) s = 64000u;
-    s--;
-    d = (uint8_t)(s % 40u);
-    n = (uint8_t)((s / 40u) % 40u);
-    p = (uint8_t)((s / 1600u) % 40u);
+    run_seed_to_triple(seed, &d, &n, &p);
     put_word5_win(hvx,       1, seed_words_desc[d]);
     put_word5_win((uint8_t)(hvx + 6), 1, seed_words_noun[n]);
     for (x = 11; x < GRID_W; x++) { win_put_space((uint8_t)(hvx + x), 1); }
@@ -199,7 +244,7 @@ void ui_draw_seed_words(uint16_t seed, uint8_t hvx, uint8_t b1vy, uint8_t b2vy) 
 }
 
 static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t entropy_hint) { // interactive seed picker
-    uint8_t  x, y, word_pos = 0, prev_j = 0; // word_pos 0..2 selects which word the caret edits
+    uint8_t  word_pos = 0, prev_j = 0; // word_pos 0..2 selects which word the caret edits
     uint16_t frame_counter = 0;              // feeds entropy mixer each frame
     uint16_t s = initial_seed ? initial_seed : 1u;
     if (s > 64000u) s = 64000u;
@@ -208,8 +253,8 @@ static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t entropy_
     uint8_t n = (uint8_t)((s / 40u) % 40u);
     uint8_t p = (uint8_t)((s / 1600u) % 40u);
 
-    for (y = 0; y < 18; y++) // GBC text rows used by this game layout
-        for (x = 0; x < GRID_W; x++) { gotoxy(x, y); setchar(' '); } // clear playfield width only
+    wait_vbl_done();
+    lcd_clear_display();
 
     while (1) {
         gotoxy(3, 1); printf("SEED WORDS");
@@ -259,13 +304,13 @@ static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t entropy_
 }
 
 uint16_t title_screen(uint16_t entropy_hint) { // blocking until START or SELECT path returns a seed
-    uint8_t  x, y, blink_counter = 0, blink_visible = 1, prev_j = 0;
+    uint8_t  blink_counter = 0, blink_visible = 1, prev_j = 0;
     uint16_t frame_counter = 0;
 
     lcd_gameplay_active = 0u;
     window_ui_hide();
-    for (y = 0; y < 18; y++)
-        for (x = 0; x < GRID_W; x++) { gotoxy(x, y); setchar(' '); }
+    wait_vbl_done();
+    lcd_clear_display();
     gotoxy(4,  7); printf("Mara's Abyss");
     gotoxy(3, 12); printf("SELECT=seed words");
 
@@ -292,14 +337,31 @@ uint16_t title_screen(uint16_t entropy_hint) { // blocking until START or SELECT
     }
 }
 
-void game_over_screen(void) { // blocks until START
-    uint8_t x, y;
+void ui_start_menu_screen(void) { // placeholder full-screen START menu; expand later
     lcd_gameplay_active = 0u;
     window_ui_hide();
-    for (y = 0; y < 18; y++)
-        for (x = 0; x < GRID_W; x++) { gotoxy(x, y); setchar(' '); }
-    gotoxy(6,  8); printf("GAME OVER");
-    gotoxy(5, 10); printf("START=again");
+    wait_vbl_done();
+    lcd_clear_display();
+    gotoxy(4,  8); printf("START MENU");
+    gotoxy(2, 10); printf("START=resume");
+    while (1) {
+        if (joypad() & J_START) break;
+        wait_vbl_done();
+    }
+}
+
+void game_over_screen(void) { // blocks until START
+    uint8_t d, n, p;
+    lcd_gameplay_active = 0u;
+    window_ui_hide();
+    wait_vbl_done();
+    lcd_clear_display();
+    gotoxy(5,  6); printf("GAME OVER");
+    run_seed_to_triple(run_seed, &d, &n, &p);
+    put_word5(0, 9, seed_words_desc[d]);
+    put_word5(6, 9, seed_words_noun[n]);
+    put_word5(0, 10, seed_words_place[p]);
+    gotoxy(4, 13); printf("START=again");
     while (1) {
         if (joypad() & J_START) break; // no edge detect: holding START still works
         wait_vbl_done();

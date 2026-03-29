@@ -206,6 +206,7 @@ typedef struct {
 #define TILE_MONSTER_1      41   /* J3  */
 #define TILE_MONSTER_2      57   /* J4  */
 #define TILE_MONSTER_3      73   /* J5  */
+#define TILE_LOADING_SKULL   105  /* J7  - skull / loading adorn (row7 col J) */
 
 /* K col (offset 10) — empty, reserved */
 

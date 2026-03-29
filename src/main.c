@@ -32,33 +32,39 @@ static void grant_xp_from_kill(uint8_t enemy_damage) {
     }
 }
 
-static uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) { // HP + log + full paint between each lunge
+static uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) { // batched: all damage → one draw → concurrent lunges → one shake
     uint8_t a;
     if (!enemy_attack_count) return 0;
-    for (a = 0; a < enemy_attack_count; a++) {
+    for (a = 0; a < enemy_attack_count; a++)
         enemy_resolve_hit(enemy_attack_slots[a]);
-        wait_vbl_done();
-        draw_screen(px, py);
-        entity_sprites_run_enemy_lunge(px, py, enemy_attack_slots[a], px, py);
-        camera_shake(); // feedback per strike (not once at end)
-    }
+    wait_vbl_done();
+    draw_screen(px, py);
+    entity_sprites_run_enemy_lunges_batch(px, py, enemy_attack_slots, enemy_attack_count);
+    camera_shake();
     return (player_hp == 0) ? 2u : 1u;
 }
 
 static void enter_level(uint8_t *px, uint8_t *py, uint8_t from_pit) { // load or descend floor; *px/*py become spawn
-    lcd_gameplay_active = 1u; // line-8 ISR applies camera scroll; title/menu keep 0
-    window_ui_show();         // WX/WY + bottom panel on window layer
-    ui_combat_log_clear();    // fresh floor → seed words until next strike
-    if (from_pit) {
+    if (from_pit) { // pit (and later: any inter-floor move): wipe + loading skulls while generate_level runs
+        lcd_gameplay_active = 0u;
+        window_ui_hide();
+        wait_vbl_done();
+        lcd_clear_display();
+        ui_loading_screen_begin();
         floor_num++; // deeper level without resetting HP
-    } else {
+    } else { // first floor of a new run: start_new_run already lcd_clear_display(); bounce runs through generate_level
+        lcd_gameplay_active = 0u;
+        window_ui_hide();
         floor_num = 1;           // brand-new run starts at floor 1
         player_hp_max = PLAYER_HP_BASE_MAX; // fresh run baseline stats
         player_level = 1;
         player_damage = 1;
         player_xp = 0;
         player_hp = player_hp_max;
+        wait_vbl_done(); // parent just toggled LCD in lcd_clear — settle before BKG/sprite writes
+        ui_loading_screen_begin();
     }
+    ui_combat_log_clear();                            // fresh floor → seed words until next strike
     // Derive a unique seed per floor from the fixed run seed + floor number.
     // floor_num differentiates floors; multiply+XOR scrambles bits so adjacent floors don't look like slight shifts of each other.
     uint16_t floor_seed = (uint16_t)(run_seed * 2053u)
@@ -69,6 +75,7 @@ static void enter_level(uint8_t *px, uint8_t *py, uint8_t from_pit) { // load or
     floor_ground_init(floor_seed);    // E1–E5 + blank mix; same seed as level RNG so same named run matches
 
     num_corpses       = 0;              // fresh floor has no corpse markers
+    enemy_grids_init();               // clear spatial lookup grids before spawn
     enemy_anim_toggle = 0;              // sync animation phase on level load
     enemy_anim_reset();               // reset DIV accumulator for glyph flip timing
     wall_tileset_index = TILE_WALL_FIRST; // debug: default wall graphic variant
@@ -87,6 +94,9 @@ static void enter_level(uint8_t *px, uint8_t *py, uint8_t from_pit) { // load or
         if (cy > (int16_t)(MAP_H - GRID_H)) cy = (int16_t)(MAP_H - GRID_H);
         camera_init((uint8_t)cx, (uint8_t)cy);
     }
+    ui_loading_screen_end();
+    lcd_gameplay_active = 1u;
+    window_ui_show();
     wait_vbl_done();     // safe before bulk tilemap writes with LCD on
     draw_screen(*px, *py); // full paint: HUD, dungeon ring, bottom UI, scroll regs
 }
@@ -103,6 +113,8 @@ static void start_new_run(uint8_t *px, uint8_t *py, uint8_t *prev_j,
     floor_num = 0;      // enter_level will set 1 for new run (see from_pit branch)
     *prev_j   = 0;      // no stale edge triggers on first frame after title
     music_play_game();  // long fugue-style loop for dungeon / pit descent
+    wait_vbl_done();
+    lcd_clear_display(); // single black frame then dungeon paint — no title tiles bleeding through
     enter_level(px, py, 0); // from_pit=0 → reset HP and floor counter inside
 }
 
@@ -133,6 +145,16 @@ int main(void) {
     while (1) {
         uint8_t j  = joypad();       // current held buttons
         uint8_t nx = px, ny = py;   // proposed move target (default: stay)
+
+        if (lcd_gameplay_active && (j & J_START) && !(prev_j & J_START)) { // full-screen pause strip; gameplay raster restored after
+            ui_start_menu_screen();
+            lcd_gameplay_active = 1u;
+            window_ui_show();
+            wait_vbl_done();
+            draw_screen(px, py);
+            prev_j = joypad();
+            continue;
+        }
 
         if (j & J_LEFT)  nx = px > 0         ? (uint8_t)(px-1) : px; // clamp at map border
         if (j & J_RIGHT) nx = px < MAP_W-1   ? (uint8_t)(px+1) : px;
@@ -165,27 +187,29 @@ int main(void) {
                     enemy_hp[ei] = (uint8_t)(enemy_hp[ei] - player_damage); // wound enemy by scaled player damage
                 } else {
                     uint8_t kill_xp = enemy_defs[enemy_type[ei]].damage;
+                    uint8_t dx = enemy_x[ei], dy = enemy_y[ei]; // save pos before marking dead
                     if (num_corpses < MAX_CORPSES) {
-                        corpse_x[num_corpses] = enemy_x[ei];
-                        corpse_y[num_corpses] = enemy_y[ei];
-                        corpse_tile[num_corpses] = corpse_deco_random(); // L1–L5 random deco
+                        corpse_x[num_corpses] = dx;
+                        corpse_y[num_corpses] = dy;
+                        corpse_tile[num_corpses] = corpse_deco_random();
+                        BIT_SET(corpse_occ, TILE_IDX(dx, dy));
                         num_corpses++;
                     }
-                    enemy_x[ei] = ENEMY_DEAD; // remove from AI and rendering
+                    BIT_CLR(enemy_occ, TILE_IDX(dx, dy));
+                    enemy_x[ei] = ENEMY_DEAD;
                     grant_xp_from_kill(kill_xp);
                 }
                 wait_vbl_done();
-                draw_screen(px, py); // corpse / wounded enemy visible before enemy phase
+                draw_screen(px, py); // full redraw: corpse tile, wounded enemy, HUD all need updating
 
                 {
                     uint8_t old_ex[MAX_ENEMIES], old_ey[MAX_ENEMIES], k;
                     for (k = 0; k < num_enemies; k++) { old_ex[k] = enemy_x[k]; old_ey[k] = enemy_y[k]; }
-                    move_enemies(px, py); // enemies act after player's attack
+                    move_enemies(px, py);
                     entity_sprites_run_enemy_glide(px, py, old_ex, old_ey);
                 }
                 result = resolve_enemy_hits_and_animate(px, py);
-                wait_vbl_done();
-                draw_screen(px, py);
+                if (!result) { wait_vbl_done(); draw_enemy_cells(px, py); }
                 if (result == 2) {
                     game_over_screen();
                     start_new_run(&px, &py, &prev_j, &run_entropy);
@@ -201,12 +225,12 @@ int main(void) {
                 } else if (t == TILE_PIT) {
                     if (player_hp < player_hp_max) player_hp++; // heal 1 on successful move
                     wait_vbl_done();
-                    draw_cell(px, py, px, py); // clear old '@' before teleport regen
+                    draw_cell(px, py); // clear old '@' before teleport regen
                     enter_level(&px, &py, 1);   // new floor, keep HP, increment floor_num
                 } else {
                     uint8_t opx = px, opy = py;
                     wait_vbl_done();
-                    draw_cell(px, py, px, py); // BG under old tile only; sprite still at old until scroll
+                    draw_cell(px, py); // BG under old tile only; sprite still at old until scroll
                     px = nx; // commit walk
                     py = ny;
                     if (player_hp < player_hp_max) player_hp++; // heal 1 on successful move
@@ -242,8 +266,9 @@ int main(void) {
 
         if (enemy_anim_update()) { // periodic glyph flip for living enemies
             wait_vbl_done();
-            draw_enemy_cells(px, py); // redraws ring incl. row 0; draw_enemy_cells ends with HUD repaint
+            draw_enemy_cells(px, py);
         }
-        prev_j = j; // save for next frame edge detection
+        prev_j = j;
+        wait_vbl_done(); // halt CPU until next VBlank; prevents busy-spin when idle
     }
 }

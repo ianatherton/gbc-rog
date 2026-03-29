@@ -1,6 +1,7 @@
 #include "enemy.h" // AI, spawning, animation tied to DIV_REG
 #include "map.h"   // is_walkable, tile_at, nearest_nav_node, nav_next_step, TILE_PIT
 #include "ui.h"    // ui_combat_log_push
+#include <string.h>
 
 const EnemyDef enemy_defs[NUM_ENEMY_TYPES] = { // tile_* = defs.h J-col spider / monster art
     /* ENEMY_SERPENT  */ { TILE_SPIDER_1,   TILE_SPIDER_2,   2, 1, 1, MOVE_CHASE  },
@@ -21,6 +22,14 @@ uint8_t corpse_x[MAX_CORPSES];
 uint8_t corpse_y[MAX_CORPSES];
 uint8_t corpse_tile[MAX_CORPSES]; // L1–L5 floor deco (random at kill)
 uint8_t num_corpses;
+
+uint8_t enemy_occ[BITSET_BYTES];
+uint8_t corpse_occ[BITSET_BYTES];
+
+void enemy_grids_init(void) {
+    memset(enemy_occ, 0, sizeof enemy_occ);
+    memset(corpse_occ, 0, sizeof corpse_occ);
+}
 
 static const uint8_t CORPSE_DECO_OFF[2] = { // defs.h L column — one picked per corpse
     TILE_FLOOR_DECO_2, TILE_FLOOR_DECO_3
@@ -57,16 +66,19 @@ uint8_t enemy_anim_update(void) { // call every frame from main loop
     return 0;
 }
 
-uint8_t enemy_at(uint8_t x, uint8_t y) { // O(n) scan; n small
+uint8_t enemy_at(uint8_t x, uint8_t y) { // O(1) when empty (common case); short scan when occupied
+    uint16_t idx = TILE_IDX(x, y);
     uint8_t i;
+    if (!BIT_GET(enemy_occ, idx)) return ENEMY_DEAD;
     for (i = 0; i < num_enemies; i++)
-        if (enemy_x[i] != ENEMY_DEAD && enemy_x[i] == x && enemy_y[i] == y)
-            return i;
+        if (enemy_x[i] != ENEMY_DEAD && enemy_x[i] == x && enemy_y[i] == y) return i;
     return ENEMY_DEAD;
 }
 
-uint8_t corpse_sheet_at(uint8_t x, uint8_t y) { // sheet offset for corpse tile at (x,y)
+uint8_t corpse_sheet_at(uint8_t x, uint8_t y) { // O(1) when no corpse (common case)
+    uint16_t idx = TILE_IDX(x, y);
     uint8_t i;
+    if (!BIT_GET(corpse_occ, idx)) return 255;
     for (i = 0; i < num_corpses; i++)
         if (corpse_x[i] == x && corpse_y[i] == y) return corpse_tile[i];
     return 255;
@@ -74,23 +86,24 @@ uint8_t corpse_sheet_at(uint8_t x, uint8_t y) { // sheet offset for corpse tile 
 
 uint8_t corpse_at(uint8_t x, uint8_t y) { return corpse_sheet_at(x, y) != 255; }
 
-uint8_t corpse_deco_random(void) { return CORPSE_DECO_OFF[(uint8_t)(rand() % 2u)]; } // L2/L3
+uint8_t corpse_deco_random(void) { return CORPSE_DECO_OFF[rand() & 1u]; } // L2/L3
 
 void spawn_enemies(void) { // random placement with collision checks
     uint8_t i;
     num_enemies = 0;
     for (i = 0; i < NUM_ENEMIES; i++) {
         uint8_t attempts;
-        for (attempts = 0; attempts < 100; attempts++) { // try up to 100 random tiles
-            uint8_t tx = (uint8_t)(rand() % MAP_W);
-            uint8_t ty = (uint8_t)(rand() % MAP_H);
-            if ((tx != START_X || ty != START_Y) // not on player
-                    && is_walkable(tx, ty)       // open tile
-                    && enemy_at(tx, ty) == ENEMY_DEAD) { // no stacking
+        for (attempts = 0; attempts < 100; attempts++) {
+            uint8_t tx = (uint8_t)(rand() & (MAP_W - 1)); // MAP_W is power-of-2
+            uint8_t ty = (uint8_t)(rand() & (MAP_H - 1));
+            if ((tx != START_X || ty != START_Y)
+                    && is_walkable(tx, ty)
+                    && enemy_at(tx, ty) == ENEMY_DEAD) {
                 enemy_x[num_enemies]    = tx;
                 enemy_y[num_enemies]    = ty;
                 enemy_type[num_enemies] = (uint8_t)(rand() % NUM_ENEMY_TYPES);
                 enemy_hp[num_enemies]   = enemy_defs[enemy_type[num_enemies]].max_hp;
+                BIT_SET(enemy_occ, TILE_IDX(tx, ty));
                 num_enemies++;
                 break;
             }
@@ -148,10 +161,18 @@ static void step_random(uint8_t sx, uint8_t sy,
     }
 }
 
-void enemy_resolve_hit(uint8_t slot) { // one strike: log line + subtract HP (main redraws between hits)
+void enemy_resolve_hit(uint8_t slot) { // one strike: log line + subtract HP
     const EnemyDef *def = &enemy_defs[enemy_type[slot]];
+    const char *name = enemy_type_name(enemy_type[slot]);
     char logbuf[24];
-    (void)sprintf(logbuf, "%s -%u", enemy_type_name(enemy_type[slot]), (unsigned)def->damage);
+    uint8_t p = 0, dmg = def->damage;
+    while (*name && p < 18u) logbuf[p++] = *name++;
+    logbuf[p++] = ' ';
+    logbuf[p++] = '-';
+    if (dmg >= 100u) { logbuf[p++] = (char)('0' + dmg / 100u); dmg %= 100u; logbuf[p++] = (char)('0' + dmg / 10u); dmg %= 10u; }
+    else if (dmg >= 10u) { logbuf[p++] = (char)('0' + dmg / 10u); dmg %= 10u; }
+    logbuf[p++] = (char)('0' + dmg);
+    logbuf[p] = 0;
     ui_combat_log_push(logbuf);
     if (player_hp > def->damage) player_hp -= def->damage;
     else                         player_hp  = 0;
@@ -159,6 +180,10 @@ void enemy_resolve_hit(uint8_t slot) { // one strike: log line + subtract HP (ma
 
 uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes — HP applied later in enemy_resolve_hit per hit
     uint8_t i;
+    memset(enemy_occ, 0, sizeof enemy_occ); // rebuild from ground truth each turn — guarantees consistency
+    for (i = 0; i < num_enemies; i++)
+        if (enemy_x[i] != ENEMY_DEAD)
+            BIT_SET(enemy_occ, TILE_IDX(enemy_x[i], enemy_y[i]));
     enemy_attack_count = 0;
     for (i = 0; i < num_enemies; i++) {
         if (enemy_x[i] == ENEMY_DEAD) continue;
@@ -190,9 +215,14 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
 
         if (!is_walkable(nx, ny)) continue; // wall blocked proposed step
 
+        BIT_CLR(enemy_occ, TILE_IDX(sx, sy)); // vacate old cell
         enemy_x[i] = nx;
         enemy_y[i] = ny;
-        if (tile_at(nx, ny) == TILE_PIT) enemy_x[i] = ENEMY_DEAD; // fell in pit — remove silently
+        if (tile_at(nx, ny) == TILE_PIT) {
+            enemy_x[i] = ENEMY_DEAD; // fell in pit — remove silently
+        } else {
+            BIT_SET(enemy_occ, TILE_IDX(nx, ny));
+        }
     }
     return enemy_attack_count ? 1u : 0u;
 }

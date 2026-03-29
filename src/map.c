@@ -206,8 +206,8 @@ void generate_level(void) { // full regen: clears map, walks, pits, then nav gra
 
     uint8_t placed = 0;
     for (uint8_t attempts = 0; attempts < 200 && placed < NUM_PITS; attempts++) { // random floor tile, not spawn
-        uint8_t tx = (uint8_t)(rand() % MAP_W);
-        uint8_t ty = (uint8_t)(rand() % MAP_H);
+        uint8_t tx = (uint8_t)(rand() & (MAP_W - 1));
+        uint8_t ty = (uint8_t)(rand() & (MAP_H - 1));
         if ((tx != START_X || ty != START_Y) // never ladder on spawn
                 && BIT_GET(floor_bits, TILE_IDX(tx, ty))
                 && !BIT_GET(pit_bits,  TILE_IDX(tx, ty))) {

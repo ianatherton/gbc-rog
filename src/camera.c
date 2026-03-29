@@ -29,11 +29,12 @@ static void player_glide_when_camera_idle(uint8_t opx, uint8_t opy, uint8_t px, 
 }
 
 void camera_scroll_to(uint8_t target_tx, uint8_t target_ty,
-                      uint8_t opx, uint8_t opy, uint8_t px, uint8_t py) { // smooth pan; sprite eases from old tile with camera
+                      uint8_t opx, uint8_t opy, uint8_t px, uint8_t py) { // smooth pan; sprite steps from old tile with camera (16-bit only)
     uint16_t target_px = (uint16_t)target_tx * 8u;
     uint16_t target_py = (uint16_t)target_ty * 8u;
-    uint16_t start_cam_px = camera_px, start_cam_py = camera_py;
     uint16_t guard_steps = 0u;
+    int16_t pwx = (int16_t)opx * 8, pwy = (int16_t)opy * 8; // player sprite world pos, stepped toward target
+    int16_t target_pwx = (int16_t)px * 8, target_pwy = (int16_t)py * 8;
 
     if (camera_px == target_px && camera_py == target_py && (opx != px || opy != py)) {
         player_glide_when_camera_idle(opx, opy, px, py);
@@ -56,32 +57,21 @@ void camera_scroll_to(uint8_t target_tx, uint8_t target_ty,
             else camera_py -= SCROLL_SPEED;
         }
 
-        {
-            int16_t pwx = (int16_t)px * 8, pwy = (int16_t)py * 8;
-            if (target_px != start_cam_px) {
-                int32_t num = (int32_t)((int16_t)px * 8 - (int16_t)opx * 8)
-                            * (int32_t)((int32_t)camera_px - (int32_t)start_cam_px);
-                int32_t den = (int32_t)target_px - (int32_t)start_cam_px;
-                if (den != 0) pwx = (int16_t)opx * 8 + (int16_t)(num / den);
-            } else pwx = (int16_t)px * 8;
-            if (target_py != start_cam_py) {
-                int32_t num = (int32_t)((int16_t)py * 8 - (int16_t)opy * 8)
-                            * (int32_t)((int32_t)camera_py - (int32_t)start_cam_py);
-                int32_t den = (int32_t)target_py - (int32_t)start_cam_py;
-                if (den != 0) pwy = (int16_t)opy * 8 + (int16_t)(num / den);
-            } else pwy = (int16_t)py * 8;
-            entity_sprites_set_player_world(pwx, pwy);
-        }
+        if (pwx < target_pwx) { pwx += SCROLL_SPEED; if (pwx > target_pwx) pwx = target_pwx; }
+        else if (pwx > target_pwx) { pwx -= SCROLL_SPEED; if (pwx < target_pwx) pwx = target_pwx; }
+        if (pwy < target_pwy) { pwy += SCROLL_SPEED; if (pwy > target_pwy) pwy = target_pwy; }
+        else if (pwy > target_pwy) { pwy -= SCROLL_SPEED; if (pwy < target_pwy) pwy = target_pwy; }
+        entity_sprites_set_player_world(pwx, pwy);
 
         wait_vbl_done();
 
         {
             uint8_t new_ctx = (uint8_t)(camera_px >> 3);
             uint8_t new_cty = (uint8_t)(camera_py >> 3);
-            if (new_ctx != old_ctx) // right → draw leading right edge; left → draw leading left edge
-                draw_col_strip(new_ctx > old_ctx ? (uint8_t)(new_ctx + GRID_W) : new_ctx, px, py);
+            if (new_ctx != old_ctx)
+                draw_col_strip(new_ctx > old_ctx ? (uint8_t)(new_ctx + GRID_W) : new_ctx);
             if (new_cty != old_cty)
-                draw_row_strip(new_cty > old_cty ? (uint8_t)(new_cty + GRID_H) : new_cty, px, py);
+                draw_row_strip(new_cty > old_cty ? (uint8_t)(new_cty + GRID_H) : new_cty);
         }
         draw_ui_rows();
         entity_sprites_refresh(px, py);

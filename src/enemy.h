@@ -21,6 +21,10 @@ extern uint8_t enemy_type[MAX_ENEMIES];
 extern uint8_t enemy_hp[MAX_ENEMIES];
 extern uint8_t num_enemies;
 
+/* ── Spatial bitsets for O(1) presence checks (replaces linear scans) ────── */
+extern uint8_t enemy_occ[BITSET_BYTES];  // 1 = enemy present at this tile
+extern uint8_t corpse_occ[BITSET_BYTES]; // 1 = corpse present at this tile
+
 /* ── Corpse state ────────────────────────────────────────────────────────── */
 extern uint8_t corpse_x[MAX_CORPSES];
 extern uint8_t corpse_y[MAX_CORPSES];
@@ -32,6 +36,7 @@ extern uint8_t enemy_anim_toggle;
 extern uint8_t enemy_attack_slots[MAX_ENEMIES]; // slots that struck player this phase (prefix of length enemy_attack_count)
 extern uint8_t enemy_attack_count;
 
+void    enemy_grids_init(void); // clear enemy_grid + corpse_grid (call on level load)
 void    enemy_anim_reset(void); // reset DIV accumulator when entering a floor
 uint8_t enemy_anim_update(void); // 1 if toggled animation frame this call
 uint8_t enemy_at(uint8_t x, uint8_t y); // enemy slot occupying tile, else ENEMY_DEAD

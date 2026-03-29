@@ -5,6 +5,7 @@
 #include "entity_sprites.h" // OAM actors, walk sync, attack lunge
 #include "ui.h"     // title_screen, game_over_screen
 #include "lcd.h"    // raster HUD / viewport scroll split
+#include "camera.h" // smooth scroll + shake
 #include "music.h"  // background theme
 #include "wall_palettes.h" // NUM_WALL_PALETTES
 
@@ -15,8 +16,6 @@ uint8_t  player_damage = 1;                // bump attack damage; +1 per level
 uint16_t player_xp  = 0;                   // XP progress inside current level
 uint8_t  floor_num  = 1;             // 1-based floor index; incremented when taking a pit
 uint16_t run_seed   = 12345;         // default until title picks a seed; drives per-floor RNG
-uint16_t camera_px  = 0;             // viewport top-left in background pixels (sub-tile scroll)
-uint16_t camera_py  = 0;             // viewport Y; line-8 ISR uses SCY=camera_py (dungeon ring is +1 row vs HUD)
 
 static void grant_xp_from_kill(uint8_t enemy_damage) {
     uint16_t next_level_xp;
@@ -33,87 +32,23 @@ static void grant_xp_from_kill(uint8_t enemy_damage) {
     }
 }
 
-static void player_glide_when_camera_idle(uint8_t opx, uint8_t opy, uint8_t px, uint8_t py) { // map edge: camera fixed, sprite still eases one tile
-    int16_t wx = (int16_t)opx * 8, wy = (int16_t)opy * 8;
-    int16_t ex = (int16_t)px * 8, ey = (int16_t)py * 8;
-    while (wx != ex || wy != ey) {
-        if (wx < ex) { wx += SCROLL_SPEED; if (wx > ex) wx = ex; }
-        else if (wx > ex) { if ((wx - ex) <= SCROLL_SPEED) wx = ex; else wx -= SCROLL_SPEED; }
-        if (wy < ey) { wy += SCROLL_SPEED; if (wy > ey) wy = ey; }
-        else if (wy > ey) { if ((wy - ey) <= SCROLL_SPEED) wy = ey; else wy -= SCROLL_SPEED; }
-        entity_sprites_set_player_world(wx, wy);
-        entity_sprites_refresh(px, py);
+static uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) { // HP + log + full paint between each lunge
+    uint8_t a;
+    if (!enemy_attack_count) return 0;
+    for (a = 0; a < enemy_attack_count; a++) {
+        enemy_resolve_hit(enemy_attack_slots[a]);
         wait_vbl_done();
+        draw_screen(px, py);
+        entity_sprites_run_enemy_lunge(px, py, enemy_attack_slots[a], px, py);
+        camera_shake(); // feedback per strike (not once at end)
     }
-    entity_sprites_clear_player_world();
-    entity_sprites_refresh(px, py);
-}
-
-static void scroll_toward(uint8_t target_tx, uint8_t target_ty,
-                          uint8_t opx, uint8_t opy, uint8_t px, uint8_t py) { // smooth pan; sprite eases from old tile with camera
-    uint16_t target_px = (uint16_t)target_tx * 8u;
-    uint16_t target_py = (uint16_t)target_ty * 8u;
-    uint16_t start_cam_px = camera_px, start_cam_py = camera_py;
-    uint16_t guard_steps = 0u;
-
-    if (camera_px == target_px && camera_py == target_py && (opx != px || opy != py)) {
-        player_glide_when_camera_idle(opx, opy, px, py);
-        return;
-    }
-
-    while (camera_px != target_px || camera_py != target_py) {
-        if (++guard_steps > 2048u) { camera_px = target_px; camera_py = target_py; entity_sprites_clear_player_world(); entity_sprites_refresh(px, py); break; }
-        uint8_t old_ctx = (uint8_t)(camera_px >> 3);
-        uint8_t old_cty = (uint8_t)(camera_py >> 3);
-
-        if (camera_px < target_px) { camera_px += SCROLL_SPEED; if (camera_px > target_px) camera_px = target_px; }
-        else if (camera_px > target_px) {
-            if ((camera_px - target_px) <= SCROLL_SPEED) camera_px = target_px;
-            else camera_px -= SCROLL_SPEED;
-        }
-        if (camera_py < target_py) { camera_py += SCROLL_SPEED; if (camera_py > target_py) camera_py = target_py; }
-        else if (camera_py > target_py) {
-            if ((camera_py - target_py) <= SCROLL_SPEED) camera_py = target_py;
-            else camera_py -= SCROLL_SPEED;
-        }
-
-        {
-            int16_t pwx = (int16_t)px * 8, pwy = (int16_t)py * 8;
-            if (target_px != start_cam_px) {
-                int32_t num = (int32_t)((int16_t)px * 8 - (int16_t)opx * 8)
-                            * (int32_t)((int32_t)camera_px - (int32_t)start_cam_px);
-                int32_t den = (int32_t)target_px - (int32_t)start_cam_px;
-                if (den != 0) pwx = (int16_t)opx * 8 + (int16_t)(num / den);
-            } else pwx = (int16_t)px * 8;
-            if (target_py != start_cam_py) {
-                int32_t num = (int32_t)((int16_t)py * 8 - (int16_t)opy * 8)
-                            * (int32_t)((int32_t)camera_py - (int32_t)start_cam_py);
-                int32_t den = (int32_t)target_py - (int32_t)start_cam_py;
-                if (den != 0) pwy = (int16_t)opy * 8 + (int16_t)(num / den);
-            } else pwy = (int16_t)py * 8;
-            entity_sprites_set_player_world(pwx, pwy);
-        }
-
-        wait_vbl_done();
-
-        {
-            uint8_t new_ctx = (uint8_t)(camera_px >> 3);
-            uint8_t new_cty = (uint8_t)(camera_py >> 3);
-            if (new_ctx != old_ctx) // right → draw leading right edge; left → draw leading left edge
-                draw_col_strip(new_ctx > old_ctx ? (uint8_t)(new_ctx + GRID_W) : new_ctx, px, py);
-            if (new_cty != old_cty)
-                draw_row_strip(new_cty > old_cty ? (uint8_t)(new_cty + GRID_H) : new_cty, px, py);
-        }
-        draw_ui_rows();
-        entity_sprites_refresh(px, py);
-    }
-    entity_sprites_clear_player_world();
-    entity_sprites_refresh(px, py);
+    return (player_hp == 0) ? 2u : 1u;
 }
 
 static void enter_level(uint8_t *px, uint8_t *py, uint8_t from_pit) { // load or descend floor; *px/*py become spawn
     lcd_gameplay_active = 1u; // line-8 ISR applies camera scroll; title/menu keep 0
     window_ui_show();         // WX/WY + bottom panel on window layer
+    ui_combat_log_clear();    // fresh floor → seed words until next strike
     if (from_pit) {
         floor_num++; // deeper level without resetting HP
     } else {
@@ -150,8 +85,7 @@ static void enter_level(uint8_t *px, uint8_t *py, uint8_t from_pit) { // load or
         if (cy < 0) cy = 0;
         if (cx > (int16_t)(MAP_W - GRID_W)) cx = (int16_t)(MAP_W - GRID_W);
         if (cy > (int16_t)(MAP_H - GRID_H)) cy = (int16_t)(MAP_H - GRID_H);
-        camera_px = (uint16_t)(uint8_t)cx * 8u; // store as pixel scroll (8 px per tile)
-        camera_py = (uint16_t)(uint8_t)cy * 8u;
+        camera_init((uint8_t)cx, (uint8_t)cy);
     }
     wait_vbl_done();     // safe before bulk tilemap writes with LCD on
     draw_screen(*px, *py); // full paint: HUD, dungeon ring, bottom UI, scroll regs
@@ -240,16 +174,16 @@ int main(void) {
                     enemy_x[ei] = ENEMY_DEAD; // remove from AI and rendering
                     grant_xp_from_kill(kill_xp);
                 }
+                wait_vbl_done();
+                draw_screen(px, py); // corpse / wounded enemy visible before enemy phase
 
                 {
                     uint8_t old_ex[MAX_ENEMIES], old_ey[MAX_ENEMIES], k;
                     for (k = 0; k < num_enemies; k++) { old_ex[k] = enemy_x[k]; old_ey[k] = enemy_y[k]; }
-                    result = move_enemies(px, py); // enemies act after player's attack
+                    move_enemies(px, py); // enemies act after player's attack
                     entity_sprites_run_enemy_glide(px, py, old_ex, old_ey);
                 }
-                if (enemy_attack_slot != ENEMY_DEAD && (result == 1 || result == 2))
-                    entity_sprites_run_enemy_lunge(px, py, enemy_attack_slot, px, py);
-                if (result == 1 || result == 2) screen_shake(); // feedback on damage or death
+                result = resolve_enemy_hits_and_animate(px, py);
                 wait_vbl_done();
                 draw_screen(px, py);
                 if (result == 2) {
@@ -281,19 +215,18 @@ int main(void) {
                         uint8_t target_cy = (py > GRID_H / 2) ? (uint8_t)(py - GRID_H / 2) : 0;
                         if (target_cx > (uint8_t)(MAP_W - GRID_W)) target_cx = (uint8_t)(MAP_W - GRID_W); // clamp camera
                         if (target_cy > (uint8_t)(MAP_H - GRID_H)) target_cy = (uint8_t)(MAP_H - GRID_H);
-                        scroll_toward(target_cx, target_cy, opx, opy, px, py);
+                        camera_scroll_to(target_cx, target_cy, opx, opy, px, py);
                     }
                     {
                         uint8_t old_ex[MAX_ENEMIES], old_ey[MAX_ENEMIES], k;
                         for (k = 0; k < num_enemies; k++) { old_ex[k] = enemy_x[k]; old_ey[k] = enemy_y[k]; }
-                        result = move_enemies(px, py); // enemy turn after player moved
+                        move_enemies(px, py); // enemy turn after player moved
                         entity_sprites_run_enemy_glide(px, py, old_ex, old_ey);
                     }
-                    if (enemy_attack_slot != ENEMY_DEAD && (result == 1 || result == 2))
-                        entity_sprites_run_enemy_lunge(px, py, enemy_attack_slot, px, py);
-                    if (result == 1 || result == 2) screen_shake();
+                    result = resolve_enemy_hits_and_animate(px, py);
                     wait_vbl_done();
-                    draw_enemy_cells(px, py); // lightweight: terrain under sprites + HUD + OAM (scroll_toward already drew the full viewport)
+                    if (result) draw_screen(px, py); // hits already drew each step; refresh if any strike landed
+                    else        draw_enemy_cells(px, py); // lightweight when no contact (camera_scroll_to already drew viewport)
 
                     if (result == 2) {
                         game_over_screen();

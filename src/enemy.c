@@ -1,5 +1,6 @@
 #include "enemy.h" // AI, spawning, animation tied to DIV_REG
 #include "map.h"   // is_walkable, tile_at, nearest_nav_node, nav_next_step, TILE_PIT
+#include "ui.h"    // ui_combat_log_push
 
 const EnemyDef enemy_defs[NUM_ENEMY_TYPES] = { // tile_* = defs.h J-col spider / monster art
     /* ENEMY_SERPENT  */ { TILE_SPIDER_1,   TILE_SPIDER_2,   2, 1, 1, MOVE_CHASE  },
@@ -26,7 +27,15 @@ static const uint8_t CORPSE_DECO_OFF[2] = { // defs.h L column — one picked pe
 };
 
 uint8_t enemy_anim_toggle; // flips each ENEMY_ANIM_DIV_TICKS of DIV accumulation
-uint8_t enemy_attack_slot; // set when an enemy hits the player on its turn
+uint8_t enemy_attack_slots[MAX_ENEMIES];
+uint8_t enemy_attack_count;
+
+static const char *enemy_type_name(uint8_t t) { // short labels for combat log (must match enemy_defs order)
+    static const char *const n[NUM_ENEMY_TYPES] = {
+        "SERPENT", "ADDER", "RAT", "BAT", "SKELETON", "GOBLIN"
+    };
+    return (t < NUM_ENEMY_TYPES) ? n[t] : "?";
+}
 
 static uint8_t   anim_last_div; // previous DIV_REG sample for delta
 static uint32_t anim_ticks;     // running sum of DIV deltas (uint32 avoids overflow in long play)
@@ -139,9 +148,18 @@ static void step_random(uint8_t sx, uint8_t sy,
     }
 }
 
-uint8_t move_enemies(uint8_t px, uint8_t py) { // one full enemy phase; return hit/death code
+void enemy_resolve_hit(uint8_t slot) { // one strike: log line + subtract HP (main redraws between hits)
+    const EnemyDef *def = &enemy_defs[enemy_type[slot]];
+    char logbuf[24];
+    (void)sprintf(logbuf, "%s -%u", enemy_type_name(enemy_type[slot]), (unsigned)def->damage);
+    ui_combat_log_push(logbuf);
+    if (player_hp > def->damage) player_hp -= def->damage;
+    else                         player_hp  = 0;
+}
+
+uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes — HP applied later in enemy_resolve_hit per hit
     uint8_t i;
-    enemy_attack_slot = ENEMY_DEAD;
+    enemy_attack_count = 0;
     for (i = 0; i < num_enemies; i++) {
         if (enemy_x[i] == ENEMY_DEAD) continue;
 
@@ -165,11 +183,9 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // one full enemy phase; return h
         if (nx == sx && ny == sy)              continue; // AI chose stay
         if (enemy_at(nx, ny) != ENEMY_DEAD)    continue; // don't stack enemies
 
-        if (nx == px && ny == py) { // combat on player's tile
-            enemy_attack_slot = i; // lunge anim in main before shake
-            if (player_hp > def->damage) player_hp -= def->damage;
-            else                         player_hp  = 0;
-            return player_hp == 0 ? 2 : 1; // 2 = game over, 1 = damaged
+        if (nx == px && ny == py) { // combat on player's tile — every adjacent step-in can connect same turn
+            if (enemy_attack_count < MAX_ENEMIES) enemy_attack_slots[enemy_attack_count++] = i;
+            continue; // do not move onto player tile; main applies HP + UI per hit before lunge
         }
 
         if (!is_walkable(nx, ny)) continue; // wall blocked proposed step
@@ -178,5 +194,5 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // one full enemy phase; return h
         enemy_y[i] = ny;
         if (tile_at(nx, ny) == TILE_PIT) enemy_x[i] = ENEMY_DEAD; // fell in pit — remove silently
     }
-    return 0;
+    return enemy_attack_count ? 1u : 0u;
 }

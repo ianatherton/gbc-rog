@@ -5,6 +5,32 @@
 #define UI_HUD_WIN_Y 0u // window tilemap row 0 = HUD (ISR shows window at lines 0–7)
 
 #define SEED_WORDS_N 40 // vocabulary size per category; seed maps to triple index
+#define UI_COMBAT_LOG_CAP 4u
+#define UI_COMBAT_LOG_W  GRID_W
+
+static char combat_log[UI_COMBAT_LOG_CAP][UI_COMBAT_LOG_W + 1u];
+static uint8_t combat_log_head;  // next write index
+static uint8_t combat_log_count; // 0..UI_COMBAT_LOG_CAP valid entries
+
+void ui_combat_log_clear(void) {
+    uint8_t i, j;
+    combat_log_head = 0;
+    combat_log_count = 0;
+    for (i = 0; i < UI_COMBAT_LOG_CAP; i++)
+        for (j = 0; j <= UI_COMBAT_LOG_W; j++) combat_log[i][j] = 0;
+}
+
+void ui_combat_log_push(const char *s) {
+    uint8_t i = 0;
+    char *dst = combat_log[combat_log_head];
+    while (i < UI_COMBAT_LOG_W && s[i]) {
+        dst[i] = s[i];
+        i++;
+    }
+    dst[i] = '\0';
+    combat_log_head = (uint8_t)((combat_log_head + 1u) % UI_COMBAT_LOG_CAP);
+    if (combat_log_count < UI_COMBAT_LOG_CAP) combat_log_count++;
+}
 
 static const char *const seed_words_desc[SEED_WORDS_N] = { // first word line (adjective-ish)
     "ASHEN","BLEAK","BLIND","BLOOD","BLUNT","BONED","BURNT","COLD","CRUEL","CURST",
@@ -59,6 +85,23 @@ static void win_put_uint8(uint8_t x, uint8_t y, uint8_t v, uint8_t width, uint8_
 static void win_put_space(uint8_t x, uint8_t y) { // blank space tile + UI palette
     set_win_tile_xy(x, y, 0u);
     set_win_attribute_xy(x, y, PAL_UI);
+}
+
+static void win_puts_row_pad(uint8_t y, const char *s, uint8_t pal) { // GRID_W cols, space-pad rest
+    uint8_t x = 0;
+    while (*s && x < GRID_W) win_putc_pal(x++, y, *s++, pal);
+    while (x < GRID_W) win_put_space(x++, y);
+}
+
+static void ui_draw_combat_bottom_rows(void) { // last two log lines on window rows 1–2 (newest on row 2)
+    uint8_t last = (uint8_t)((combat_log_head + UI_COMBAT_LOG_CAP - 1u) % UI_COMBAT_LOG_CAP);
+    uint8_t prev = (uint8_t)((combat_log_head + UI_COMBAT_LOG_CAP - 2u) % UI_COMBAT_LOG_CAP);
+    if (combat_log_count >= 2u) win_puts_row_pad(1, combat_log[prev], PAL_UI);
+    else {
+        uint8_t x;
+        for (x = 0; x < GRID_W; x++) win_put_space(x, 1);
+    }
+    win_puts_row_pad(2, combat_log[last], PAL_UI);
 }
 
 static void put_word5(uint8_t x, uint8_t y, const char *s) { // fixed 5-char word into BKG via setchar
@@ -133,7 +176,8 @@ void ui_draw_top_hud(void) { // L:♥×5 HP%XP%% FLOORdd — window row 0 (fits 
 }
 
 void ui_draw_bottom_rows(void) { // window layer rows 0–1 in win map (screen rows 16–17)
-    ui_draw_seed_words(run_seed, 0, 0, 0);
+    if (combat_log_count) ui_draw_combat_bottom_rows();
+    else                  ui_draw_seed_words(run_seed, 0, 0, 0);
 }
 
 void ui_draw_seed_words(uint16_t seed, uint8_t hvx, uint8_t b1vy, uint8_t b2vy) { // seed words → window rows 1–2 (row 0 = HUD)

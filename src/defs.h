@@ -253,7 +253,7 @@ typedef struct {
 #define PAL_XP_UI   7   // gold/yellow HUD — XP (slot shared: was corpse green; corpse now PAL_DEFAULT)
 #define PAL_CORPSE  0   // corpse 'x' uses default grayscale ramp (freed slot 7 for PAL_XP_UI)
 
-/* ── Globals defined in main.c ──────────────────────────────────────────── */
+/* ── Globals (main.c unless noted) ───────────────────────────────────────── */
 extern uint8_t  player_hp;     // current hit points
 extern uint8_t  player_hp_max; // runtime max HP (grows on level-up)
 extern uint8_t  player_level;  // starts at 1; each level adds max HP
@@ -261,8 +261,8 @@ extern uint8_t  player_damage; // bump attack damage; +1 per level
 extern uint16_t player_xp;     // XP progress inside current level
 extern uint8_t  floor_num;    // current floor number (1-based)
 extern uint16_t run_seed;    // immutable run seed — never changes mid-run; floor seed derived from this
-extern uint16_t camera_px;    // pixel x of viewport top-left
-extern uint16_t camera_py;    // pixel y of viewport top-left
+extern uint16_t camera_px;    // pixel x of viewport top-left (defined in camera.c)
+extern uint16_t camera_py;    // pixel y of viewport top-left (defined in camera.c)
 #define CAM_TX (camera_px >> 3)
 #define CAM_TY (camera_py >> 3)
 #define RING_BKG_VY_WORLD(my) ((uint8_t)(((uint8_t)(my) + 1u) & 31u)) // +1 offset: line-8 ISR applies SCY=camera_py, so BG pixel 8+camera_py → tile row (1+CAM_TY)&31 which matches this macro

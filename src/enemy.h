@@ -29,7 +29,8 @@ extern uint8_t num_corpses;
 
 /* ── Animation state ─────────────────────────────────────────────────────── */
 extern uint8_t enemy_anim_toggle;
-extern uint8_t enemy_attack_slot; // last enemy that attacked player this phase; ENEMY_DEAD if none
+extern uint8_t enemy_attack_slots[MAX_ENEMIES]; // slots that struck player this phase (prefix of length enemy_attack_count)
+extern uint8_t enemy_attack_count;
 
 void    enemy_anim_reset(void); // reset DIV accumulator when entering a floor
 uint8_t enemy_anim_update(void); // 1 if toggled animation frame this call
@@ -38,7 +39,8 @@ uint8_t corpse_at(uint8_t x, uint8_t y); // nonzero if a corpse marker sits here
 uint8_t corpse_sheet_at(uint8_t x, uint8_t y); // TILE_FLOOR_DECO_* offset or 255 if none
 uint8_t corpse_deco_random(void);                // random L1–L5 sheet offset for new corpse
 void    spawn_enemies(void); // fill world with NUM_ENEMIES instances
-uint8_t move_enemies(uint8_t px, uint8_t py); // enemy turn: 0 none, 1 player hit, 2 player dead
+uint8_t move_enemies(uint8_t px, uint8_t py); // enemy turn: moves + records strikes in enemy_attack_* (no HP yet); 0 none, 1 pending hits
+void    enemy_resolve_hit(uint8_t slot);      // combat log + apply that slot's damage (call before its lunge)
 
 #endif // ENEMY_H
 

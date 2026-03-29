@@ -11,6 +11,5 @@ void draw_col_strip(uint8_t mx, uint8_t px, uint8_t py); // one world column for
 void draw_row_strip(uint8_t my, uint8_t px, uint8_t py); // one world row for vertical scroll
 void draw_enemy_cells(uint8_t px, uint8_t py); // animation-only partial update
 void draw_ui_rows(void); // HUD + bottom UI after camera moves (delegates to ui.c)
-void screen_shake(void); // temporary SCX/SCY offset wobble
 
 #endif // RENDER_H

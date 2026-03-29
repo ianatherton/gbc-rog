@@ -2,7 +2,7 @@
 #include "map.h"    // tile_at, wall_palette_index, CAM_TX/TY via camera globals in defs
 #include "enemy.h"  // enemy_at, defs, anim toggle
 #include "ui.h"     // ui_draw_top_hud, ui_draw_bottom_rows
-#include "lcd.h"    // line-8 ISR owns SCX/SCY during play; shake offsets
+#include "lcd.h"    // line-8 ISR owns SCX/SCY during play
 #include "wall_palettes.h" // wall_palette_table, NUM_WALL_PALETTES
 #include "entity_sprites.h"
 
@@ -173,16 +173,4 @@ void draw_enemy_cells(uint8_t px, uint8_t py) { // fast path when only anim togg
     }
     ui_draw_top_hud(); // enemies/player can paint vy==0 (e.g. world row 31) — repaint HUD band on top
     entity_sprites_refresh(px, py);
-}
-
-void screen_shake(void) { // jitter applied only in line-8 ISR so HUD stays fixed
-    uint8_t f;
-    const int8_t off[] = { 2, -2, -1, 1, -2, 1, -1 }; // one frame shorter than old 8 for faster hit feedback
-    for (f = 0; f < sizeof off; f++) {
-        lcd_shake_x = off[f];
-        lcd_shake_y = off[(f + 2u) % sizeof off];
-        wait_vbl_done();
-    }
-    lcd_shake_x = 0;
-    lcd_shake_y = 0;
 }

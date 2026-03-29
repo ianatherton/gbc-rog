@@ -29,7 +29,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00000008  l__HEADER |    0000000C  l__GSINIT |    00000013  l__HRAM  
      0000001D  l__INITIA |    0000001D  l__INITIA |    00000030  l__HEADER
      00000060  l__HEADER |    000000AB  l__HEADER |    00000200  s__CODE  
-     00000818  l__DATA   |    00000BE5  l__HOME   |    00002000  _rROMB0  
+     00000872  l__DATA   |    00000BE5  l__HOME   |    00002000  _rROMB0  
      00003000  _rROMB1   |    00004000  _rMBC7_SR |    00004000  _rRAMB   
      00005515  l__CODE   |    00005715  s__HOME   |    000062FA  s__BASE  
      000062FA  s__CODE_0 |    000062FA  s__INITIA |    000062FA  s__LIT   
@@ -39,8 +39,8 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000A000  _rMBC7_LA |    0000A010  _rMBC7_LA |    0000A020  _rMBC7_AC
      0000A030  _rMBC7_AC |    0000A040  _rMBC7_AC |    0000A050  _rMBC7_AC
      0000C000  __RAM     |    0000C000  _shadow_O |    0000C0A0  s__DATA  
-     0000C8B8  s__BSS    |    0000C8B8  s__INITIA |    0000C8D5  s__HEAP  
-     0000C8D5  s__HEAP_E |    0000D000  __RAMBANK |    0000E000  .STACK   
+     0000C912  s__BSS    |    0000C912  s__INITIA |    0000C92F  s__HEAP  
+     0000C92F  s__HEAP_E |    0000D000  __RAMBANK |    0000E000  .STACK   
      0000FE00  __OAMRAM  |    0000FF00  _P1_REG   |    0000FF00  __IO     
      0000FF01  _SB_REG   |    0000FF02  _SC_REG   |    0000FF04  _DIV_REG 
      0000FF05  _TIMA_REG |    0000FF06  _TMA_REG  |    0000FF07  _TAC_REG 
@@ -351,35 +351,35 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_DATA                  0000C0A0    00000818 =        2072. bytes (REL,CON)
+_DATA                  0000C0A0    00000872 =        2162. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
      0000C0A0  __cpu     |    0000C0A1  __is_GBA  |    0000C0A2  .mode    
      0000C0A3  .sys_time |    0000C0A3  _sys_time |    0000C0A5  .int_0x40
-     0000C0B1  _enemy_x  |    0000C0C5  _enemy_y  |    0000C0D9  _enemy_ty
-     0000C0ED  _enemy_hp |    0000C101  _num_enem |    0000C102  _corpse_x
-     0000C116  _corpse_y |    0000C12A  _corpse_t |    0000C13E  _num_corp
-     0000C13F  _enemy_an |    0000C140  _enemy_at |    0000C172  _floor_bi
-     0000C372  _pit_bits |    0000C572  _floor_bl |    0000C772  _nav_node
-     0000C892  _num_nav_ |    0000C898  ___rand_s |    0000C89A  font_curr
-     0000C89D  font_firs |    0000C89E  font_tabl |    0000C8B0  .int_0x48
+     0000C0B1  _enemy_x  |    0000C0CF  _enemy_y  |    0000C0ED  _enemy_ty
+     0000C10B  _enemy_hp |    0000C129  _num_enem |    0000C12A  _corpse_x
+     0000C148  _corpse_y |    0000C166  _corpse_t |    0000C184  _num_corp
+     0000C185  _enemy_an |    0000C186  _enemy_at |    0000C1CC  _floor_bi
+     0000C3CC  _pit_bits |    0000C5CC  _floor_bl |    0000C7CC  _nav_node
+     0000C8EC  _num_nav_ |    0000C8F2  ___rand_s |    0000C8F4  font_curr
+     0000C8F7  font_firs |    0000C8F8  font_tabl |    0000C90A  .int_0x48
 ASxxxx Linker V03.00/V05.40 + sdld,  page 27.
 Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_INITIALIZED           0000C8B8    0000001D =          29. bytes (REL,CON)
+_INITIALIZED           0000C912    0000001D =          29. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     0000C8BC  _lcd_game |    0000C8BD  _lcd_shak |    0000C8BE  _lcd_shak
-     0000C8BF  _player_h |    0000C8C0  _player_h |    0000C8C1  _player_l
-     0000C8C2  _player_d |    0000C8C3  _player_x |    0000C8C5  _floor_nu
-     0000C8C6  _run_seed |    0000C8C8  _camera_p |    0000C8CA  _camera_p
-     0000C8CC  _wall_til |    0000C8CD  _wall_pal |    0000C8CF  .curx    
-     0000C8D0  .cury     |    0000C8D1  .fg_colou |    0000C8D1  __current
-     0000C8D2  .bg_colou |    0000C8D3  .draw_mod |    0000C8D4  __map_til
+     0000C916  _lcd_game |    0000C917  _lcd_shak |    0000C918  _lcd_shak
+     0000C919  _player_h |    0000C91A  _player_h |    0000C91B  _player_l
+     0000C91C  _player_d |    0000C91D  _player_x |    0000C91F  _floor_nu
+     0000C920  _run_seed |    0000C922  _camera_p |    0000C924  _camera_p
+     0000C926  _wall_til |    0000C927  _wall_pal |    0000C929  .curx    
+     0000C92A  .cury     |    0000C92B  .fg_colou |    0000C92B  __current
+     0000C92C  .bg_colou |    0000C92D  .draw_mod |    0000C92E  __map_til
 ASxxxx Linker V03.00/V05.40 + sdld,  page 28.
 Hexadecimal  [32-Bits]
 

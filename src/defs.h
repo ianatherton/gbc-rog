@@ -81,8 +81,8 @@ typedef struct {
 #define NUM_PITS     1    // single descent tile per floor
 
 /* ── Enemy roster ────────────────────────────────────────────────────────── */
-#define MAX_ENEMIES    20
-#define NUM_ENEMIES    12
+#define MAX_ENEMIES    30
+#define NUM_ENEMIES    30
 #define ENEMY_DEAD    255
 
 /* ── Enemy movement styles ───────────────────────────────────────────────── */

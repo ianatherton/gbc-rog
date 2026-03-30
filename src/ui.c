@@ -1,12 +1,49 @@
 #include "ui.h"          // title_screen, game_over_screen, playfield HUD
+#include "defs.h"        // TILESET_VRAM_OFFSET, TILE_LIGHT_1, PAL_PLAYER
 #include "lcd.h"         // lcd_gameplay_active for title vs play raster
 #include "seed_entropy.h" // deterministic-ish random seed from hardware jitter
+#include <gb/cgb.h>
+#include <gb/gb.h>
 
 #define UI_HUD_WIN_Y 0u // window tilemap row 0 = HUD (ISR shows window at lines 0–7)
 
 #define SEED_WORDS_N 40 // vocabulary size per category; seed maps to triple index
 #define UI_COMBAT_LOG_CAP 4u
 #define UI_COMBAT_LOG_W  GRID_W
+
+#define UI_TITLE_TORCH_OAM_L 32u
+#define UI_TITLE_TORCH_OAM_R 33u
+
+static const palette_color_t ui_title_bkg_pal[] = { // BKG pal 0: dark red field + light text (font pen 3 / paper 0)
+    RGB(5, 0, 1),
+    RGB(12, 0, 4),
+    RGB(20, 6, 8),
+    RGB(30, 28, 26),
+};
+static const palette_color_t ui_default_bkg_pal0[] = { RGB(0, 0, 0), RGB(8, 8, 8), RGB(16, 16, 16), RGB(31, 31, 31) };
+
+static void ui_title_torch_place(uint8_t bkg_text_row) {
+    uint8_t py = (uint8_t)((uint16_t)bkg_text_row * 8u + 4u + 16u);
+    uint8_t tt = (uint8_t)(TILESET_VRAM_OFFSET + TILE_LIGHT_1);
+    set_sprite_tile(UI_TITLE_TORCH_OAM_L, tt);
+    set_sprite_tile(UI_TITLE_TORCH_OAM_R, tt);
+    set_sprite_prop(UI_TITLE_TORCH_OAM_L, (uint8_t)(PAL_PLAYER & 7u));
+    set_sprite_prop(UI_TITLE_TORCH_OAM_R, (uint8_t)((PAL_PLAYER & 7u) | S_FLIPX));
+    move_sprite(UI_TITLE_TORCH_OAM_L, 8u, py);
+    move_sprite(UI_TITLE_TORCH_OAM_R, 120u, py);
+}
+
+static void ui_title_style_begin(uint8_t bkg_text_row) {
+    set_bkg_palette(0u, 1u, ui_title_bkg_pal);
+    ui_title_torch_place(bkg_text_row);
+    SHOW_SPRITES;
+}
+
+static void ui_title_style_end(void) {
+    set_bkg_palette(0u, 1u, ui_default_bkg_pal0);
+    move_sprite(UI_TITLE_TORCH_OAM_L, 0u, 0u);
+    move_sprite(UI_TITLE_TORCH_OAM_R, 0u, 0u);
+}
 
 static char combat_log[UI_COMBAT_LOG_CAP][UI_COMBAT_LOG_W + 1u];
 static uint8_t combat_log_head;  // next write index
@@ -255,6 +292,7 @@ static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t entropy_
 
     wait_vbl_done();
     lcd_clear_display();
+    ui_title_style_begin(1u);
 
     while (1) {
         gotoxy(3, 1); printf("SEED WORDS");
@@ -277,6 +315,7 @@ static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t entropy_
             if (edge & J_START) {
                 uint16_t fs = (uint16_t)(1u + (uint16_t)d + 40u*(uint16_t)n + 1600u*(uint16_t)p); // pack triple back to seed
                 if (!fs) fs = 1;
+                ui_title_style_end();
                 return fs;
             }
             if (edge & J_A) {
@@ -311,6 +350,7 @@ uint16_t title_screen(uint16_t entropy_hint) { // blocking until START or SELECT
     window_ui_hide();
     wait_vbl_done();
     lcd_clear_display();
+    ui_title_style_begin(7u);
     gotoxy(4,  7); printf("Mara's Abyss");
     gotoxy(3, 12); printf("SELECT=seed words");
 
@@ -318,8 +358,12 @@ uint16_t title_screen(uint16_t entropy_hint) { // blocking until START or SELECT
         uint8_t  j    = joypad();
         uint8_t  edge = (uint8_t)(j & (uint8_t)~prev_j);
         uint16_t mixed = seed_entropy_random_seed(entropy_hint, frame_counter); // fresh candidate each frame for START
-        if (edge & J_START) return mixed; // instant play with time-varying seed
+        if (edge & J_START) {
+            ui_title_style_end();
+            return mixed;
+        }
         if (edge & J_SELECT) {
+            ui_title_style_end();
             uint16_t seed = input_seed_words_screen(mixed, entropy_hint); // user-defined mnemonic seed
             if (!seed) seed = 1;
             return seed;

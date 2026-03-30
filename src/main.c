@@ -39,6 +39,7 @@ static uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) { // batch
         enemy_resolve_hit(enemy_attack_slots[a]);
     wait_vbl_done();
     draw_screen(px, py);
+    sfx_lunge_hit();
     entity_sprites_run_enemy_lunges_batch(px, py, enemy_attack_slots, enemy_attack_count);
     camera_shake();
     return (player_hp == 0) ? 2u : 1u;
@@ -104,7 +105,7 @@ static void enter_level(uint8_t *px, uint8_t *py, uint8_t from_pit) { // load or
 static void start_new_run(uint8_t *px, uint8_t *py, uint8_t *prev_j,
                            uint16_t *run_entropy) { // title → seed → floor 1
     *run_entropy += 1u + (uint16_t)DIV_REG; // mutate entropy each run so START timing matters
-    music_play_title(); // short Am menu loop until START / seed picker finishes
+    music_play_title(); // BWV 873 prelude (loops) until START / seed picker finishes
     uint16_t seed = title_screen(*run_entropy); // user may pick word seed or random START
     if (!seed) seed = (uint16_t)(*run_entropy ^ 0xACE1u); // fallback if title returns 0
     if (!seed) seed = 0xACE1u;
@@ -112,7 +113,7 @@ static void start_new_run(uint8_t *px, uint8_t *py, uint8_t *prev_j,
     run_seed  = seed;   // fixed for whole run; floors mix from this + floor_num
     floor_num = 0;      // enter_level will set 1 for new run (see from_pit branch)
     *prev_j   = 0;      // no stale edge triggers on first frame after title
-    music_play_game();  // long fugue-style loop for dungeon / pit descent
+    music_play_game();  // BWV 873 fugue from Tomita MIDI
     wait_vbl_done();
     lcd_clear_display(); // single black frame then dungeon paint — no title tiles bleeding through
     enter_level(px, py, 0); // from_pit=0 → reset HP and floor counter inside
@@ -182,6 +183,7 @@ int main(void) {
                     int8_t adx = (nx > px) ? 1 : (nx < px ? -1 : 0);
                     int8_t ady = (ny > py) ? 1 : (ny < py ? -1 : 0);
                     entity_sprites_run_player_lunge(px, py, adx, ady);
+                    sfx_lunge_hit();
                 }
                 if (enemy_hp[ei] > player_damage) {
                     enemy_hp[ei] = (uint8_t)(enemy_hp[ei] - player_damage); // wound enemy by scaled player damage

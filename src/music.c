@@ -1,114 +1,61 @@
 #include <gb/gb.h>
 #include <stdint.h>
 
-#include "defs.h" // player_hp/player_hp_max — game fugue tempo vs HP %
+#include "bwv873_music.h"
 #include "music.h"
 
-// GB period table (11-bit), same layout as gbdk/examples/gb/sound/sound.c — index = semitone from C0.
-static const uint16_t freq[] = {
-    44, 156, 262, 363, 457, 547, 631, 710, 786, 854, 923, 986,
-    1046, 1102, 1155, 1205, 1253, 1297, 1339, 1379, 1417, 1452, 1486, 1517,
-    1546, 1575, 1602, 1627, 1650, 1673, 1694, 1714, 1732, 1750, 1767, 1783,
-    1798, 1812, 1825, 1837, 1849, 1860, 1871, 1881, 1890, 1899, 1907, 1915,
-    1923, 1930, 1936, 1943, 1949, 1954, 1959, 1964, 1969, 1974, 1978, 1982,
-    1985, 1988, 1992, 1995, 1998, 2001, 2004, 2006, 2009, 2011, 2013, 2015
-};
+// Tomita GBDK export: .dur is hold time in VBlank periods (one decrement per music_update() call), not raw MIDI ticks.
 
-#define N_SIL 0xFF
-#define N_D2  26
-#define N_E2  28
-#define N_A2  33
-#define N_A3  45
-#define N_B3  47
-#define N_C4  48
-#define N_D4  50
-#define N_E4  52
-#define N_F4  53
-#define N_G4  55
-#define N_A4  57
-#define N_B4  59
+static uint8_t  mode_title;
+static uint16_t mel_i, bas_i;
+static uint16_t mel_rem, bas_rem;
+static uint8_t  title_slow_vbl; // prelude: skip every other VBlank (~½ tempo)
 
-// Title: A natural minor — i–iv–v (Am / Dm / Em arpeggios).
-static const uint8_t title_mel[] = {
-    N_A3, N_C4, N_E4, N_A4, N_E4, N_C4, N_E4, N_A3,
-    N_D4, N_F4, N_A4, N_F4, N_D4, N_F4, N_A3, N_D4,
-    N_E4, N_G4, N_B4, N_G4, N_E4, N_G4, N_B3, N_E4
-};
-static const uint8_t title_bas[] = {
-    N_A2, N_A2, N_A2, N_A2, N_A2, N_A2, N_A2, N_A2,
-    N_D2, N_D2, N_D2, N_D2, N_D2, N_D2, N_D2, N_D2,
-    N_E2, N_E2, N_E2, N_E2, N_E2, N_E2, N_E2, N_E2
-};
-
-// Game: 128 eighths, A minor + G#/chromatic color; gestures echo BWV 784 / BWV 578 (novel mashup, not a lift).
-static const uint8_t game_mel[] = {
-    45, 48, 47, 45, 44, 40, 45, 47, 48, 50, 52, 50, 48, 47, 45, 44,
-    45, 45, 45, 52, 48, 52, 45, 50, 48, 47, 45, 47, 48, 50, 48, 47,
-    52, 50, 49, 48, 47, 46, 45, 44, 45, 47, 48, 50, 52, 50, 48, 47,
-    48, 50, 52, 53, 55, 53, 52, 50, 47, 48, 50, 52, 53, 52, 50, 48,
-    53, 55, 57, 59, 57, 55, 53, 52, 50, 48, 47, 45, 44, 45, 47, 48,
-    50, 52, 53, 55, 57, 55, 53, 52, 50, 48, 50, 52, 53, 55, 57, 59,
-    45, 48, 47, 45, 44, 40, 45, 52, 50, 48, 47, 45, 44, 45, 47, 48,
-    47, 48, 50, 52, 53, 55, 52, 50, 48, 47, 45, 44, 45, 48, 45, 48,
-};
-static const uint8_t game_bas[] = {
-    33, 40, 38, 36, 40, 33, 36, 38, 40, 41, 43, 41, 40, 38, 36, 35,
-    33, 33, 33, 40, 36, 40, 33, 38, 36, 35, 33, 36, 38, 40, 38, 36,
-    40, 38, 36, 35, 33, 35, 36, 38, 40, 38, 36, 35, 36, 38, 40, 41,
-    36, 38, 40, 41, 43, 41, 40, 38, 36, 35, 36, 38, 40, 41, 40, 38,
-    41, 40, 38, 36, 35, 36, 38, 40, 43, 41, 40, 38, 36, 35, 36, 38,
-    33, 36, 33, 36, 40, 38, 40, 38, 36, 35, 33, 36, 33, 36, 40, 38,
-    33, 40, 38, 36, 40, 33, 36, 40, 38, 40, 41, 43, 40, 38, 36, 35,
-    41, 40, 38, 36, 35, 33, 36, 38, 40, 41, 40, 38, 36, 33, 36, 33,
-};
-
-typedef struct {
-    const uint8_t *mel;
-    const uint8_t *bas;
-    uint16_t       len;
-    uint8_t        ticks_per_step; // title only: VBlanks per eighth; game uses health_bpm_vblanks()
-} Song;
-
-static const Song song_title = { title_mel, title_bas, (uint16_t)(sizeof title_mel / sizeof title_mel[0]), 8u };
-static const Song song_game  = { game_mel,  game_bas,  (uint16_t)(sizeof game_mel / sizeof game_mel[0]),  0u };
-
-// BPM feel → VBlanks per eighth (≈60 Hz): 1800/BPM — stately when healthy, frantic when hurt.
-static uint8_t health_bpm_vblanks(void) {
-    uint8_t pct = (uint8_t)((uint16_t)player_hp * 100u / player_hp_max);
-    if (pct >= 75u) {
-        return 25u;
-    } // 72 BPM
-    if (pct >= 50u) {
-        return 20u;
-    } // 88
-    if (pct >= 25u) {
-        return 17u;
-    } // 108
-    return 14u; // 132 — 0–24% includes 0 HP edge before game-over music swap
+static void wave_load_soft(void) {
+    static const uint8_t w[16] = {
+        0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF,
+        0xFE, 0xDC, 0xBA, 0x98, 0x76, 0x54, 0x32, 0x10,
+    };
+    uint8_t i;
+    NR30_REG = 0x00u;
+    for (i = 0u; i < 16u; i++) {
+        AUD3WAVE[i] = w[i];
+    }
+    NR30_REG = 0x80u;
 }
 
-static const Song *cur_song;
-static uint16_t    step_i;
-static uint8_t     tick_wait;
-
-static void trigger_ch1(uint16_t period) {
-    NR10_REG = 0x00;
-    NR11_REG = 0x80;
-    NR12_REG = (cur_song == &song_game) ? 0xC8u : 0xF4u; // game: softer + darker envelope
-    NR13_REG = (uint8_t)(period & 0xFFu);
-    NR14_REG = (uint8_t)(0x80u | ((period >> 8) & 0x07u));
+static uint8_t dur_steps_per_vbl(void) {
+    if (mode_title) {
+        title_slow_vbl++;
+        if ((title_slow_vbl & 1u) == 0u) {
+            return 0u;
+        }
+        return 1u;
+    }
+    return 1u;
 }
 
-static void trigger_ch2(uint16_t period) {
-    NR21_REG = 0x80;
-    NR22_REG = (cur_song == &song_game) ? 0x84u : 0x96u; // game: bass more subordinate
-    NR23_REG = (uint8_t)(period & 0xFFu);
-    NR24_REG = (uint8_t)(0x80u | ((period >> 8) & 0x07u));
+static void ch1_play(uint16_t f) {
+    if (f == GB_NOTE_REST) {
+        NR12_REG = 0x08;
+        NR14_REG = 0x80;
+        return;
+    }
+    NR10_REG = 0x00u;
+    NR11_REG = 0x3Fu; // 12.5% duty
+    NR12_REG = mode_title ? 0xC7u : 0xB5u; // lead envelope vol down one notch vs prior
+    NR13_REG = (uint8_t)(f & 0xFFu);
+    NR14_REG = (uint8_t)(0x80u | ((f >> 8) & 0x07u));
 }
 
-static void silence_ch1(void) {
-    NR12_REG = 0x08;
-    NR14_REG = 0x80;
+static void ch3_play(uint16_t f) {
+    if (f == GB_NOTE_REST) {
+        NR32_REG = 0x00u;
+        return;
+    }
+    NR32_REG = 0x20u; // wave out level 100% (was 0x40 = 50%)
+    NR33_REG = (uint8_t)(f & 0xFFu);
+    NR34_REG = (uint8_t)(0x80u | ((f >> 8) & 0x07u));
 }
 
 static void silence_ch2(void) {
@@ -116,52 +63,95 @@ static void silence_ch2(void) {
     NR24_REG = 0x80;
 }
 
-static void music_vbl(void) {
-    if (tick_wait) {
-        tick_wait--;
-        return;
+static void push_melody(uint8_t adv) {
+    while (adv > 0u) {
+        if (mel_rem == 0u) {
+            if (mode_title && mel_i >= BWV873_PRELUDE_END_MELODY) {
+                mel_i   = 0;
+                bas_i   = 0;
+                bas_rem = 0;
+            }
+            uint16_t f = bwv873_melody[mel_i].freq;
+            uint8_t d  = bwv873_melody[mel_i].dur;
+            if (f == GB_NOTE_END) {
+                mel_i   = mode_title ? 0u : BWV873_FUGUE_START_MELODY;
+                bas_i   = mode_title ? 0u : BWV873_FUGUE_START_BASS;
+                bas_rem = 0u; // resync bass on full loop
+                continue;
+            }
+            ch1_play(f);
+            mel_rem = d;
+            mel_i++;
+            if (mel_i >= BWV873_NUM_EVENTS) {
+                mel_i = 0;
+            }
+        }
+        uint16_t take = (mel_rem <= (uint16_t)adv) ? mel_rem : (uint16_t)adv;
+        mel_rem = (uint16_t)(mel_rem - take);
+        adv     = (uint8_t)(adv - (uint8_t)take);
     }
-    {
-        uint8_t span = (cur_song == &song_game) ? health_bpm_vblanks() : cur_song->ticks_per_step;
-        tick_wait = (uint8_t)(span - 1u);
-    }
+}
 
-    {
-        uint8_t mi = cur_song->mel[step_i];
-        uint8_t bi = cur_song->bas[step_i];
-        if (mi != N_SIL) {
-            trigger_ch1(freq[mi]);
-        } else {
-            silence_ch1();
+static void push_bass(uint8_t adv) {
+    while (adv > 0u) {
+        if (bas_rem == 0u) {
+            uint16_t f = bwv873_bass[bas_i].freq;
+            uint8_t d  = bwv873_bass[bas_i].dur;
+            if (f == GB_NOTE_END) {
+                bas_i = mode_title ? 0u : BWV873_FUGUE_START_BASS;
+                continue;
+            }
+            ch3_play(f);
+            bas_rem = d;
+            bas_i++;
+            if (bas_i >= BWV873_NUM_EVENTS) {
+                bas_i = 0;
+            }
         }
-        if (bi != N_SIL) {
-            trigger_ch2(freq[bi]);
-        } else {
-            silence_ch2();
-        }
+        uint16_t take = (bas_rem <= (uint16_t)adv) ? bas_rem : (uint16_t)adv;
+        bas_rem = (uint16_t)(bas_rem - take);
+        adv     = (uint8_t)(adv - (uint8_t)take);
     }
-    step_i++;
-    if (step_i >= cur_song->len) {
-        step_i = 0;
-    }
+}
+
+static void music_vbl(void) {
+    uint8_t adv = dur_steps_per_vbl();
+    push_melody(adv);
+    push_bass(adv);
+}
+
+void sfx_lunge_hit(void) {
+    NR41_REG = 0x3Fu;   // min length — cuts off quickly (64−t1)/256 s
+    NR42_REG = 0x41u;   // start vol 4/15, decay, envelope step 1 — quiet + short tail
+    NR43_REG = 0x68u;   // lighter noise than old hit
+    NR44_REG = 0x80u;
 }
 
 void music_play_title(void) {
-    cur_song = &song_title;
-    step_i   = 0;
-    tick_wait = 0;
+    mode_title = 1u;
+    mel_i = bas_i = 0;
+    mel_rem = bas_rem = 0;
+    title_slow_vbl = 0;
 }
 
 void music_play_game(void) {
-    cur_song = &song_game;
-    step_i   = 0;
-    tick_wait = 0;
+    mode_title = 0u;
+    mel_i      = BWV873_FUGUE_START_MELODY;
+    bas_i      = BWV873_FUGUE_START_BASS;
+    mel_rem = bas_rem = 0;
+    title_slow_vbl = 0;
 }
 
 void music_init(void) {
     NR52_REG = 0x80u;
     NR50_REG = 0x77u;
     NR51_REG = 0xFFu;
+    wave_load_soft();
+    NR31_REG = 0xFFu;
+    silence_ch2();
+    NR12_REG = 0x08;
+    NR14_REG = 0x80;
+    NR32_REG = 0x00u;
     music_play_title();
     add_VBL(music_vbl);
 }

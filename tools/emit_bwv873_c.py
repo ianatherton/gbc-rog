@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Parse Tomita-style BWV873 C snippet (MELODY/BASS + #defines) and emit src/bwv873_music.c."""
+"""Legacy: emitted src/bwv873_music.* (removed). Game BGM is tools/emit_bwv1043_c.py + scraps/bwv1043_gbc.h."""
 import re
 import sys
 from pathlib import Path

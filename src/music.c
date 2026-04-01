@@ -1,10 +1,8 @@
 #include <gb/gb.h>
 #include <stdint.h>
 
-#include "bwv873_music.h"
+#include "bwv1043_music.h"
 #include "music.h"
-
-// Tomita GBDK export: .dur is hold time in VBlank periods (one decrement per music_update() call), not raw MIDI ticks.
 
 static uint8_t  mode_title;
 static uint16_t mel_i, bas_i;
@@ -93,10 +91,12 @@ static void silence_bgm_channels(void) { // square + wave off; leave CH4 for SFX
 
 static void resume_bgm_hw(void) { // after loading or jingle — re-arm held notes
     if (mel_rem > 0u && mel_i > 0u) {
-        ch1_play(bwv873_melody[mel_i - 1u].freq);
+        uint8_t idx = bwv1043_melody[mel_i - 1u];
+        ch1_play(bwv1043_dict[idx].freq);
     }
     if (bas_rem > 0u && bas_i > 0u) {
-        ch3_play(bwv873_bass[bas_i - 1u].freq);
+        uint8_t idx = bwv1043_bass[bas_i - 1u];
+        ch3_play(bwv1043_dict[idx].freq);
     }
 }
 
@@ -174,23 +174,22 @@ static void push_jingle(uint8_t *adv) {
 static void push_melody(uint8_t adv) {
     while (adv > 0u) {
         if (mel_rem == 0u) {
-            if (mode_title && mel_i >= BWV873_PRELUDE_END_MELODY) {
+            if (mode_title && mel_i >= BWV1043_PRELUDE_END_MELODY) {
                 mel_i   = 0;
                 bas_i   = 0;
                 bas_rem = 0;
             }
-            uint16_t f = bwv873_melody[mel_i].freq;
-            uint8_t d  = bwv873_melody[mel_i].dur;
-            if (f == GB_NOTE_END) {
-                mel_i   = mode_title ? 0u : BWV873_FUGUE_START_MELODY;
-                bas_i   = mode_title ? 0u : BWV873_FUGUE_START_BASS;
-                bas_rem = 0u; // resync bass on full loop
+            uint8_t idx = bwv1043_melody[mel_i];
+            if (idx == BWV1043_SENTINEL) {
+                mel_i   = mode_title ? 0u : BWV1043_GAME_START_MELODY;
+                bas_i   = mode_title ? 0u : BWV1043_GAME_START_BASS;
+                bas_rem = 0u;
                 continue;
             }
-            ch1_play(f);
-            mel_rem = d;
+            ch1_play(bwv1043_dict[idx].freq);
+            mel_rem = bwv1043_dict[idx].dur;
             mel_i++;
-            if (mel_i >= BWV873_NUM_EVENTS) {
+            if (mel_i >= BWV1043_NUM_MELODY_EVENTS) {
                 mel_i = 0;
             }
         }
@@ -203,16 +202,15 @@ static void push_melody(uint8_t adv) {
 static void push_bass(uint8_t adv) {
     while (adv > 0u) {
         if (bas_rem == 0u) {
-            uint16_t f = bwv873_bass[bas_i].freq;
-            uint8_t d  = bwv873_bass[bas_i].dur;
-            if (f == GB_NOTE_END) {
-                bas_i = mode_title ? 0u : BWV873_FUGUE_START_BASS;
+            uint8_t idx = bwv1043_bass[bas_i];
+            if (idx == BWV1043_SENTINEL) {
+                bas_i = mode_title ? 0u : BWV1043_GAME_START_BASS;
                 continue;
             }
-            ch3_play(f);
-            bas_rem = d;
+            ch3_play(bwv1043_dict[idx].freq);
+            bas_rem = bwv1043_dict[idx].dur;
             bas_i++;
-            if (bas_i >= BWV873_NUM_EVENTS) {
+            if (bas_i >= BWV1043_NUM_BASS_EVENTS) {
                 bas_i = 0;
             }
         }
@@ -252,8 +250,8 @@ void music_play_title(void) {
 
 void music_play_game(void) {
     mode_title = 0u;
-    mel_i      = BWV873_FUGUE_START_MELODY;
-    bas_i      = BWV873_FUGUE_START_BASS;
+    mel_i      = BWV1043_GAME_START_MELODY;
+    bas_i      = BWV1043_GAME_START_BASS;
     mel_rem = bas_rem = 0;
     title_slow_vbl = 0;
     jingle_active = 0;
@@ -264,7 +262,7 @@ void music_loading_screen_set(uint8_t on) {
     if (on) {
         loading_audio    = 1u;
         loading_step_i   = 0u;
-        loading_vbl_gap  = 0u; // first footfall on next VBL tick
+        loading_vbl_gap  = 0u;
         silence_bgm_channels();
         return;
     }

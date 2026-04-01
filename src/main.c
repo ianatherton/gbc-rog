@@ -109,7 +109,7 @@ static void enter_level(uint8_t *px, uint8_t *py, uint8_t from_pit) { // load or
 static void start_new_run(uint8_t *px, uint8_t *py, uint8_t *prev_j,
                            uint16_t *run_entropy) { // title → seed → floor 1
     *run_entropy += 1u + (uint16_t)DIV_REG; // mutate entropy each run so START timing matters
-    music_play_title(); // BWV 873 prelude (loops) until START / seed picker finishes
+    music_play_title(); // BWV 1043 opening (loops) until START / seed picker finishes
     uint16_t seed = title_screen(*run_entropy); // user may pick word seed or random START
     if (!seed) seed = (uint16_t)(*run_entropy ^ 0xACE1u); // fallback if title returns 0
     if (!seed) seed = 0xACE1u;
@@ -117,7 +117,7 @@ static void start_new_run(uint8_t *px, uint8_t *py, uint8_t *prev_j,
     run_seed  = seed;   // fixed for whole run; floors mix from this + floor_num
     floor_num = 0;      // enter_level will set 1 for new run (see from_pit branch)
     *prev_j   = 0;      // no stale edge triggers on first frame after title
-    music_play_game();  // BWV 873 fugue from Tomita MIDI
+    music_play_game();  // BWV 1043 Largo (2 violins → CH1 + wave)
     wait_vbl_done();
     lcd_clear_display(); // single black frame then dungeon paint — no title tiles bleeding through
     enter_level(px, py, 0); // from_pit=0 → reset HP and floor counter inside

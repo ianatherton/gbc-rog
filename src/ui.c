@@ -1,10 +1,12 @@
 #include "ui.h"          // title_screen, game_over_screen, playfield HUD
-#include "defs.h"        // TILESET_VRAM_OFFSET, TILE_LIGHT_1, PAL_PLAYER
+#include "defs.h"        // TILESET_VRAM_OFFSET, tile IDs, palettes
 #include "lcd.h"         // lcd_gameplay_active for title vs play raster
 #include "music.h"       // mute BGM + footfalls during floor generation
+#include "render.h"      // load_palettes — restore sprite CRAM after title fire uses OCP7
 #include "seed_entropy.h" // deterministic-ish random seed from hardware jitter
 #include <gb/cgb.h>
 #include <gb/gb.h>
+#include <gb/hardware.h> // DEVICE_SPRITE_PX_OFFSET_* — same convention as entity_sprites OAM X
 
 #define UI_HUD_WIN_Y 0u // window tilemap row 0 = HUD (ISR shows window at lines 0–7)
 
@@ -12,8 +14,11 @@
 #define UI_COMBAT_LOG_CAP 4u
 #define UI_COMBAT_LOG_W  GRID_W
 
-#define UI_TITLE_TORCH_OAM_L 32u
-#define UI_TITLE_TORCH_OAM_R 33u
+#define UI_TITLE_TORCH_OAM_L  20u // one 8×8 sprite per torch (no 2×2 upscale)
+#define UI_TITLE_TORCH_OAM_R  21u
+#define UI_TITLE_FIRE_FIRST   22u
+#define UI_TITLE_FIRE_COUNT   8u
+#define PAL_TITLE_FIRE        7u  // OCP7: orange flame; gameplay restores via load_palettes in ui_title_style_end
 
 static const palette_color_t ui_title_bkg_pal[] = { // BKG pal 0: dark red field + light text (font pen 3 / paper 0)
     RGB(5, 0, 1),
@@ -22,28 +27,127 @@ static const palette_color_t ui_title_bkg_pal[] = { // BKG pal 0: dark red field
     RGB(30, 28, 26),
 };
 static const palette_color_t ui_default_bkg_pal0[] = { RGB(0, 0, 0), RGB(8, 8, 8), RGB(16, 16, 16), RGB(31, 31, 31) };
+static const palette_color_t ui_title_fire_pal[] = { // OCP7 during menu only
+    RGB(0, 0, 0), RGB(26, 6, 0), RGB(31, 16, 2), RGB(31, 26, 8),
+};
+
+static uint8_t ui_title_torch_lx, ui_title_torch_rx, ui_title_torch_ty; // fire spawns from torch tops
+static uint8_t ui_title_fire_y[UI_TITLE_FIRE_COUNT];
+static uint8_t ui_title_fire_x[UI_TITLE_FIRE_COUNT];
+static uint8_t ui_title_fire_ttl[UI_TITLE_FIRE_COUNT]; // 0 = slot free
+
+static void ui_title_torch_hide(void) {
+    uint8_t i;
+    move_sprite(UI_TITLE_TORCH_OAM_L, 0u, 0u);
+    move_sprite(UI_TITLE_TORCH_OAM_R, 0u, 0u);
+    for (i = UI_TITLE_FIRE_FIRST; i < UI_TITLE_FIRE_FIRST + UI_TITLE_FIRE_COUNT; i++) move_sprite(i, 0u, 0u);
+}
+
+static void ui_title_fire_init(void) {
+    uint8_t i;
+    for (i = 0u; i < UI_TITLE_FIRE_COUNT; i++) ui_title_fire_ttl[i] = 0u;
+}
+
+static void ui_title_menu_border_put(uint8_t x, uint8_t y, uint16_t *seq) { // J7/L4 alternate on BKG pal 0 (title ramp)
+    uint8_t off = ((*seq) & 1u) ? TILE_FLOOR_DECO_4 : TILE_LOADING_SKULL;
+    uint8_t v = (uint8_t)(TILESET_VRAM_OFFSET + off);
+    (*seq)++;
+    gotoxy(x, y);
+    set_bkg_tiles(x, y, 1, 1, &v);
+    set_bkg_attribute_xy(x, y, 0u);
+    VBK_REG = VBK_TILES;
+}
+
+static void ui_title_menu_border_draw(void) { // 20×18 view: one tile deep; clockwise from top-left
+    uint16_t seq = 0u;
+    uint8_t x;
+    int8_t y;
+    for (x = 0u; x < 20u; x++) ui_title_menu_border_put(x, 0u, &seq);
+    for (y = 1; y <= 16; y++) ui_title_menu_border_put(19u, (uint8_t)y, &seq);
+    for (x = 19u;; x--) {
+        ui_title_menu_border_put(x, 17u, &seq);
+        if (x == 0u) break;
+    }
+    for (y = 16; y >= 1; y--) ui_title_menu_border_put(0u, (uint8_t)y, &seq);
+}
 
 static void ui_title_torch_place(uint8_t bkg_text_row) {
-    uint8_t py = (uint8_t)((uint16_t)bkg_text_row * 8u + 4u + 16u);
-    uint8_t tt = (uint8_t)(TILESET_VRAM_OFFSET + TILE_LIGHT_1);
+    uint8_t tt = (uint8_t)(TILESET_VRAM_OFFSET + TILE_LIGHT_3); // C3 torch art
+    uint8_t ty = (uint8_t)((uint16_t)bkg_text_row * 8u + 4u + 16u); // same baseline as original single-torch title
+    uint8_t lx = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_X + 24u); // OAM X = 8+screen px; 24px from left = well right of skull border
+    uint8_t rx = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_X + (160u - 8u - 24u)); // mirror: 24px margin from right visible edge
+    uint8_t p = (uint8_t)(PAL_PLAYER & 7u);
+    ui_title_torch_lx = lx;
+    ui_title_torch_rx = rx;
+    ui_title_torch_ty = ty;
     set_sprite_tile(UI_TITLE_TORCH_OAM_L, tt);
     set_sprite_tile(UI_TITLE_TORCH_OAM_R, tt);
-    set_sprite_prop(UI_TITLE_TORCH_OAM_L, (uint8_t)(PAL_PLAYER & 7u));
-    set_sprite_prop(UI_TITLE_TORCH_OAM_R, (uint8_t)((PAL_PLAYER & 7u) | S_FLIPX));
-    move_sprite(UI_TITLE_TORCH_OAM_L, 8u, py);
-    move_sprite(UI_TITLE_TORCH_OAM_R, 120u, py);
+    set_sprite_prop(UI_TITLE_TORCH_OAM_L, p);
+    set_sprite_prop(UI_TITLE_TORCH_OAM_R, (uint8_t)(p | S_FLIPX));
+    move_sprite(UI_TITLE_TORCH_OAM_L, lx, ty);
+    move_sprite(UI_TITLE_TORCH_OAM_R, rx, ty);
 }
 
 static void ui_title_style_begin(uint8_t bkg_text_row) {
     set_bkg_palette(0u, 1u, ui_title_bkg_pal);
+    set_sprite_palette(PAL_TITLE_FIRE, 1u, ui_title_fire_pal);
+    ui_title_fire_init();
     ui_title_torch_place(bkg_text_row);
     SHOW_SPRITES;
 }
 
 static void ui_title_style_end(void) {
     set_bkg_palette(0u, 1u, ui_default_bkg_pal0);
-    move_sprite(UI_TITLE_TORCH_OAM_L, 0u, 0u);
-    move_sprite(UI_TITLE_TORCH_OAM_R, 0u, 0u);
+    ui_title_torch_hide();
+    load_palettes(); // restore OCP7 (and all sprite CRAM) for dungeon / XP / bats
+}
+
+static void ui_title_try_spawn_fire(uint8_t from_right, uint16_t fc) {
+    uint8_t i;
+    for (i = 0u; i < UI_TITLE_FIRE_COUNT; i++) {
+        if (ui_title_fire_ttl[i] != 0u) continue;
+        {
+            uint8_t base_x = from_right
+                ? (uint8_t)(ui_title_torch_rx + 3u + (uint8_t)(fc & 7u))
+                : (uint8_t)(ui_title_torch_lx + 3u + (uint8_t)((fc >> 1) & 7u));
+            ui_title_fire_x[i] = base_x;
+            ui_title_fire_y[i] = (uint8_t)(ui_title_torch_ty - 2u);
+            ui_title_fire_ttl[i] = (uint8_t)(24u + (uint8_t)(DIV_REG & 11u));
+            return;
+        }
+    }
+}
+
+static void ui_title_menu_anim_tick(uint16_t frame_counter) {
+    uint8_t i;
+    uint8_t ft = (uint8_t)(TILESET_VRAM_OFFSET + TILE_TITLE_FIRE);
+    uint8_t fp = (uint8_t)(PAL_TITLE_FIRE & 7u);
+    for (i = 0u; i < UI_TITLE_FIRE_COUNT; i++) {
+        if (ui_title_fire_ttl[i] == 0u) continue;
+        {
+            uint8_t y = ui_title_fire_y[i];
+            int16_t nx = (int16_t)ui_title_fire_x[i];
+            if (((frame_counter + (uint16_t)i) & 3u) == 1u) nx++;
+            else if (((frame_counter + (uint16_t)i) & 3u) == 3u) nx--;
+            if (nx < 8) nx = 8;
+            if (nx > 152) nx = 152;
+            y = (uint8_t)((uint16_t)y - 1u);
+            if (((frame_counter + i) & 1u) == 0u) y = (uint8_t)((uint16_t)y - 1u); // ~2 px/frame average rise
+            ui_title_fire_ttl[i] = (uint8_t)(ui_title_fire_ttl[i] - 1u);
+            if (ui_title_fire_ttl[i] == 0u || y < 20u) {
+                ui_title_fire_ttl[i] = 0u;
+                move_sprite((uint8_t)(UI_TITLE_FIRE_FIRST + i), 0u, 0u);
+            } else {
+                ui_title_fire_y[i] = y;
+                ui_title_fire_x[i] = (uint8_t)nx;
+                set_sprite_tile((uint8_t)(UI_TITLE_FIRE_FIRST + i), ft);
+                set_sprite_prop((uint8_t)(UI_TITLE_FIRE_FIRST + i), fp);
+                move_sprite((uint8_t)(UI_TITLE_FIRE_FIRST + i), (uint8_t)nx, y);
+            }
+        }
+    }
+    if ((frame_counter & 3u) == 0u) ui_title_try_spawn_fire(0, frame_counter);
+    if ((frame_counter & 3u) == 2u) ui_title_try_spawn_fire(1, frame_counter);
 }
 
 static char combat_log[UI_COMBAT_LOG_CAP][UI_COMBAT_LOG_W + 1u];
@@ -342,6 +446,7 @@ static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t entropy_
         }
         frame_counter++;
         wait_vbl_done();
+        ui_title_menu_anim_tick(frame_counter);
     }
 }
 
@@ -354,6 +459,7 @@ uint16_t title_screen(uint16_t entropy_hint) { // blocking until START or SELECT
     wait_vbl_done();
     lcd_clear_display();
     ui_title_style_begin(7u);
+    ui_title_menu_border_draw();
     gotoxy(4,  7); printf("Mara's Abyss");
     gotoxy(3, 12); printf("SELECT=seed words");
 
@@ -380,6 +486,7 @@ uint16_t title_screen(uint16_t entropy_hint) { // blocking until START or SELECT
         }
         frame_counter++;
         wait_vbl_done();
+        ui_title_menu_anim_tick(frame_counter);
         prev_j = j;
     }
 }

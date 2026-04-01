@@ -166,7 +166,8 @@ typedef struct {
 #define TILE_GROUND_A        4   /* E1  */
 #define TILE_GROUND_B       20   /* E2  */
 #define TILE_GROUND_C       36   /* E3  */
-#define TILE_GROUND_D       52   /* E4  */
+#define TILE_GROUND_D       52   /* E4  — also title-menu fire particle glyph */
+#define TILE_TITLE_FIRE     TILE_GROUND_D
 #define TILE_GROUND_E       68   /* E5  */
 
 /* ── F col — props ───────────────────────────────────────────────────────── */

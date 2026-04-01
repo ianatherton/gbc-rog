@@ -7,6 +7,8 @@
 uint16_t camera_px = 0;
 uint16_t camera_py = 0;
 
+static const int8_t player_bob_table[8] = { 0, -1, -2, -2, -1, 0, 1, 0 };
+
 void camera_init(uint8_t top_tx, uint8_t top_ty) {
     camera_px = (uint16_t)top_tx * 8u;
     camera_py = (uint16_t)top_ty * 8u;
@@ -15,12 +17,14 @@ void camera_init(uint8_t top_tx, uint8_t top_ty) {
 static void player_glide_when_camera_idle(uint8_t opx, uint8_t opy, uint8_t px, uint8_t py) { // map edge: camera fixed, sprite still eases one tile
     int16_t wx = (int16_t)opx * 8, wy = (int16_t)opy * 8;
     int16_t ex = (int16_t)px * 8, ey = (int16_t)py * 8;
+    uint8_t bob_i = 0u;
     while (wx != ex || wy != ey) {
         if (wx < ex) { wx += SCROLL_SPEED; if (wx > ex) wx = ex; }
         else if (wx > ex) { if ((wx - ex) <= SCROLL_SPEED) wx = ex; else wx -= SCROLL_SPEED; }
         if (wy < ey) { wy += SCROLL_SPEED; if (wy > ey) wy = ey; }
         else if (wy > ey) { if ((wy - ey) <= SCROLL_SPEED) wy = ey; else wy -= SCROLL_SPEED; }
-        entity_sprites_set_player_world(wx, wy);
+        entity_sprites_set_player_world(wx, (int16_t)(wy + player_bob_table[bob_i]));
+        bob_i = (uint8_t)((bob_i + 1u) & 7u);
         entity_sprites_refresh(px, py);
         wait_vbl_done();
     }
@@ -35,6 +39,7 @@ void camera_scroll_to(uint8_t target_tx, uint8_t target_ty,
     uint16_t guard_steps = 0u;
     int16_t pwx = (int16_t)opx * 8, pwy = (int16_t)opy * 8; // player sprite world pos, stepped toward target
     int16_t target_pwx = (int16_t)px * 8, target_pwy = (int16_t)py * 8;
+    uint8_t bob_i = 0u;
 
     if (camera_px == target_px && camera_py == target_py && (opx != px || opy != py)) {
         player_glide_when_camera_idle(opx, opy, px, py);
@@ -61,7 +66,8 @@ void camera_scroll_to(uint8_t target_tx, uint8_t target_ty,
         else if (pwx > target_pwx) { pwx -= SCROLL_SPEED; if (pwx < target_pwx) pwx = target_pwx; }
         if (pwy < target_pwy) { pwy += SCROLL_SPEED; if (pwy > target_pwy) pwy = target_pwy; }
         else if (pwy > target_pwy) { pwy -= SCROLL_SPEED; if (pwy < target_pwy) pwy = target_pwy; }
-        entity_sprites_set_player_world(pwx, pwy);
+        entity_sprites_set_player_world(pwx, (int16_t)(pwy + player_bob_table[bob_i]));
+        bob_i = (uint8_t)((bob_i + 1u) & 7u);
 
         wait_vbl_done();
 

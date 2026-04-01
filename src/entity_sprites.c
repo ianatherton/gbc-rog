@@ -10,6 +10,10 @@
 
 static int16_t player_override_wx = -1; // negative = use px*8
 static int16_t player_override_wy = -1;
+static uint8_t player_flip_x;
+static uint8_t player_hurt_flash_ttl;
+static uint8_t player_hurt_flash_phase;
+static uint8_t player_cache_tx, player_cache_ty; // last refresh tile — VBL hurt blink repaints without full refresh
 
 static int8_t pl_ofs_x, pl_ofs_y;                    // attack lunge (player)
 static int8_t en_ofs_x[MAX_ENEMIES], en_ofs_y[MAX_ENEMIES]; // per-slot lunge
@@ -31,7 +35,11 @@ static void move_entity_oam(uint8_t sp, int16_t wx, int16_t wy, uint8_t tile, ui
     sx = (uint8_t)((int16_t)sx + (int16_t)lcd_shake_x);
     sy = (uint8_t)((int16_t)sy + (int16_t)lcd_shake_y);
     set_sprite_tile(sp, tile);
-    set_sprite_prop(sp, (uint8_t)(pal & 7u)); // CGB palette index matches BG slot 0..7
+    {
+        uint8_t prop = (uint8_t)(pal & 7u); // CGB palette index matches BG slot 0..7
+        if (sp == SP_PLAYER && player_flip_x) prop |= S_FLIPX;
+        set_sprite_prop(sp, prop);
+    }
     move_sprite(sp, sx, sy);
 }
 
@@ -42,8 +50,50 @@ void entity_sprites_init(void) {
     pl_ofs_x = pl_ofs_y = 0;
     player_override_wx = -1;
     player_override_wy = -1;
+    player_flip_x = 0u;
+    player_hurt_flash_ttl = 0u;
+    player_hurt_flash_phase = 0u;
     for (i = 0; i < 40u; i++) oam_hide(i);
     SHOW_SPRITES;
+}
+
+void entity_sprites_set_player_facing(int8_t dir_x) {
+    if (dir_x < 0) player_flip_x = 1u;
+    else if (dir_x > 0) player_flip_x = 0u;
+}
+
+void entity_sprites_player_hurt_flash(void) {
+    player_hurt_flash_ttl = 60u; // 1000ms at 60Hz
+    player_hurt_flash_phase = 0u;
+}
+
+static void refresh_player_oam_from_cache(void) { // player only — same math as entity_sprites_refresh player block
+    int16_t pwx, pwy;
+    uint8_t player_pal = PAL_PLAYER;
+    if (player_override_wx >= 0 && player_override_wy >= 0) {
+        pwx = player_override_wx;
+        pwy = player_override_wy;
+    } else {
+        pwx = (int16_t)player_cache_tx * 8;
+        pwy = (int16_t)player_cache_ty * 8;
+    }
+    pwx += pl_ofs_x;
+    pwy += pl_ofs_y;
+    if (player_hurt_flash_ttl > 0u) {
+        if ((player_hurt_flash_phase & 1u) == 0u) player_pal = PAL_LIFE_UI;
+    } else {
+        player_hurt_flash_phase = 0u;
+    }
+    move_entity_oam(SP_PLAYER, pwx, pwy,
+            (uint8_t)(TILESET_VRAM_OFFSET + PLAYER_TILE_OFFSET), player_pal);
+}
+
+void entity_sprites_vbl_tick(void) {
+    if (player_hurt_flash_ttl > 0u) {
+        player_hurt_flash_ttl--;
+        player_hurt_flash_phase++;
+        refresh_player_oam_from_cache(); // OAM tracks every VBlank during blink (idle loops skip full refresh)
+    }
 }
 
 void entity_sprites_set_player_world(int16_t wx, int16_t wy) {
@@ -58,20 +108,10 @@ void entity_sprites_clear_player_world(void) {
 
 void entity_sprites_refresh(uint8_t px, uint8_t py) {
     uint8_t i;
-    int16_t pwx, pwy;
 
-    if (player_override_wx >= 0 && player_override_wy >= 0) {
-        pwx = player_override_wx;
-        pwy = player_override_wy;
-    } else {
-        pwx = (int16_t)px * 8;
-        pwy = (int16_t)py * 8;
-    }
-    pwx += pl_ofs_x;
-    pwy += pl_ofs_y;
-
-    move_entity_oam(SP_PLAYER, pwx, pwy,
-            (uint8_t)(TILESET_VRAM_OFFSET + PLAYER_TILE_OFFSET), PAL_PLAYER);
+    player_cache_tx = px;
+    player_cache_ty = py;
+    refresh_player_oam_from_cache();
 
     for (i = 0; i < num_enemies; i++) {
         uint8_t sp = (uint8_t)(SP_ENEMY_BASE + i);

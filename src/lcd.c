@@ -1,6 +1,7 @@
 #include "lcd.h"
 #include "defs.h" // camera_px, camera_py — pulls gb.h for fill_* / move_sprite / LCDC_REG
 #include "ui.h"   // ui_loading_vblank — no cycle: ui.h does not include lcd.h
+#include "entity_sprites.h" // entity_sprites_vbl_tick
 
 uint8_t  lcd_gameplay_active   = 0u;
 volatile int8_t lcd_shake_x    = 0;
@@ -12,6 +13,7 @@ static void lcd_vbl_handler(void) { // VBL: HUD band setup for lines 0–7
     LYC_REG = 8u;
     if (lcd_gameplay_active) SHOW_WIN; // window row 0 = HUD overlay on BKG
     ui_loading_vblank(); // cheap OAM bob; no-op unless ui_loading_screen_begin is active
+    entity_sprites_vbl_tick(); // stable 60Hz timers for sprite-only effects
 }
 
 static void lcd_stat_handler(void) { // fires at LYC (line 8 or UI_WINDOW_Y_START)

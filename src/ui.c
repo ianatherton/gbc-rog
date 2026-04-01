@@ -1,6 +1,7 @@
 #include "ui.h"          // title_screen, game_over_screen, playfield HUD
 #include "defs.h"        // TILESET_VRAM_OFFSET, TILE_LIGHT_1, PAL_PLAYER
 #include "lcd.h"         // lcd_gameplay_active for title vs play raster
+#include "music.h"       // mute BGM + footfalls during floor generation
 #include "seed_entropy.h" // deterministic-ish random seed from hardware jitter
 #include <gb/cgb.h>
 #include <gb/gb.h>
@@ -199,6 +200,7 @@ void ui_loading_screen_begin(void) {
     uint8_t tt = (uint8_t)(TILESET_VRAM_OFFSET + TILE_LOADING_SKULL);
     ui_load_phase = 0;
     ui_loading_active = 1u;
+    music_loading_screen_set(1u);
     gotoxy(5, 8);
     printf("Descending");
     set_sprite_tile(UI_LOAD_SKULL_OAM_L, tt);
@@ -211,6 +213,7 @@ void ui_loading_screen_begin(void) {
 }
 
 void ui_loading_screen_end(void) {
+    music_loading_screen_set(0u);
     ui_loading_active = 0u;
     move_sprite(UI_LOAD_SKULL_OAM_L, 0u, 0u);
     move_sprite(UI_LOAD_SKULL_OAM_R, 0u, 0u);

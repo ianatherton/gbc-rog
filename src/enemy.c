@@ -96,7 +96,7 @@ void spawn_enemies(void) { // random placement with collision checks
         for (attempts = 0; attempts < 100; attempts++) {
             uint8_t tx = (uint8_t)(rand() & (MAP_W - 1)); // MAP_W is power-of-2
             uint8_t ty = (uint8_t)(rand() & (MAP_H - 1));
-            if ((tx != START_X || ty != START_Y)
+            if ((tx != player_spawn_x || ty != player_spawn_y)
                     && is_walkable(tx, ty)
                     && enemy_at(tx, ty) == ENEMY_DEAD) {
                 enemy_x[num_enemies]    = tx;

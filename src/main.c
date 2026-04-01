@@ -19,6 +19,7 @@ uint16_t run_seed   = 12345;         // default until title picks a seed; drives
 
 static void grant_xp_from_kill(uint8_t enemy_damage) {
     uint16_t next_level_xp;
+    uint8_t  did_level = 0;
     player_xp = (uint16_t)(player_xp + enemy_damage);
     while (1) {
         next_level_xp = (uint16_t)PLAYER_LEVEL_XP_BASE + (uint16_t)(player_level - 1u) * PLAYER_LEVEL_XP_STEP;
@@ -29,7 +30,9 @@ static void grant_xp_from_kill(uint8_t enemy_damage) {
         if (player_hp_max <= 245u) player_hp_max = (uint8_t)(player_hp_max + 10u);
         else player_hp_max = 255u;
         player_hp = player_hp_max; // full heal on every level-up
+        did_level = 1;
     }
+    if (did_level) music_play_levelup_jingle();
 }
 
 static uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) { // batched: all damage → one draw → concurrent lunges → one shake
@@ -41,6 +44,7 @@ static uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) { // batch
     draw_screen(px, py);
     sfx_lunge_hit();
     entity_sprites_run_enemy_lunges_batch(px, py, enemy_attack_slots, enemy_attack_count);
+    entity_sprites_player_hurt_flash(); // blink after lunge lands so hit read matches motion
     camera_shake();
     return (player_hp == 0) ? 2u : 1u;
 }
@@ -82,10 +86,10 @@ static void enter_level(uint8_t *px, uint8_t *py, uint8_t from_pit) { // load or
     wall_tileset_index = TILE_WALL_FIRST; // debug: default wall graphic variant
     wall_palette_index = 0;           // default wall ramp; cycle with A for others
     initrand(floor_seed);             // all rand() until next floor uses this seed
-    generate_level();                 // carve map + build nav graph
+    generate_level(floor_seed);       // carve map + build_nav graph; spawn_xy from seed
     spawn_enemies();                  // place enemies away from spawn
-    *px = START_X;                    // player always starts map center
-    *py = START_Y;
+    *px = player_spawn_x;
+    *py = player_spawn_y;
     {
         int16_t cx = (int16_t)*px - GRID_W / 2; // camera top-left tile: center player in viewport when possible
         int16_t cy = (int16_t)*py - GRID_H / 2;
@@ -157,8 +161,8 @@ int main(void) {
             continue;
         }
 
-        if (j & J_LEFT)  nx = px > 0         ? (uint8_t)(px-1) : px; // clamp at map border
-        if (j & J_RIGHT) nx = px < MAP_W-1   ? (uint8_t)(px+1) : px;
+        if (j & J_LEFT)  { nx = px > 0       ? (uint8_t)(px-1) : px; entity_sprites_set_player_facing(-1); } // clamp at map border
+        if (j & J_RIGHT) { nx = px < MAP_W-1 ? (uint8_t)(px+1) : px; entity_sprites_set_player_facing(1); }
         if (j & J_UP)    ny = py > 0         ? (uint8_t)(py-1) : py;
         if (j & J_DOWN)  ny = py < MAP_H-1   ? (uint8_t)(py+1) : py;
 

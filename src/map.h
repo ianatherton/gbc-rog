@@ -12,6 +12,8 @@ extern uint8_t  num_nav_nodes;            // populated after generate_level
 
 extern uint8_t wall_tileset_index; // which wall tile in VRAM band (debug)
 extern uint8_t wall_palette_index; // wall_palette_table index; applied to PAL_WALL_BG slot
+extern uint8_t player_spawn_x;    // set per floor in generate_level — seed-based, walkable
+extern uint8_t player_spawn_y;
 
 uint8_t tile_at(uint8_t x, uint8_t y); // TILE_WALL / TILE_FLOOR / TILE_PIT from bitsets
 void    set_floor(uint8_t x, uint8_t y); // carve floor-only
@@ -22,10 +24,11 @@ char    tile_char(uint8_t t); // ASCII when not using custom tile
 uint8_t tile_vram_index(uint8_t t); // non-0 → set_bkg_tiles index
 uint8_t tile_palette(uint8_t t); // CGB palette for terrain
 
-void generate_level(void); // drunkard walk + pits + build_nav_graph
+void generate_level(uint16_t floor_seed); // drunkard from spawn + pits + build_nav_graph
 
 void    floor_ground_init(uint16_t floor_seed); // per floor: main + 2 alts from E1–E5 + blank (same seed as initrand)
 uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y); // sheet offset for TILE_FLOOR cell; 255 = blank tile
+uint8_t floor_tile_palette_xy(uint8_t x, uint8_t y); // CGB attr for TILE_FLOOR; spawn stair uses PAL_LADDER
 uint8_t wall_tile_sheet_offset(uint8_t x, uint8_t y); // per-cell wall art: wall variant or per-floor column
 
 uint8_t nearest_nav_node(uint8_t x, uint8_t y); // for mapping entity tiles to graph

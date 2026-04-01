@@ -232,10 +232,6 @@ typedef struct {
 #define TILE_UI_HEART_FULL  29   /* N2  - full heart                       */
 #define TILE_UI_HEART_HALF  30   /* O2  - half heart                       */
 
-/* ── Player spawn ────────────────────────────────────────────────────────── */
-#define START_X (MAP_W / 2)
-#define START_Y (MAP_H / 2)
-
 /* ── Player stats ────────────────────────────────────────────────────────── */
 #define PLAYER_HP_BASE_MAX 10
 #define PLAYER_LEVEL_XP_BASE 15u

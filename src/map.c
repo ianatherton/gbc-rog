@@ -7,6 +7,8 @@ NavNode nav_nodes[MAX_NAV_NODES]; // junction graph for enemy pathing
 uint8_t num_nav_nodes;            // how many nodes after build_nav_graph
 uint8_t wall_tileset_index = TILE_WALL_FIRST; // offset within sheet for TILE_WALL (debug cycle)
 uint8_t wall_palette_index = 0;           // index into wall_palette_table; uploaded to PAL_WALL_BG
+uint8_t player_spawn_x = MAP_W / 2;       // overwritten each generate_level(floor_seed)
+uint8_t player_spawn_y = MAP_H / 2;
 
 static uint8_t floor_column_off = TILE_COLUMN_1; // one column style per floor (D1..D4), seeded in floor_ground_init
 
@@ -59,9 +61,18 @@ void floor_ground_init(uint16_t floor_seed) { // deterministic floor visuals fro
 }
 
 uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank (font space / tile 0)
+    if (x == player_spawn_x && y == player_spawn_y) {
+        return TILE_STAIRS_UP_1;
+    }
     uint16_t idx = TILE_IDX(x, y);
     if (BIT_GET(floor_blank_bits, idx)) return 255u;
     return TILE_GROUND_D;
+}
+
+uint8_t floor_tile_palette_xy(uint8_t x, uint8_t y) { // pal 0 = pal_default greyscale (spawn H1 + floor)
+    (void)x;
+    (void)y;
+    return 0;
 }
 
 uint8_t wall_tile_sheet_offset(uint8_t x, uint8_t y) { // convert specific wall neighbour counts into this floor's column tile
@@ -186,9 +197,19 @@ bfs_done:
     return step; // immediate neighbour of `from` on a shortest path, or NAV_NO_LINK
 }
 
-void generate_level(void) { // full regen: clears map, walks, pits, then nav graph
+void generate_level(uint16_t floor_seed) { // full regen: clears map, walks, pits, then nav graph
     uint16_t i;
-    uint8_t x = START_X, y = START_Y; // drunkard starts at same tile player will spawn on
+    uint32_t mix = (uint32_t)floor_seed * 2654435761u ^ (uint32_t)floor_seed << 13;
+    mix ^= mix >> 17;
+    mix *= 2246523629u;
+    {
+        uint8_t span_x = (uint8_t)(MAP_W - 2u), span_y = (uint8_t)(MAP_H - 2u);
+        player_spawn_x = (uint8_t)(1u + (uint8_t)(mix % span_x));
+        mix     = mix * 1597334677u + 1u;
+        player_spawn_y = (uint8_t)(1u + (uint8_t)(mix % span_y));
+    }
+
+    uint8_t x = player_spawn_x, y = player_spawn_y; // drunkard starts at deterministic spawn
 
     for (i = 0; i < BITSET_BYTES; i++) { floor_bits[i] = 0; pit_bits[i] = 0; floor_blank_bits[i] = 0; } // all wall; no blank scatter yet
 
@@ -208,7 +229,7 @@ void generate_level(void) { // full regen: clears map, walks, pits, then nav gra
     for (uint8_t attempts = 0; attempts < 200 && placed < NUM_PITS; attempts++) { // random floor tile, not spawn
         uint8_t tx = (uint8_t)(rand() & (MAP_W - 1));
         uint8_t ty = (uint8_t)(rand() & (MAP_H - 1));
-        if ((tx != START_X || ty != START_Y) // never ladder on spawn
+        if ((tx != player_spawn_x || ty != player_spawn_y) // never ladder on spawn
                 && BIT_GET(floor_bits, TILE_IDX(tx, ty))
                 && !BIT_GET(pit_bits,  TILE_IDX(tx, ty))) {
             set_pit(tx, ty);
@@ -220,7 +241,7 @@ void generate_level(void) { // full regen: clears map, walks, pits, then nav gra
         for (fy = 0; fy < MAP_H && placed < NUM_PITS; fy++) {
             for (fx = 0; fx < MAP_W && placed < NUM_PITS; fx++) {
                 uint16_t idx = TILE_IDX(fx, fy);
-                if ((fx != START_X || fy != START_Y)
+                if ((fx != player_spawn_x || fy != player_spawn_y)
                         && BIT_GET(floor_bits, idx)
                         && !BIT_GET(pit_bits, idx)) {
                     set_pit(fx, fy);
@@ -237,7 +258,7 @@ void generate_level(void) { // full regen: clears map, walks, pits, then nav gra
                 uint16_t idx = TILE_IDX(bx, by);
                 if (!BIT_GET(floor_bits, idx)) continue;
                 if (BIT_GET(pit_bits, idx)) continue;
-                if (bx == START_X && by == START_Y) continue; // keep spawn on ground tile
+                if (bx == player_spawn_x && by == player_spawn_y) continue; // keep spawn tile as stair graphic
                 if ((uint8_t)(rand() % 10u) == 0u) BIT_SET(floor_blank_bits, idx);
             }
         }

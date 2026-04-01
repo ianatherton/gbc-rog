@@ -8,7 +8,7 @@
 
 static const palette_color_t pal_default[]  = { RGB(0,0,0),  RGB(8,8,8),   RGB(16,16,16), RGB(31,31,31) }; // slot 0: floor text default
 static const palette_color_t pal_green[]    = { RGB(0,0,0),  RGB(0,20,0),  RGB(0,26,0),   RGB(0,31,0)   }; // slot 1: some enemies
-static const palette_color_t pal_player[]   = { RGB(0,0,0),  RGB(20,10,0), RGB(28,16,0),  RGB(31,24,0)  }; // slot PAL_PLAYER: class tile
+static const palette_color_t pal_player[]   = { RGB(0,0,0),  RGB(24,18,0), RGB(30,24,4),  RGB(31,31,10) }; // slot PAL_PLAYER: brighter gold ramp
 static const palette_color_t pal_ladder[]   = { RGB(0,0,0),  RGB(12,7,3),  RGB(22,14,6),  RGB(30,22,10) }; // PAL_LADDER: wood / amber (not pit-blue)
 static const palette_color_t pal_life_ui[]  = { RGB(0,0,0),  RGB(18,0,0),  RGB(25,2,2),   RGB(31,4,4)   }; // slot 5: bar fill
 static const palette_color_t pal_ui[]       = { RGB(0,0,0),  RGB(8,8,8),   RGB(16,16,16), RGB(31,31,31) }; // slot 6: HUD text
@@ -49,7 +49,7 @@ static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t m
                 uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + off);
                 set_bkg_tiles(sx, sy, 1, 1, &vram);
             }
-            set_bkg_attribute_xy(sx, sy, 0);
+            set_bkg_attribute_xy(sx, sy, floor_tile_palette_xy(mx, my));
         } else if (t == TILE_WALL) {
             uint8_t off = wall_tile_sheet_offset(mx, my);
             uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + off);

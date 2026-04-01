@@ -9,7 +9,7 @@ void entity_sprites_init(void); // palettes + SHOW_SPRITES; hide OAM slots
 void entity_sprites_set_player_world(int16_t wx, int16_t wy);
 void entity_sprites_clear_player_world(void); // use px*8, py*8 after scroll ends
 void entity_sprites_set_player_facing(int8_t dir_x); // -1 left (flip), +1 right (normal)
-void entity_sprites_player_hurt_flash(void); // short palette blink when player takes damage
+void entity_sprites_player_hurt_flash(void); // ~1 s red ↔ gold on OCP PAL_PLAYER (~8-frame beat)
 void entity_sprites_vbl_tick(void); // 60Hz timers for palette flashes
 
 void entity_sprites_refresh(uint8_t px, uint8_t py); // OAM from map + camera + lunges

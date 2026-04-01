@@ -1,9 +1,13 @@
 #include "entity_sprites.h"
+#include "render.h" // render_sprite_palette_player_* — OCP2 gold vs hurt red
 #include "enemy.h"
 #include "lcd.h"
 #include "defs.h"
 #include <gb/cgb.h>
 #include <string.h>
+
+#define PLAYER_HURT_FLASH_DURATION_VBL 60u // 1 s at ~60 Hz VBlank
+#define PLAYER_HURT_FLASH_TOGGLE_VBL    8u // red vs gold half-beat (~7.5 full cycles/s)
 
 #define SP_PLAYER 0
 #define SP_ENEMY_BASE 1
@@ -12,7 +16,7 @@ static int16_t player_override_wx = -1; // negative = use px*8
 static int16_t player_override_wy = -1;
 static uint8_t player_flip_x;
 static uint8_t player_hurt_flash_ttl;
-static uint8_t player_hurt_flash_phase;
+static uint8_t player_hurt_flash_restore_needed; // 1 after flash until OCP2 restored to gold
 static uint8_t player_cache_tx, player_cache_ty; // last refresh tile — VBL hurt blink repaints without full refresh
 
 static int8_t pl_ofs_x, pl_ofs_y;                    // attack lunge (player)
@@ -52,7 +56,7 @@ void entity_sprites_init(void) {
     player_override_wy = -1;
     player_flip_x = 0u;
     player_hurt_flash_ttl = 0u;
-    player_hurt_flash_phase = 0u;
+    player_hurt_flash_restore_needed = 0u;
     for (i = 0; i < 40u; i++) oam_hide(i);
     SHOW_SPRITES;
 }
@@ -63,8 +67,7 @@ void entity_sprites_set_player_facing(int8_t dir_x) {
 }
 
 void entity_sprites_player_hurt_flash(void) {
-    player_hurt_flash_ttl = 60u; // 1000ms at 60Hz
-    player_hurt_flash_phase = 0u;
+    player_hurt_flash_ttl = PLAYER_HURT_FLASH_DURATION_VBL;
 }
 
 static void refresh_player_oam_from_cache(void) { // player only — same math as entity_sprites_refresh player block
@@ -80,9 +83,13 @@ static void refresh_player_oam_from_cache(void) { // player only — same math a
     pwx += pl_ofs_x;
     pwy += pl_ofs_y;
     if (player_hurt_flash_ttl > 0u) {
-        if ((player_hurt_flash_phase & 1u) == 0u) player_pal = PAL_LIFE_UI;
-    } else {
-        player_hurt_flash_phase = 0u;
+        uint8_t blk = (uint8_t)((PLAYER_HURT_FLASH_DURATION_VBL - player_hurt_flash_ttl) / PLAYER_HURT_FLASH_TOGGLE_VBL);
+        if ((blk & 1u) == 0u) render_sprite_palette_player_hurt();
+        else                     render_sprite_palette_player_default();
+        player_hurt_flash_restore_needed = 1u;
+    } else if (player_hurt_flash_restore_needed) {
+        render_sprite_palette_player_default();
+        player_hurt_flash_restore_needed = 0u;
     }
     move_entity_oam(SP_PLAYER, pwx, pwy,
             (uint8_t)(TILESET_VRAM_OFFSET + PLAYER_TILE_OFFSET), player_pal);
@@ -90,9 +97,8 @@ static void refresh_player_oam_from_cache(void) { // player only — same math a
 
 void entity_sprites_vbl_tick(void) {
     if (player_hurt_flash_ttl > 0u) {
+        refresh_player_oam_from_cache(); // palette + OAM before ttl tick so all 60 frames flash
         player_hurt_flash_ttl--;
-        player_hurt_flash_phase++;
-        refresh_player_oam_from_cache(); // OAM tracks every VBlank during blink (idle loops skip full refresh)
     }
 }
 

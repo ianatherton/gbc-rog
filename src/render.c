@@ -7,12 +7,20 @@
 #include "entity_sprites.h"
 
 static const palette_color_t pal_default[]  = { RGB(0,0,0),  RGB(8,8,8),   RGB(16,16,16), RGB(31,31,31) }; // slot 0: floor text default
-static const palette_color_t pal_green[]    = { RGB(0,0,0),  RGB(0,20,0),  RGB(0,26,0),   RGB(0,31,0)   }; // slot 1: some enemies
-static const palette_color_t pal_player[]   = { RGB(0,0,0),  RGB(24,18,0), RGB(30,24,4),  RGB(31,31,10) }; // slot PAL_PLAYER: brighter gold ramp
-static const palette_color_t pal_ladder[]   = { RGB(0,0,0),  RGB(12,7,3),  RGB(22,14,6),  RGB(30,22,10) }; // PAL_LADDER: wood / amber (not pit-blue)
+static const palette_color_t pal_green[]    = { RGB(0,0,0),  RGB(0,20,0),  RGB(0,26,0),   RGB(0,31,0)   }; // BKG+OCP1: serpent & adder only (snakes)
+static const palette_color_t pal_player[]   = { RGB(0,0,0),  RGB(24,18,0), RGB(30,24,4),  RGB(31,31,10) }; // slot PAL_PLAYER: gold — player + title torches only
+static const palette_color_t pal_player_hurt_flash[] = { RGB(0,0,0), RGB(26,0,2), RGB(31,6,8), RGB(31,14,12) }; // same OCP2: brief damage tint (hotter red than life bar BKG)
+static const palette_color_t pal_ladder[]   = { RGB(0,0,0),  RGB(12,7,3),  RGB(22,14,6),  RGB(30,22,10) }; // BKG4 pit/ladder; OCP4 = skeleton (separate sprite CRAM)
+static const palette_color_t pal_enemy_skeleton[] = { RGB(0,0,0), RGB(8,6,20),  RGB(16,10,26), RGB(22,16,31) }; // OCP4 violet / blue-purple bone
+static const palette_color_t pal_enemy_rat[]      = { RGB(0,0,0), RGB(22,6,10), RGB(30,10,16), RGB(31,18,22) }; // OCP5 red–rose (BKG5 = life bar)
+static const palette_color_t pal_enemy_goblin[]   = { RGB(0,0,0), RGB(18,4,18), RGB(26,8,24),  RGB(31,14,28) }; // OCP6 magenta–pink (BKG6 = HUD text)
+static const palette_color_t pal_enemy_bat[]      = { RGB(0,0,0), RGB(0,14,18), RGB(4,22,24),  RGB(10,28,28) }; // OCP7 aqua–turquoise (BKG7 = XP gold)
 static const palette_color_t pal_life_ui[]  = { RGB(0,0,0),  RGB(18,0,0),  RGB(25,2,2),   RGB(31,4,4)   }; // slot 5: bar fill
 static const palette_color_t pal_ui[]       = { RGB(0,0,0),  RGB(8,8,8),   RGB(16,16,16), RGB(31,31,31) }; // slot 6: HUD text
 static const palette_color_t pal_xp_ui[]    = { RGB(0,0,0),  RGB(18,14,0), RGB(26,22,4),  RGB(31,28,10) }; // slot 7: XP HUD (gold on black)
+
+void render_sprite_palette_player_default(void) { set_sprite_palette(PAL_PLAYER, 1, pal_player); }
+void render_sprite_palette_player_hurt(void) { set_sprite_palette(PAL_PLAYER, 1, pal_player_hurt_flash); }
 
 void apply_wall_palette(void) { // copy chosen ROM ramp into hardware BG slot PAL_WALL_BG
     uint8_t i = wall_palette_index;
@@ -78,10 +86,10 @@ void load_palettes(void) { // slots 0–7 except walls: wall table entry 0 until
     set_sprite_palette(1, 1, pal_green);
     set_sprite_palette(2, 1, pal_player);
     set_sprite_palette(PAL_WALL_BG, 1, wall_palette_table[0]);
-    set_sprite_palette(PAL_LADDER, 1, pal_ladder);
-    set_sprite_palette(5, 1, pal_life_ui);
-    set_sprite_palette(6, 1, pal_ui);
-    set_sprite_palette(PAL_XP_UI, 1, pal_xp_ui);
+    set_sprite_palette(PAL_LADDER, 1, pal_enemy_skeleton);
+    set_sprite_palette(PAL_ENEMY_RAT, 1, pal_enemy_rat);
+    set_sprite_palette(PAL_ENEMY_GOBLIN, 1, pal_enemy_goblin);
+    set_sprite_palette(PAL_ENEMY_BAT, 1, pal_enemy_bat);
 }
 
 static void draw_ring_tile(uint8_t vx, uint8_t vy, uint8_t mx, uint8_t my) { // enemies are sprites; BG is always terrain-only

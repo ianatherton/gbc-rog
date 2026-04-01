@@ -243,11 +243,16 @@ typedef struct {
 
 /* ── CGB palette slot assignments (0–7) ─────────────────────────────────── */
 #define PAL_WALL_BG 3   // dungeon walls; RGB data from wall_palette_table[wall_palette_index]
-#define PAL_PLAYER  2   // hero tile from tileset; RGB from pal_player in render.c
-#define PAL_LADDER  4   // ladder-down tile; RGB from pal_ladder in render.c
-#define PAL_UI      6   // white on black — HUD text
-#define PAL_LIFE_UI 5   // red on black   — life bar fill
-#define PAL_XP_UI   7   // gold/yellow HUD — XP (slot shared: was corpse green; corpse now PAL_DEFAULT)
+#define PAL_PLAYER  2   // hero gold; OCP≠BKG on indices 4–7 — see PAL_ENEMY_*
+#define PAL_LADDER  4   // BKG pit/ladder; OCP4 = skeleton (violet)
+#define PAL_ENEMY_SNAKE     1 // serpent + adder — green on BKG+sprites
+#define PAL_ENEMY_SKELETON  4 // violet bone; same index as PAL_LADDER, sprite CRAM only
+#define PAL_ENEMY_RAT       5 // red–rose; BKG5 = life bar
+#define PAL_ENEMY_GOBLIN    6 // magenta–pink; BKG6 = window HUD text
+#define PAL_ENEMY_BAT       7 // aqua–turquoise; BKG7 = XP HUD
+#define PAL_UI      6   // white on black — BKG/window HUD text
+#define PAL_LIFE_UI 5   // red on black   — BKG life bar fill
+#define PAL_XP_UI   7   // gold/yellow — BKG XP digits
 #define PAL_CORPSE  0   // corpse 'x' uses default grayscale ramp (freed slot 7 for PAL_XP_UI)
 
 /* ── Globals (main.c unless noted) ───────────────────────────────────────── */

@@ -3,13 +3,13 @@
 #include "ui.h"    // ui_combat_log_push
 #include <string.h>
 
-const EnemyDef enemy_defs[NUM_ENEMY_TYPES] = { // tile_* = defs.h J-col spider / monster art
-    /* ENEMY_SERPENT  */ { TILE_SPIDER_1,   TILE_SPIDER_2,   2, 1, 1, MOVE_CHASE  },
-    /* ENEMY_ADDER    */ { TILE_MONSTER_1,  TILE_MONSTER_1,  1, 1, 4, MOVE_CHASE  },
-    /* ENEMY_RAT      */ { TILE_MONSTER_2,  TILE_MONSTER_2,  1, 1, 5, MOVE_WANDER },
-    /* ENEMY_BAT      */ { TILE_MONSTER_3,  TILE_MONSTER_3,  1, 1, 7, MOVE_RANDOM },
-    /* ENEMY_SKELETON */ { TILE_MONSTER_1,  TILE_MONSTER_2,  3, 2, 6, MOVE_CHASE  },
-    /* ENEMY_GOBLIN   */ { TILE_MONSTER_2,  TILE_MONSTER_3,  2, 2, 2, MOVE_CHASE  },
+const EnemyDef enemy_defs[NUM_ENEMY_TYPES] = { // one OCP ramp per type; snakes share green only
+    /* ENEMY_SERPENT  */ { TILE_SPIDER_1,   TILE_SPIDER_2,   2, 1, PAL_ENEMY_SNAKE,    MOVE_CHASE  },   // J1/J2 green
+    /* ENEMY_ADDER    */ { TILE_MONSTER_1,  TILE_MONSTER_1,  1, 1, PAL_ENEMY_SNAKE,    MOVE_CHASE  },   // J3 green
+    /* ENEMY_RAT      */ { TILE_MONSTER_2,  TILE_MONSTER_2,  1, 1, PAL_ENEMY_RAT,      MOVE_WANDER },    // J4 red–rose
+    /* ENEMY_BAT      */ { TILE_MONSTER_3,  TILE_MONSTER_3,  1, 1, PAL_ENEMY_BAT,      MOVE_RANDOM },   // J5 aqua–turquoise
+    /* ENEMY_SKELETON */ { TILE_MONSTER_1,  TILE_MONSTER_2,  3, 2, PAL_ENEMY_SKELETON, MOVE_CHASE  },   // J3/J4 violet
+    /* ENEMY_GOBLIN   */ { TILE_MONSTER_2,  TILE_MONSTER_3,  2, 2, PAL_ENEMY_GOBLIN,   MOVE_CHASE  },   // J4/J5 magenta
 };
 
 uint8_t enemy_x[MAX_ENEMIES];    // map column; ENEMY_DEAD means slot unused

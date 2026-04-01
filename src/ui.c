@@ -205,8 +205,8 @@ void ui_loading_screen_begin(void) {
     printf("Descending");
     set_sprite_tile(UI_LOAD_SKULL_OAM_L, tt);
     set_sprite_tile(UI_LOAD_SKULL_OAM_R, tt);
-    set_sprite_prop(UI_LOAD_SKULL_OAM_L, (uint8_t)(PAL_UI & 7u));
-    set_sprite_prop(UI_LOAD_SKULL_OAM_R, (uint8_t)(PAL_UI & 7u));
+    set_sprite_prop(UI_LOAD_SKULL_OAM_L, (uint8_t)(PAL_CORPSE & 7u)); // grey ramp slot 0 — keep PAL_UI (6) for non-enemy text only
+    set_sprite_prop(UI_LOAD_SKULL_OAM_R, (uint8_t)(PAL_CORPSE & 7u));
     SHOW_SPRITES;
     move_sprite(UI_LOAD_SKULL_OAM_L, 32u, 80u);
     move_sprite(UI_LOAD_SKULL_OAM_R, 136u, 80u);

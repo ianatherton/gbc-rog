@@ -16,6 +16,24 @@ uint8_t  player_damage = 1;                // bump attack damage; +1 per level
 uint16_t player_xp  = 0;                   // XP progress inside current level
 uint8_t  floor_num  = 1;             // 1-based floor index; incremented when taking a pit
 uint16_t run_seed   = 12345;         // default until title picks a seed; drives per-floor RNG
+uint8_t  combat_idle_turns = 0;      // turns since last combat; ≥5 → show class/level in panel
+
+static uint8_t look_cx, look_cy;
+
+static void push_combat_log(uint8_t type_idx, uint8_t dmg) { // dmg=0 → "NAME DIES"; dmg>0 → "NAME -N"
+    char logbuf[16];
+    const char *name = enemy_type_short_name(type_idx);
+    uint8_t p = 0;
+    while (*name && p < 9u) logbuf[p++] = *name++;
+    logbuf[p++] = ' ';
+    if (dmg) {
+        logbuf[p++] = '-';
+        if (dmg >= 10u) { logbuf[p++] = (char)('0' + dmg / 10u); dmg %= 10u; }
+        logbuf[p++] = (char)('0' + dmg);
+    } else { logbuf[p++] = 'D'; logbuf[p++] = 'I'; logbuf[p++] = 'E'; logbuf[p++] = 'S'; }
+    logbuf[p] = 0;
+    ui_combat_log_push(logbuf);
+}
 
 static void grant_xp_from_kill(uint8_t enemy_damage) {
     uint16_t next_level_xp;
@@ -69,7 +87,8 @@ static void enter_level(uint8_t *px, uint8_t *py, uint8_t from_pit) { // load or
         wait_vbl_done(); // parent just toggled LCD in lcd_clear — settle before BKG/sprite writes
         ui_loading_screen_begin();
     }
-    ui_combat_log_clear();                            // fresh floor → seed words until next strike
+    ui_combat_log_clear();
+    combat_idle_turns = 5; // show class/level immediately on floor entry
     // Derive a unique seed per floor from the fixed run seed + floor number.
     // floor_num differentiates floors; multiply+XOR scrambles bits so adjacent floors don't look like slight shifts of each other.
     uint16_t floor_seed = (uint16_t)(run_seed * 2053u)
@@ -102,6 +121,7 @@ static void enter_level(uint8_t *px, uint8_t *py, uint8_t from_pit) { // load or
     ui_loading_screen_end();
     lcd_gameplay_active = 1u;
     window_ui_show();
+    ui_panel_show_combat(); // bottom panel default (combat log / seed) after floor load
     wait_vbl_done();     // safe before bulk tilemap writes with LCD on
     draw_screen(*px, *py); // full paint: HUD, dungeon ring, bottom UI, scroll regs
 }
@@ -125,6 +145,7 @@ static void start_new_run(uint8_t *px, uint8_t *py, uint8_t *prev_j,
 
 int main(void) {
     DISPLAY_OFF;              // avoid garbage during VRAM setup
+    LCDC_REG |= LCDCF_WIN9C00; // window tilemap → 0x9C00 so BKG ring buffer (0x9800) can't clobber panel rows
     set_default_palette();    // GBDK: DMG-style default before CGB palettes
     load_palettes();          // program all 8 background palette slots
     font_init();
@@ -161,17 +182,41 @@ int main(void) {
             continue;
         }
 
+        if (lcd_gameplay_active && (j & J_SELECT)) { // look mode: move cursor, inspect enemy under cursor; SELECT+A cycles wall art
+            uint8_t edge_s = (uint8_t)(j & (uint8_t)~prev_j);
+            if (!(prev_j & J_SELECT)) {
+                look_cx = px;
+                look_cy = py;
+            }
+            if (edge_s & J_A) {
+                wall_tileset_index = (uint8_t)(wall_tileset_index + 16u);
+                if (wall_tileset_index > TILE_WALL_LAST) wall_tileset_index = TILE_WALL_FIRST;
+            }
+            if (edge_s & J_LEFT && look_cx) look_cx--;
+            if (edge_s & J_RIGHT && look_cx < MAP_W - 1u) look_cx++;
+            if (edge_s & J_UP && look_cy) look_cy--;
+            if (edge_s & J_DOWN && look_cy < MAP_H - 1u) look_cy++;
+            {
+                uint8_t ei = enemy_at(look_cx, look_cy);
+                if (ei != ENEMY_DEAD) ui_panel_show_inspect(ei);
+                else ui_panel_show_combat();
+            }
+            prev_j = j;
+            wait_vbl_done();
+            draw_screen(px, py);
+            continue;
+        }
+        if (lcd_gameplay_active && (prev_j & J_SELECT) && !(j & J_SELECT)) {
+            ui_panel_show_combat();
+            wait_vbl_done();
+            draw_screen(px, py);
+        }
+
         if (j & J_LEFT)  { nx = px > 0       ? (uint8_t)(px-1) : px; entity_sprites_set_player_facing(-1); } // clamp at map border
         if (j & J_RIGHT) { nx = px < MAP_W-1 ? (uint8_t)(px+1) : px; entity_sprites_set_player_facing(1); }
         if (j & J_UP)    ny = py > 0         ? (uint8_t)(py-1) : py;
         if (j & J_DOWN)  ny = py < MAP_H-1   ? (uint8_t)(py+1) : py;
 
-        if ((j & J_SELECT) && !(prev_j & J_SELECT)) { // edge: cycle wall variants A–G for art debug
-            wall_tileset_index = (uint8_t)(wall_tileset_index + 16u); // next row in column A of sheet
-            if (wall_tileset_index > TILE_WALL_LAST) wall_tileset_index = TILE_WALL_FIRST;
-            wait_vbl_done();
-            draw_screen(px, py);
-        }
         if ((j & J_A) && !(prev_j & J_A)) { // edge: cycle wall_palette_table
             wall_palette_index = (uint8_t)((wall_palette_index + 1u) % NUM_WALL_PALETTES);
             wait_vbl_done();
@@ -183,6 +228,7 @@ int main(void) {
             uint8_t result = 0;            // move_enemies return: 0 ok, 1 hit, 2 player dead
 
             if (ei != ENEMY_DEAD) { // bump-to-attack: player does not change tile
+                combat_idle_turns = 0;
                 {
                     int8_t adx = (nx > px) ? 1 : (nx < px ? -1 : 0);
                     int8_t ady = (ny > py) ? 1 : (ny < py ? -1 : 0);
@@ -191,7 +237,9 @@ int main(void) {
                 }
                 if (enemy_hp[ei] > player_damage) {
                     enemy_hp[ei] = (uint8_t)(enemy_hp[ei] - player_damage); // wound enemy by scaled player damage
+                    push_combat_log(enemy_type[ei], player_damage);
                 } else {
+                    push_combat_log(enemy_type[ei], 0);
                     uint8_t kill_xp = enemy_defs[enemy_type[ei]].damage;
                     uint8_t dx = enemy_x[ei], dy = enemy_y[ei]; // save pos before marking dead
                     if (num_corpses < MAX_CORPSES) {
@@ -235,6 +283,15 @@ int main(void) {
                     enter_level(&px, &py, 1);   // new floor, keep HP, increment floor_num
                 } else {
                     uint8_t opx = px, opy = py;
+                    if (combat_idle_turns < 255u) combat_idle_turns++;
+                    if (combat_idle_turns == 5u) { // idle long enough → show class/level in panel
+                        ui_combat_log_clear();
+                        ui_combat_log_push("KNIGHT");
+                        { char lb[5]; lb[0]='L'; lb[1]='V';
+                          lb[2]=(char)('0'+player_level%10u); lb[3]=0;
+                          if (player_level>=10u) { lb[3]=lb[2]; lb[2]=(char)('0'+player_level/10u); lb[4]=0; }
+                          ui_combat_log_push(lb); }
+                    }
                     wait_vbl_done();
                     draw_cell(px, py); // BG under old tile only; sprite still at old until scroll
                     px = nx; // commit walk
@@ -254,6 +311,7 @@ int main(void) {
                         entity_sprites_run_enemy_glide(px, py, old_ex, old_ey);
                     }
                     result = resolve_enemy_hits_and_animate(px, py);
+                    if (result) combat_idle_turns = 0;
                     wait_vbl_done();
                     if (result) draw_screen(px, py); // hits already drew each step; refresh if any strike landed
                     else        draw_enemy_cells(px, py); // lightweight when no contact (camera_scroll_to already drew viewport)

@@ -39,12 +39,13 @@ uint8_t enemy_anim_toggle; // flips each ENEMY_ANIM_DIV_TICKS of DIV accumulatio
 uint8_t enemy_attack_slots[MAX_ENEMIES];
 uint8_t enemy_attack_count;
 
-static const char *enemy_type_name(uint8_t t) { // short labels for combat log (must match enemy_defs order)
+const char *enemy_type_short_name(uint8_t t) {
     static const char *const n[NUM_ENEMY_TYPES] = {
         "SERPENT", "ADDER", "RAT", "BAT", "SKELETON", "GOBLIN"
     };
     return (t < NUM_ENEMY_TYPES) ? n[t] : "?";
 }
+
 
 static uint8_t   anim_last_div; // previous DIV_REG sample for delta
 static uint32_t anim_ticks;     // running sum of DIV deltas (uint32 avoids overflow in long play)
@@ -163,12 +164,9 @@ static void step_random(uint8_t sx, uint8_t sy,
 
 void enemy_resolve_hit(uint8_t slot) { // one strike: log line + subtract HP
     const EnemyDef *def = &enemy_defs[enemy_type[slot]];
-    const char *name = enemy_type_name(enemy_type[slot]);
-    char logbuf[24];
+    char logbuf[20];
     uint8_t p = 0, dmg = def->damage;
-    while (*name && p < 18u) logbuf[p++] = *name++;
-    logbuf[p++] = ' ';
-    logbuf[p++] = '-';
+    logbuf[p++] = 'Y'; logbuf[p++] = 'O'; logbuf[p++] = 'U'; logbuf[p++] = ' '; logbuf[p++] = '-';
     if (dmg >= 100u) { logbuf[p++] = (char)('0' + dmg / 100u); dmg %= 100u; logbuf[p++] = (char)('0' + dmg / 10u); dmg %= 10u; }
     else if (dmg >= 10u) { logbuf[p++] = (char)('0' + dmg / 10u); dmg %= 10u; }
     logbuf[p++] = (char)('0' + dmg);

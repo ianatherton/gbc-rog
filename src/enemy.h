@@ -36,6 +36,8 @@ extern uint8_t enemy_anim_toggle;
 extern uint8_t enemy_attack_slots[MAX_ENEMIES]; // slots that struck player this phase (prefix of length enemy_attack_count)
 extern uint8_t enemy_attack_count;
 
+const char *enemy_type_short_name(uint8_t t); // uppercase kind label for log / inspect
+
 void    enemy_grids_init(void); // clear enemy_grid + corpse_grid (call on level load)
 void    enemy_anim_reset(void); // reset DIV accumulator when entering a floor
 uint8_t enemy_anim_update(void); // 1 if toggled animation frame this call

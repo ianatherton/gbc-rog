@@ -13,7 +13,7 @@
 
 /* ── Viewport dimensions (what the player sees) ─────────────────────────── */
 #define GRID_W 20   // visible columns
-#define GRID_H 15   // visible dungeon rows (rows 1-15 on screen)
+#define GRID_H 11u  // visible dungeon rows (was 15; 4 rows reserved for bottom window panel)
 
 /* ── Actual map dimensions ───────────────────────────────────────────────── */
 // ⚠ MEMORY NOTE: GBC has 32 KB WRAM total.
@@ -66,15 +66,21 @@ typedef struct {
 } NavNode;
 
 /* ── Screen layout ───────────────────────────────────────────────────────── */
-//   Lines  0–7      : HUD — window layer row 0 (ISR: SHOW_WIN at VBL)
-//   Lines  8–127    : dungeon viewport — BKG scroll via camera (ISR: HIDE_WIN + SCX/SCY at LYC=8)
-//   Lines 128–143   : bottom seed panel — window layer rows 1–2 (ISR: SHOW_WIN at LYC=128)
+//   Lines  0–7      : HUD — window row 0 (WY=0; ISR never clears LCDC.5 on CGB — see lcd.c)
+//   Lines  8–(UI_WINDOW_Y_START-1): dungeon — BKG scroll; WY off-screen so WIN draws nothing
+//   Lines  UI_WINDOW_Y_START–143 : bottom panel — window map rows 1–4 (WY = UI_WINDOW_Y_START)
 #define UI_ROW_TOP       0               // top HUD row (now window, not BKG)
 #define DUNGEON_ROW(y)   ((y) + 1)       // viewport row y → screen row y+1
 #define UI_ROW_BOTTOM_1  (GRID_H + 1)    // bottom UI row 1 = screen row 16
 #define UI_ROW_BOTTOM_2  (GRID_H + 2)    // bottom UI row 2 = screen row 17
 #define UI_ROW           UI_ROW_TOP      // shorthand alias
-#define UI_WINDOW_Y_START ((uint8_t)(8u + (GRID_H) * 8u)) // scanline where bottom window resumes (128 for GRID_H=15)
+#define UI_WINDOW_Y_START 96u            // LYC + bottom WY: 8 + GRID_H*8 — first line of 4-row panel (was 104: one row late)
+#define UI_WINDOW_WY_OFFSCREEN 144u      // WY > 143: suppress window without HIDE_WIN (CGB may ignore LCDC.5 0→1 same frame)
+#define UI_PANEL_WIN_Y0   1u             // window row for panel line 0 (row 0 = top HUD)
+#define UI_PANEL_WIN_Y1   2u
+#define UI_PANEL_WIN_Y2   3u
+#define UI_PANEL_WIN_Y3   4u
+#define UI_PANEL_COLS     20u
 
 /* ── Level generation ────────────────────────────────────────────────────── */
 #define WALK_STEPS 4000   // scaled up from 350 to match the larger 64×64 map

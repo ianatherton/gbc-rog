@@ -161,5 +161,6 @@ void draw_enemy_cells(uint8_t px, uint8_t py) { // fast path when only anim togg
         draw_cell_terrain_only((uint8_t)(px & 31u), RING_BKG_VY_WORLD(py), px, py);
     }
     ui_draw_top_hud(); // enemies/player can paint vy==0 (e.g. world row 31) — repaint HUD band on top
+    ui_draw_bottom_rows();
     entity_sprites_refresh(px, py);
 }

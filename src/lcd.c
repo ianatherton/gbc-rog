@@ -11,7 +11,10 @@ static void lcd_vbl_handler(void) { // VBL: HUD band setup for lines 0–7
     SCX_REG = 0u;
     SCY_REG = 0u;
     LYC_REG = 8u;
-    if (lcd_gameplay_active) SHOW_WIN; // window row 0 = HUD overlay on BKG
+    if (lcd_gameplay_active) {
+        SHOW_WIN; // keep LCDC.5 on all frame — toggling it mid-frame is unreliable on CGB (pan docs)
+        WY_REG = 0u; // HUD from line 0; line-8 ISR moves WY off-screen until bottom band
+    }
     ui_loading_vblank(); // cheap OAM bob; no-op unless ui_loading_screen_begin is active
     entity_sprites_vbl_tick(); // stable 60Hz timers for sprite-only effects
 }
@@ -23,14 +26,14 @@ static void lcd_stat_handler(void) { // fires at LYC (line 8 or UI_WINDOW_Y_STAR
             int16_t ty = (int16_t)(uint8_t)(camera_py & 0xFFu) + (int16_t)lcd_shake_y;
             SCX_REG = (uint8_t)tx;
             SCY_REG = (uint8_t)ty;
-            HIDE_WIN; // window off for dungeon area
+            WY_REG = UI_WINDOW_WY_OFFSCREEN; // hide window without clearing LCDC.5 (CGB quirk)
             LYC_REG = UI_WINDOW_Y_START; // chain to bottom-UI scanline
         } else {
             SCX_REG = 0u;
             SCY_REG = 0u;
         }
-    } else { // UI_WINDOW_Y_START event: re-enable window for bottom seed panel
-        SHOW_WIN; // window internal line counter resumes at row 1 (after 8 HUD lines)
+    } else { // UI_WINDOW_Y_START: bottom panel — same WLY continuation as if WIN had stayed on
+        WY_REG = UI_WINDOW_Y_START;
     }
 }
 

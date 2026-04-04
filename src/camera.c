@@ -86,7 +86,7 @@ void camera_scroll_to(uint8_t target_tx, uint8_t target_ty,
     entity_sprites_refresh(px, py);
 }
 
-void camera_shake(void) { // jitter applied only in line-8 ISR so HUD stays fixed
+void camera_shake(void) { // jitter in VBL scroll path — whole dungeon including top row
     uint8_t f;
     const int8_t off[] = { 2, -2, -1, 1, -2, 1, -1 }; // one frame shorter than old 8 for faster hit feedback
     for (f = 0; f < sizeof off; f++) {

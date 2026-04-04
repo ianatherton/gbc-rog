@@ -35,7 +35,7 @@ static void move_entity_oam(uint8_t sp, int16_t wx, int16_t wy, uint8_t tile, ui
     int16_t dx = wx - (int16_t)camera_px;
     int16_t dy = wy - (int16_t)camera_py;
     uint8_t sx = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_X + (uint8_t)dx);
-    uint8_t sy = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_Y + 8u + (uint8_t)dy);
+    uint8_t sy = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_Y + (uint8_t)dy);
     sx = (uint8_t)((int16_t)sx + (int16_t)lcd_shake_x);
     sy = (uint8_t)((int16_t)sy + (int16_t)lcd_shake_y);
     set_sprite_tile(sp, tile);

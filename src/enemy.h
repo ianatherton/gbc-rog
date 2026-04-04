@@ -37,6 +37,8 @@ extern uint8_t enemy_attack_slots[MAX_ENEMIES]; // slots that struck player this
 extern uint8_t enemy_attack_count;
 
 const char *enemy_type_short_name(uint8_t t); // uppercase kind label for log / inspect
+uint8_t enemy_effective_max_hp(uint8_t type);  // base max_hp scaled by floor_num (cap 255)
+uint8_t enemy_effective_damage(uint8_t type);  // base damage scaled by floor_num (cap 255)
 
 void    enemy_grids_init(void); // clear enemy_grid + corpse_grid (call on level load)
 void    enemy_anim_reset(void); // reset DIV accumulator when entering a floor

@@ -46,6 +46,17 @@ const char *enemy_type_short_name(uint8_t t) {
     return (t < NUM_ENEMY_TYPES) ? n[t] : "?";
 }
 
+uint8_t enemy_effective_max_hp(uint8_t type) {
+    if (type >= NUM_ENEMY_TYPES) return 1u;
+    { uint16_t v = (uint16_t)enemy_defs[type].max_hp * (uint16_t)floor_num;
+      return (v > 255u) ? 255u : (uint8_t)v; }
+}
+
+uint8_t enemy_effective_damage(uint8_t type) {
+    if (type >= NUM_ENEMY_TYPES) return 1u;
+    { uint16_t v = (uint16_t)enemy_defs[type].damage * (uint16_t)floor_num;
+      return (v > 255u) ? 255u : (uint8_t)v; }
+}
 
 static uint8_t   anim_last_div; // previous DIV_REG sample for delta
 static uint32_t anim_ticks;     // running sum of DIV deltas (uint32 avoids overflow in long play)
@@ -103,7 +114,7 @@ void spawn_enemies(void) { // random placement with collision checks
                 enemy_x[num_enemies]    = tx;
                 enemy_y[num_enemies]    = ty;
                 enemy_type[num_enemies] = (uint8_t)(rand() % NUM_ENEMY_TYPES);
-                enemy_hp[num_enemies]   = enemy_defs[enemy_type[num_enemies]].max_hp;
+                enemy_hp[num_enemies]   = enemy_effective_max_hp(enemy_type[num_enemies]);
                 BIT_SET(enemy_occ, TILE_IDX(tx, ty));
                 num_enemies++;
                 break;
@@ -163,17 +174,17 @@ static void step_random(uint8_t sx, uint8_t sy,
 }
 
 void enemy_resolve_hit(uint8_t slot) { // one strike: log line + subtract HP
-    const EnemyDef *def = &enemy_defs[enemy_type[slot]];
+    uint8_t hit = enemy_effective_damage(enemy_type[slot]);
     char logbuf[20];
-    uint8_t p = 0, dmg = def->damage;
+    uint8_t p = 0, d = hit; // d consumed while formatting digits
     logbuf[p++] = 'Y'; logbuf[p++] = 'O'; logbuf[p++] = 'U'; logbuf[p++] = ' '; logbuf[p++] = '-';
-    if (dmg >= 100u) { logbuf[p++] = (char)('0' + dmg / 100u); dmg %= 100u; logbuf[p++] = (char)('0' + dmg / 10u); dmg %= 10u; }
-    else if (dmg >= 10u) { logbuf[p++] = (char)('0' + dmg / 10u); dmg %= 10u; }
-    logbuf[p++] = (char)('0' + dmg);
+    if (d >= 100u) { logbuf[p++] = (char)('0' + d / 100u); d %= 100u; logbuf[p++] = (char)('0' + d / 10u); d %= 10u; }
+    else if (d >= 10u) { logbuf[p++] = (char)('0' + d / 10u); d %= 10u; }
+    logbuf[p++] = (char)('0' + d);
     logbuf[p] = 0;
     ui_combat_log_push(logbuf);
-    if (player_hp > def->damage) player_hp -= def->damage;
-    else                         player_hp  = 0;
+    if (player_hp > hit) player_hp -= hit;
+    else                 player_hp  = 0;
 }
 
 uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes — HP applied later in enemy_resolve_hit per hit

@@ -240,7 +240,7 @@ int main(void) {
                     push_combat_log(enemy_type[ei], player_damage);
                 } else {
                     push_combat_log(enemy_type[ei], 0);
-                    uint8_t kill_xp = enemy_defs[enemy_type[ei]].damage;
+                    uint8_t kill_xp = enemy_effective_damage(enemy_type[ei]);
                     uint8_t dx = enemy_x[ei], dy = enemy_y[ei]; // save pos before marking dead
                     if (num_corpses < MAX_CORPSES) {
                         corpse_x[num_corpses] = dx;

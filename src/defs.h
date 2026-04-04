@@ -13,7 +13,7 @@
 
 /* ── Viewport dimensions (what the player sees) ─────────────────────────── */
 #define GRID_W 20   // visible columns
-#define GRID_H 11u  // visible dungeon rows (was 15; 4 rows reserved for bottom window panel)
+#define GRID_H 13u  // visible dungeon rows; 4 tile rows for bottom WIN (HUD + chat) below this
 
 /* ── Actual map dimensions ───────────────────────────────────────────────── */
 // ⚠ MEMORY NOTE: GBC has 32 KB WRAM total.
@@ -66,20 +66,19 @@ typedef struct {
 } NavNode;
 
 /* ── Screen layout ───────────────────────────────────────────────────────── */
-//   Lines  0–7      : HUD — window row 0 (WY=0; ISR never clears LCDC.5 on CGB — see lcd.c)
-//   Lines  8–(UI_WINDOW_Y_START-1): dungeon — BKG scroll; WY off-screen so WIN draws nothing
-//   Lines  UI_WINDOW_Y_START–143 : bottom panel — window map rows 1–4 (WY = UI_WINDOW_Y_START)
-#define UI_ROW_TOP       0               // top HUD row (now window, not BKG)
-#define DUNGEON_ROW(y)   ((y) + 1)       // viewport row y → screen row y+1
-#define UI_ROW_BOTTOM_1  (GRID_H + 1)    // bottom UI row 1 = screen row 16
-#define UI_ROW_BOTTOM_2  (GRID_H + 2)    // bottom UI row 2 = screen row 17
+//   Lines  0–(UI_WINDOW_Y_START-1): dungeon — full-width BKG scroll; WY off-screen
+//   Lines  UI_WINDOW_Y_START–143 : bottom band — window row 0 = HUD; rows 1–3 = combat log / seed / inspect
+#define UI_ROW_TOP       0               // legacy alias (dungeon now starts at screen line 0)
+#define DUNGEON_ROW(y)   (y)             // viewport row y → same screen tile row (no top HUD strip)
+#define UI_ROW_BOTTOM_1  (GRID_H + 1)    // legacy BKG text row aliases (unused in WIN layout)
+#define UI_ROW_BOTTOM_2  (GRID_H + 2)
 #define UI_ROW           UI_ROW_TOP      // shorthand alias
-#define UI_WINDOW_Y_START 96u            // LYC + bottom WY: 8 + GRID_H*8 — first line of 4-row panel (was 104: one row late)
+#define UI_WINDOW_Y_START ((uint8_t)(GRID_H * 8u)) // first scanline under viewport (GRID_H×8; LYC matches here)
 #define UI_WINDOW_WY_OFFSCREEN 144u      // WY > 143: suppress window without HIDE_WIN (CGB may ignore LCDC.5 0→1 same frame)
-#define UI_PANEL_WIN_Y0   1u             // window row for panel line 0 (row 0 = top HUD)
+#define UI_HUD_WIN_Y      0u             // stats strip (L:♥ XP% FLOOR) — top line of bottom window band
+#define UI_PANEL_WIN_Y0   1u             // first row below HUD (combat log 1 / seed / inspect name)
 #define UI_PANEL_WIN_Y1   2u
-#define UI_PANEL_WIN_Y2   3u
-#define UI_PANEL_WIN_Y3   4u
+#define UI_PANEL_WIN_Y2   3u             // bottom screen row of the panel
 #define UI_PANEL_COLS     20u
 
 /* ── Level generation ────────────────────────────────────────────────────── */
@@ -274,7 +273,7 @@ extern uint16_t camera_px;    // pixel x of viewport top-left (defined in camera
 extern uint16_t camera_py;    // pixel y of viewport top-left (defined in camera.c)
 #define CAM_TX (camera_px >> 3)
 #define CAM_TY (camera_py >> 3)
-#define RING_BKG_VY_WORLD(my) ((uint8_t)(((uint8_t)(my) + 1u) & 31u)) // +1 offset: line-8 ISR applies SCY=camera_py, so BG pixel 8+camera_py → tile row (1+CAM_TY)&31 which matches this macro
+#define RING_BKG_VY_WORLD(my) ((uint8_t)((my) & 31u)) // ring Y for world row my — SCY applies from line 0 in gameplay
 
 /* ── Tileset pixel data ──────────────────────────────────────────────────── */
 extern const uint8_t tileset_tiles[];

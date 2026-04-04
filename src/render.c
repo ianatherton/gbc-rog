@@ -1,7 +1,7 @@
 #include "render.h" // this module's public draw API
 #include "map.h"    // tile_at, wall_palette_index, CAM_TX/TY via camera globals in defs
 #include "enemy.h"  // enemy_at, defs, anim toggle
-#include "ui.h"     // ui_draw_top_hud, ui_draw_bottom_rows
+#include "ui.h"     // ui_draw_bottom_rows
 #include "lcd.h"    // line-8 ISR owns SCX/SCY during play
 #include "wall_palettes.h" // wall_palette_table, NUM_WALL_PALETTES
 #include "entity_sprites.h"
@@ -118,12 +118,11 @@ void draw_row_strip(uint8_t my) { // refresh one world row at map y=my
     }
 }
 
-void draw_ui_rows(void) { // call after scroll: UI must be rewritten into new ring slots
-    ui_draw_top_hud();
+void draw_ui_rows(void) { // HUD row + 3-line panel after BKG ring updates
     ui_draw_bottom_rows();
 }
 
-void draw_screen(uint8_t px, uint8_t py) { // full repaint: dungeon, then HUD (row 0), then window UI
+void draw_screen(uint8_t px, uint8_t py) { // full repaint: dungeon ring, then HUD + combat panel
     uint8_t x, y;
 
     apply_wall_palette(); // keep slot PAL_WALL_BG in sync after floor load or A-button cycle
@@ -136,10 +135,9 @@ void draw_screen(uint8_t px, uint8_t py) { // full repaint: dungeon, then HUD (r
         }
     }
 
-    ui_draw_top_hud(); // after dungeon so row 0 cols 0..GRID_W-1 stay FLR/bar (same VRAM row scrolls in viewport below line 8)
     ui_draw_bottom_rows();
     entity_sprites_refresh(px, py);
-    // SCX/SCY: VBL + LYC=8 ISR (lcd.c) — do not write here during gameplay
+    // SCX/SCY: VBL + LYC (lcd.c) — do not write here during gameplay
 }
 
 void draw_enemy_cells(uint8_t px, uint8_t py) { // fast path when only anim toggle changed
@@ -160,7 +158,6 @@ void draw_enemy_cells(uint8_t px, uint8_t py) { // fast path when only anim togg
             && py >= CAM_TY && py < (uint8_t)(CAM_TY + GRID_H)) {
         draw_cell_terrain_only((uint8_t)(px & 31u), RING_BKG_VY_WORLD(py), px, py);
     }
-    ui_draw_top_hud(); // enemies/player can paint vy==0 (e.g. world row 31) — repaint HUD band on top
     ui_draw_bottom_rows();
     entity_sprites_refresh(px, py);
 }

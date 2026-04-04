@@ -9,8 +9,6 @@
 #include <gb/gb.h>
 #include <gb/hardware.h> // DEVICE_SPRITE_PX_OFFSET_* — same convention as entity_sprites OAM X
 
-#define UI_HUD_WIN_Y 0u // window tilemap row 0 = HUD (ISR shows window at lines 0–7)
-
 #define SEED_WORDS_N 40 // vocabulary size per category; seed maps to triple index
 #define COMBAT_LOG_LINES 3u
 #define COMBAT_LOG_LEN   20u
@@ -242,6 +240,51 @@ static void win_clear_row(uint8_t win_y, uint8_t pal) {
     for (x = 0; x < UI_PANEL_COLS; x++) win_putc_pal(x, win_y, ' ', pal);
 }
 
+static void ui_draw_top_hud(void) { // row above combat log: L:♥×5 HP% XP% FLOORdd
+    uint8_t hy = UI_HUD_WIN_Y, tx = 0;
+    uint8_t k, pct = (uint8_t)((uint16_t)player_hp * 100u / player_hp_max);
+    uint8_t pct8 = pct, xp_pct;
+    uint8_t vram;
+
+    win_putc_pal(tx++, hy, 'L', PAL_LIFE_UI);
+    win_putc_pal(tx++, hy, ':', PAL_LIFE_UI);
+    for (k = 0; k < LIFE_BAR_LEN; k++) {
+        if (pct >= (uint8_t)(20u * (k + 1u))) {
+            vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_HEART_FULL);
+            set_win_tile_xy(tx, hy, vram);
+            set_win_attribute_xy(tx, hy, PAL_LIFE_UI);
+        } else if (pct >= (uint8_t)(20u * k + 10u)) {
+            vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_HEART_HALF);
+            set_win_tile_xy(tx, hy, vram);
+            set_win_attribute_xy(tx, hy, PAL_LIFE_UI);
+        } else {
+            win_putc_pal(tx, hy, '_', PAL_LIFE_UI);
+        }
+        tx++;
+    }
+    win_put_uint8(tx, hy, pct8, 3, PAL_LIFE_UI);
+    tx = (uint8_t)(tx + 3u);
+    win_putc_pal(tx++, hy, '%', PAL_LIFE_UI);
+    {
+        uint16_t next_level_xp = (uint16_t)PLAYER_LEVEL_XP_BASE + (uint16_t)(player_level - 1u) * PLAYER_LEVEL_XP_STEP;
+        xp_pct = (player_xp >= next_level_xp) ? 99u : (uint8_t)((player_xp * 100u) / next_level_xp);
+    }
+    win_putc_pal(tx++, hy, 'X', PAL_XP_UI);
+    win_putc_pal(tx++, hy, 'P', PAL_XP_UI);
+    win_putc_pal(tx++, hy, (char)('0' + xp_pct / 10u), PAL_XP_UI);
+    win_putc_pal(tx++, hy, (char)('0' + xp_pct % 10u), PAL_XP_UI);
+    win_putc_pal(tx++, hy, '%', PAL_XP_UI);
+    vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_FLOOR_L);
+    set_win_tile_xy(tx, hy, vram);
+    set_win_attribute_xy(tx++, hy, PAL_UI);
+    vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_FLOOR_R);
+    set_win_tile_xy(tx, hy, vram);
+    set_win_attribute_xy(tx++, hy, PAL_UI);
+    win_putc_pal(tx++, hy, (char)('0' + floor_num / 10u), PAL_UI);
+    win_putc_pal(tx++, hy, (char)('0' + floor_num % 10u), PAL_UI);
+    while (tx < GRID_W) win_put_space(tx++, hy);
+}
+
 static void ui_draw_combat_panel(void) {
     uint8_t i;
     if (!combat_log_any()) {
@@ -251,7 +294,6 @@ static void ui_draw_combat_panel(void) {
         for (i = 0; i < COMBAT_LOG_LINES; i++)
             win_puts_row_pad_cols((uint8_t)(UI_PANEL_WIN_Y0 + i), combat_log[i], PAL_UI, UI_PANEL_COLS);
     }
-    win_clear_row(UI_PANEL_WIN_Y3, PAL_UI);
 }
 
 static void ui_draw_inspect_panel(void) {
@@ -262,27 +304,23 @@ static void ui_draw_inspect_panel(void) {
         win_clear_row(UI_PANEL_WIN_Y0, PAL_UI);
         win_clear_row(UI_PANEL_WIN_Y1, PAL_UI);
         win_clear_row(UI_PANEL_WIN_Y2, PAL_UI);
-        win_clear_row(UI_PANEL_WIN_Y3, PAL_UI);
         return;
     }
     t = enemy_type[slot];
     nm = enemy_type_short_name(t);
-    x = 0;
-    while (*nm && x < UI_PANEL_COLS) win_putc_pal(x++, UI_PANEL_WIN_Y0, *nm++, PAL_UI);
-    while (x < UI_PANEL_COLS) win_putc_pal(x++, UI_PANEL_WIN_Y0, ' ', PAL_UI);
-    win_puts_row_pad_cols(UI_PANEL_WIN_Y1, enemy_type_short_name(t), PAL_UI, UI_PANEL_COLS);
-    { // HP N/M as text — no heart tiles
-        uint8_t hp = enemy_hp[slot], mhp = enemy_defs[t].max_hp;
+    win_puts_row_pad_cols(UI_PANEL_WIN_Y0, nm, PAL_UI, UI_PANEL_COLS);
+    { // HP N/M — one line under name (three panel rows total below HUD)
+        uint8_t hp = enemy_hp[slot], mhp = enemy_effective_max_hp(t);
         x = 0;
-        win_putc_pal(x++, UI_PANEL_WIN_Y2, 'H', PAL_UI);
-        win_putc_pal(x++, UI_PANEL_WIN_Y2, 'P', PAL_UI);
-        win_putc_pal(x++, UI_PANEL_WIN_Y2, ' ', PAL_UI);
-        win_put_uint8(x, UI_PANEL_WIN_Y2, hp, 2, PAL_UI); x = (uint8_t)(x + 2u);
-        win_putc_pal(x++, UI_PANEL_WIN_Y2, '/', PAL_UI);
-        win_put_uint8(x, UI_PANEL_WIN_Y2, mhp, 2, PAL_UI); x = (uint8_t)(x + 2u);
-        while (x < UI_PANEL_COLS) win_putc_pal(x++, UI_PANEL_WIN_Y2, ' ', PAL_UI);
+        win_putc_pal(x++, UI_PANEL_WIN_Y1, 'H', PAL_UI);
+        win_putc_pal(x++, UI_PANEL_WIN_Y1, 'P', PAL_UI);
+        win_putc_pal(x++, UI_PANEL_WIN_Y1, ' ', PAL_UI);
+        win_put_uint8(x, UI_PANEL_WIN_Y1, hp, 3, PAL_UI); x = (uint8_t)(x + 3u);
+        win_putc_pal(x++, UI_PANEL_WIN_Y1, '/', PAL_UI);
+        win_put_uint8(x, UI_PANEL_WIN_Y1, mhp, 3, PAL_UI); x = (uint8_t)(x + 3u);
+        while (x < UI_PANEL_COLS) win_putc_pal(x++, UI_PANEL_WIN_Y1, ' ', PAL_UI);
     }
-    win_clear_row(UI_PANEL_WIN_Y3, PAL_UI);
+    win_clear_row(UI_PANEL_WIN_Y2, PAL_UI);
 }
 
 static void put_word5(uint8_t x, uint8_t y, const char *s) { // fixed 5-char word into BKG via setchar
@@ -305,12 +343,12 @@ static void run_seed_to_triple(uint16_t seed, uint8_t *d, uint8_t *n, uint8_t *p
     *p = (uint8_t)((s / 1600u) % 40u);
 }
 
-void window_ui_show(void) { // HUD row 0 + panel rows 1–4: ISR toggles window on/off per band
+void window_ui_show(void) { // HUD row + 3 panel rows; WIN only from UI_WINDOW_Y_START down
     uint8_t wx, wy;
     WX_REG = 7u;
-    WY_REG = 0u; // HUD from line 0; lcd.c ISR moves WY off-screen for dungeon then restores for bottom
-    fill_win_rect(0, 0, 32, 5u, 0u); // rows 0..4: HUD + 4-line bottom panel
-    for (wy = 0; wy < 5u; wy++)
+    WY_REG = UI_WINDOW_Y_START;
+    fill_win_rect(0, 0, 32, 4u, 0u); // rows 0..3
+    for (wy = 0; wy < 4u; wy++)
         for (wx = 0; wx < 32u; wx++)
             set_win_attribute_xy(wx, wy, PAL_UI);
 }
@@ -362,54 +400,8 @@ void ui_loading_screen_end(void) {
     move_sprite(UI_LOAD_SKULL_OAM_R, 0u, 0u);
 }
 
-void ui_draw_top_hud(void) { // L:♥×5 HP%XP%% FLOORdd — window row 0 (fits GRID_W=20)
-    uint8_t hy = UI_HUD_WIN_Y, tx = 0;
-    uint8_t k, pct = (uint8_t)((uint16_t)player_hp * 100u / player_hp_max);
-    uint8_t pct8 = pct, xp_pct;
-    uint8_t vram;
-
-    win_putc_pal(tx++, hy, 'L', PAL_LIFE_UI);
-    win_putc_pal(tx++, hy, ':', PAL_LIFE_UI);
-    for (k = 0; k < LIFE_BAR_LEN; k++) {
-        if (pct >= (uint8_t)(20u * (k + 1u))) {
-            vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_HEART_FULL);
-            set_win_tile_xy(tx, hy, vram);
-            set_win_attribute_xy(tx, hy, PAL_LIFE_UI);
-        } else if (pct >= (uint8_t)(20u * k + 10u)) {
-            vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_HEART_HALF);
-            set_win_tile_xy(tx, hy, vram);
-            set_win_attribute_xy(tx, hy, PAL_LIFE_UI);
-        } else {
-            win_putc_pal(tx, hy, '_', PAL_LIFE_UI); // empty bar segment matches life color
-        }
-        tx++;
-    }
-    win_put_uint8(tx, hy, pct8, 3, PAL_LIFE_UI);
-    tx = (uint8_t)(tx + 3u);
-    win_putc_pal(tx++, hy, '%', PAL_LIFE_UI);
-    {
-        uint16_t next_level_xp = (uint16_t)PLAYER_LEVEL_XP_BASE + (uint16_t)(player_level - 1u) * PLAYER_LEVEL_XP_STEP;
-        xp_pct = (player_xp >= next_level_xp) ? 99u : (uint8_t)((player_xp * 100u) / next_level_xp);
-    }
-    win_putc_pal(tx++, hy, 'X', PAL_XP_UI);
-    win_putc_pal(tx++, hy, 'P', PAL_XP_UI);
-    {
-        win_putc_pal(tx++, hy, (char)('0' + xp_pct / 10u), PAL_XP_UI);
-        win_putc_pal(tx++, hy, (char)('0' + xp_pct % 10u), PAL_XP_UI);
-    }
-    win_putc_pal(tx++, hy, '%', PAL_XP_UI);
-    vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_FLOOR_L);
-    set_win_tile_xy(tx, hy, vram);
-    set_win_attribute_xy(tx++, hy, PAL_UI);
-    vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_FLOOR_R);
-    set_win_tile_xy(tx, hy, vram);
-    set_win_attribute_xy(tx++, hy, PAL_UI);
-    win_putc_pal(tx++, hy, (char)('0' + floor_num / 10u), PAL_UI);
-    win_putc_pal(tx++, hy, (char)('0' + floor_num % 10u), PAL_UI);
-    while (tx < GRID_W) win_put_space(tx++, hy);
-}
-
 void ui_draw_bottom_rows(void) {
+    ui_draw_top_hud();
     switch (ui_panel_mode) {
         case UI_PANEL_COMBAT:   ui_draw_combat_panel();   break;
         case UI_PANEL_INSPECT:  ui_draw_inspect_panel();  break;

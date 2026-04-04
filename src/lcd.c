@@ -7,32 +7,34 @@ uint8_t  lcd_gameplay_active   = 0u;
 volatile int8_t lcd_shake_x    = 0;
 volatile int8_t lcd_shake_y    = 0;
 
-static void lcd_vbl_handler(void) { // VBL: HUD band setup for lines 0–7
-    SCX_REG = 0u;
-    SCY_REG = 0u;
-    LYC_REG = 8u;
+static void lcd_vbl_handler(void) { // VBL: gameplay = dungeon scroll whole frame until LYC; title = fixed scroll
     if (lcd_gameplay_active) {
-        SHOW_WIN; // keep LCDC.5 on all frame — toggling it mid-frame is unreliable on CGB (pan docs)
-        WY_REG = 0u; // HUD from line 0; line-8 ISR moves WY off-screen until bottom band
+        int16_t tx = (int16_t)(uint8_t)(camera_px & 0xFFu) + (int16_t)lcd_shake_x;
+        int16_t ty = (int16_t)(uint8_t)(camera_py & 0xFFu) + (int16_t)lcd_shake_y;
+        SCX_REG = (uint8_t)tx;
+        SCY_REG = (uint8_t)ty;
+        LYC_REG = UI_WINDOW_Y_START;
+        SHOW_WIN; // keep LCDC.5 on — toggling mid-frame unreliable on CGB (pan docs)
+        WY_REG = UI_WINDOW_WY_OFFSCREEN; // hide WIN until bottom band (row0 HUD + rows 1–3 log)
+    } else {
+        SCX_REG = 0u;
+        SCY_REG = 0u;
+        LYC_REG = 8u;
     }
     ui_loading_vblank(); // cheap OAM bob; no-op unless ui_loading_screen_begin is active
     entity_sprites_vbl_tick(); // stable 60Hz timers for sprite-only effects
 }
 
-static void lcd_stat_handler(void) { // fires at LYC (line 8 or UI_WINDOW_Y_START)
-    if (LY_REG < 16u) { // line-8 event: switch from HUD band to dungeon viewport
-        if (lcd_gameplay_active) {
-            int16_t tx = (int16_t)(uint8_t)(camera_px & 0xFFu) + (int16_t)lcd_shake_x;
-            int16_t ty = (int16_t)(uint8_t)(camera_py & 0xFFu) + (int16_t)lcd_shake_y;
-            SCX_REG = (uint8_t)tx;
-            SCY_REG = (uint8_t)ty;
-            WY_REG = UI_WINDOW_WY_OFFSCREEN; // hide window without clearing LCDC.5 (CGB quirk)
-            LYC_REG = UI_WINDOW_Y_START; // chain to bottom-UI scanline
-        } else {
-            SCX_REG = 0u;
-            SCY_REG = 0u;
-        }
-    } else { // UI_WINDOW_Y_START: bottom panel — same WLY continuation as if WIN had stayed on
+static void lcd_stat_handler(void) { // gameplay: LYC = UI_WINDOW_Y_START → show bottom window; title: line-8 chain
+    if (lcd_gameplay_active) {
+        WY_REG = UI_WINDOW_Y_START;
+        return;
+    }
+    if (LY_REG < 16u) {
+        SCX_REG = 0u;
+        SCY_REG = 0u;
+        LYC_REG = UI_WINDOW_Y_START;
+    } else {
         WY_REG = UI_WINDOW_Y_START;
     }
 }

@@ -118,11 +118,11 @@ void draw_row_strip(uint8_t my) { // refresh one world row at map y=my
     }
 }
 
-void draw_ui_rows(void) { // HUD row + 3-line panel after BKG ring updates
+void draw_ui_rows(void) { // 3-line panel + bottom HUD row after BKG ring updates
     ui_draw_bottom_rows();
 }
 
-void draw_screen(uint8_t px, uint8_t py) { // full repaint: dungeon ring, then HUD + combat panel
+void draw_screen(uint8_t px, uint8_t py) { // full repaint: dungeon ring, then text panel + bottom HUD
     uint8_t x, y;
 
     apply_wall_palette(); // keep slot PAL_WALL_BG in sync after floor load or A-button cycle

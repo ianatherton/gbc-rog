@@ -13,7 +13,9 @@
 
 /* ── Viewport dimensions (what the player sees) ─────────────────────────── */
 #define GRID_W 20   // visible columns
-#define GRID_H 13u  // visible dungeon rows; 4 tile rows for bottom WIN (HUD + chat) below this
+#define UI_WINDOW_TILE_ROWS  4u  // window tile rows: 3 chat + bottom HUD — flush to LCD bottom (144 scanlines)
+#define UI_WINDOW_PIXEL_H    ((uint8_t)(UI_WINDOW_TILE_ROWS * 8u)) // 32 — must match tile rows × 8
+#define GRID_H               ((uint8_t)((144u - UI_WINDOW_PIXEL_H) / 8u)) // 14 — dungeon fills lines 0..UI_WINDOW_Y_START-1
 
 /* ── Actual map dimensions ───────────────────────────────────────────────── */
 // ⚠ MEMORY NOTE: GBC has 32 KB WRAM total.
@@ -67,18 +69,18 @@ typedef struct {
 
 /* ── Screen layout ───────────────────────────────────────────────────────── */
 //   Lines  0–(UI_WINDOW_Y_START-1): dungeon — full-width BKG scroll; WY off-screen
-//   Lines  UI_WINDOW_Y_START–143 : bottom band — window row 0 = HUD; rows 1–3 = combat log / seed / inspect
+//   Lines  UI_WINDOW_Y_START–143 : bottom band — window rows 0–2 = log/seed/inspect; row 3 = HUD
 #define UI_ROW_TOP       0               // legacy alias (dungeon now starts at screen line 0)
 #define DUNGEON_ROW(y)   (y)             // viewport row y → same screen tile row (no top HUD strip)
 #define UI_ROW_BOTTOM_1  (GRID_H + 1)    // legacy BKG text row aliases (unused in WIN layout)
 #define UI_ROW_BOTTOM_2  (GRID_H + 2)
 #define UI_ROW           UI_ROW_TOP      // shorthand alias
-#define UI_WINDOW_Y_START ((uint8_t)(GRID_H * 8u)) // first scanline under viewport (GRID_H×8; LYC matches here)
+#define UI_WINDOW_Y_START    ((uint8_t)(144u - UI_WINDOW_PIXEL_H)) // 112 — WIN rows 0–3 map to scanlines 112–143 (HUD on true bottom)
 #define UI_WINDOW_WY_OFFSCREEN 144u      // WY > 143: suppress window without HIDE_WIN (CGB may ignore LCDC.5 0→1 same frame)
-#define UI_HUD_WIN_Y      0u             // stats strip (L:♥ XP% FLOOR) — top line of bottom window band
-#define UI_PANEL_WIN_Y0   1u             // first row below HUD (combat log 1 / seed / inspect name)
-#define UI_PANEL_WIN_Y1   2u
-#define UI_PANEL_WIN_Y2   3u             // bottom screen row of the panel
+#define UI_PANEL_WIN_Y0   0u             // top line of bottom band — combat log 1 / seed / inspect name
+#define UI_PANEL_WIN_Y1   1u
+#define UI_PANEL_WIN_Y2   2u             // last text row above HUD
+#define UI_HUD_WIN_Y      3u             // bottom window row — L:♥ XP% FLOOR (physical screen bottom)
 #define UI_PANEL_COLS     20u
 
 /* ── Level generation ────────────────────────────────────────────────────── */

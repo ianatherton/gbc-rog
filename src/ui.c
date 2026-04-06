@@ -240,7 +240,7 @@ static void win_clear_row(uint8_t win_y, uint8_t pal) {
     for (x = 0; x < UI_PANEL_COLS; x++) win_putc_pal(x, win_y, ' ', pal);
 }
 
-static void ui_draw_top_hud(void) { // row above combat log: L:♥×5 HP% XP% FLOORdd
+static void ui_draw_top_hud(void) { // bottom window row: L:♥×5 HP% XP% FLOORdd
     uint8_t hy = UI_HUD_WIN_Y, tx = 0;
     uint8_t k, pct = (uint8_t)((uint16_t)player_hp * 100u / player_hp_max);
     uint8_t pct8 = pct, xp_pct;
@@ -309,7 +309,7 @@ static void ui_draw_inspect_panel(void) {
     t = enemy_type[slot];
     nm = enemy_type_short_name(t);
     win_puts_row_pad_cols(UI_PANEL_WIN_Y0, nm, PAL_UI, UI_PANEL_COLS);
-    { // HP N/M — one line under name (three panel rows total below HUD)
+    { // HP N/M — one line under name (text rows 0–2; HUD draws on row 3 after)
         uint8_t hp = enemy_hp[slot], mhp = enemy_effective_max_hp(t);
         x = 0;
         win_putc_pal(x++, UI_PANEL_WIN_Y1, 'H', PAL_UI);
@@ -343,7 +343,7 @@ static void run_seed_to_triple(uint16_t seed, uint8_t *d, uint8_t *n, uint8_t *p
     *p = (uint8_t)((s / 1600u) % 40u);
 }
 
-void window_ui_show(void) { // HUD row + 3 panel rows; WIN only from UI_WINDOW_Y_START down
+void window_ui_show(void) { // 3 text rows + bottom HUD row; WIN from UI_WINDOW_Y_START down
     uint8_t wx, wy;
     WX_REG = 7u;
     WY_REG = UI_WINDOW_Y_START;
@@ -401,12 +401,12 @@ void ui_loading_screen_end(void) {
 }
 
 void ui_draw_bottom_rows(void) {
-    ui_draw_top_hud();
     switch (ui_panel_mode) {
         case UI_PANEL_COMBAT:   ui_draw_combat_panel();   break;
         case UI_PANEL_INSPECT:  ui_draw_inspect_panel();  break;
         default:                ui_draw_combat_panel();   break;
     }
+    ui_draw_top_hud();
 }
 
 void ui_draw_seed_words(uint16_t seed, uint8_t win_y_desc_noun, uint8_t win_y_place) {

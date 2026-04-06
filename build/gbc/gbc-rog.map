@@ -31,9 +31,9 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00000060  l__HEADER |    000000AB  l__HEADER |    00000200  s__CODE  
      00000B0E  l__HOME   |    00000D06  l__DATA   |    00002000  _rROMB0  
      00003000  _rROMB1   |    00004000  _rMBC7_SR |    00004000  _rRAMB   
-     00007294  l__CODE   |    00007494  s__HOME   |    00007FA2  s__BASE  
-     00007FA2  s__CODE_0 |    00007FA2  s__INITIA |    00007FA2  s__LIT   
-     00007FC3  s__GSINIT |    00007FCF  s__GSFINA |    00008000  __VRAM   
+     0000729E  l__CODE   |    0000749E  s__HOME   |    00007FAC  s__BASE  
+     00007FAC  s__CODE_0 |    00007FAC  s__INITIA |    00007FAC  s__LIT   
+     00007FCD  s__GSINIT |    00007FD9  s__GSFINA |    00008000  __VRAM   
      00008000  __VRAM800 |    00008800  __VRAM880 |    00009000  __VRAM900
      00009800  __SCRN0   |    00009C00  __SCRN1   |    0000A000  __SRAM   
      0000A000  _rMBC7_LA |    0000A010  _rMBC7_LA |    0000A020  _rMBC7_AC
@@ -77,7 +77,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE                  00000200    00007294 =       29332. bytes (REL,CON)
+_CODE                  00000200    0000729E =       29342. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -105,24 +105,24 @@ _CODE                  00000200    00007294 =       29332. bytes (REL,CON)
      000044DC  _draw_ene |    000045E1  _seed_ent |    00004662  _seed_ent
      0000469E  _seed_ent |    000046F4  ___func_t |    000046F4  _tileset_
      000046FC  _tileset_ |    000056FC  _tileset_ |    00005CA1  _ui_comba
-     00005CC9  _ui_comba |    00006660  _window_u |    00006694  _window_u
-     0000669B  _ui_loadi |    000066D4  _ui_loadi |    00006728  _ui_loadi
-     00006741  _ui_draw_ |    00006756  _ui_draw_ |    000067D6  _ui_panel
-     000067DB  _ui_panel |    000067E4  _ui_panel |    00006B8F  _title_sc
-     00006CC0  _ui_start |    00006D0F  _game_ove |    00006DBB  _wall_pal
-     00006EFB  __divsuch |    00006F01  __modsuch |    00006F0A  __divusch
-     00006F13  __modusch |    00006F1F  __divscha |    00006F24  __modscha
-     00006F2B  __divsint |    00006F34  __modsint |    00006F40  __divucha
-     00006F45  __moducha |    00006F4C  __divuint |    00006F55  __moduint
-     00006F61  .div8     |    00006F61  .mod8     |    00006F69  .div16   
-     00006F69  .mod16    |    00006F9F  .divu8    |    00006F9F  .modu8   
-     00006FA2  .divu16   |    00006FA2  .modu16   |    00006FE2  _set_spri
-     00006FE7  _set_bkg_ |    00006FEA  .set_pale |    00007009  _set_spri
-     0000700E  _set_bkg_ |    00007011  .set_pale |    0000702D  __mulsuch
-     00007030  __mulusch |    00007039  __mulscha |    00007041  __mulint 
-     00007060  __mulucha |    00007072  _set_vram |    0000707B  _set_win_
-     00007084  _set_bkg_ |    000070B3  _printf   |    000070C8  _cgb_comp
-     000070C8  _set_defa |    00007118  ___printf |    00007475  _sprintf 
+     00005CC9  _ui_comba |    0000665E  _window_u |    00006692  _window_u
+     00006699  _ui_loadi |    000066D2  _ui_loadi |    00006726  _ui_loadi
+     0000673F  _ui_draw_ |    00006760  _ui_draw_ |    000067E0  _ui_panel
+     000067E5  _ui_panel |    000067EE  _ui_panel |    00006B99  _title_sc
+     00006CCA  _ui_start |    00006D19  _game_ove |    00006DC5  _wall_pal
+     00006F05  __divsuch |    00006F0B  __modsuch |    00006F14  __divusch
+     00006F1D  __modusch |    00006F29  __divscha |    00006F2E  __modscha
+     00006F35  __divsint |    00006F3E  __modsint |    00006F4A  __divucha
+     00006F4F  __moducha |    00006F56  __divuint |    00006F5F  __moduint
+     00006F6B  .div8     |    00006F6B  .mod8     |    00006F73  .div16   
+     00006F73  .mod16    |    00006FA9  .divu8    |    00006FA9  .modu8   
+     00006FAC  .divu16   |    00006FAC  .modu16   |    00006FEC  _set_spri
+     00006FF1  _set_bkg_ |    00006FF4  .set_pale |    00007013  _set_spri
+     00007018  _set_bkg_ |    0000701B  .set_pale |    00007037  __mulsuch
+     0000703A  __mulusch |    00007043  __mulscha |    0000704B  __mulint 
+     0000706A  __mulucha |    0000707C  _set_vram |    00007085  _set_win_
+     0000708E  _set_bkg_ |    000070BD  _printf   |    000070D2  _cgb_comp
+     000070D2  _set_defa |    00007122  ___printf |    0000747F  _sprintf 
 ASxxxx Linker V03.00/V05.40 + sdld,  page 4.
 Hexadecimal  [32-Bits]
 
@@ -300,39 +300,39 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_HOME                  00007494    00000B0E =        2830. bytes (REL,CON)
+_HOME                  0000749E    00000B0E =        2830. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00007494  .memset_s |    0000749D  .memcpy_s |    000074BA  .display_
-     000074BA  _display_ |    000074D2  _fill_win |    000074E4  _rand    
-     000074E4  _randw    |    0000750F  _initrand |    00007511  .initrand
-     0000751A  _font_loa |    00007521  font_load |    00007569  font_copy
-     0000759F  font_set  |    000075AC  .put_char |    000075C4  .out_char
-     000075CA  .del_char |    00007620  _putchar  |    00007629  _setchar 
-     00007632  _font_loa |    00007640  _font_set |    0000764F  _font_ini
-     0000766E  .cls      |    0000766E  _cls      |    00007690  _gotoxy  
-     0000769B  _posx     |    000076AC  _posy     |    000076D4  .cr_curs 
-     000076E9  .adv_curs |    00007745  .tmode    |    00007762  .tmode_ou
-     0000776B  _font_col |    00007776  .fill_rec |    0000777F  .fill_rec
-     000077CC  __modulon |    00007869  .padup    |    00007869  _waitpadu
-     00007879  .jpad     |    00007879  _joypad   |    000078A1  _waitpad 
-     000078A2  .wait_pad |    000078A9  _fill_bkg |    000078BB  _color   
-     000078BB  _set_1bpp |    000078CA  _memset   |    000078FD  .drawing_
-     0000791A  _font_ibm |    00007CFB  .add_LCD  |    00007CFB  _add_LCD 
-     00007D01  .remove_L |    00007D01  _remove_L |    00007D07  _set_tile
-     00007D0C  _set_bkg_ |    00007D0C  _set_win_ |    00007D14  _set_spri
-     00007D44  __mullong |    00007E2B  _set_bkg_ |    00007E3F  _set_bkg_
-     00007E3F  _set_win_ |    00007E47  _set_spri |    00007E9F  .set_xy_w
-     00007EA8  .set_xy_b |    00007EB7  .set_xy_t |    00007EFB  _uitoa   
-     00007F0A  _itoa     |    00007F19  .itoa     |    00007F2D  .utoa    
-     00007FA1  ___sdcc_c
+     0000749E  .memset_s |    000074A7  .memcpy_s |    000074C4  .display_
+     000074C4  _display_ |    000074DC  _fill_win |    000074EE  _rand    
+     000074EE  _randw    |    00007519  _initrand |    0000751B  .initrand
+     00007524  _font_loa |    0000752B  font_load |    00007573  font_copy
+     000075A9  font_set  |    000075B6  .put_char |    000075CE  .out_char
+     000075D4  .del_char |    0000762A  _putchar  |    00007633  _setchar 
+     0000763C  _font_loa |    0000764A  _font_set |    00007659  _font_ini
+     00007678  .cls      |    00007678  _cls      |    0000769A  _gotoxy  
+     000076A5  _posx     |    000076B6  _posy     |    000076DE  .cr_curs 
+     000076F3  .adv_curs |    0000774F  .tmode    |    0000776C  .tmode_ou
+     00007775  _font_col |    00007780  .fill_rec |    00007789  .fill_rec
+     000077D6  __modulon |    00007873  .padup    |    00007873  _waitpadu
+     00007883  .jpad     |    00007883  _joypad   |    000078AB  _waitpad 
+     000078AC  .wait_pad |    000078B3  _fill_bkg |    000078C5  _color   
+     000078C5  _set_1bpp |    000078D4  _memset   |    00007907  .drawing_
+     00007924  _font_ibm |    00007D05  .add_LCD  |    00007D05  _add_LCD 
+     00007D0B  .remove_L |    00007D0B  _remove_L |    00007D11  _set_tile
+     00007D16  _set_bkg_ |    00007D16  _set_win_ |    00007D1E  _set_spri
+     00007D4E  __mullong |    00007E35  _set_bkg_ |    00007E49  _set_bkg_
+     00007E49  _set_win_ |    00007E51  _set_spri |    00007EA9  .set_xy_w
+     00007EB2  .set_xy_b |    00007EC1  .set_xy_t |    00007F05  _uitoa   
+     00007F14  _itoa     |    00007F23  .itoa     |    00007F37  .utoa    
+     00007FAB  ___sdcc_c
 ASxxxx Linker V03.00/V05.40 + sdld,  page 23.
 Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_INITIALIZER           00007FA2    00000021 =          33. bytes (REL,CON)
+_INITIALIZER           00007FAC    00000021 =          33. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -341,17 +341,17 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_GSINIT                00007FC3    0000000C =          12. bytes (REL,CON)
+_GSINIT                00007FCD    0000000C =          12. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00007FC3  gsinit   
+     00007FCD  gsinit   
 ASxxxx Linker V03.00/V05.40 + sdld,  page 25.
 Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_GSFINAL               00007FCF    00000001 =           1. bytes (REL,CON)
+_GSFINAL               00007FD9    00000001 =           1. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    

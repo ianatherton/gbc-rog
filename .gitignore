@@ -5,3 +5,6 @@ obj/
 
 # Downloaded toolchain (optional: remove to ignore)
 gbdk-linux64.tar.gz
+
+# SameBoy vendored build deps (SDL2 source/build, RGBDS tarball)
+emu/.deps/

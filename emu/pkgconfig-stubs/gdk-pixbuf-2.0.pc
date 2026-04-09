@@ -1,0 +1,6 @@
+# Satisfies SameBoy's Makefile when building the SDL target only (no GdkPixbuf link).
+Name: gdk-pixbuf-2.0
+Description: stub
+Version: 0
+Cflags:
+Libs:

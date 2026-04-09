@@ -41,6 +41,10 @@ TILESET_C   = src/tileset.c
 
 all: assets $(TARGETS)
 
+.PHONY: sameboy
+sameboy:
+	bash "$(CURDIR)/emu/build-sameboy.sh"
+
 assets: $(TILESET_C)
 
 $(TILESET_C): $(TILESET_PNG)

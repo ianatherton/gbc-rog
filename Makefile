@@ -11,7 +11,7 @@ TARGETS = gbc
 
 # Platform-specific LCC flags: -Wm-yc = GB + GBC, -Wm-yC = GBC-only
 LCCFLAGS_gb  =
-LCCFLAGS_gbc = -Wm-yc
+LCCFLAGS_gbc = -Wm-yc -Wl-yt0x1B -Wl-yo32 -autobank -Wm-yoA -Wb-ext=.rel
 
 LCCFLAGS += $(LCCFLAGS_$(EXT))
 LCCFLAGS += -Wl-j
@@ -49,6 +49,7 @@ assets: $(TILESET_C)
 
 $(TILESET_C): $(TILESET_PNG)
 	$(PNG2ASSET) $< -o $@ -map -keep_duplicate_tiles -noflip
+	@grep -q '#pragma bank 255' $@ || sed -i '2a #pragma bank 255' $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(LCC) $(CFLAGS) -c -o $@ $<

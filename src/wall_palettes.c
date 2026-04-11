@@ -1,3 +1,5 @@
+#pragma bank 2
+
 #include <gb/cgb.h>
 #include "wall_palettes.h"
 

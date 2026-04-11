@@ -19,7 +19,8 @@ void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dir_x, int8_
 void entity_sprites_run_enemy_lunge(uint8_t px, uint8_t py, uint8_t slot, uint8_t tgx, uint8_t tgy);
 void entity_sprites_run_enemy_lunges_batch(uint8_t px, uint8_t py, const uint8_t *slots, uint8_t count); // concurrent lunge for all attackers
 
-void entity_sprites_run_enemy_glide(uint8_t px, uint8_t py, // smooth slide from old to current positions over SCROLL_SPEED frames
-                                     const uint8_t *old_ex, const uint8_t *old_ey);
+void entity_sprites_run_enemy_glide(uint8_t px, uint8_t py,
+                                     const uint8_t *old_ex, const uint8_t *old_ey,
+                                     const uint8_t *old_alive);
 
 #endif // ENTITY_SPRITES_H

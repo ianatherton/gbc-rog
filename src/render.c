@@ -1,6 +1,9 @@
-#include "render.h" // this module's public draw API
-#include "map.h"    // tile_at, wall_palette_index, CAM_TX/TY via camera globals in defs
-#include "enemy.h"  // enemy_at, defs, anim toggle
+#pragma bank 2
+
+#include "render.h"
+#include "map.h"
+#include "enemy.h"
+#include "globals.h"
 #include "ui.h"     // ui_draw_bottom_rows
 #include "lcd.h"    // line-8 ISR owns SCX/SCY during play
 #include "wall_palettes.h" // wall_palette_table, NUM_WALL_PALETTES
@@ -143,7 +146,7 @@ void draw_screen(uint8_t px, uint8_t py) { // full repaint: dungeon ring, then t
 void draw_enemy_cells(uint8_t px, uint8_t py) { // fast path when only anim toggle changed
     uint8_t i;
     for (i = 0; i < num_enemies; i++) {
-        if (enemy_x[i] == ENEMY_DEAD) continue;
+        if (!enemy_alive[i]) continue;
         {
             uint8_t mx = enemy_x[i], my = enemy_y[i];
             if (mx < CAM_TX || mx >= (uint8_t)(CAM_TX + GRID_W)) continue; // cull off-screen

@@ -1,15 +1,20 @@
+#pragma bank 2
+
 #include "camera.h"
 #include "defs.h" // camera_px, camera_py, GRID_W/H, MAP_W/H, SCROLL_SPEED
-#include "render.h"
 #include "entity_sprites.h"
 #include "lcd.h"
+#include "render.h"
+#include <gbdk/platform.h>
+
+BANKREF(camera_init)
 
 uint16_t camera_px = 0;
 uint16_t camera_py = 0;
 
 static const int8_t player_bob_table[8] = { 0, -1, -2, -2, -1, 0, 1, 0 };
 
-void camera_init(uint8_t top_tx, uint8_t top_ty) {
+void camera_init(uint8_t top_tx, uint8_t top_ty) BANKED {
     camera_px = (uint16_t)top_tx * 8u;
     camera_py = (uint16_t)top_ty * 8u;
 }
@@ -33,7 +38,7 @@ static void player_glide_when_camera_idle(uint8_t opx, uint8_t opy, uint8_t px, 
 }
 
 void camera_scroll_to(uint8_t target_tx, uint8_t target_ty,
-                      uint8_t opx, uint8_t opy, uint8_t px, uint8_t py) { // smooth pan; sprite steps from old tile with camera (16-bit only)
+                      uint8_t opx, uint8_t opy, uint8_t px, uint8_t py) BANKED { // smooth pan; sprite steps from old tile with camera (16-bit only)
     uint16_t target_px = (uint16_t)target_tx * 8u;
     uint16_t target_py = (uint16_t)target_ty * 8u;
     uint16_t guard_steps = 0u;
@@ -86,7 +91,7 @@ void camera_scroll_to(uint8_t target_tx, uint8_t target_ty,
     entity_sprites_refresh(px, py);
 }
 
-void camera_shake(void) { // jitter in VBL scroll path — whole dungeon including top row
+void camera_shake(void) BANKED { // jitter in VBL scroll path — whole dungeon including top row
     uint8_t f;
     const int8_t off[] = { 2, -2, -1, 1, -2, 1, -1 }; // one frame shorter than old 8 for faster hit feedback
     for (f = 0; f < sizeof off; f++) {

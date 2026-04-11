@@ -1,5 +1,7 @@
-#include "ui.h"          // title_screen, game_over_screen, playfield HUD
-#include "defs.h"        // TILESET_VRAM_OFFSET, tile IDs, palettes
+#include "ui.h"
+#include "debug_bank.h"
+#include "globals.h"
+#include "defs.h"
 #include "lcd.h"         // lcd_gameplay_active for title vs play raster
 #include "music.h"       // mute BGM + footfalls during floor generation
 #include "render.h"      // load_palettes — restore sprite CRAM after title fire uses OCP7
@@ -96,9 +98,16 @@ static void ui_title_style_begin(uint8_t bkg_text_row) {
 }
 
 static void ui_title_style_end(void) {
+    uint8_t sb;
     set_bkg_palette(0u, 1u, ui_default_bkg_pal0);
     ui_title_torch_hide();
-    load_palettes(); // restore OCP7 (and all sprite CRAM) for dungeon / XP / bats
+    sb = _current_bank;
+    BANK_DBG("UI_pal_to2");
+    SWITCH_ROM(2);
+    BANK_DBG("UI_pal_at2");
+    load_palettes();
+    SWITCH_ROM(sb);
+    BANK_DBG("UI_pal_ret");
 }
 
 static void ui_title_try_spawn_fire(uint8_t from_right, uint16_t fc) {
@@ -300,7 +309,7 @@ static void ui_draw_inspect_panel(void) {
     uint8_t slot = panel_inspect_slot;
     uint8_t t, x;
     const char *nm;
-    if (slot >= num_enemies || enemy_x[slot] == ENEMY_DEAD) {
+    if (slot >= num_enemies || !enemy_alive[slot]) {
         win_clear_row(UI_PANEL_WIN_Y0, PAL_UI);
         win_clear_row(UI_PANEL_WIN_Y1, PAL_UI);
         win_clear_row(UI_PANEL_WIN_Y2, PAL_UI);
@@ -440,6 +449,7 @@ static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t entropy_
 
     wait_vbl_done();
     lcd_clear_display();
+    BANK_DBG("UI:seed");
     ui_title_style_begin(1u);
 
     while (1) {
@@ -499,6 +509,7 @@ uint16_t title_screen(uint16_t entropy_hint) { // blocking until START or SELECT
     window_ui_hide();
     wait_vbl_done();
     lcd_clear_display();
+    BANK_DBG("UI_title");
     ui_title_style_begin(7u);
     ui_title_menu_border_draw();
     gotoxy(4,  7); printf("Mara's Abyss");
@@ -529,19 +540,6 @@ uint16_t title_screen(uint16_t entropy_hint) { // blocking until START or SELECT
         wait_vbl_done();
         ui_title_menu_anim_tick(frame_counter);
         prev_j = j;
-    }
-}
-
-void ui_start_menu_screen(void) { // placeholder full-screen START menu; expand later
-    lcd_gameplay_active = 0u;
-    window_ui_hide();
-    wait_vbl_done();
-    lcd_clear_display();
-    gotoxy(4,  8); printf("START MENU");
-    gotoxy(2, 10); printf("START=resume");
-    while (1) {
-        if (joypad() & J_START) break;
-        wait_vbl_done();
     }
 }
 

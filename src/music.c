@@ -89,7 +89,9 @@ static void silence_bgm_channels(void) { // square + wave off; leave CH4 for SFX
     NR32_REG = 0x00u;
 }
 
-static void resume_bgm_hw(void) { // after loading or jingle — re-arm held notes
+static void resume_bgm_hw(void) { // after loading or jingle — re-arm held notes (bwv1043 in bank 2)
+    uint8_t sb = _current_bank;
+    SWITCH_ROM(2);
     if (mel_rem > 0u && mel_i > 0u) {
         uint8_t idx = bwv1043_melody[mel_i - 1u];
         ch1_play(bwv1043_dict[idx].freq);
@@ -98,6 +100,7 @@ static void resume_bgm_hw(void) { // after loading or jingle — re-arm held not
         uint8_t idx = bwv1043_bass[bas_i - 1u];
         ch3_play(bwv1043_dict[idx].freq);
     }
+    SWITCH_ROM(sb);
 }
 
 static void sfx_ch4_hit_noise(void) { // shared CH4 patch — lunge/deciding hit + loading steps
@@ -225,13 +228,20 @@ static void music_vbl(void) {
         loading_vbl_tick();
         return;
     }
-    uint8_t adv = dur_steps_per_vbl();
-    if (jingle_active) {
-        push_jingle(&adv);
-    }
-    if (!jingle_active) {
-        push_melody(adv);
-        push_bass(adv);
+    {
+        uint8_t sb = _current_bank;
+        SWITCH_ROM(2);
+        {
+            uint8_t adv = dur_steps_per_vbl();
+            if (jingle_active) {
+                push_jingle(&adv);
+            }
+            if (!jingle_active) {
+                push_melody(adv);
+                push_bass(adv);
+            }
+        }
+        SWITCH_ROM(sb);
     }
 }
 

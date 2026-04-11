@@ -1,4 +1,13 @@
-#include "map.h" // public API + defs for bitset size and tile IDs
+#pragma bank 2
+
+#include "map.h"
+#include "globals.h"
+#include "enemy.h"
+#include "render.h"
+#include "camera.h"
+#include "ui.h"
+#include "lcd.h"
+#include <rand.h>
 
 uint8_t floor_bits[BITSET_BYTES]; // 1 = open tile (floor or pit); 0 = wall
 uint8_t pit_bits[BITSET_BYTES];   // subset of floor: 1 = pit hazard
@@ -265,5 +274,46 @@ void generate_level(uint16_t floor_seed) { // full regen: clears map, walks, pit
     }
 
     build_nav_graph(); // enemies need graph after geometry is known
+}
+
+void level_generate_and_spawn(uint8_t *px, uint8_t *py) {
+    uint16_t floor_seed = (uint16_t)(run_seed * 2053u)
+                        ^ (uint16_t)(floor_num * 6364u)
+                        ^ 0xACE1u;
+    if (!floor_seed) floor_seed = 0xACE1u;
+
+    floor_ground_init(floor_seed);
+
+    num_corpses       = 0;
+    enemy_grids_init();
+    dead_enemy_pool_count = 0;
+    {
+        uint8_t q;
+        for (q = 0; q < MAX_ENEMIES; q++) enemy_alive[q] = 0;
+    }
+    enemy_anim_toggle = 0;
+    enemy_anim_reset();
+    wall_tileset_index = TILE_WALL_FIRST;
+    wall_palette_index = 0;
+    initrand(floor_seed);
+    generate_level(floor_seed);
+    spawn_enemies();
+    *px = player_spawn_x;
+    *py = player_spawn_y;
+    {
+        int16_t cx = (int16_t)*px - GRID_W / 2;
+        int16_t cy = (int16_t)*py - GRID_H / 2;
+        if (cx < 0) cx = 0;
+        if (cy < 0) cy = 0;
+        if (cx > (int16_t)(MAP_W - GRID_W)) cx = (int16_t)(MAP_W - GRID_W);
+        if (cy > (int16_t)(MAP_H - GRID_H)) cy = (int16_t)(MAP_H - GRID_H);
+        camera_init((uint8_t)cx, (uint8_t)cy);
+    }
+    ui_loading_screen_end();
+    lcd_gameplay_active = 1u;
+    window_ui_show();
+    ui_panel_show_combat();
+    wait_vbl_done();
+    draw_screen(*px, *py);
 }
 

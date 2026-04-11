@@ -1,6 +1,7 @@
 #include "entity_sprites.h"
-#include "render.h" // render_sprite_palette_player_* — OCP2 gold vs hurt red
+#include "render.h"
 #include "enemy.h"
+#include "globals.h"
 #include "lcd.h"
 #include "defs.h"
 #include <gb/cgb.h>
@@ -121,7 +122,7 @@ void entity_sprites_refresh(uint8_t px, uint8_t py) {
 
     for (i = 0; i < num_enemies; i++) {
         uint8_t sp = (uint8_t)(SP_ENEMY_BASE + i);
-        if (enemy_x[i] == ENEMY_DEAD) {
+        if (!enemy_alive[i]) {
             oam_hide(sp);
             continue;
         }
@@ -156,10 +157,11 @@ void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t d
 }
 
 void entity_sprites_run_enemy_glide(uint8_t px, uint8_t py,
-                                     const uint8_t *old_ex, const uint8_t *old_ey) {
+                                     const uint8_t *old_ex, const uint8_t *old_ey,
+                                     const uint8_t *old_alive) {
     uint8_t i, any = 0;
     for (i = 0; i < num_enemies; i++) {
-        if (enemy_x[i] == ENEMY_DEAD || old_ex[i] == ENEMY_DEAD) {
+        if (!enemy_alive[i] || !old_alive[i]) {
             en_ofs_x[i] = 0; en_ofs_y[i] = 0;
             continue;
         }

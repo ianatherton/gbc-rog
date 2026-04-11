@@ -1,6 +1,9 @@
-#include "enemy.h" // AI, spawning, animation tied to DIV_REG
-#include "map.h"   // is_walkable, tile_at, nearest_nav_node, nav_next_step, TILE_PIT
-#include "ui.h"    // ui_combat_log_push
+#pragma bank 2
+
+#include "enemy.h"
+#include "globals.h"
+#include "map.h"
+#include "ui.h"
 #include <string.h>
 
 const EnemyDef enemy_defs[NUM_ENEMY_TYPES] = { // one OCP ramp per type; snakes share green only
@@ -83,7 +86,7 @@ uint8_t enemy_at(uint8_t x, uint8_t y) { // O(1) when empty (common case); short
     uint8_t i;
     if (!BIT_GET(enemy_occ, idx)) return ENEMY_DEAD;
     for (i = 0; i < num_enemies; i++)
-        if (enemy_x[i] != ENEMY_DEAD && enemy_x[i] == x && enemy_y[i] == y) return i;
+        if (enemy_alive[i] && enemy_x[i] == x && enemy_y[i] == y) return i;
     return ENEMY_DEAD;
 }
 
@@ -115,6 +118,7 @@ void spawn_enemies(void) { // random placement with collision checks
                 enemy_y[num_enemies]    = ty;
                 enemy_type[num_enemies] = (uint8_t)(rand() % NUM_ENEMY_TYPES);
                 enemy_hp[num_enemies]   = enemy_effective_max_hp(enemy_type[num_enemies]);
+                enemy_alive[num_enemies] = 1u;
                 BIT_SET(enemy_occ, TILE_IDX(tx, ty));
                 num_enemies++;
                 break;
@@ -191,11 +195,11 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
     uint8_t i;
     memset(enemy_occ, 0, sizeof enemy_occ); // rebuild from ground truth each turn — guarantees consistency
     for (i = 0; i < num_enemies; i++)
-        if (enemy_x[i] != ENEMY_DEAD)
+        if (enemy_alive[i])
             BIT_SET(enemy_occ, TILE_IDX(enemy_x[i], enemy_y[i]));
     enemy_attack_count = 0;
     for (i = 0; i < num_enemies; i++) {
-        if (enemy_x[i] == ENEMY_DEAD) continue;
+        if (!enemy_alive[i]) continue;
 
         uint8_t sx = enemy_x[i], sy = enemy_y[i];
         uint8_t nx = sx,         ny = sy; // default no move
@@ -228,7 +232,9 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
         enemy_x[i] = nx;
         enemy_y[i] = ny;
         if (tile_at(nx, ny) == TILE_PIT) {
-            enemy_x[i] = ENEMY_DEAD; // fell in pit — remove silently
+            enemy_alive[i] = 0u;
+            if (dead_enemy_pool_count < MAX_ENEMIES)
+                dead_enemy_pool[dead_enemy_pool_count++] = i;
         } else {
             BIT_SET(enemy_occ, TILE_IDX(nx, ny));
         }

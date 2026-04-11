@@ -15,7 +15,7 @@ typedef struct {
 extern const EnemyDef enemy_defs[NUM_ENEMY_TYPES];
 
 /* ── Per-enemy instance state ────────────────────────────────────────────── */
-extern uint8_t enemy_x[MAX_ENEMIES];
+extern uint8_t enemy_x[MAX_ENEMIES]; // last tile column while slot used; undefined if !enemy_alive[i]
 extern uint8_t enemy_y[MAX_ENEMIES];
 extern uint8_t enemy_type[MAX_ENEMIES];
 extern uint8_t enemy_hp[MAX_ENEMIES];

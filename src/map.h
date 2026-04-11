@@ -26,6 +26,9 @@ uint8_t tile_palette(uint8_t t); // CGB palette for terrain
 
 void generate_level(uint16_t floor_seed); // drunkard from spawn + pits + build_nav_graph
 
+void level_init_display(uint8_t from_pit) BANKED; // bank 2 with gameplay; far-call from other banks
+void level_generate_and_spawn(uint8_t *px, uint8_t *py); // Bank 2: RNG map + enemies + first draw
+
 void    floor_ground_init(uint16_t floor_seed); // per floor: main + 2 alts from E1–E5 + blank (same seed as initrand)
 uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y); // sheet offset for TILE_FLOOR cell; 255 = blank tile
 uint8_t floor_tile_palette_xy(uint8_t x, uint8_t y); // CGB attr for TILE_FLOOR; spawn stair uses PAL_LADDER

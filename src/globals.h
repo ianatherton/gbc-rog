@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "defs.h"
+#include "game_state.h"
 
 extern uint8_t  player_hp;
 extern uint8_t  player_hp_max;
@@ -23,5 +24,8 @@ extern uint8_t  look_cx, look_cy;
 extern uint8_t enemy_alive[MAX_ENEMIES];
 extern uint8_t dead_enemy_pool[MAX_ENEMIES];
 extern uint8_t dead_enemy_pool_count;
+
+/* Set by STATE_TRANSITION (pit floor); state_gameplay_enter skips full regen */
+extern uint8_t gameplay_soft_reenter;
 
 #endif // GLOBALS_H

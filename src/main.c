@@ -16,6 +16,7 @@ BANKREF_EXTERN(state_inventory_enter)
 BANKREF_EXTERN(state_inventory_tick)
 BANKREF_EXTERN(state_ability_enter)
 BANKREF_EXTERN(state_ability_tick)
+BANKREF_EXTERN(state_transition_enter)
 BANKREF_EXTERN(tileset)
 #include "lcd.h"
 #include "entity_sprites.h"
@@ -93,6 +94,11 @@ int main(void) {
                 state_ability_enter();
                 BANK_DBG("m_out_abil");
                 break;
+            case STATE_TRANSITION:
+                BANK_DBG("m_in_tr");
+                state_transition_enter();
+                BANK_DBG("m_out_tr");
+                break;
             case STATE_GAME_OVER:
                 BANK_DBG("m_in_over");
                 state_game_over_enter();
@@ -106,6 +112,9 @@ int main(void) {
         switch (current_state) {
         case STATE_GAMEPLAY:
             state_gameplay_tick();
+            break;
+        case STATE_TRANSITION:
+            wait_vbl_done();
             break;
         case STATE_STATS:
             state_stats_tick();

@@ -250,7 +250,8 @@ typedef struct {
 #define PLAYER_TILE_OFFSET TILE_CLASS_KNIGHT
 
 /* ── CGB palette slot assignments (0–7) ─────────────────────────────────── */
-#define PAL_WALL_BG 3   // dungeon walls; RGB data from wall_palette_table[wall_palette_index]
+#define PAL_PILLAR_BG 1 // BKG only: column/pillar wall cells; OCP slot 1 is enemy snake (separate CRAM)
+#define PAL_WALL_BG 3   // dungeon bulk walls; wall_palette_table[wall_palette_index]
 #define PAL_PLAYER  2   // hero gold; OCP≠BKG on indices 4–7 — see PAL_ENEMY_*
 #define PAL_LADDER  4   // BKG pit/ladder; OCP4 = skeleton (violet)
 #define PAL_ENEMY_SNAKE     1 // serpent + adder — green on BKG+sprites

@@ -1,8 +1,10 @@
 #include "globals.h"
 #include "game_state.h"
 
-volatile GameState current_state = STATE_NONE;
-volatile GameState next_state    = STATE_TITLE;
+volatile GameState       current_state        = STATE_NONE;
+volatile GameState       next_state           = STATE_TITLE;
+volatile TransitionKind  pending_transition   = TRANS_NONE;
+uint8_t                  gameplay_soft_reenter = 0u;
 
 uint8_t  player_hp  = PLAYER_HP_BASE_MAX;
 uint8_t  player_hp_max = PLAYER_HP_BASE_MAX;

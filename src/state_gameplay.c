@@ -22,6 +22,14 @@ static const char *const s_class_names[3] = { "KNIGHT", "ROGUE", "MAGE" };
 
 BANKREF(state_gameplay_enter)
 void state_gameplay_enter(void) BANKED {
+    if (gameplay_soft_reenter) {
+        gameplay_soft_reenter = 0u;
+        g_prev_j = 0;
+        lcd_gameplay_active = 0u;
+        BANK_DBG("GP_soft");
+        wait_vbl_done();
+        return;
+    }
     g_prev_j = 0;
     BANK_DBG("GP_enter");
     music_play_game();
@@ -115,8 +123,9 @@ void state_gameplay_tick(void) BANKED {
             result = resolve_enemy_hits_and_animate(g_player_x, g_player_y);
             if (!result) { wait_vbl_done(); draw_enemy_cells(g_player_x, g_player_y); }
             if (result == 2) {
-                next_state = STATE_GAME_OVER;
-                g_prev_j = j;
+                pending_transition = TRANS_TO_GAME_OVER;
+                next_state         = STATE_TRANSITION;
+                g_prev_j           = j;
                 wait_vbl_done();
                 return;
             }
@@ -130,13 +139,11 @@ void state_gameplay_tick(void) BANKED {
                 if (player_hp < player_hp_max) player_hp++;
                 wait_vbl_done();
                 draw_cell(g_player_x, g_player_y);
-                {
-                    uint8_t sb = _current_bank;
-                    SWITCH_ROM(0);
-                    level_init_display(1);
-                    SWITCH_ROM(2);
-                }
-                level_generate_and_spawn(&g_player_x, &g_player_y);
+                pending_transition = TRANS_FLOOR_PIT;
+                next_state         = STATE_TRANSITION;
+                g_prev_j           = j;
+                wait_vbl_done();
+                return;
             } else {
                 uint8_t opx = g_player_x, opy = g_player_y;
                 if (combat_idle_turns < 255u) combat_idle_turns++;
@@ -177,8 +184,9 @@ void state_gameplay_tick(void) BANKED {
                 else        draw_enemy_cells(g_player_x, g_player_y);
 
                 if (result == 2) {
-                    next_state = STATE_GAME_OVER;
-                    g_prev_j = j;
+                    pending_transition = TRANS_TO_GAME_OVER;
+                    next_state         = STATE_TRANSITION;
+                    g_prev_j           = j;
                     wait_vbl_done();
                     return;
                 }

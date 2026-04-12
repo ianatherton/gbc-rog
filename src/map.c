@@ -7,6 +7,7 @@
 #include "camera.h"
 #include "ui.h"
 #include "lcd.h"
+#include "wall_palettes.h"
 #include <rand.h>
 
 uint8_t floor_bits[BITSET_BYTES]; // 1 = open tile (floor or pit); 0 = wall
@@ -15,11 +16,12 @@ uint8_t floor_blank_bits[BITSET_BYTES]; // plain-floor deco: 1 = render as empty
 NavNode nav_nodes[MAX_NAV_NODES]; // junction graph for enemy pathing
 uint8_t num_nav_nodes;            // how many nodes after build_nav_graph
 uint8_t wall_tileset_index = TILE_WALL_FIRST; // offset within sheet for TILE_WALL (debug cycle)
-uint8_t wall_palette_index = 0;           // index into wall_palette_table; uploaded to PAL_WALL_BG
+uint8_t wall_palette_index = 0;           // bulk walls → PAL_WALL_BG
+uint8_t pillar_palette_index = 0;       // column deco walls → PAL_PILLAR_BG
 uint8_t player_spawn_x = MAP_W / 2;       // overwritten each generate_level(floor_seed)
 uint8_t player_spawn_y = MAP_H / 2;
-
-static uint8_t floor_column_off = TILE_COLUMN_1; // one column style per floor (D1..D4), seeded in floor_ground_init
+uint8_t floor_column_off = TILE_COLUMN_1; // D-column art; floor_ground_init
+uint8_t wall_ortho_n[MAP_TILES];          // render reads this for walls; wall_cache_bake_ortho_n fills after gen
 
 static const int8_t NAV_DX[4] = {  0,  0, -1,  1 }; // 0=up 1=down 2=left 3=right: Δx per step
 static const int8_t NAV_DY[4] = { -1,  1,  0,  0 }; // Δy per step along corridor trace
@@ -84,14 +86,20 @@ uint8_t floor_tile_palette_xy(uint8_t x, uint8_t y) { // pal 0 = pal_default gre
     return 0;
 }
 
-uint8_t wall_tile_sheet_offset(uint8_t x, uint8_t y) { // convert specific wall neighbour counts into this floor's column tile
-    uint8_t n = 0;
-    if (y > 0 && tile_at(x, (uint8_t)(y - 1u)) == TILE_WALL) n++;
-    if (y < (uint8_t)(MAP_H - 1u) && tile_at(x, (uint8_t)(y + 1u)) == TILE_WALL) n++;
-    if (x > 0 && tile_at((uint8_t)(x - 1u), y) == TILE_WALL) n++;
-    if (x < (uint8_t)(MAP_W - 1u) && tile_at((uint8_t)(x + 1u), y) == TILE_WALL) n++;
-    if (n == 0u || n == 2u || n == 3u) return floor_column_off; // alone / in 2s / in 3s
-    return wall_tileset_index;
+static void wall_cache_bake_ortho_n(void) { // once per floor: wall = !floor_bits; no tile_at / pit decode
+    uint8_t x, y;
+    for (y = 0; y < MAP_H; y++) {
+        for (x = 0; x < MAP_W; x++) {
+            uint16_t idx = TILE_IDX(x, y);
+            if (BIT_GET(floor_bits, idx)) continue; // open tile — wall_ortho_n unused at render
+            uint8_t n = 0;
+            if (y > 0 && !BIT_GET(floor_bits, TILE_IDX(x, (uint8_t)(y - 1u)))) n++;
+            if (y < (uint8_t)(MAP_H - 1u) && !BIT_GET(floor_bits, TILE_IDX(x, (uint8_t)(y + 1u)))) n++;
+            if (x > 0 && !BIT_GET(floor_bits, TILE_IDX((uint8_t)(x - 1u), y))) n++;
+            if (x < (uint8_t)(MAP_W - 1u) && !BIT_GET(floor_bits, TILE_IDX((uint8_t)(x + 1u), y))) n++;
+            wall_ortho_n[idx] = n;
+        }
+    }
 }
 
 static uint8_t is_straight_corridor(uint8_t x, uint8_t y) { // NS-only or WE-only adjacency → no junction
@@ -274,6 +282,7 @@ void generate_level(uint16_t floor_seed) { // full regen: clears map, walks, pit
     }
 
     build_nav_graph(); // enemies need graph after geometry is known
+    wall_cache_bake_ortho_n(); // render: wall_ortho_n + floor_column_off + wall_tileset_index → tile+pal, no neighbour scan
 }
 
 void level_generate_and_spawn(uint8_t *px, uint8_t *py) {
@@ -294,7 +303,16 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) {
     enemy_anim_toggle = 0;
     enemy_anim_reset();
     wall_tileset_index = TILE_WALL_FIRST;
-    wall_palette_index = 0;
+    {
+        uint32_t m = (uint32_t)floor_seed * 2246523629u ^ (uint32_t)floor_seed << 11; // no rand() before generate_level
+        uint16_t h;
+        m ^= m >> 15;
+        h = (uint16_t)m ^ (uint16_t)(m >> 16);
+        wall_palette_index = (uint8_t)(h % NUM_WALL_PALETTES); // 16-bit % — NUM_WALL_PALETTES not Po2 (40)
+        m = m * 1597334677u + 1u;
+        h = (uint16_t)m ^ (uint16_t)(m >> 16);
+        pillar_palette_index = (uint8_t)(h % NUM_WALL_PALETTES);
+    }
     initrand(floor_seed);
     generate_level(floor_seed);
     spawn_enemies();

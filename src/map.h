@@ -11,7 +11,10 @@ extern NavNode  nav_nodes[MAX_NAV_NODES]; // junction graph for chase AI
 extern uint8_t  num_nav_nodes;            // populated after generate_level
 
 extern uint8_t wall_tileset_index; // which wall tile in VRAM band (debug)
-extern uint8_t wall_palette_index; // wall_palette_table index; applied to PAL_WALL_BG slot
+extern uint8_t wall_palette_index; // wall_palette_table index → PAL_WALL_BG
+extern uint8_t pillar_palette_index; // wall_palette_table index → PAL_PILLAR_BG (column tiles)
+extern uint8_t floor_column_off; // D1..D4 sheet offset; pillars use this, bulk uses wall_tileset_index
+extern uint8_t wall_ortho_n[MAP_TILES]; // ortho wall neighbour count 0..4; baked after generate_level (walls only)
 extern uint8_t player_spawn_x;    // set per floor in generate_level — seed-based, walkable
 extern uint8_t player_spawn_y;
 
@@ -32,7 +35,6 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py); // Bank 2: RNG map + en
 void    floor_ground_init(uint16_t floor_seed); // per floor: main + 2 alts from E1–E5 + blank (same seed as initrand)
 uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y); // sheet offset for TILE_FLOOR cell; 255 = blank tile
 uint8_t floor_tile_palette_xy(uint8_t x, uint8_t y); // CGB attr for TILE_FLOOR; spawn stair uses PAL_LADDER
-uint8_t wall_tile_sheet_offset(uint8_t x, uint8_t y); // per-cell wall art: wall variant or per-floor column
 
 uint8_t nearest_nav_node(uint8_t x, uint8_t y); // for mapping entity tiles to graph
 uint8_t nav_next_step(uint8_t from, uint8_t to); // BFS first hop on nav graph

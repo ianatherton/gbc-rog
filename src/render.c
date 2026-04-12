@@ -25,16 +25,22 @@ static const palette_color_t pal_xp_ui[]    = { RGB(0,0,0),  RGB(18,14,0), RGB(2
 void render_sprite_palette_player_default(void) { set_sprite_palette(PAL_PLAYER, 1, pal_player); }
 void render_sprite_palette_player_hurt(void) { set_sprite_palette(PAL_PLAYER, 1, pal_player_hurt_flash); }
 
-void apply_wall_palette(void) { // copy chosen ROM ramp into hardware BG slot PAL_WALL_BG
-    uint8_t i = wall_palette_index;
-    palette_color_t wall_pal[4];
-    if (i >= NUM_WALL_PALETTES) i = 0;
-    wall_pal[0] = pal_default[0]; // match floor background color so wall/floor paper is seamless
-    wall_pal[1] = wall_palette_table[i][1];
-    wall_pal[2] = wall_palette_table[i][2];
-    wall_pal[3] = wall_palette_table[i][3];
+void apply_wall_palette(void) { // PAL_WALL_BG bulk walls + PAL_PILLAR_BG column tiles (CGB BGP slots)
+    uint8_t iw = wall_palette_index, ip = pillar_palette_index;
+    palette_color_t wall_pal[4], pil_pal[4];
+    if (iw >= NUM_WALL_PALETTES) iw = 0;
+    if (ip >= NUM_WALL_PALETTES) ip = 0;
+    wall_pal[0] = pal_default[0]; // seamless with floor paper
+    wall_pal[1] = wall_palette_table[iw][1];
+    wall_pal[2] = wall_palette_table[iw][2];
+    wall_pal[3] = wall_palette_table[iw][3];
+    pil_pal[0] = pal_default[0];
+    pil_pal[1] = wall_palette_table[ip][1];
+    pil_pal[2] = wall_palette_table[ip][2];
+    pil_pal[3] = wall_palette_table[ip][3];
     set_bkg_palette(PAL_WALL_BG, 1, wall_pal);
-    set_sprite_palette(PAL_WALL_BG, 1, wall_pal); // keep OCP slot in sync if reused
+    set_bkg_palette(PAL_PILLAR_BG, 1, pil_pal);
+    set_sprite_palette(PAL_WALL_BG, 1, wall_pal); // OCP: bulk wall slot only; pillars are BG-only
 }
 
 static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t my) { // floor/wall/pit/corpse; no actors on BG
@@ -62,10 +68,12 @@ static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t m
             }
             set_bkg_attribute_xy(sx, sy, floor_tile_palette_xy(mx, my));
         } else if (t == TILE_WALL) {
-            uint8_t off = wall_tile_sheet_offset(mx, my);
+            uint8_t n = wall_ortho_n[TILE_IDX(mx, my)]; // baked at generate_level — single indexed read
+            uint8_t off = (n == 0u || n == 2u || n == 3u) ? floor_column_off : wall_tileset_index;
             uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + off);
+            uint8_t attr = (n == 0u || n == 2u || n == 3u) ? PAL_PILLAR_BG : PAL_WALL_BG;
             set_bkg_tiles(sx, sy, 1, 1, &vram);
-            set_bkg_attribute_xy(sx, sy, tile_palette(t));
+            set_bkg_attribute_xy(sx, sy, attr);
         } else {
             uint8_t vram = tile_vram_index(t);
             if (vram) { set_bkg_tiles(sx, sy, 1, 1, &vram); }
@@ -78,7 +86,7 @@ static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t m
 
 void load_palettes(void) { // slots 0–7 except walls: wall table entry 0 until apply_wall_palette runs
     set_bkg_palette(0, 1, pal_default);
-    set_bkg_palette(1, 1, pal_green);
+    set_bkg_palette(PAL_PILLAR_BG, 1, wall_palette_table[0]); // slot 1 = pillars in gameplay (was unused BKG green)
     set_bkg_palette(2, 1, pal_player);
     set_bkg_palette(PAL_WALL_BG, 1, wall_palette_table[0]); // matches wall_palette_index default 0
     set_bkg_palette(PAL_LADDER, 1, pal_ladder);

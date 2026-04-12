@@ -14,5 +14,6 @@ void state_inventory_enter(void) BANKED;
 void state_inventory_tick(void) BANKED;
 void state_ability_enter(void) BANKED;
 void state_ability_tick(void) BANKED;
+void state_transition_enter(void) BANKED;
 
 #endif // STATES_BANKED_H

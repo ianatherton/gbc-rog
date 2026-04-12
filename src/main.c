@@ -27,6 +27,7 @@ BANKREF_EXTERN(tileset)
 
 int main(void) {
     DISPLAY_OFF;
+    if (DEVICE_SUPPORTS_COLOR) cpu_fast(); // CGB double-speed for whole run; LCD off per speed-switch timing
     LCDC_REG |= LCDCF_WIN9C00;
     set_default_palette(); // CGB greyscale; title sets menu CRAM, then ui_title_style_end -> load_palettes before char create
     font_init();

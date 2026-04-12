@@ -90,7 +90,12 @@ static void ui_title_torch_place(uint8_t bkg_text_row) {
 }
 
 static void ui_title_style_begin(uint8_t bkg_text_row) {
+    uint8_t sb;
     set_bkg_palette(0u, 1u, ui_title_bkg_pal);
+    sb = _current_bank;
+    SWITCH_ROM(2); // pal_player lives in render.c (bank 2); boot only ran set_default_palette — OCP2 was never gold
+    render_sprite_palette_player_default();
+    SWITCH_ROM(sb);
     set_sprite_palette(PAL_TITLE_FIRE, 1u, ui_title_fire_pal);
     ui_title_fire_init();
     ui_title_torch_place(bkg_text_row);

@@ -4,6 +4,8 @@
 #include "globals.h"
 #include "lcd.h"
 #include "defs.h"
+#include "map.h"
+#include "map.h"
 #include <gb/cgb.h>
 #include <string.h>
 
@@ -12,6 +14,14 @@
 
 #define SP_PLAYER 0
 #define SP_ENEMY_BASE 1
+#define SP_BRAZIER_FIRE 37u
+#define BRAZIER_FIRE_TTL_VBL 12u
+
+static uint8_t brazier_fire_active;
+static uint8_t brazier_fire_ttl;
+static int16_t brazier_fire_wx, brazier_fire_wy;
+static int8_t brazier_fire_dx;
+static uint8_t brazier_fire_source_cursor;
 
 static int16_t player_override_wx = -1; // negative = use px*8
 static int16_t player_override_wy = -1;
@@ -31,6 +41,42 @@ static uint8_t lunge_amt_for_frame(uint8_t t) { // 0 .. 4 .. 0 over ENTITY_LUNGE
 }
 
 static void oam_hide(uint8_t sp) { move_sprite(sp, 0u, 0u); } // OAM Y=0: off visible lines
+
+static uint8_t player_tile_offset_for_class(void) {
+    if (player_class == 1u) return TILE_CLASS_BERSERKER; // rogue uses B2 sprite
+    if (player_class == 2u) return TILE_CLASS_WITCH; // mage uses B3 sprite
+    return TILE_CLASS_KNIGHT;
+}
+
+static uint8_t pick_next_visible_light_source(uint8_t *mx, uint8_t *my) {
+    uint8_t i;
+    if (brazier_count == 0u) return 0u;
+    for (i = 0u; i < brazier_count; i++) {
+        uint8_t idx = (uint8_t)((brazier_fire_source_cursor + i) % brazier_count);
+        uint8_t x = brazier_x[idx], y = brazier_y[idx];
+        if (x < CAM_TX || x >= (uint8_t)(CAM_TX + GRID_W)) continue;
+        if (y < CAM_TY || y >= (uint8_t)(CAM_TY + GRID_H)) continue;
+        *mx = x;
+        *my = y;
+        brazier_fire_source_cursor = (uint8_t)((idx + 1u) % brazier_count);
+        return 1u;
+    }
+    return 0u;
+}
+
+static void brazier_fire_try_spawn(void) {
+    uint8_t mx, my;
+    if (!lcd_gameplay_active || !pick_next_visible_light_source(&mx, &my)) {
+        brazier_fire_active = 0u;
+        oam_hide(SP_BRAZIER_FIRE);
+        return;
+    }
+    brazier_fire_active = 1u;
+    brazier_fire_ttl = BRAZIER_FIRE_TTL_VBL;
+    brazier_fire_wx = (int16_t)mx * 8 + 4;
+    brazier_fire_wy = (int16_t)my * 8 - 2; // start just above the source tile top edge
+    brazier_fire_dx = (int8_t)((DIV_REG & 1u) ? 1 : -1);
+}
 
 static void move_entity_oam(uint8_t sp, int16_t wx, int16_t wy, uint8_t tile, uint8_t pal) {
     int16_t dx = wx - (int16_t)camera_px;
@@ -58,6 +104,9 @@ void entity_sprites_init(void) {
     player_flip_x = 0u;
     player_hurt_flash_ttl = 0u;
     player_hurt_flash_restore_needed = 0u;
+    brazier_fire_active = 0u;
+    brazier_fire_ttl = 0u;
+    brazier_fire_source_cursor = 0u;
     for (i = 0; i < 40u; i++) oam_hide(i);
     SHOW_SPRITES;
 }
@@ -93,10 +142,19 @@ static void refresh_player_oam_from_cache(void) { // player only — same math a
         player_hurt_flash_restore_needed = 0u;
     }
     move_entity_oam(SP_PLAYER, pwx, pwy,
-            (uint8_t)(TILESET_VRAM_OFFSET + PLAYER_TILE_OFFSET), player_pal);
+            (uint8_t)(TILESET_VRAM_OFFSET + player_tile_offset_for_class()), player_pal);
 }
 
 void entity_sprites_vbl_tick(void) {
+    if (brazier_fire_active && brazier_fire_ttl > 0u) {
+        brazier_fire_wy--;
+        if ((brazier_fire_ttl & 1u) == 0u) brazier_fire_wx += brazier_fire_dx;
+        brazier_fire_ttl--;
+        move_entity_oam(SP_BRAZIER_FIRE, brazier_fire_wx, brazier_fire_wy,
+                (uint8_t)(TILESET_VRAM_OFFSET + TILE_TITLE_FIRE), PAL_WALL_BG);
+    } else {
+        brazier_fire_try_spawn();
+    }
     if (player_hurt_flash_ttl > 0u) {
         refresh_player_oam_from_cache(); // palette + OAM before ttl tick so all 60 frames flash
         player_hurt_flash_ttl--;
@@ -133,14 +191,17 @@ void entity_sprites_refresh(uint8_t px, uint8_t py) {
             int16_t ewx = (int16_t)enemy_x[i] * 8 + en_ofs_x[i];
             int16_t ewy = (int16_t)enemy_y[i] * 8 + en_ofs_y[i];
             if (enemy_x[i] < CAM_TX || enemy_x[i] >= (uint8_t)(CAM_TX + GRID_W)
-                    || enemy_y[i] < CAM_TY || enemy_y[i] >= (uint8_t)(CAM_TY + GRID_H)) {
+                    || enemy_y[i] < CAM_TY || enemy_y[i] >= (uint8_t)(CAM_TY + GRID_H)
+                    || !lighting_is_revealed(enemy_x[i], enemy_y[i])) {
                 oam_hide(sp);
                 continue;
             }
             move_entity_oam(sp, ewx, ewy, tt, def->palette);
         }
     }
-    for (i = (uint8_t)(SP_ENEMY_BASE + num_enemies); i < 40u; i++) oam_hide(i);
+    for (i = (uint8_t)(SP_ENEMY_BASE + num_enemies); i < 40u; i++)
+        if (i != SP_BRAZIER_FIRE) oam_hide(i);
+    if (!brazier_fire_active) oam_hide(SP_BRAZIER_FIRE); // keep slot hidden until first spawn
 }
 
 void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t dy) {

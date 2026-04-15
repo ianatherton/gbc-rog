@@ -163,7 +163,10 @@ void state_gameplay_tick(void) BANKED {
                 draw_cell(g_player_x, g_player_y);
                 g_player_x = nx;
                 g_player_y = ny;
-                lighting_reveal_radius(g_player_x, g_player_y, PLAYER_LIGHT_RADIUS);
+                lighting_reveal_radius(g_player_x, g_player_y,
+                    (player_class == 1u) ? LIGHT_RADIUS_ROGUE
+                    : (player_class == 2u) ? LIGHT_RADIUS_MAGE
+                    : LIGHT_RADIUS_KNIGHT);
                 if (player_hp < player_hp_max) player_hp++;
                 {
                     uint8_t target_cx = (g_player_x > GRID_W / 2) ? (uint8_t)(g_player_x - GRID_W / 2) : 0;

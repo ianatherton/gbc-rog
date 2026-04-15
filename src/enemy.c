@@ -44,7 +44,7 @@ uint8_t enemy_attack_count;
 
 const char *enemy_type_short_name(uint8_t t) {
     static const char *const n[NUM_ENEMY_TYPES] = {
-        "SERPENT", "ADDER", "RAT", "BAT", "SKELETON", "GOBLIN"
+        "SERPENT", "SLIMESKULL", "RAT", "BAT", "SKELETON", "GOBLIN"
     };
     return (t < NUM_ENEMY_TYPES) ? n[t] : "?";
 }

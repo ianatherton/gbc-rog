@@ -41,7 +41,7 @@ void apply_wall_palette(void) { // PAL_WALL_BG bulk walls + PAL_PILLAR_BG column
     pil_pal[3] = wall_palette_table[ip][3];
     set_bkg_palette(PAL_WALL_BG, 1, wall_pal);
     set_bkg_palette(PAL_PILLAR_BG, 1, pil_pal);
-    set_sprite_palette(PAL_WALL_BG, 1, wall_pal); // OCP: bulk wall slot only; pillars are BG-only
+    // PAL_WALL_BG sprite slot is reserved for gameplay fire particle tint; keep wall colors BG-only.
 }
 
 static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t my) { // floor/wall/pit/corpse; no actors on BG
@@ -105,7 +105,7 @@ void load_palettes(void) BANKED { // slots 0–7 except walls: wall table entry 
     set_sprite_palette(0, 1, pal_default);
     set_sprite_palette(1, 1, pal_green);
     set_sprite_palette(2, 1, pal_player);
-    set_sprite_palette(PAL_WALL_BG, 1, wall_palette_table[0]);
+    set_sprite_palette(PAL_WALL_BG, 1, pal_ladder); // match title/menu fire particle ramp during gameplay
     set_sprite_palette(PAL_LADDER, 1, pal_enemy_skeleton);
     set_sprite_palette(PAL_ENEMY_RAT, 1, pal_enemy_rat);
     set_sprite_palette(PAL_ENEMY_GOBLIN, 1, pal_enemy_goblin);

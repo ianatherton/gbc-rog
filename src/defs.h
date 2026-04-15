@@ -44,8 +44,13 @@
 #define BIT_CLR(arr, idx)    ((arr)[(idx) >> 3] &= ~(1u << ((idx) & 7)))
 
 #define FEATURE_MAP_FOG 1u // 1 enables explored-bit fog gate in renderer + reveal updates on movement
-#define PLAYER_LIGHT_RADIUS 2u // reveal radius in tiles when fog is enabled
-#define BRAZIER_LIGHT_RADIUS 3u // static floor light source radius for placed braziers
+#define LIGHT_RADIUS_LADDER_DOWN 1u
+#define LIGHT_RADIUS_STAIRS_UP 2u
+#define LIGHT_RADIUS_BRAZIER 3u
+#define LIGHT_RADIUS_TORCH 2u
+#define LIGHT_RADIUS_KNIGHT 4u
+#define LIGHT_RADIUS_ROGUE 2u
+#define LIGHT_RADIUS_MAGE 3u
 #define MAX_BRAZIERS 20u // upper bound for floor brazier placements before depth reduction
 
 /* ── Navigation graph constants ──────────────────────────────────────────── */

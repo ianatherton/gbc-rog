@@ -25,58 +25,11 @@ uint8_t player_spawn_x = MAP_W / 2;       // overwritten each generate_level(flo
 uint8_t player_spawn_y = MAP_H / 2;
 uint8_t floor_column_off = TILE_COLUMN_1; // D-column art; floor_ground_init
 static uint16_t floor_visual_seed;        // deterministic seed for floor blank-scatter hash
-static uint8_t brazier_count;
-static uint8_t brazier_x[MAX_BRAZIERS];
-static uint8_t brazier_y[MAX_BRAZIERS];
-static uint8_t brazier_type[MAX_BRAZIERS]; // 0=brazier C3/C4, 1=torch C1/C2
-void lighting_reset(void) {
-    uint16_t i;
-#if FEATURE_MAP_FOG
-    for (i = 0u; i < BITSET_BYTES; i++) explored_bits[i] = 0u;
-#else
-    i = 0u; // quiet -Wunused-but-set-variable when fog is disabled
-#endif
-}
-
-void lighting_reveal_radius(uint8_t cx, uint8_t cy, uint8_t radius) {
-#if FEATURE_MAP_FOG
-    int16_t min_x = (int16_t)cx - (int16_t)radius;
-    int16_t max_x = (int16_t)cx + (int16_t)radius;
-    int16_t min_y = (int16_t)cy - (int16_t)radius;
-    int16_t max_y = (int16_t)cy + (int16_t)radius;
-    int16_t y;
-    if (min_x < 0) min_x = 0;
-    if (min_y < 0) min_y = 0;
-    if (max_x > (int16_t)(MAP_W - 1u)) max_x = (int16_t)(MAP_W - 1u);
-    if (max_y > (int16_t)(MAP_H - 1u)) max_y = (int16_t)(MAP_H - 1u);
-    for (y = min_y; y <= max_y; y++) {
-        int16_t x;
-        int16_t x_start = min_x;
-        int16_t x_end = max_x;
-        if (radius != 0u
-                && (y == (int16_t)((int16_t)cy - (int16_t)radius)
-                    || y == (int16_t)((int16_t)cy + (int16_t)radius))) {
-            x_start++;
-            x_end--;
-        }
-        if (x_start > x_end) continue;
-        for (x = x_start; x <= x_end; x++) {
-            BIT_SET(explored_bits, TILE_IDX((uint8_t)x, (uint8_t)y));
-        }
-    }
-#else
-    cx = cx; cy = cy; radius = radius; // keep interface stable until fog is enabled
-#endif
-}
-
-uint8_t lighting_is_revealed(uint8_t x, uint8_t y) {
-#if FEATURE_MAP_FOG
-    return BIT_GET(explored_bits, TILE_IDX(x, y));
-#else
-    x = x; y = y; // keep renderer branch-free when fog is disabled
-    return 1u;
-#endif
-}
+uint8_t brazier_count;
+uint8_t brazier_x[MAX_BRAZIERS];
+uint8_t brazier_y[MAX_BRAZIERS];
+uint8_t brazier_type[MAX_BRAZIERS]; // 0=brazier C3/C4, 1=torch C1/C2
+static uint8_t pit_x, pit_y, pit_present;
 
 uint8_t wall_ortho_wall_count_xy(uint8_t x, uint8_t y) {
     uint8_t n = 0u;
@@ -119,6 +72,9 @@ void set_pit(uint8_t x, uint8_t y) { // walkable hole; player falls to next floo
     uint16_t idx = TILE_IDX(x, y);
     BIT_SET(floor_bits, idx); // must remain walkable for generator and enemies until they fall
     BIT_SET(pit_bits,   idx);
+    pit_x = x;
+    pit_y = y;
+    pit_present = 1u;
 }
 
 uint8_t is_walkable(uint8_t x, uint8_t y) { // used by AI and pit checks
@@ -316,6 +272,7 @@ void generate_level(uint16_t floor_seed) { // full regen: clears map, walks, pit
 
     for (i = 0; i < BITSET_BYTES; i++) { floor_bits[i] = 0; pit_bits[i] = 0; } // all wall to start; visual blanking is hashed now
     brazier_count = 0u;
+    pit_present = 0u;
 
     set_floor(x, y); // ensure spawn is open
     for (i = 0; i < WALK_STEPS; i++) {
@@ -415,14 +372,22 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     initrand(floor_seed);
     generate_level(floor_seed);
     lighting_reset();
+    if (pit_present) lighting_reveal_radius(pit_x, pit_y, LIGHT_RADIUS_LADDER_DOWN);
     {
         uint8_t i;
-        for (i = 0u; i < brazier_count; i++) lighting_reveal_radius(brazier_x[i], brazier_y[i], BRAZIER_LIGHT_RADIUS);
+        for (i = 0u; i < brazier_count; i++) {
+            uint8_t r = (brazier_type[i] == 0u) ? LIGHT_RADIUS_BRAZIER : LIGHT_RADIUS_TORCH;
+            lighting_reveal_radius(brazier_x[i], brazier_y[i], r);
+        }
     }
     spawn_enemies();
     *px = player_spawn_x;
     *py = player_spawn_y;
-    lighting_reveal_radius(*px, *py, PLAYER_LIGHT_RADIUS);
+    lighting_reveal_radius(*px, *py, LIGHT_RADIUS_STAIRS_UP);
+    lighting_reveal_radius(*px, *py,
+        (player_class == 1u) ? LIGHT_RADIUS_ROGUE
+        : (player_class == 2u) ? LIGHT_RADIUS_MAGE
+        : LIGHT_RADIUS_KNIGHT);
     {
         int16_t cx = (int16_t)*px - GRID_W / 2;
         int16_t cy = (int16_t)*py - GRID_H / 2;

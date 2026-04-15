@@ -18,6 +18,10 @@ extern uint8_t active_map_w; // runtime floor bounds within MAP_W storage
 extern uint8_t active_map_h;
 extern uint8_t player_spawn_x;    // set per floor in generate_level — seed-based, walkable
 extern uint8_t player_spawn_y;
+extern uint8_t brazier_count; // number of active floor light sources
+extern uint8_t brazier_x[MAX_BRAZIERS];
+extern uint8_t brazier_y[MAX_BRAZIERS];
+extern uint8_t brazier_type[MAX_BRAZIERS]; // 0=brazier C3/C4, 1=torch C1/C2
 
 uint8_t tile_at(uint8_t x, uint8_t y); // TILE_WALL / TILE_FLOOR / TILE_PIT from bitsets
 void    set_floor(uint8_t x, uint8_t y); // carve floor-only

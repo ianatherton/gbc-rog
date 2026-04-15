@@ -50,14 +50,18 @@ const char *enemy_type_short_name(uint8_t t) {
 }
 
 uint8_t enemy_effective_max_hp(uint8_t type) {
+    uint8_t scale_floor;
     if (type >= NUM_ENEMY_TYPES) return 1u;
-    { uint16_t v = (uint16_t)enemy_defs[type].max_hp * (uint16_t)floor_num;
+    scale_floor = (floor_num > 1u) ? (uint8_t)(floor_num - 1u) : 1u; // entry floor doesn't inflate stats; floor 2 starts baseline
+    { uint16_t v = (uint16_t)enemy_defs[type].max_hp * (uint16_t)scale_floor;
       return (v > 255u) ? 255u : (uint8_t)v; }
 }
 
 uint8_t enemy_effective_damage(uint8_t type) {
+    uint8_t scale_floor;
     if (type >= NUM_ENEMY_TYPES) return 1u;
-    { uint16_t v = (uint16_t)enemy_defs[type].damage * (uint16_t)floor_num;
+    scale_floor = (floor_num > 1u) ? (uint8_t)(floor_num - 1u) : 1u; // keep damage curve aligned with HP scaling
+    { uint16_t v = (uint16_t)enemy_defs[type].damage * (uint16_t)scale_floor;
       return (v > 255u) ? 255u : (uint8_t)v; }
 }
 
@@ -106,10 +110,11 @@ uint8_t corpse_deco_random(void) { return CORPSE_DECO_OFF[rand() & 1u]; } // L2/
 void spawn_enemies(void) { // random placement with collision checks
     uint8_t i;
     num_enemies = 0;
+    if (floor_num == 1u) return; // entry floor is a safe 20x20 no-monster zone
     for (i = 0; i < NUM_ENEMIES; i++) {
         uint8_t attempts;
         for (attempts = 0; attempts < 100; attempts++) {
-            uint8_t tx = (uint8_t)(rand() % MAP_W); // modulo supports non-power-of-2 map sizes
+            uint8_t tx = (uint8_t)(rand() % MAP_W);
             uint8_t ty = (uint8_t)(rand() % MAP_H);
             if ((tx != player_spawn_x || ty != player_spawn_y)
                     && is_walkable(tx, ty)

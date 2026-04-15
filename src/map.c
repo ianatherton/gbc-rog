@@ -19,6 +19,8 @@ uint8_t num_nav_nodes;            // how many nodes after build_nav_graph
 uint8_t wall_tileset_index = TILE_WALL_FIRST; // offset within sheet for TILE_WALL (debug cycle)
 uint8_t wall_palette_index = 0;           // bulk walls → PAL_WALL_BG
 uint8_t pillar_palette_index = 0;       // column deco walls → PAL_PILLAR_BG
+uint8_t active_map_w = MAP_W;
+uint8_t active_map_h = MAP_H;
 uint8_t player_spawn_x = MAP_W / 2;       // overwritten each generate_level(floor_seed)
 uint8_t player_spawn_y = MAP_H / 2;
 uint8_t floor_column_off = TILE_COLUMN_1; // D-column art; floor_ground_init
@@ -26,6 +28,7 @@ static uint16_t floor_visual_seed;        // deterministic seed for floor blank-
 static uint8_t brazier_count;
 static uint8_t brazier_x[MAX_BRAZIERS];
 static uint8_t brazier_y[MAX_BRAZIERS];
+static uint8_t brazier_type[MAX_BRAZIERS]; // 0=brazier C3/C4, 1=torch C1/C2
 void lighting_reset(void) {
     uint16_t i;
 #if FEATURE_MAP_FOG
@@ -48,7 +51,18 @@ void lighting_reveal_radius(uint8_t cx, uint8_t cy, uint8_t radius) {
     if (max_y > (int16_t)(MAP_H - 1u)) max_y = (int16_t)(MAP_H - 1u);
     for (y = min_y; y <= max_y; y++) {
         int16_t x;
-        for (x = min_x; x <= max_x; x++) BIT_SET(explored_bits, TILE_IDX((uint8_t)x, (uint8_t)y));
+        int16_t x_start = min_x;
+        int16_t x_end = max_x;
+        if (radius != 0u
+                && (y == (int16_t)((int16_t)cy - (int16_t)radius)
+                    || y == (int16_t)((int16_t)cy + (int16_t)radius))) {
+            x_start++;
+            x_end--;
+        }
+        if (x_start > x_end) continue;
+        for (x = x_start; x <= x_end; x++) {
+            BIT_SET(explored_bits, TILE_IDX((uint8_t)x, (uint8_t)y));
+        }
     }
 #else
     cx = cx; cy = cy; radius = radius; // keep interface stable until fog is enabled
@@ -90,11 +104,11 @@ uint8_t tile_at(uint8_t x, uint8_t y) { // decode logical tile from two bitsets
     return TILE_FLOOR;
 }
 
-uint8_t is_brazier_at(uint8_t x, uint8_t y) {
+static uint8_t brazier_index_at(uint8_t x, uint8_t y) {
     uint8_t i;
     for (i = 0u; i < brazier_count; i++)
-        if (brazier_x[i] == x && brazier_y[i] == y) return 1u;
-    return 0u;
+        if (brazier_x[i] == x && brazier_y[i] == y) return i;
+    return 255u;
 }
 
 void set_floor(uint8_t x, uint8_t y) { // carve walkable (clears wall for this tile)
@@ -140,8 +154,13 @@ uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; else ran
     if (x == player_spawn_x && y == player_spawn_y) {
         return TILE_STAIRS_UP_1;
     }
-    if (is_brazier_at(x, y)) {
-        return (uint8_t)((((uint8_t)(DIV_REG >> 3) + x + y) & 1u) ? TILE_LIGHT_4 : TILE_LIGHT_3); // C3/C4 flicker, no particles
+    {
+        uint8_t bi = brazier_index_at(x, y);
+        if (bi != 255u) {
+            if (brazier_type[bi] == 0u)
+                return (uint8_t)((((uint8_t)(DIV_REG >> 3) + x + y) & 1u) ? TILE_LIGHT_4 : TILE_LIGHT_3); // C3/C4
+            return (uint8_t)((((uint8_t)(DIV_REG >> 3) + x + y) & 1u) ? TILE_LIGHT_2 : TILE_LIGHT_1); // C1/C2
+        }
     }
     if (floor_tile_is_blank(x, y)) return 255u;
     {
@@ -157,7 +176,7 @@ uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; else ran
 
 uint8_t floor_tile_palette_xy(uint8_t x, uint8_t y) { // stairs + blank = B&W pal 0; E3/E4 deco = dark grey PAL_FLOOR_BG
     if (x == player_spawn_x && y == player_spawn_y) return 0u;
-    if (is_brazier_at(x, y)) return (uint8_t)PAL_LADDER; // reuse fire-toned gameplay palette slot
+    if (brazier_index_at(x, y) != 255u) return (uint8_t)PAL_LADDER; // reuse fire-toned gameplay palette slot
     if (floor_tile_is_blank(x, y)) return 0u;
     return (uint8_t)PAL_FLOOR_BG;
 }
@@ -192,8 +211,8 @@ static void build_nav_graph(void) { // run after floor/pit layout is final
     uint8_t x, y, i, dir;
     num_nav_nodes = 0;
 
-    for (y = 1; y < MAP_H-1 && num_nav_nodes < MAX_NAV_NODES; y++) { // skip map border (always wall)
-        for (x = 1; x < MAP_W-1 && num_nav_nodes < MAX_NAV_NODES; x++) {
+    for (y = 1; y < active_map_h-1 && num_nav_nodes < MAX_NAV_NODES; y++) { // skip map border (always wall)
+        for (x = 1; x < active_map_w-1 && num_nav_nodes < MAX_NAV_NODES; x++) {
             if (!is_walkable(x, y))          continue;
             if (is_straight_corridor(x, y))  continue; // defer routing along halls to edge links
             if (num_nav_nodes > 0 && min_dist_to_existing_node(x, y) < NAV_MIN_SPACE) continue; // spread nodes
@@ -215,7 +234,7 @@ static void build_nav_graph(void) { // run after floor/pit layout is final
             for (step = 0; step < NAV_MAX_TRACE; step++) { // cap so huge rooms don't scan forever
                 int16_t ncx = (int16_t)cx + NAV_DX[dir]; // next tile in this direction
                 int16_t ncy = (int16_t)cy + NAV_DY[dir];
-                if (ncx <= 0 || ncx >= MAP_W-1 || ncy <= 0 || ncy >= MAP_H-1) break; // stay off outer wall
+                if (ncx <= 0 || ncx >= active_map_w-1 || ncy <= 0 || ncy >= active_map_h-1) break; // stay off outer wall
                 cx = (uint8_t)ncx;
                 cy = (uint8_t)ncy;
                 if (!is_walkable(cx, cy)) break; // corridor ends at wall
@@ -279,8 +298,15 @@ void generate_level(uint16_t floor_seed) { // full regen: clears map, walks, pit
     uint32_t mix = (uint32_t)floor_seed * 2654435761u ^ (uint32_t)floor_seed << 13;
     mix ^= mix >> 17;
     mix *= 2246523629u;
+    if (floor_num == 1u) {
+        active_map_w = 20u;
+        active_map_h = 20u;
+    } else {
+        active_map_w = MAP_W;
+        active_map_h = MAP_H;
+    }
     {
-        uint8_t span_x = (uint8_t)(MAP_W - 2u), span_y = (uint8_t)(MAP_H - 2u);
+        uint8_t span_x = (uint8_t)(active_map_w - 2u), span_y = (uint8_t)(active_map_h - 2u);
         player_spawn_x = (uint8_t)(1u + (uint8_t)(mix % span_x));
         mix     = mix * 1597334677u + 1u;
         player_spawn_y = (uint8_t)(1u + (uint8_t)(mix % span_y));
@@ -296,17 +322,17 @@ void generate_level(uint16_t floor_seed) { // full regen: clears map, walks, pit
         uint8_t d  = rand() >> 6; // use top bits of rand(); low bits are weak on this LCG
         uint8_t nx = x, ny = y;
         if      (d == 0) ny = y > 1           ? y - 1 : y; // stay one tile inside border
-        else if (d == 1) ny = y < MAP_H - 2   ? y + 1 : y;
+        else if (d == 1) ny = y < active_map_h - 2   ? y + 1 : y;
         else if (d == 2) nx = x > 1           ? x - 1 : x;
-        else             nx = x < MAP_W - 2   ? x + 1 : x;
+        else             nx = x < active_map_w - 2   ? x + 1 : x;
         set_floor(nx, ny);
         x = nx; y = ny; // wander
     }
 
     uint8_t placed = 0;
     for (uint8_t attempts = 0; attempts < 200 && placed < NUM_PITS; attempts++) { // random floor tile, not spawn
-        uint8_t tx = (uint8_t)(rand() % MAP_W);
-        uint8_t ty = (uint8_t)(rand() % MAP_H);
+        uint8_t tx = (uint8_t)(rand() % active_map_w);
+        uint8_t ty = (uint8_t)(rand() % active_map_h);
         if ((tx != player_spawn_x || ty != player_spawn_y) // never ladder on spawn
                 && BIT_GET(floor_bits, TILE_IDX(tx, ty))
                 && !BIT_GET(pit_bits,  TILE_IDX(tx, ty))) {
@@ -316,8 +342,8 @@ void generate_level(uint16_t floor_seed) { // full regen: clears map, walks, pit
     }
     if (placed < NUM_PITS) { // guarantee NUM_PITS ladders if RNG never hit an open tile
         uint8_t fx, fy;
-        for (fy = 0; fy < MAP_H && placed < NUM_PITS; fy++) {
-            for (fx = 0; fx < MAP_W && placed < NUM_PITS; fx++) {
+        for (fy = 0; fy < active_map_h && placed < NUM_PITS; fy++) {
+            for (fx = 0; fx < active_map_w && placed < NUM_PITS; fx++) {
                 uint16_t idx = TILE_IDX(fx, fy);
                 if ((fx != player_spawn_x || fy != player_spawn_y)
                         && BIT_GET(floor_bits, idx)
@@ -332,21 +358,24 @@ void generate_level(uint16_t floor_seed) { // full regen: clears map, walks, pit
     {
         uint8_t target_count;
         uint16_t attempts = 0u;
-        int16_t target = (int16_t)(10u + (uint8_t)(rand() % 11u)) - (int16_t)floor_num; // 10..20 minus depth
-        if (target < 0) target = 0;
-        if (target > (int16_t)MAX_BRAZIERS) target = (int16_t)MAX_BRAZIERS;
-        target_count = (uint8_t)target;
+        if (floor_num == 1u) target_count = 4u;
+        else {
+            uint8_t base = (uint8_t)(10u + (uint8_t)(rand() % 11u)); // 10..20
+            target_count = (floor_num >= base) ? 0u : (uint8_t)(base - floor_num);
+        }
+        if (target_count > MAX_BRAZIERS) target_count = MAX_BRAZIERS;
         while (brazier_count < target_count && attempts < (uint16_t)(80u + (uint16_t)target_count * 24u)) {
-            uint8_t tx = (uint8_t)(rand() % MAP_W);
-            uint8_t ty = (uint8_t)(rand() % MAP_H);
+            uint8_t tx = (uint8_t)(rand() % active_map_w);
+            uint8_t ty = (uint8_t)(rand() % active_map_h);
             uint16_t idx = TILE_IDX(tx, ty);
             attempts++;
             if ((tx == player_spawn_x && ty == player_spawn_y)
                     || !BIT_GET(floor_bits, idx)
                     || BIT_GET(pit_bits, idx)
-                    || is_brazier_at(tx, ty)) continue;
+                    || brazier_index_at(tx, ty) != 255u) continue;
             brazier_x[brazier_count] = tx;
             brazier_y[brazier_count] = ty;
+            brazier_type[brazier_count] = (uint8_t)(rand() & 1u);
             brazier_count++;
         }
     }
@@ -399,8 +428,8 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
         int16_t cy = (int16_t)*py - GRID_H / 2;
         if (cx < 0) cx = 0;
         if (cy < 0) cy = 0;
-        if (cx > (int16_t)(MAP_W - GRID_W)) cx = (int16_t)(MAP_W - GRID_W);
-        if (cy > (int16_t)(MAP_H - GRID_H)) cy = (int16_t)(MAP_H - GRID_H);
+        if (cx > (int16_t)(active_map_w - GRID_W)) cx = (int16_t)(active_map_w - GRID_W);
+        if (cy > (int16_t)(active_map_h - GRID_H)) cy = (int16_t)(active_map_h - GRID_H);
         camera_init((uint8_t)cx, (uint8_t)cy);
     }
     ui_loading_screen_end();

@@ -14,11 +14,12 @@ extern uint8_t wall_tileset_index; // which wall tile in VRAM band (debug)
 extern uint8_t wall_palette_index; // wall_palette_table index → PAL_WALL_BG
 extern uint8_t pillar_palette_index; // wall_palette_table index → PAL_PILLAR_BG (column tiles)
 extern uint8_t floor_column_off; // D1..D4 sheet offset; pillars use this, bulk uses wall_tileset_index
+extern uint8_t active_map_w; // runtime floor bounds within MAP_W storage
+extern uint8_t active_map_h;
 extern uint8_t player_spawn_x;    // set per floor in generate_level — seed-based, walkable
 extern uint8_t player_spawn_y;
 
 uint8_t tile_at(uint8_t x, uint8_t y); // TILE_WALL / TILE_FLOOR / TILE_PIT from bitsets
-uint8_t is_brazier_at(uint8_t x, uint8_t y); // decorative walkable light source flag
 void    set_floor(uint8_t x, uint8_t y); // carve floor-only
 void    set_pit(uint8_t x, uint8_t y); // carve pit (sets both bits)
 uint8_t is_walkable(uint8_t x, uint8_t y); // floor_bits only

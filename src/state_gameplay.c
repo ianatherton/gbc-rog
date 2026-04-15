@@ -72,9 +72,9 @@ void state_gameplay_tick(void) BANKED {
 #endif
         }
         if (edge_s & J_LEFT && look_cx) look_cx--;
-        if (edge_s & J_RIGHT && look_cx < MAP_W - 1u) look_cx++;
+        if (edge_s & J_RIGHT && look_cx < active_map_w - 1u) look_cx++;
         if (edge_s & J_UP && look_cy) look_cy--;
-        if (edge_s & J_DOWN && look_cy < MAP_H - 1u) look_cy++;
+        if (edge_s & J_DOWN && look_cy < active_map_h - 1u) look_cy++;
         {
             uint8_t ei = enemy_at(look_cx, look_cy);
             if (ei != ENEMY_DEAD) ui_panel_show_inspect(ei);
@@ -92,9 +92,9 @@ void state_gameplay_tick(void) BANKED {
     }
 
     if (j & J_LEFT)  { nx = g_player_x > 0       ? (uint8_t)(g_player_x-1) : g_player_x; entity_sprites_set_player_facing(-1); }
-    if (j & J_RIGHT) { nx = g_player_x < MAP_W-1 ? (uint8_t)(g_player_x+1) : g_player_x; entity_sprites_set_player_facing(1); }
+    if (j & J_RIGHT) { nx = g_player_x < active_map_w-1 ? (uint8_t)(g_player_x+1) : g_player_x; entity_sprites_set_player_facing(1); }
     if (j & J_UP)    ny = g_player_y > 0         ? (uint8_t)(g_player_y-1) : g_player_y;
-    if (j & J_DOWN)  ny = g_player_y < MAP_H-1   ? (uint8_t)(g_player_y+1) : g_player_y;
+    if (j & J_DOWN)  ny = g_player_y < active_map_h-1   ? (uint8_t)(g_player_y+1) : g_player_y;
 
 #if GBC_ROG_DEBUG
     if ((j & J_A) && !(g_prev_j & J_A)) {
@@ -168,8 +168,8 @@ void state_gameplay_tick(void) BANKED {
                 {
                     uint8_t target_cx = (g_player_x > GRID_W / 2) ? (uint8_t)(g_player_x - GRID_W / 2) : 0;
                     uint8_t target_cy = (g_player_y > GRID_H / 2) ? (uint8_t)(g_player_y - GRID_H / 2) : 0;
-                    if (target_cx > (uint8_t)(MAP_W - GRID_W)) target_cx = (uint8_t)(MAP_W - GRID_W);
-                    if (target_cy > (uint8_t)(MAP_H - GRID_H)) target_cy = (uint8_t)(MAP_H - GRID_H);
+                    if (target_cx > (uint8_t)(active_map_w - GRID_W)) target_cx = (uint8_t)(active_map_w - GRID_W);
+                    if (target_cy > (uint8_t)(active_map_h - GRID_H)) target_cy = (uint8_t)(active_map_h - GRID_H);
                     camera_scroll_to(target_cx, target_cy, opx, opy, g_player_x, g_player_y);
                 }
                 {

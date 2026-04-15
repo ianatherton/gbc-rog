@@ -45,7 +45,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00002000  _rROMB0   |    00002B58  l__CODE   |    00002D58  s__HOME  
      00003000  _rROMB1   |    000038FE  s__BASE   |    000038FE  s__CODE_0
      000038FE  s__INITIA |    000038FE  s__LIT    |    00003925  s__GSINIT
-     00003931  s__GSFINA |    0000398E  l__CODE_2 |    00004000  _rMBC7_SR
+     00003931  s__GSFINA |    00003B2B  l__CODE_2 |    00004000  _rMBC7_SR
      00004000  _rRAMB    |    00008000  __VRAM    |    00008000  __VRAM800
      00008800  __VRAM880 |    00009000  __VRAM900 |    00009800  __SCRN0  
      00009C00  __SCRN1   |    0000A000  __SRAM    |    0000A000  _rMBC7_LA
@@ -426,31 +426,31 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_2                00024000    0000398E =       14734. bytes (REL,CON)
+_CODE_2                00024000    00003B2B =       15147. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00024000  _lighting |    00024001  _lighting |    00024004  _lighting
-     00024007  _wall_ort |    000241BC  _tile_at  |    00024210  _set_floo
-     00024262  _set_pit  |    000242A1  _is_walka |    000242E4  _tile_cha
-     000242F2  _tile_vra |    00024306  _tile_pal |    00024313  _floor_gr
-     0002432B  _floor_ti |    000243C1  _floor_ti |    0002475B  _nearest_
-     000247E7  _nav_next |    00024973  _generate |    00024C19  ___func_l
-     00024C19  _level_ge |    00024E87  ___func_b |    00024E87  _bwv1043_
-     00024FB9  _bwv1043_ |    00025535  _bwv1043_ |    00025A22  _enemy_gr
-     00025A45  _enemy_de |    00025A69  _enemy_ty |    00025AB4  _enemy_ef
-     00025AE4  _enemy_ef |    00025B15  _enemy_an |    00025B23  _enemy_an
-     00025B9F  _enemy_at |    00025C1C  _corpse_s |    00025C92  _corpse_a
-     00025C9E  _corpse_d |    00025CAD  _spawn_en |    00025F62  _enemy_re
-     0002602A  _move_ene |    00026372  ___func_c |    00026372  _camera_i
-     000265AB  _camera_s |    000269F8  _camera_s |    00026A47  _apply_wa
-     00026CAC  ___func_l |    00026CAC  _load_pal |    00026D8B  _draw_cel
-     00026DDF  _draw_col |    00026E19  _draw_row |    00026E50  _draw_ui_
-     00026E53  _draw_scr |    00026EC2  _draw_ene |    00026FD3  ___func_s
-     00026FD3  _state_ga |    0002702B  ___func_s |    0002702B  _state_ga
-     00027497  _push_com |    000275BC  _grant_xp |    00027629  _resolve_
-     00027684  _combat_p |    000277FD  _wall_pal |    0002793D  ___func_l
-     0002793D  _level_in
+     00024000  _lighting |    00024015  _lighting |    00024173  _lighting
+     000241B6  _wall_ort |    0002436B  _tile_at  |    000243BF  _set_floo
+     00024411  _set_pit  |    00024450  _is_walka |    00024493  _tile_cha
+     000244A1  _tile_vra |    000244B5  _tile_pal |    000244C2  _floor_gr
+     000244DA  _floor_ti |    00024570  _floor_ti |    0002490A  _nearest_
+     00024996  _nav_next |    00024B22  _generate |    00024DC8  ___func_l
+     00024DC8  _level_ge |    00025036  ___func_b |    00025036  _bwv1043_
+     00025168  _bwv1043_ |    000256E4  _bwv1043_ |    00025BD1  _enemy_gr
+     00025BF4  _enemy_de |    00025C18  _enemy_ty |    00025C63  _enemy_ef
+     00025C93  _enemy_ef |    00025CC4  _enemy_an |    00025CD2  _enemy_an
+     00025D4E  _enemy_at |    00025DCB  _corpse_s |    00025E41  _corpse_a
+     00025E4D  _corpse_d |    00025E5C  _spawn_en |    00026111  _enemy_re
+     000261D9  _move_ene |    00026521  ___func_c |    00026521  _camera_i
+     0002675A  _camera_s |    00026BA7  _camera_s |    00026BF6  _apply_wa
+     00026E5B  ___func_l |    00026E5B  _load_pal |    00026F3A  _draw_cel
+     00026F8E  _draw_col |    00026FC8  _draw_row |    00026FFF  _draw_ui_
+     00027002  _draw_scr |    00027071  _draw_ene |    00027182  ___func_s
+     00027182  _state_ga |    000271DA  ___func_s |    000271DA  _state_ga
+     00027634  _push_com |    00027759  _grant_xp |    000277C6  _resolve_
+     00027821  _combat_p |    0002799A  _wall_pal |    00027ADA  ___func_l
+     00027ADA  _level_in
 ASxxxx Linker V03.00/V05.40 + sdld,  page 31.
 Hexadecimal  [32-Bits]
 

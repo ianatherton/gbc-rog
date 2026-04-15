@@ -185,8 +185,7 @@ void state_gameplay_tick(void) BANKED {
                 result = resolve_enemy_hits_and_animate(g_player_x, g_player_y);
                 if (result) combat_idle_turns = 0;
                 wait_vbl_done();
-                if (result) draw_screen(g_player_x, g_player_y);
-                else        draw_enemy_cells(g_player_x, g_player_y);
+                draw_screen(g_player_x, g_player_y);
 
                 if (result == 2) {
                     pending_transition = TRANS_TO_GAME_OVER;

@@ -43,8 +43,8 @@
 #define BIT_SET(arr, idx)    ((arr)[(idx) >> 3] |=  (1u << ((idx) & 7)))
 #define BIT_CLR(arr, idx)    ((arr)[(idx) >> 3] &= ~(1u << ((idx) & 7)))
 
-#define FEATURE_MAP_FOG 0u // 1 enables explored-bit fog gate in renderer + reveal updates on movement
-#define PLAYER_LIGHT_RADIUS 4u // reveal radius in tiles when fog is enabled
+#define FEATURE_MAP_FOG 1u // 1 enables explored-bit fog gate in renderer + reveal updates on movement
+#define PLAYER_LIGHT_RADIUS 2u // reveal radius in tiles when fog is enabled
 
 /* ── Navigation graph constants ──────────────────────────────────────────── */
 // A nav-graph node sits at a "junction" floor tile — any tile that is NOT a

@@ -45,6 +45,8 @@
 
 #define FEATURE_MAP_FOG 1u // 1 enables explored-bit fog gate in renderer + reveal updates on movement
 #define PLAYER_LIGHT_RADIUS 2u // reveal radius in tiles when fog is enabled
+#define BRAZIER_LIGHT_RADIUS 3u // static floor light source radius for placed braziers
+#define MAX_BRAZIERS 20u // upper bound for floor brazier placements before depth reduction
 
 /* ── Navigation graph constants ──────────────────────────────────────────── */
 // A nav-graph node sits at a "junction" floor tile — any tile that is NOT a

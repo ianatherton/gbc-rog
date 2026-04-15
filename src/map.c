@@ -23,6 +23,9 @@ uint8_t player_spawn_x = MAP_W / 2;       // overwritten each generate_level(flo
 uint8_t player_spawn_y = MAP_H / 2;
 uint8_t floor_column_off = TILE_COLUMN_1; // D-column art; floor_ground_init
 static uint16_t floor_visual_seed;        // deterministic seed for floor blank-scatter hash
+static uint8_t brazier_count;
+static uint8_t brazier_x[MAX_BRAZIERS];
+static uint8_t brazier_y[MAX_BRAZIERS];
 void lighting_reset(void) {
     uint16_t i;
 #if FEATURE_MAP_FOG
@@ -87,6 +90,13 @@ uint8_t tile_at(uint8_t x, uint8_t y) { // decode logical tile from two bitsets
     return TILE_FLOOR;
 }
 
+uint8_t is_brazier_at(uint8_t x, uint8_t y) {
+    uint8_t i;
+    for (i = 0u; i < brazier_count; i++)
+        if (brazier_x[i] == x && brazier_y[i] == y) return 1u;
+    return 0u;
+}
+
 void set_floor(uint8_t x, uint8_t y) { // carve walkable (clears wall for this tile)
     BIT_SET(floor_bits, TILE_IDX(x, y));
 }
@@ -130,6 +140,9 @@ uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; else ran
     if (x == player_spawn_x && y == player_spawn_y) {
         return TILE_STAIRS_UP_1;
     }
+    if (is_brazier_at(x, y)) {
+        return (uint8_t)((((uint8_t)(DIV_REG >> 3) + x + y) & 1u) ? TILE_LIGHT_4 : TILE_LIGHT_3); // C3/C4 flicker, no particles
+    }
     if (floor_tile_is_blank(x, y)) return 255u;
     {
         static const uint8_t ground_e34[2] = { TILE_GROUND_C, TILE_GROUND_D }; // sheet E3, E4
@@ -144,6 +157,7 @@ uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; else ran
 
 uint8_t floor_tile_palette_xy(uint8_t x, uint8_t y) { // stairs + blank = B&W pal 0; E3/E4 deco = dark grey PAL_FLOOR_BG
     if (x == player_spawn_x && y == player_spawn_y) return 0u;
+    if (is_brazier_at(x, y)) return (uint8_t)PAL_LADDER; // reuse fire-toned gameplay palette slot
     if (floor_tile_is_blank(x, y)) return 0u;
     return (uint8_t)PAL_FLOOR_BG;
 }
@@ -275,6 +289,7 @@ void generate_level(uint16_t floor_seed) { // full regen: clears map, walks, pit
     uint8_t x = player_spawn_x, y = player_spawn_y; // drunkard starts at deterministic spawn
 
     for (i = 0; i < BITSET_BYTES; i++) { floor_bits[i] = 0; pit_bits[i] = 0; } // all wall to start; visual blanking is hashed now
+    brazier_count = 0u;
 
     set_floor(x, y); // ensure spawn is open
     for (i = 0; i < WALK_STEPS; i++) {
@@ -314,6 +329,28 @@ void generate_level(uint16_t floor_seed) { // full regen: clears map, walks, pit
         }
     }
 
+    {
+        uint8_t target_count;
+        uint16_t attempts = 0u;
+        int16_t target = (int16_t)(10u + (uint8_t)(rand() % 11u)) - (int16_t)floor_num; // 10..20 minus depth
+        if (target < 0) target = 0;
+        if (target > (int16_t)MAX_BRAZIERS) target = (int16_t)MAX_BRAZIERS;
+        target_count = (uint8_t)target;
+        while (brazier_count < target_count && attempts < (uint16_t)(80u + (uint16_t)target_count * 24u)) {
+            uint8_t tx = (uint8_t)(rand() % MAP_W);
+            uint8_t ty = (uint8_t)(rand() % MAP_H);
+            uint16_t idx = TILE_IDX(tx, ty);
+            attempts++;
+            if ((tx == player_spawn_x && ty == player_spawn_y)
+                    || !BIT_GET(floor_bits, idx)
+                    || BIT_GET(pit_bits, idx)
+                    || is_brazier_at(tx, ty)) continue;
+            brazier_x[brazier_count] = tx;
+            brazier_y[brazier_count] = ty;
+            brazier_count++;
+        }
+    }
+
     build_nav_graph(); // enemies need graph after geometry is known
 }
 
@@ -349,6 +386,10 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     initrand(floor_seed);
     generate_level(floor_seed);
     lighting_reset();
+    {
+        uint8_t i;
+        for (i = 0u; i < brazier_count; i++) lighting_reveal_radius(brazier_x[i], brazier_y[i], BRAZIER_LIGHT_RADIUS);
+    }
     spawn_enemies();
     *px = player_spawn_x;
     *py = player_spawn_y;

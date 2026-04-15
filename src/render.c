@@ -14,7 +14,7 @@ static const palette_color_t pal_floor_deco[] = { RGB(0,0,0), RGB(5,5,5), RGB(11
 static const palette_color_t pal_green[]    = { RGB(0,0,0),  RGB(0,20,0),  RGB(0,26,0),   RGB(0,31,0)   }; // BKG+OCP1: serpent & adder only (snakes)
 static const palette_color_t pal_player[]   = { RGB(0,0,0),  RGB(24,18,0), RGB(30,24,4),  RGB(31,31,10) }; // slot PAL_PLAYER: gold — player + title torches only
 static const palette_color_t pal_player_hurt_flash[] = { RGB(0,0,0), RGB(26,0,2), RGB(31,6,8), RGB(31,14,12) }; // same OCP2: brief damage tint (hotter red than life bar BKG)
-static const palette_color_t pal_ladder[]   = { RGB(0,0,0),  RGB(12,7,3),  RGB(22,14,6),  RGB(30,22,10) }; // BKG4 pit/ladder; OCP4 = skeleton (separate sprite CRAM)
+static const palette_color_t pal_ladder[]   = { RGB(0,0,0),  RGB(26,6,0),  RGB(31,16,2),  RGB(31,26,8) }; // BKG4 fire tone (matches title torches); OCP4 = skeleton (separate sprite CRAM)
 static const palette_color_t pal_enemy_skeleton[] = { RGB(0,0,0), RGB(8,6,20),  RGB(16,10,26), RGB(22,16,31) }; // OCP4 violet / blue-purple bone
 static const palette_color_t pal_enemy_rat[]      = { RGB(0,0,0), RGB(22,6,10), RGB(30,10,16), RGB(31,18,22) }; // OCP5 red–rose (BKG5 = life bar)
 static const palette_color_t pal_enemy_goblin[]   = { RGB(0,0,0), RGB(18,4,18), RGB(26,8,24),  RGB(31,14,28) }; // OCP6 magenta–pink (BKG6 = HUD text)

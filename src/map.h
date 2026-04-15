@@ -18,6 +18,7 @@ extern uint8_t player_spawn_x;    // set per floor in generate_level — seed-ba
 extern uint8_t player_spawn_y;
 
 uint8_t tile_at(uint8_t x, uint8_t y); // TILE_WALL / TILE_FLOOR / TILE_PIT from bitsets
+uint8_t is_brazier_at(uint8_t x, uint8_t y); // decorative walkable light source flag
 void    set_floor(uint8_t x, uint8_t y); // carve floor-only
 void    set_pit(uint8_t x, uint8_t y); // carve pit (sets both bits)
 uint8_t is_walkable(uint8_t x, uint8_t y); // floor_bits only

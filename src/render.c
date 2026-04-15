@@ -9,7 +9,8 @@
 #include "wall_palettes.h" // wall_palette_table, NUM_WALL_PALETTES
 #include "entity_sprites.h"
 
-static const palette_color_t pal_default[]  = { RGB(0,0,0),  RGB(8,8,8),   RGB(16,16,16), RGB(31,31,31) }; // slot 0: floor text default
+static const palette_color_t pal_default[]  = { RGB(0,0,0),  RGB(8,8,8),   RGB(16,16,16), RGB(31,31,31) }; // slot 0: black field, corpses, blank floor; wall paper
+static const palette_color_t pal_floor_deco[] = { RGB(0,0,0), RGB(5,5,5), RGB(11,11,11), RGB(17,17,17) }; // BKG PAL_FLOOR_BG: E3–E5 ground deco, dark grey on black
 static const palette_color_t pal_green[]    = { RGB(0,0,0),  RGB(0,20,0),  RGB(0,26,0),   RGB(0,31,0)   }; // BKG+OCP1: serpent & adder only (snakes)
 static const palette_color_t pal_player[]   = { RGB(0,0,0),  RGB(24,18,0), RGB(30,24,4),  RGB(31,31,10) }; // slot PAL_PLAYER: gold — player + title torches only
 static const palette_color_t pal_player_hurt_flash[] = { RGB(0,0,0), RGB(26,0,2), RGB(31,6,8), RGB(31,14,12) }; // same OCP2: brief damage tint (hotter red than life bar BKG)
@@ -22,15 +23,15 @@ static const palette_color_t pal_life_ui[]  = { RGB(0,0,0),  RGB(18,0,0),  RGB(2
 static const palette_color_t pal_ui[]       = { RGB(0,0,0),  RGB(8,8,8),   RGB(16,16,16), RGB(31,31,31) }; // slot 6: HUD text
 static const palette_color_t pal_xp_ui[]    = { RGB(0,0,0),  RGB(18,14,0), RGB(26,22,4),  RGB(31,28,10) }; // slot 7: XP HUD (gold on black)
 
-void render_sprite_palette_player_default(void) { set_sprite_palette(PAL_PLAYER, 1, pal_player); }
-void render_sprite_palette_player_hurt(void) { set_sprite_palette(PAL_PLAYER, 1, pal_player_hurt_flash); }
+void render_sprite_palette_player_default(void) NONBANKED { set_sprite_palette(PAL_PLAYER, 1, pal_player); }
+void render_sprite_palette_player_hurt(void) NONBANKED { set_sprite_palette(PAL_PLAYER, 1, pal_player_hurt_flash); }
 
 void apply_wall_palette(void) { // PAL_WALL_BG bulk walls + PAL_PILLAR_BG column tiles (CGB BGP slots)
     uint8_t iw = wall_palette_index, ip = pillar_palette_index;
     palette_color_t wall_pal[4], pil_pal[4];
     if (iw >= NUM_WALL_PALETTES) iw = 0;
     if (ip >= NUM_WALL_PALETTES) ip = 0;
-    wall_pal[0] = pal_default[0]; // seamless with floor paper
+    wall_pal[0] = pal_default[0]; // black field — seamless with blank / pit-adjacent open cells
     wall_pal[1] = wall_palette_table[iw][1];
     wall_pal[2] = wall_palette_table[iw][2];
     wall_pal[3] = wall_palette_table[iw][3];
@@ -84,10 +85,11 @@ static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t m
     }
 }
 
-void load_palettes(void) { // slots 0–7 except walls: wall table entry 0 until apply_wall_palette runs
+BANKREF(load_palettes)
+void load_palettes(void) BANKED { // slots 0–7 except walls: wall table entry 0 until apply_wall_palette runs
     set_bkg_palette(0, 1, pal_default);
     set_bkg_palette(PAL_PILLAR_BG, 1, wall_palette_table[0]); // slot 1 = pillars in gameplay (was unused BKG green)
-    set_bkg_palette(2, 1, pal_player);
+    set_bkg_palette(PAL_FLOOR_BG, 1, pal_floor_deco); // ground deco tile only; blank floor uses slot 0
     set_bkg_palette(PAL_WALL_BG, 1, wall_palette_table[0]); // matches wall_palette_index default 0
     set_bkg_palette(PAL_LADDER, 1, pal_ladder);
     set_bkg_palette(5, 1, pal_life_ui);

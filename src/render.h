@@ -3,9 +3,9 @@
 
 #include "defs.h"
 
-void load_palettes(void);   // upload 8 CGB background palette slots (wall slot from table[0])
-void render_sprite_palette_player_default(void); // OCP PAL_PLAYER — gold (after hurt flash)
-void render_sprite_palette_player_hurt(void);    // OCP PAL_PLAYER — saturated red tint
+void load_palettes(void) BANKED;   // upload 8 CGB background palette slots (wall slot from table[0])
+void render_sprite_palette_player_default(void) NONBANKED; // OCP PAL_PLAYER — gold (after hurt flash)
+void render_sprite_palette_player_hurt(void) NONBANKED;    // OCP PAL_PLAYER — saturated red tint
 void apply_wall_palette(void); // PAL_WALL_BG + PAL_PILLAR_BG from wall_palette_index / pillar_palette_index
 void draw_screen(uint8_t px, uint8_t py); // full BG redraw + sprite refresh
 void draw_cell(uint8_t mx, uint8_t my); // single map cell if visible (terrain only)

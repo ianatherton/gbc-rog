@@ -8,6 +8,7 @@
 #include "ui.h"
 #include "lcd.h"
 #include "wall_palettes.h"
+#include <gbdk/platform.h>
 #include <rand.h>
 
 uint8_t floor_bits[BITSET_BYTES]; // 1 = open tile (floor or pit); 0 = wall
@@ -71,19 +72,28 @@ void floor_ground_init(uint16_t floor_seed) { // deterministic floor visuals fro
     floor_column_off = (uint8_t)(TILE_COLUMN_1 + (uint8_t)(col_idx * 16u));
 }
 
-uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank (font space / tile 0)
+uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; else random E3/E4 on black field
     if (x == player_spawn_x && y == player_spawn_y) {
         return TILE_STAIRS_UP_1;
     }
     uint16_t idx = TILE_IDX(x, y);
     if (BIT_GET(floor_blank_bits, idx)) return 255u;
-    return TILE_GROUND_D;
+    {
+        static const uint8_t ground_e34[2] = { TILE_GROUND_C, TILE_GROUND_D }; // sheet E3, E4
+        uint16_t h = (uint16_t)(run_seed ^ (uint16_t)((uint16_t)floor_num * 131u));
+        h ^= (uint16_t)((uint16_t)x * 911u ^ (uint16_t)y * 357u);
+        {
+            uint8_t mix = (uint8_t)h ^ (uint8_t)(h >> 8);
+            return ground_e34[(uint8_t)(mix & 1u)];
+        }
+    }
 }
 
-uint8_t floor_tile_palette_xy(uint8_t x, uint8_t y) { // pal 0 = pal_default greyscale (spawn H1 + floor)
-    (void)x;
-    (void)y;
-    return 0;
+uint8_t floor_tile_palette_xy(uint8_t x, uint8_t y) { // stairs + blank = B&W pal 0; E3/E4 deco = dark grey PAL_FLOOR_BG
+    uint16_t idx = TILE_IDX(x, y);
+    if (x == player_spawn_x && y == player_spawn_y) return 0u;
+    if (BIT_GET(floor_blank_bits, idx)) return 0u;
+    return (uint8_t)PAL_FLOOR_BG;
 }
 
 static void wall_cache_bake_ortho_n(void) { // once per floor: wall = !floor_bits; no tile_at / pit decode
@@ -285,7 +295,8 @@ void generate_level(uint16_t floor_seed) { // full regen: clears map, walks, pit
     wall_cache_bake_ortho_n(); // render: wall_ortho_n + floor_column_off + wall_tileset_index → tile+pal, no neighbour scan
 }
 
-void level_generate_and_spawn(uint8_t *px, uint8_t *py) {
+BANKREF(level_generate_and_spawn)
+void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     uint16_t floor_seed = (uint16_t)(run_seed * 2053u)
                         ^ (uint16_t)(floor_num * 6364u)
                         ^ 0xACE1u;

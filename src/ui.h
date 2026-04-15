@@ -10,8 +10,13 @@ typedef enum {
 
 extern UIPanelMode ui_panel_mode;
 
+#define SEED_WORDS_N 40u
+extern const char *const seed_words_desc[SEED_WORDS_N];
+extern const char *const seed_words_noun[SEED_WORDS_N];
+extern const char *const seed_words_place[SEED_WORDS_N];
+void     run_seed_to_triple(uint16_t seed, uint8_t *d, uint8_t *n, uint8_t *p);
+
 uint16_t title_screen(uint16_t entropy_hint);
-void     game_over_screen(void);
 void     ui_draw_bottom_rows(void);
 void     ui_draw_seed_words(uint16_t seed, uint8_t win_y_desc_noun, uint8_t win_y_place);
 void     window_ui_show(void);

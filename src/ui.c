@@ -11,7 +11,7 @@
 #include <gb/gb.h>
 #include <gb/hardware.h> // DEVICE_SPRITE_PX_OFFSET_* — same convention as entity_sprites OAM X
 
-#define SEED_WORDS_N 40 // vocabulary size per category; seed maps to triple index
+// SEED_WORDS_N in ui.h — shared with state_game_over.c
 #define COMBAT_LOG_LINES 3u
 #define COMBAT_LOG_LEN   20u
 
@@ -188,19 +188,19 @@ void ui_combat_log_push(const char *line) {
         combat_log[COMBAT_LOG_LINES - 1u][i] = line[i];
 }
 
-static const char *const seed_words_desc[SEED_WORDS_N] = { // first word line (adjective-ish)
+const char *const seed_words_desc[SEED_WORDS_N] = { // first word line (adjective-ish)
     "ASHEN","BLEAK","BLIND","BLOOD","BLUNT","BONED","BURNT","COLD","CRUEL","CURST",
     "DARK","DEAD","DEEP","DENSE","DIRE","DREAD","DREAR","DULL","DUSK","DUSTY",
     "EMBER","FELL","FETID","FOUL","GAUNT","GRIM","IRON","LOST","LUNAR","MURKY",
     "PALE","ROT","SHADE","SHORN","STARK","STILL","SUNK","TOXIC","VILE","VOID"
 };
-static const char *const seed_words_noun[SEED_WORDS_N] = { // second word on row 1
+const char *const seed_words_noun[SEED_WORDS_N] = { // second word on row 1
     "ASH","BANE","BLOT","BONE","BRIAR","BRIER","COIL","CROW","CRYPT","DUST",
     "EMBER","FANG","FLAME","FROND","FROST","FUNGI","HORN","IRON","LARVA","MIRE",
     "MIST","MOSS","MOTH","MURK","PITH","ROOT","RUIN","SHADE","SKULL","SLIME",
     "SMOKE","SPINE","SPORE","STONE","THORN","TIDE","TOMB","VENOM","WILT","WORM"
 };
-static const char *const seed_words_place[SEED_WORDS_N] = { // row 2 place name
+const char *const seed_words_place[SEED_WORDS_N] = { // row 2 place name
     "ABYSS","BOG","BRINK","CAIRN","CAVES","CHASM","CRAGS","CRYPT","DEEP","DELL",
     "DELVE","DUNES","FELLS","FLATS","GORGE","GULCH","HEATH","KEEP","MARSH","MIRE",
     "MOORS","MOUND","NOOK","PEAKS","PITS","RIFT","RUINS","SANDS","SHELF","SHORE",
@@ -347,7 +347,7 @@ static void put_word5_win(uint8_t x, uint8_t y, const char *s) { // same for win
     for (i = 0; i < 5; i++) { win_putc((uint8_t)(x+i), y, s[i] ? s[i] : ' '); }
 }
 
-static void run_seed_to_triple(uint16_t seed, uint8_t *d, uint8_t *n, uint8_t *p) { // same logic as ui_draw_seed_words / picker
+void run_seed_to_triple(uint16_t seed, uint8_t *d, uint8_t *n, uint8_t *p) { // same logic as ui_draw_seed_words / picker
     uint16_t s = seed;
     if (s < 1u) s = 1u;
     if (s > 64000u) s = 64000u;
@@ -548,20 +548,3 @@ uint16_t title_screen(uint16_t entropy_hint) { // blocking until START or SELECT
     }
 }
 
-void game_over_screen(void) { // blocks until START
-    uint8_t d, n, p;
-    lcd_gameplay_active = 0u;
-    window_ui_hide();
-    wait_vbl_done();
-    lcd_clear_display();
-    gotoxy(5,  6); printf("GAME OVER");
-    run_seed_to_triple(run_seed, &d, &n, &p);
-    put_word5(0, 9, seed_words_desc[d]);
-    put_word5(6, 9, seed_words_noun[n]);
-    put_word5(0, 10, seed_words_place[p]);
-    gotoxy(4, 13); printf("START=again");
-    while (1) {
-        if (joypad() & J_START) break; // no edge detect: holding START still works
-        wait_vbl_done();
-    }
-}

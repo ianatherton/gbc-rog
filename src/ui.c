@@ -161,6 +161,12 @@ static void ui_title_menu_anim_tick(uint16_t frame_counter) {
     }
     if ((frame_counter & 3u) == 0u) ui_title_try_spawn_fire(0, frame_counter);
     if ((frame_counter & 3u) == 2u) ui_title_try_spawn_fire(1, frame_counter);
+    { // brazier bases: alternate C3/C4 every few frames (shared by title + seed-word menus)
+        uint8_t tt = (uint8_t)(TILESET_VRAM_OFFSET
+            + (((frame_counter >> 2) & 1u) ? TILE_LIGHT_4 : TILE_LIGHT_3));
+        set_sprite_tile(UI_TITLE_TORCH_OAM_L, tt);
+        set_sprite_tile(UI_TITLE_TORCH_OAM_R, tt);
+    }
 }
 
 static char combat_log[COMBAT_LOG_LINES][COMBAT_LOG_LEN];

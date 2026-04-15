@@ -66,8 +66,10 @@ void state_gameplay_tick(void) BANKED {
             look_cy = g_player_y;
         }
         if (edge_s & J_A) {
+#if GBC_ROG_DEBUG
             wall_tileset_index = (uint8_t)(wall_tileset_index + 16u);
             if (wall_tileset_index > TILE_WALL_LAST) wall_tileset_index = TILE_WALL_FIRST;
+#endif
         }
         if (edge_s & J_LEFT && look_cx) look_cx--;
         if (edge_s & J_RIGHT && look_cx < MAP_W - 1u) look_cx++;
@@ -94,11 +96,13 @@ void state_gameplay_tick(void) BANKED {
     if (j & J_UP)    ny = g_player_y > 0         ? (uint8_t)(g_player_y-1) : g_player_y;
     if (j & J_DOWN)  ny = g_player_y < MAP_H-1   ? (uint8_t)(g_player_y+1) : g_player_y;
 
+#if GBC_ROG_DEBUG
     if ((j & J_A) && !(g_prev_j & J_A)) {
         wall_palette_index = (uint8_t)((wall_palette_index + 1u) % NUM_WALL_PALETTES);
         wait_vbl_done();
         draw_screen(g_player_x, g_player_y);
     }
+#endif
 
     if (nx != g_player_x || ny != g_player_y) {
         uint8_t ei = enemy_at(nx, ny);

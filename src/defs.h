@@ -20,18 +20,18 @@
 /* ── Actual map dimensions ───────────────────────────────────────────────── */
 // ⚠ MEMORY NOTE: GBC has 32 KB WRAM total.
 //   The bitsets below cost MAP_W×MAP_H / 8 bytes each.
-//   64×64 → 512 bytes per bitset ✓  128×128 → 2 048 bytes per bitset ✓
+//   64×64 → 512 bytes per bitset ✓  96×96 → 1 152 bytes per bitset ✓
 //   200×200 would need bank-switched WRAM (advanced topic).
-#define MAP_W 64
-#define MAP_H 64
+#define MAP_W 96
+#define MAP_H 96
 // Total tile count as uint16_t to avoid 8-bit overflow in expressions.
-#define MAP_TILES ((uint16_t)MAP_W * MAP_H)   // 4 096 for 64×64
+#define MAP_TILES ((uint16_t)MAP_W * MAP_H)   // 9 216 for 96×96
 
 /* ── Bitset storage size ─────────────────────────────────────────────────── */
 // We store one BIT per tile instead of one BYTE.
 // That is 8× more compact: 4 096 tiles → 512 bytes instead of 4 096.
 // Two separate bitsets: one for "is floor/walkable", one for "is pit".
-#define BITSET_BYTES ((MAP_W * MAP_H + 7) / 8)   // = 512 bytes for 64×64
+#define BITSET_BYTES ((MAP_W * MAP_H + 7) / 8)   // = 1 152 bytes for 96×96
 
 /* ── Bitset access macros ────────────────────────────────────────────────── */
 // Given a flat tile index I (= y*MAP_W + x):
@@ -42,6 +42,9 @@
 #define BIT_GET(arr, idx)   (((arr)[(idx) >> 3] >> ((idx) & 7)) & 1u)
 #define BIT_SET(arr, idx)    ((arr)[(idx) >> 3] |=  (1u << ((idx) & 7)))
 #define BIT_CLR(arr, idx)    ((arr)[(idx) >> 3] &= ~(1u << ((idx) & 7)))
+
+#define FEATURE_MAP_FOG 0u // 1 enables explored-bit fog gate in renderer + reveal updates on movement
+#define PLAYER_LIGHT_RADIUS 4u // reveal radius in tiles when fog is enabled
 
 /* ── Navigation graph constants ──────────────────────────────────────────── */
 // A nav-graph node sits at a "junction" floor tile — any tile that is NOT a

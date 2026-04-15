@@ -109,8 +109,8 @@ void spawn_enemies(void) { // random placement with collision checks
     for (i = 0; i < NUM_ENEMIES; i++) {
         uint8_t attempts;
         for (attempts = 0; attempts < 100; attempts++) {
-            uint8_t tx = (uint8_t)(rand() & (MAP_W - 1)); // MAP_W is power-of-2
-            uint8_t ty = (uint8_t)(rand() & (MAP_H - 1));
+            uint8_t tx = (uint8_t)(rand() % MAP_W); // modulo supports non-power-of-2 map sizes
+            uint8_t ty = (uint8_t)(rand() % MAP_H);
             if ((tx != player_spawn_x || ty != player_spawn_y)
                     && is_walkable(tx, ty)
                     && enemy_at(tx, ty) == ENEMY_DEAD) {

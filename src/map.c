@@ -13,7 +13,7 @@
 
 uint8_t floor_bits[BITSET_BYTES]; // 1 = open tile (floor or pit); 0 = wall
 uint8_t pit_bits[BITSET_BYTES];   // subset of floor: 1 = pit hazard
-uint8_t floor_blank_bits[BITSET_BYTES]; // plain-floor deco: 1 = render as empty background (same bit layout as floor_bits)
+uint8_t explored_bits[BITSET_BYTES]; // fog scaffold: 1 = tile was revealed to player
 NavNode nav_nodes[MAX_NAV_NODES]; // junction graph for enemy pathing
 uint8_t num_nav_nodes;            // how many nodes after build_nav_graph
 uint8_t wall_tileset_index = TILE_WALL_FIRST; // offset within sheet for TILE_WALL (debug cycle)
@@ -22,7 +22,60 @@ uint8_t pillar_palette_index = 0;       // column deco walls → PAL_PILLAR_BG
 uint8_t player_spawn_x = MAP_W / 2;       // overwritten each generate_level(floor_seed)
 uint8_t player_spawn_y = MAP_H / 2;
 uint8_t floor_column_off = TILE_COLUMN_1; // D-column art; floor_ground_init
-uint8_t wall_ortho_n[MAP_TILES];          // render reads this for walls; wall_cache_bake_ortho_n fills after gen
+static uint16_t floor_visual_seed;        // deterministic seed for floor blank-scatter hash
+void lighting_reset(void) {
+    uint16_t i;
+#if FEATURE_MAP_FOG
+    for (i = 0u; i < BITSET_BYTES; i++) explored_bits[i] = 0u;
+#else
+    i = 0u; // quiet -Wunused-but-set-variable when fog is disabled
+#endif
+}
+
+void lighting_reveal_radius(uint8_t cx, uint8_t cy, uint8_t radius) {
+#if FEATURE_MAP_FOG
+    int16_t min_x = (int16_t)cx - (int16_t)radius;
+    int16_t max_x = (int16_t)cx + (int16_t)radius;
+    int16_t min_y = (int16_t)cy - (int16_t)radius;
+    int16_t max_y = (int16_t)cy + (int16_t)radius;
+    int16_t y;
+    if (min_x < 0) min_x = 0;
+    if (min_y < 0) min_y = 0;
+    if (max_x > (int16_t)(MAP_W - 1u)) max_x = (int16_t)(MAP_W - 1u);
+    if (max_y > (int16_t)(MAP_H - 1u)) max_y = (int16_t)(MAP_H - 1u);
+    for (y = min_y; y <= max_y; y++) {
+        int16_t x;
+        for (x = min_x; x <= max_x; x++) BIT_SET(explored_bits, TILE_IDX((uint8_t)x, (uint8_t)y));
+    }
+#else
+    cx = cx; cy = cy; radius = radius; // keep interface stable until fog is enabled
+#endif
+}
+
+uint8_t lighting_is_revealed(uint8_t x, uint8_t y) {
+#if FEATURE_MAP_FOG
+    return BIT_GET(explored_bits, TILE_IDX(x, y));
+#else
+    x = x; y = y; // keep renderer branch-free when fog is disabled
+    return 1u;
+#endif
+}
+
+uint8_t wall_ortho_wall_count_xy(uint8_t x, uint8_t y) {
+    uint8_t n = 0u;
+    if (x > 0u && !BIT_GET(floor_bits, TILE_IDX((uint8_t)(x - 1u), y))) n++;
+    if (x < (uint8_t)(MAP_W - 1u) && !BIT_GET(floor_bits, TILE_IDX((uint8_t)(x + 1u), y))) n++;
+    if (y > 0u && !BIT_GET(floor_bits, TILE_IDX(x, (uint8_t)(y - 1u)))) n++;
+    if (y < (uint8_t)(MAP_H - 1u) && !BIT_GET(floor_bits, TILE_IDX(x, (uint8_t)(y + 1u)))) n++;
+    return n;
+}
+
+static uint8_t floor_tile_is_blank(uint8_t x, uint8_t y) {
+    uint16_t h = (uint16_t)x * 2971u ^ (uint16_t)y * 1619u ^ floor_visual_seed;
+    h ^= (uint16_t)(h >> 5);
+    return (uint8_t)((h & 7u) == 0u);
+}
+
 
 static const int8_t NAV_DX[4] = {  0,  0, -1,  1 }; // 0=up 1=down 2=left 3=right: Δx per step
 static const int8_t NAV_DY[4] = { -1,  1,  0,  0 }; // Δy per step along corridor trace
@@ -70,14 +123,14 @@ uint8_t tile_palette(uint8_t t) { // CGB attribute palette index per terrain typ
 void floor_ground_init(uint16_t floor_seed) { // deterministic floor visuals from the same seed used for level generation
     uint8_t col_idx = (uint8_t)(floor_seed & 3u); // 0..3 -> D1..D4
     floor_column_off = (uint8_t)(TILE_COLUMN_1 + (uint8_t)(col_idx * 16u));
+    floor_visual_seed = (uint16_t)(floor_seed ^ 0x6d2bu);
 }
 
 uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; else random E3/E4 on black field
     if (x == player_spawn_x && y == player_spawn_y) {
         return TILE_STAIRS_UP_1;
     }
-    uint16_t idx = TILE_IDX(x, y);
-    if (BIT_GET(floor_blank_bits, idx)) return 255u;
+    if (floor_tile_is_blank(x, y)) return 255u;
     {
         static const uint8_t ground_e34[2] = { TILE_GROUND_C, TILE_GROUND_D }; // sheet E3, E4
         uint16_t h = (uint16_t)(run_seed ^ (uint16_t)((uint16_t)floor_num * 131u));
@@ -90,26 +143,9 @@ uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; else ran
 }
 
 uint8_t floor_tile_palette_xy(uint8_t x, uint8_t y) { // stairs + blank = B&W pal 0; E3/E4 deco = dark grey PAL_FLOOR_BG
-    uint16_t idx = TILE_IDX(x, y);
     if (x == player_spawn_x && y == player_spawn_y) return 0u;
-    if (BIT_GET(floor_blank_bits, idx)) return 0u;
+    if (floor_tile_is_blank(x, y)) return 0u;
     return (uint8_t)PAL_FLOOR_BG;
-}
-
-static void wall_cache_bake_ortho_n(void) { // once per floor: wall = !floor_bits; no tile_at / pit decode
-    uint8_t x, y;
-    for (y = 0; y < MAP_H; y++) {
-        for (x = 0; x < MAP_W; x++) {
-            uint16_t idx = TILE_IDX(x, y);
-            if (BIT_GET(floor_bits, idx)) continue; // open tile — wall_ortho_n unused at render
-            uint8_t n = 0;
-            if (y > 0 && !BIT_GET(floor_bits, TILE_IDX(x, (uint8_t)(y - 1u)))) n++;
-            if (y < (uint8_t)(MAP_H - 1u) && !BIT_GET(floor_bits, TILE_IDX(x, (uint8_t)(y + 1u)))) n++;
-            if (x > 0 && !BIT_GET(floor_bits, TILE_IDX((uint8_t)(x - 1u), y))) n++;
-            if (x < (uint8_t)(MAP_W - 1u) && !BIT_GET(floor_bits, TILE_IDX((uint8_t)(x + 1u), y))) n++;
-            wall_ortho_n[idx] = n;
-        }
-    }
 }
 
 static uint8_t is_straight_corridor(uint8_t x, uint8_t y) { // NS-only or WE-only adjacency → no junction
@@ -238,7 +274,7 @@ void generate_level(uint16_t floor_seed) { // full regen: clears map, walks, pit
 
     uint8_t x = player_spawn_x, y = player_spawn_y; // drunkard starts at deterministic spawn
 
-    for (i = 0; i < BITSET_BYTES; i++) { floor_bits[i] = 0; pit_bits[i] = 0; floor_blank_bits[i] = 0; } // all wall; no blank scatter yet
+    for (i = 0; i < BITSET_BYTES; i++) { floor_bits[i] = 0; pit_bits[i] = 0; } // all wall to start; visual blanking is hashed now
 
     set_floor(x, y); // ensure spawn is open
     for (i = 0; i < WALK_STEPS; i++) {
@@ -254,8 +290,8 @@ void generate_level(uint16_t floor_seed) { // full regen: clears map, walks, pit
 
     uint8_t placed = 0;
     for (uint8_t attempts = 0; attempts < 200 && placed < NUM_PITS; attempts++) { // random floor tile, not spawn
-        uint8_t tx = (uint8_t)(rand() & (MAP_W - 1));
-        uint8_t ty = (uint8_t)(rand() & (MAP_H - 1));
+        uint8_t tx = (uint8_t)(rand() % MAP_W);
+        uint8_t ty = (uint8_t)(rand() % MAP_H);
         if ((tx != player_spawn_x || ty != player_spawn_y) // never ladder on spawn
                 && BIT_GET(floor_bits, TILE_IDX(tx, ty))
                 && !BIT_GET(pit_bits,  TILE_IDX(tx, ty))) {
@@ -278,21 +314,7 @@ void generate_level(uint16_t floor_seed) { // full regen: clears map, walks, pit
         }
     }
 
-    {
-        uint8_t bx, by; // ~10% of plain floor tiles → floor_blank_bits (same indices as floor_bits)
-        for (by = 0; by < MAP_H; by++) {
-            for (bx = 0; bx < MAP_W; bx++) {
-                uint16_t idx = TILE_IDX(bx, by);
-                if (!BIT_GET(floor_bits, idx)) continue;
-                if (BIT_GET(pit_bits, idx)) continue;
-                if (bx == player_spawn_x && by == player_spawn_y) continue; // keep spawn tile as stair graphic
-                if ((uint8_t)(rand() % 10u) == 0u) BIT_SET(floor_blank_bits, idx);
-            }
-        }
-    }
-
     build_nav_graph(); // enemies need graph after geometry is known
-    wall_cache_bake_ortho_n(); // render: wall_ortho_n + floor_column_off + wall_tileset_index → tile+pal, no neighbour scan
 }
 
 BANKREF(level_generate_and_spawn)
@@ -326,9 +348,11 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     }
     initrand(floor_seed);
     generate_level(floor_seed);
+    lighting_reset();
     spawn_enemies();
     *px = player_spawn_x;
     *py = player_spawn_y;
+    lighting_reveal_radius(*px, *py, PLAYER_LIGHT_RADIUS);
     {
         int16_t cx = (int16_t)*px - GRID_W / 2;
         int16_t cy = (int16_t)*py - GRID_H / 2;

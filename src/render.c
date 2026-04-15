@@ -45,6 +45,13 @@ void apply_wall_palette(void) { // PAL_WALL_BG bulk walls + PAL_PILLAR_BG column
 }
 
 static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t my) { // floor/wall/pit/corpse; no actors on BG
+    if (!lighting_is_revealed(mx, my)) {
+        gotoxy(sx, sy);
+        setchar(' ');
+        set_bkg_attribute_xy(sx, sy, 0u);
+        VBK_REG = 0;
+        return;
+    }
     {
         uint8_t coff = corpse_sheet_at(mx, my);
         if (coff != 255) {
@@ -69,7 +76,7 @@ static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t m
             }
             set_bkg_attribute_xy(sx, sy, floor_tile_palette_xy(mx, my));
         } else if (t == TILE_WALL) {
-            uint8_t n = wall_ortho_n[TILE_IDX(mx, my)]; // baked at generate_level — single indexed read
+            uint8_t n = wall_ortho_wall_count_xy(mx, my); // computed from floor_bits at draw-time to save WRAM
             uint8_t off = (n == 0u || n == 2u || n == 3u) ? floor_column_off : wall_tileset_index;
             uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + off);
             uint8_t attr = (n == 0u || n == 2u || n == 3u) ? PAL_PILLAR_BG : PAL_WALL_BG;

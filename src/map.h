@@ -5,7 +5,7 @@
 
 extern uint8_t floor_bits[BITSET_BYTES]; // 1 = carved open (floor or pit)
 extern uint8_t pit_bits[BITSET_BYTES];   // 1 = pit (subset of floor_bits)
-extern uint8_t floor_blank_bits[BITSET_BYTES]; // 1 = TILE_FLOOR cell uses blank paper (subset of floor \ pit; ~10% scatter)
+extern uint8_t explored_bits[BITSET_BYTES]; // 1 = tile was revealed to player (fog-of-war scaffold)
 
 extern NavNode  nav_nodes[MAX_NAV_NODES]; // junction graph for chase AI
 extern uint8_t  num_nav_nodes;            // populated after generate_level
@@ -14,7 +14,6 @@ extern uint8_t wall_tileset_index; // which wall tile in VRAM band (debug)
 extern uint8_t wall_palette_index; // wall_palette_table index → PAL_WALL_BG
 extern uint8_t pillar_palette_index; // wall_palette_table index → PAL_PILLAR_BG (column tiles)
 extern uint8_t floor_column_off; // D1..D4 sheet offset; pillars use this, bulk uses wall_tileset_index
-extern uint8_t wall_ortho_n[MAP_TILES]; // ortho wall neighbour count 0..4; baked after generate_level (walls only)
 extern uint8_t player_spawn_x;    // set per floor in generate_level — seed-based, walkable
 extern uint8_t player_spawn_y;
 
@@ -35,6 +34,10 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED; // bank 2; far-c
 void    floor_ground_init(uint16_t floor_seed); // per floor: visual variant seed for floor deco selection
 uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y); // sheet offset for TILE_FLOOR cell; 255 = blank tile
 uint8_t floor_tile_palette_xy(uint8_t x, uint8_t y); // CGB attr: stairs + blank ->0; E3/E4 deco -> PAL_FLOOR_BG
+uint8_t wall_ortho_wall_count_xy(uint8_t x, uint8_t y); // count orthogonal wall neighbors from floor_bits only
+void lighting_reset(void); // clear revealed bits for new floor
+void lighting_reveal_radius(uint8_t cx, uint8_t cy, uint8_t radius); // reveal a square around center
+uint8_t lighting_is_revealed(uint8_t x, uint8_t y); // fog gate helper for renderer
 
 uint8_t nearest_nav_node(uint8_t x, uint8_t y); // for mapping entity tiles to graph
 uint8_t nav_next_step(uint8_t from, uint8_t to); // BFS first hop on nav graph

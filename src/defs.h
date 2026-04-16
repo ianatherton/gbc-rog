@@ -140,6 +140,10 @@ typedef struct {
 /* GB BG VRAM is only 256 tiles total; uploading past 255 wraps and overwrites low tiles (font). */
 #define TILESET_NTILES_VRAM ((uint8_t)(256u - TILESET_VRAM_OFFSET)) // =128: VRAM slots [128..255] only
 
+/* Char-create class emblem: 4 scratch VRAM tiles (normally ROM 124–127); restored before gameplay */
+#define CLASS_EMBLEM_VRAM_START       252u
+#define CLASS_EMBLEM_VRAM_ROM_RESTORE 124u
+
 /* ── Tileset tile indices (relative to TILESET_VRAM_OFFSET) ─────────────── */
 /* Sheet: 16×16 grid of 8×8 tiles = 256 tiles total (256×256px)             */
 /* Organized by column. Index = (row-1)*16 + col (A=0, B=1, … P=15)        */
@@ -162,9 +166,18 @@ typedef struct {
 
 /* ── B col — player class sprites ───────────────────────────────────────── */
 #define TILE_CLASS_KNIGHT    1   /* B1  */
-#define TILE_CLASS_BERSERKER 17  /* B2  */
+#define TILE_CLASS_BERSERKER 17  /* B2 — Zerker in-game */
 #define TILE_CLASS_WITCH     33  /* B3  */
-#define TILE_CLASS_SCOUNDREL 49  /* B4  */
+#define TILE_CLASS_SCOUNDREL 49  /* B4 — Scoundrel / rogue */
+
+/* Class emblems on sheet: each is 2×2 (row 15–16 1-based). Knight = A15 B15 / A16 B16 → VRAM order TL,TR,BL,BR */
+/* TL index below is A15 for Knight; Scoundrel C15; Witch E15; Zerker G15 (16-wide sheet: BR = TL+17).          */
+#define TILE_EMBLEM_KNIGHT_TL     224u
+#define TILE_EMBLEM_SCOUNDREL_TL  226u
+#define TILE_EMBLEM_WITCH_TL      228u
+#define TILE_EMBLEM_ZERKER_TL     230u
+
+#define PLAYER_CLASS_COUNT 4u
 
 /* ── C col — lighting objects (torches, lanterns, etc.) ─────────────────── */
 #define TILE_LIGHT_1         2   /* C1  */
@@ -256,7 +269,7 @@ typedef struct {
 #define PLAYER_LEVEL_XP_STEP 5u
 #define LIFE_BAR_LEN   5
 
-/* Sheet-relative tile for hero (swap for berserker / witch / scoundrel) */
+/* Sheet-relative tile for hero — see entity_sprites player_tile_offset_for_class */
 #define PLAYER_TILE_OFFSET TILE_CLASS_KNIGHT
 
 /* ── CGB palette slot assignments (0–7) ─────────────────────────────────── */

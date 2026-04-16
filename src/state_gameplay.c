@@ -18,7 +18,7 @@
 #include <gb/gb.h>
 #include <gbdk/platform.h>
 
-static const char *const s_class_names[3] = { "KNIGHT", "ROGUE", "MAGE" };
+static const char *const s_class_names[4] = { "KNIGHT", "SCOUNDREL", "WITCH", "ZERKER" };
 
 BANKREF(state_gameplay_enter)
 void state_gameplay_enter(void) BANKED {
@@ -161,7 +161,7 @@ void state_gameplay_tick(void) BANKED {
                 if (combat_idle_turns < 255u) combat_idle_turns++;
                 if (combat_idle_turns == 5u) {
                     ui_combat_log_clear();
-                    ui_combat_log_push(s_class_names[(unsigned)player_class % 3u]);
+                    ui_combat_log_push(s_class_names[(unsigned)player_class % PLAYER_CLASS_COUNT]);
                     { char lb[5]; lb[0]='L'; lb[1]='V';
                       lb[2]=(char)('0'+player_level%10u); lb[3]=0;
                       if (player_level>=10u) { lb[3]=lb[2]; lb[2]=(char)('0'+player_level/10u); lb[4]=0; }
@@ -173,7 +173,7 @@ void state_gameplay_tick(void) BANKED {
                 g_player_y = ny;
                 lighting_reveal_radius(g_player_x, g_player_y,
                     (player_class == 1u) ? LIGHT_RADIUS_ROGUE
-                    : (player_class == 2u) ? LIGHT_RADIUS_MAGE
+                    : (player_class == 2u || player_class == 3u) ? LIGHT_RADIUS_MAGE
                     : LIGHT_RADIUS_KNIGHT);
                 if (player_hp < player_hp_max) player_hp++;
                 {

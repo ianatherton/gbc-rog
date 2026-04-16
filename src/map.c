@@ -393,7 +393,7 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     lighting_reveal_radius(*px, *py, LIGHT_RADIUS_STAIRS_UP);
     lighting_reveal_radius(*px, *py,
         (player_class == 1u) ? LIGHT_RADIUS_ROGUE
-        : (player_class == 2u) ? LIGHT_RADIUS_MAGE
+        : (player_class == 2u || player_class == 3u) ? LIGHT_RADIUS_MAGE // Witch + Zerker (same as mage for now)
         : LIGHT_RADIUS_KNIGHT);
     {
         int16_t cx = (int16_t)*px - GRID_W / 2;

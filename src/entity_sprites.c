@@ -49,8 +49,9 @@ static uint8_t lunge_amt_for_frame(uint8_t t) { // 0 .. 4 .. 0 over ENTITY_LUNGE
 static void oam_hide(uint8_t sp) { move_sprite(sp, 0u, 0u); } // OAM Y=0: off visible lines
 
 static uint8_t player_tile_offset_for_class(void) {
-    if (player_class == 1u) return TILE_CLASS_BERSERKER; // rogue uses B2 sprite
-    if (player_class == 2u) return TILE_CLASS_WITCH; // mage uses B3 sprite
+    if (player_class == 1u) return TILE_CLASS_SCOUNDREL; // rogue — B4
+    if (player_class == 2u) return TILE_CLASS_WITCH; // B3
+    if (player_class == 3u) return TILE_CLASS_BERSERKER; // Zerker — B2
     return TILE_CLASS_KNIGHT;
 }
 

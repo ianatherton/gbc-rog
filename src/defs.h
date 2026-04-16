@@ -98,8 +98,8 @@ typedef struct {
 #define NUM_PITS     1    // single descent tile per floor
 
 /* ── Enemy roster ────────────────────────────────────────────────────────── */
-#define MAX_ENEMIES    30
-#define NUM_ENEMIES    30
+#define MAX_ENEMIES    29
+#define NUM_ENEMIES    29
 #define ENEMY_DEAD    255
 
 /* ── Enemy movement styles ───────────────────────────────────────────────── */
@@ -242,7 +242,7 @@ typedef struct {
 #define TILE_ARROW_NW       28   /* M2  - top-left diagonal                */
 #define TILE_ARROW_SW       44   /* M3  - bottom-left diagonal             */
 #define TILE_ARROW_SE       60   /* M4  - bottom-right diagonal            */
-/* M5 (index 76) — unused */
+#define TILE_ARROW_LADDER   76   /* M5  - ladder marker sprite             */
 
 /* ── N+O col — HUD / UI tiles ───────────────────────────────────────────── */
 #define TILE_UI_FLOOR_L     13   /* N1  - left portion of "FLOOR" word     */
@@ -264,7 +264,7 @@ typedef struct {
 #define PAL_WALL_BG 3   // dungeon bulk walls; wall_palette_table[wall_palette_index]
 #define PAL_PLAYER  2   // hero gold on **sprites** (OCP); index shared with PAL_FLOOR_BG (BKG CRAM is separate)
 #define PAL_FLOOR_BG 2u // BKG only: TILE_GROUND_C/D scatter deco (dark grey on black); blank + stairs use slot 0
-#define PAL_LADDER  4   // BKG pit/ladder; OCP4 = skeleton (violet)
+#define PAL_LADDER  4   // BKG pit/ladder only (blinked in render.c); OCP4 = skeleton (violet)
 #define PAL_ENEMY_SNAKE     1 // serpent + adder — green on BKG+sprites
 #define PAL_ENEMY_SKELETON  4 // violet bone; same index as PAL_LADDER, sprite CRAM only
 #define PAL_ENEMY_RAT       5 // red–rose; BKG5 = life bar

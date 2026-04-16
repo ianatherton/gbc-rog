@@ -29,7 +29,7 @@ static const palette_color_t ui_title_bkg_pal[] = { // BKG pal 0: dark red field
 };
 static const palette_color_t ui_default_bkg_pal0[] = { RGB(0, 0, 0), RGB(8, 8, 8), RGB(16, 16, 16), RGB(31, 31, 31) };
 static const palette_color_t ui_title_fire_pal[] = { // OCP7 during menu only
-    RGB(0, 0, 0), RGB(26, 6, 0), RGB(31, 16, 2), RGB(31, 26, 8),
+    RGB(0, 0, 0), RGB(8, 10, 14), RGB(31, 16, 2), RGB(31, 26, 8),
 };
 
 static uint8_t ui_title_torch_lx, ui_title_torch_rx, ui_title_torch_ty; // fire spawns from torch tops

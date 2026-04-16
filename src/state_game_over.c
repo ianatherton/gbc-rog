@@ -25,6 +25,7 @@ static void go_put_word5(uint8_t x, uint8_t y, const char *s) { // BKG text like
 BANKREF(state_game_over_enter)
 void state_game_over_enter(void) BANKED {
     uint8_t d, n, p;
+    uint8_t prev_j = joypad();
     BANK_DBG("GO_enter");
     lcd_gameplay_active = 0u;
     window_ui_hide();
@@ -40,7 +41,9 @@ void state_game_over_enter(void) BANKED {
     gotoxy(4, 13);
     printf("START=again");
     while (1) {
-        if (joypad() & J_START) break;
+        uint8_t j = joypad();
+        if ((j & J_START) && !(prev_j & J_START)) break;
+        prev_j = j;
         wait_vbl_done();
     }
     next_state = STATE_TITLE;

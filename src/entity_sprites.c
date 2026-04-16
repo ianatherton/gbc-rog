@@ -14,6 +14,7 @@
 
 #define SP_PLAYER 0
 #define SP_ENEMY_BASE 1
+#define SP_LADDER_ARROW 36u
 #define SP_BRAZIER_FIRE 37u
 #define BRAZIER_FIRE_TTL_VBL 12u
 
@@ -22,6 +23,11 @@ static uint8_t brazier_fire_ttl;
 static int16_t brazier_fire_wx, brazier_fire_wy;
 static int8_t brazier_fire_dx;
 static uint8_t brazier_fire_source_cursor;
+static uint8_t ladder_arrow_phase;
+static uint8_t ladder_arrow_tick;
+static uint8_t ladder_cache_valid; // 1 when pit coords below are usable (set during refresh, read by VBL)
+static uint8_t ladder_cache_mx, ladder_cache_my;
+static const int8_t ladder_arrow_bob12[12] = { 0, 1, 2, 2, 1, 0, -1, -2, -2, -1, 0, 0 };
 
 static int16_t player_override_wx = -1; // negative = use px*8
 static int16_t player_override_wy = -1;
@@ -107,6 +113,9 @@ void entity_sprites_init(void) {
     brazier_fire_active = 0u;
     brazier_fire_ttl = 0u;
     brazier_fire_source_cursor = 0u;
+    ladder_arrow_phase = 0u;
+    ladder_arrow_tick = 0u;
+    ladder_cache_valid = 0u;
     for (i = 0; i < 40u; i++) oam_hide(i);
     SHOW_SPRITES;
 }
@@ -155,6 +164,29 @@ void entity_sprites_vbl_tick(void) {
     } else {
         brazier_fire_try_spawn();
     }
+    if (lcd_gameplay_active && ladder_cache_valid) {
+        uint8_t mx = ladder_cache_mx, my = ladder_cache_my;
+        if (my > 0u
+                && mx >= CAM_TX && mx < (uint8_t)(CAM_TX + GRID_W)
+                && (uint8_t)(my - 1u) >= CAM_TY && (uint8_t)(my - 1u) < (uint8_t)(CAM_TY + GRID_H)
+                && lighting_is_revealed(mx, my)) {
+            uint8_t bob;
+            if (++ladder_arrow_tick >= 2u) {
+                ladder_arrow_tick = 0u;
+                ladder_arrow_phase = (uint8_t)((ladder_arrow_phase + 1u) % 12u);
+            }
+            bob = ladder_arrow_phase;
+            {
+                int16_t wx = (int16_t)mx * 8;
+                int16_t wy = (int16_t)(my - 1u) * 8 + ladder_arrow_bob12[bob];
+                move_entity_oam(SP_LADDER_ARROW, wx, wy, (uint8_t)(TILESET_VRAM_OFFSET + TILE_ARROW_LADDER), 0u);
+            }
+        } else {
+            oam_hide(SP_LADDER_ARROW);
+        }
+    } else {
+        oam_hide(SP_LADDER_ARROW);
+    }
     if (player_hurt_flash_ttl > 0u) {
         refresh_player_oam_from_cache(); // palette + OAM before ttl tick so all 60 frames flash
         player_hurt_flash_ttl--;
@@ -177,6 +209,7 @@ void entity_sprites_refresh(uint8_t px, uint8_t py) {
     player_cache_tx = px;
     player_cache_ty = py;
     refresh_player_oam_from_cache();
+    ladder_cache_valid = map_pit_position(&ladder_cache_mx, &ladder_cache_my);
 
     for (i = 0; i < num_enemies; i++) {
         uint8_t sp = (uint8_t)(SP_ENEMY_BASE + i);
@@ -200,7 +233,7 @@ void entity_sprites_refresh(uint8_t px, uint8_t py) {
         }
     }
     for (i = (uint8_t)(SP_ENEMY_BASE + num_enemies); i < 40u; i++)
-        if (i != SP_BRAZIER_FIRE) oam_hide(i);
+        if (i != SP_BRAZIER_FIRE && i != SP_LADDER_ARROW) oam_hide(i);
     if (!brazier_fire_active) oam_hide(SP_BRAZIER_FIRE); // keep slot hidden until first spawn
 }
 

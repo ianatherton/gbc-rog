@@ -46,6 +46,14 @@ void state_gameplay_tick(void) BANKED {
     uint8_t j  = joypad();
     uint8_t nx = g_player_x, ny = g_player_y;
 
+    if (player_hp == 0u) {
+        pending_transition = TRANS_TO_GAME_OVER;
+        next_state         = STATE_TRANSITION;
+        g_prev_j           = j;
+        wait_vbl_done();
+        return;
+    }
+
     if (!lcd_gameplay_active) {
         lcd_gameplay_active = 1u;
         window_ui_show();

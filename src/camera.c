@@ -2,6 +2,7 @@
 
 #include "camera.h"
 #include "defs.h" // camera_px, camera_py, GRID_W/H, MAP_W/H, SCROLL_SPEED
+#include "enemy.h"
 #include "entity_sprites.h"
 #include "lcd.h"
 #include "render.h"
@@ -30,11 +31,15 @@ static void player_glide_when_camera_idle(uint8_t opx, uint8_t opy, uint8_t px, 
         else if (wy > ey) { if ((wy - ey) <= SCROLL_SPEED) wy = ey; else wy -= SCROLL_SPEED; }
         entity_sprites_set_player_world(wx, (int16_t)(wy + player_bob_table[bob_i]));
         bob_i = (uint8_t)((bob_i + 1u) & 7u);
-        entity_sprites_refresh(px, py);
+        entity_sprites_refresh_player_only(px, py);
+        {
+            uint8_t i;
+            for (i = 0; i < num_enemies; i++) entity_sprites_refresh_enemy(i);
+        }
         wait_vbl_done();
     }
     entity_sprites_clear_player_world();
-    entity_sprites_refresh(px, py);
+    entity_sprites_refresh_all(px, py);
 }
 
 void camera_scroll_to(uint8_t target_tx, uint8_t target_ty,
@@ -52,7 +57,7 @@ void camera_scroll_to(uint8_t target_tx, uint8_t target_ty,
     }
 
     while (camera_px != target_px || camera_py != target_py) {
-        if (++guard_steps > 2048u) { camera_px = target_px; camera_py = target_py; entity_sprites_clear_player_world(); entity_sprites_refresh(px, py); break; }
+        if (++guard_steps > 2048u) { camera_px = target_px; camera_py = target_py; entity_sprites_clear_player_world(); entity_sprites_refresh_all(px, py); break; }
         uint8_t old_ctx = (uint8_t)(camera_px >> 3);
         uint8_t old_cty = (uint8_t)(camera_py >> 3);
 
@@ -85,10 +90,14 @@ void camera_scroll_to(uint8_t target_tx, uint8_t target_ty,
                 draw_row_strip(new_cty > old_cty ? (uint8_t)(new_cty + GRID_H) : new_cty);
         }
         draw_ui_rows();
-        entity_sprites_refresh(px, py);
+        entity_sprites_refresh_player_only(px, py);
+        {
+            uint8_t i;
+            for (i = 0; i < num_enemies; i++) entity_sprites_refresh_enemy(i);
+        }
     }
     entity_sprites_clear_player_world();
-    entity_sprites_refresh(px, py);
+    entity_sprites_refresh_all(px, py);
 }
 
 void camera_shake(void) BANKED { // jitter in VBL scroll path — whole dungeon including top row

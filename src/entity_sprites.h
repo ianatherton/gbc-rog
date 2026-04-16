@@ -12,7 +12,9 @@ void entity_sprites_set_player_facing(int8_t dir_x); // -1 left (flip), +1 right
 void entity_sprites_player_hurt_flash(void); // ~1 s red ↔ gold on OCP PAL_PLAYER (~8-frame beat)
 void entity_sprites_vbl_tick(void); // 60Hz timers for palette flashes
 
-void entity_sprites_refresh(uint8_t px, uint8_t py); // OAM from map + camera + lunges
+void entity_sprites_refresh_player_only(uint8_t px, uint8_t py); // update cached player tile + player OAM only
+void entity_sprites_refresh_enemy(uint8_t slot); // update one enemy OAM slot or hide it
+void entity_sprites_refresh_all(uint8_t px, uint8_t py); // full OAM refresh from map + camera + lunges
 
 #define ENTITY_LUNGE_FRAMES 10u // ~167ms at 60Hz: snappy but readable
 void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dir_x, int8_t dir_y);

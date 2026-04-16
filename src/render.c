@@ -156,7 +156,7 @@ void draw_screen(uint8_t px, uint8_t py) { // full repaint: dungeon ring, then t
     }
 
     ui_draw_bottom_rows();
-    entity_sprites_refresh(px, py);
+    entity_sprites_refresh_all(px, py);
     // SCX/SCY: VBL + LYC (lcd.c) — do not write here during gameplay
 }
 
@@ -179,5 +179,5 @@ void draw_enemy_cells(uint8_t px, uint8_t py) { // fast path when only anim togg
         draw_cell_terrain_only((uint8_t)(px & 31u), RING_BKG_VY_WORLD(py), px, py);
     }
     ui_draw_bottom_rows();
-    entity_sprites_refresh(px, py);
+    entity_sprites_refresh_all(px, py);
 }

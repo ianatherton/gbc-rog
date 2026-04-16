@@ -77,7 +77,7 @@ void combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, uint8
             BIT_SET(corpse_occ, TILE_IDX(dx, dy));
             num_corpses++;
         }
-        BIT_CLR(enemy_occ, TILE_IDX(dx, dy));
+        enemy_clear_slot(dx, dy);
         enemy_alive[ei] = 0u;
         if (dead_enemy_pool_count < MAX_ENEMIES)
             dead_enemy_pool[dead_enemy_pool_count++] = ei;

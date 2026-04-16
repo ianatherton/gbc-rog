@@ -29,9 +29,67 @@ uint8_t num_corpses;
 uint8_t enemy_occ[BITSET_BYTES];
 uint8_t corpse_occ[BITSET_BYTES];
 
+#define ENEMY_SLOT_HASH_SIZE 64u
+#define ENEMY_SLOT_EMPTY 0xFFFFu
+#define ENEMY_SLOT_TOMBSTONE 0xFFFEu
+static uint16_t enemy_slot_keys[ENEMY_SLOT_HASH_SIZE];
+static uint8_t enemy_slot_vals[ENEMY_SLOT_HASH_SIZE];
+
+static uint8_t enemy_slot_hash_idx(uint16_t tile_idx) {
+    return (uint8_t)(tile_idx & (ENEMY_SLOT_HASH_SIZE - 1u)); // size is power-of-two
+}
+
 void enemy_grids_init(void) {
+    uint8_t i;
     memset(enemy_occ, 0, sizeof enemy_occ);
     memset(corpse_occ, 0, sizeof corpse_occ);
+    for (i = 0; i < ENEMY_SLOT_HASH_SIZE; i++) {
+        enemy_slot_keys[i] = ENEMY_SLOT_EMPTY;
+        enemy_slot_vals[i] = ENEMY_DEAD;
+    }
+}
+
+void enemy_place_slot(uint8_t slot, uint8_t x, uint8_t y) {
+    uint16_t idx = TILE_IDX(x, y);
+    uint8_t h = enemy_slot_hash_idx(idx);
+    uint8_t probe;
+    uint8_t first_tombstone = ENEMY_DEAD;
+    BIT_SET(enemy_occ, idx);
+    for (probe = 0; probe < ENEMY_SLOT_HASH_SIZE; probe++) {
+        uint8_t p = (uint8_t)((h + probe) & (ENEMY_SLOT_HASH_SIZE - 1u));
+        if (enemy_slot_keys[p] == idx) {
+            enemy_slot_vals[p] = slot;
+            return;
+        }
+        if (enemy_slot_keys[p] == ENEMY_SLOT_TOMBSTONE && first_tombstone == ENEMY_DEAD)
+            first_tombstone = p;
+        if (enemy_slot_keys[p] == ENEMY_SLOT_EMPTY) {
+            uint8_t w = (first_tombstone != ENEMY_DEAD) ? first_tombstone : p;
+            enemy_slot_keys[w] = idx;
+            enemy_slot_vals[w] = slot;
+            return;
+        }
+    }
+    if (first_tombstone != ENEMY_DEAD) {
+        enemy_slot_keys[first_tombstone] = idx;
+        enemy_slot_vals[first_tombstone] = slot;
+    }
+}
+
+void enemy_clear_slot(uint8_t x, uint8_t y) {
+    uint16_t idx = TILE_IDX(x, y);
+    uint8_t h = enemy_slot_hash_idx(idx);
+    uint8_t probe;
+    BIT_CLR(enemy_occ, idx);
+    for (probe = 0; probe < ENEMY_SLOT_HASH_SIZE; probe++) {
+        uint8_t p = (uint8_t)((h + probe) & (ENEMY_SLOT_HASH_SIZE - 1u));
+        if (enemy_slot_keys[p] == ENEMY_SLOT_EMPTY) return;
+        if (enemy_slot_keys[p] == idx) {
+            enemy_slot_keys[p] = ENEMY_SLOT_TOMBSTONE;
+            enemy_slot_vals[p] = ENEMY_DEAD;
+            return;
+        }
+    }
 }
 
 static const uint8_t CORPSE_DECO_OFF[2] = { // defs.h L column — one picked per corpse
@@ -85,12 +143,15 @@ uint8_t enemy_anim_update(void) { // call every frame from main loop
     return 0;
 }
 
-uint8_t enemy_at(uint8_t x, uint8_t y) { // O(1) when empty (common case); short scan when occupied
+uint8_t enemy_at(uint8_t x, uint8_t y) { // slot map keeps occupied lookups O(1)
     uint16_t idx = TILE_IDX(x, y);
-    uint8_t i;
-    if (!BIT_GET(enemy_occ, idx)) return ENEMY_DEAD;
-    for (i = 0; i < num_enemies; i++)
-        if (enemy_alive[i] && enemy_x[i] == x && enemy_y[i] == y) return i;
+    uint8_t h = enemy_slot_hash_idx(idx);
+    uint8_t probe;
+    for (probe = 0; probe < ENEMY_SLOT_HASH_SIZE; probe++) {
+        uint8_t p = (uint8_t)((h + probe) & (ENEMY_SLOT_HASH_SIZE - 1u));
+        if (enemy_slot_keys[p] == ENEMY_SLOT_EMPTY) return ENEMY_DEAD;
+        if (enemy_slot_keys[p] == idx) return enemy_slot_vals[p];
+    }
     return ENEMY_DEAD;
 }
 
@@ -124,7 +185,7 @@ void spawn_enemies(void) { // random placement with collision checks
                 enemy_type[num_enemies] = (uint8_t)(rand() % NUM_ENEMY_TYPES);
                 enemy_hp[num_enemies]   = enemy_effective_max_hp(enemy_type[num_enemies]);
                 enemy_alive[num_enemies] = 1u;
-                BIT_SET(enemy_occ, TILE_IDX(tx, ty));
+                enemy_place_slot(num_enemies, tx, ty);
                 num_enemies++;
                 break;
             }
@@ -147,10 +208,10 @@ static void step_direct(uint8_t sx, uint8_t sy,
 }
 
 static void step_nav_chase(uint8_t sx, uint8_t sy,
-                             uint8_t px, uint8_t py,
-                             uint8_t *nx, uint8_t *ny) { // graph-guided chase with direct fallback
+                           uint8_t px, uint8_t py, uint8_t player_node,
+                           uint8_t *next_hop_cache,
+                           uint8_t *nx, uint8_t *ny) { // graph-guided chase with per-turn nav cache
     uint8_t enemy_node  = nearest_nav_node(sx, sy);
-    uint8_t player_node = nearest_nav_node(px, py);
 
     if (enemy_node == NAV_NO_LINK || player_node == NAV_NO_LINK
             || enemy_node == player_node) { // degenerate: same node or missing graph
@@ -158,7 +219,9 @@ static void step_nav_chase(uint8_t sx, uint8_t sy,
         return;
     }
 
-    uint8_t next_node = nav_next_step(enemy_node, player_node);
+    if (next_hop_cache[enemy_node] == NAV_NO_LINK)
+        next_hop_cache[enemy_node] = nav_next_step(enemy_node, player_node);
+    uint8_t next_node = next_hop_cache[enemy_node];
     if (next_node == NAV_NO_LINK) { // BFS failed (disconnected)
         step_direct(sx, sy, px, py, nx, ny);
         return;
@@ -198,10 +261,9 @@ void enemy_resolve_hit(uint8_t slot) { // one strike: log line + subtract HP
 
 uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes — HP applied later in enemy_resolve_hit per hit
     uint8_t i;
-    memset(enemy_occ, 0, sizeof enemy_occ); // rebuild from ground truth each turn — guarantees consistency
-    for (i = 0; i < num_enemies; i++)
-        if (enemy_alive[i])
-            BIT_SET(enemy_occ, TILE_IDX(enemy_x[i], enemy_y[i]));
+    uint8_t player_node = nearest_nav_node(px, py);
+    uint8_t next_hop_cache[MAX_NAV_NODES];
+    for (i = 0; i < MAX_NAV_NODES; i++) next_hop_cache[i] = NAV_NO_LINK;
     enemy_attack_count = 0;
     for (i = 0; i < num_enemies; i++) {
         if (!enemy_alive[i]) continue;
@@ -212,13 +274,13 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
 
         switch (def->move_style) {
             case MOVE_CHASE:
-                step_nav_chase(sx, sy, px, py, &nx, &ny);
+                step_nav_chase(sx, sy, px, py, player_node, next_hop_cache, &nx, &ny);
                 break;
             case MOVE_RANDOM:
                 step_random(sx, sy, &nx, &ny);
                 break;
             case MOVE_WANDER:
-                if (rand() & 1) step_nav_chase(sx, sy, px, py, &nx, &ny);
+                if (rand() & 1) step_nav_chase(sx, sy, px, py, player_node, next_hop_cache, &nx, &ny);
                 else            step_random(sx, sy, &nx, &ny);
                 break;
         }
@@ -233,7 +295,7 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
 
         if (!is_walkable(nx, ny)) continue; // wall blocked proposed step
 
-        BIT_CLR(enemy_occ, TILE_IDX(sx, sy)); // vacate old cell
+        enemy_clear_slot(sx, sy);
         enemy_x[i] = nx;
         enemy_y[i] = ny;
         if (tile_at(nx, ny) == TILE_PIT) {
@@ -241,7 +303,7 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
             if (dead_enemy_pool_count < MAX_ENEMIES)
                 dead_enemy_pool[dead_enemy_pool_count++] = i;
         } else {
-            BIT_SET(enemy_occ, TILE_IDX(nx, ny));
+            enemy_place_slot(i, nx, ny);
         }
     }
     return enemy_attack_count ? 1u : 0u;

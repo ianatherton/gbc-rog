@@ -154,6 +154,28 @@ static void refresh_player_oam_from_cache(void) { // player only — same math a
             (uint8_t)(TILESET_VRAM_OFFSET + player_tile_offset_for_class()), player_pal);
 }
 
+static void refresh_enemy_oam(uint8_t slot) {
+    uint8_t sp = (uint8_t)(SP_ENEMY_BASE + slot);
+    if (slot >= num_enemies || !enemy_alive[slot]) {
+        oam_hide(sp);
+        return;
+    }
+    {
+        const EnemyDef *def = &enemy_defs[enemy_type[slot]];
+        uint8_t off = enemy_anim_toggle ? def->tile_alt : def->tile;
+        uint8_t tt = (uint8_t)(TILESET_VRAM_OFFSET + off);
+        int16_t ewx = (int16_t)enemy_x[slot] * 8 + en_ofs_x[slot];
+        int16_t ewy = (int16_t)enemy_y[slot] * 8 + en_ofs_y[slot];
+        if (enemy_x[slot] < CAM_TX || enemy_x[slot] >= (uint8_t)(CAM_TX + GRID_W)
+                || enemy_y[slot] < CAM_TY || enemy_y[slot] >= (uint8_t)(CAM_TY + GRID_H)
+                || !lighting_is_revealed(enemy_x[slot], enemy_y[slot])) {
+            oam_hide(sp);
+            return;
+        }
+        move_entity_oam(sp, ewx, ewy, tt, def->palette);
+    }
+}
+
 void entity_sprites_vbl_tick(void) {
     if (brazier_fire_active && brazier_fire_ttl > 0u) {
         brazier_fire_wy--;
@@ -203,35 +225,21 @@ void entity_sprites_clear_player_world(void) {
     player_override_wy = -1;
 }
 
-void entity_sprites_refresh(uint8_t px, uint8_t py) {
-    uint8_t i;
-
+void entity_sprites_refresh_player_only(uint8_t px, uint8_t py) {
     player_cache_tx = px;
     player_cache_ty = py;
     refresh_player_oam_from_cache();
-    ladder_cache_valid = map_pit_position(&ladder_cache_mx, &ladder_cache_my);
+}
 
-    for (i = 0; i < num_enemies; i++) {
-        uint8_t sp = (uint8_t)(SP_ENEMY_BASE + i);
-        if (!enemy_alive[i]) {
-            oam_hide(sp);
-            continue;
-        }
-        {
-            const EnemyDef *def = &enemy_defs[enemy_type[i]];
-            uint8_t off = enemy_anim_toggle ? def->tile_alt : def->tile;
-            uint8_t tt = (uint8_t)(TILESET_VRAM_OFFSET + off);
-            int16_t ewx = (int16_t)enemy_x[i] * 8 + en_ofs_x[i];
-            int16_t ewy = (int16_t)enemy_y[i] * 8 + en_ofs_y[i];
-            if (enemy_x[i] < CAM_TX || enemy_x[i] >= (uint8_t)(CAM_TX + GRID_W)
-                    || enemy_y[i] < CAM_TY || enemy_y[i] >= (uint8_t)(CAM_TY + GRID_H)
-                    || !lighting_is_revealed(enemy_x[i], enemy_y[i])) {
-                oam_hide(sp);
-                continue;
-            }
-            move_entity_oam(sp, ewx, ewy, tt, def->palette);
-        }
-    }
+void entity_sprites_refresh_enemy(uint8_t slot) {
+    refresh_enemy_oam(slot);
+}
+
+void entity_sprites_refresh_all(uint8_t px, uint8_t py) {
+    uint8_t i;
+    entity_sprites_refresh_player_only(px, py);
+    ladder_cache_valid = map_pit_position(&ladder_cache_mx, &ladder_cache_my);
+    for (i = 0; i < num_enemies; i++) refresh_enemy_oam(i);
     for (i = (uint8_t)(SP_ENEMY_BASE + num_enemies); i < 40u; i++)
         if (i != SP_BRAZIER_FIRE && i != SP_LADDER_ARROW) oam_hide(i);
     if (!brazier_fire_active) oam_hide(SP_BRAZIER_FIRE); // keep slot hidden until first spawn
@@ -243,24 +251,29 @@ void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t d
         uint8_t a = lunge_amt_for_frame(t);
         pl_ofs_x = (int8_t)((int16_t)dx * (int16_t)a);
         pl_ofs_y = (int8_t)((int16_t)dy * (int16_t)a);
-        entity_sprites_refresh(px, py);
+        entity_sprites_refresh_player_only(px, py);
         wait_vbl_done();
     }
     pl_ofs_x = pl_ofs_y = 0;
-    entity_sprites_refresh(px, py);
+    entity_sprites_refresh_player_only(px, py);
 }
 
 void entity_sprites_run_enemy_glide(uint8_t px, uint8_t py,
                                      const uint8_t *old_ex, const uint8_t *old_ey,
                                      const uint8_t *old_alive) {
-    uint8_t i, any = 0;
+    uint8_t i, any = 0, dirty_count = 0;
+    uint8_t dirty_slots[MAX_ENEMIES];
+    (void)px;
+    (void)py;
     for (i = 0; i < num_enemies; i++) {
         if (!enemy_alive[i] || !old_alive[i]) {
             en_ofs_x[i] = 0; en_ofs_y[i] = 0;
+            if (enemy_alive[i] != old_alive[i]) dirty_slots[dirty_count++] = i;
             continue;
         }
         en_ofs_x[i] = (int8_t)(((int16_t)old_ex[i] - (int16_t)enemy_x[i]) * 8);
         en_ofs_y[i] = (int8_t)(((int16_t)old_ey[i] - (int16_t)enemy_y[i]) * 8);
+        if (old_ex[i] != enemy_x[i] || old_ey[i] != enemy_y[i]) dirty_slots[dirty_count++] = i;
         if (en_ofs_x[i] || en_ofs_y[i]) any = 1;
     }
     if (!any) return;
@@ -273,12 +286,13 @@ void entity_sprites_run_enemy_glide(uint8_t px, uint8_t py,
             else if (en_ofs_y[i] < 0) en_ofs_y[i] = (en_ofs_y[i] < -(int8_t)SCROLL_SPEED) ? (int8_t)(en_ofs_y[i] + SCROLL_SPEED) : 0;
             if (en_ofs_x[i] || en_ofs_y[i]) any = 1;
         }
-        entity_sprites_refresh(px, py);
+        for (i = 0; i < dirty_count; i++) entity_sprites_refresh_enemy(dirty_slots[i]);
         wait_vbl_done();
         if (!any) break;
     }
     memset(en_ofs_x, 0, sizeof en_ofs_x);
     memset(en_ofs_y, 0, sizeof en_ofs_y);
+    for (i = 0; i < dirty_count; i++) entity_sprites_refresh_enemy(dirty_slots[i]);
 }
 
 void entity_sprites_run_enemy_lunge(uint8_t px, uint8_t py, uint8_t slot, uint8_t tgx, uint8_t tgy) {
@@ -293,11 +307,13 @@ void entity_sprites_run_enemy_lunge(uint8_t px, uint8_t py, uint8_t slot, uint8_
         uint8_t a = lunge_amt_for_frame(t);
         en_ofs_x[slot] = (int8_t)((int16_t)sx * (int16_t)a);
         en_ofs_y[slot] = (int8_t)((int16_t)sy * (int16_t)a);
-        entity_sprites_refresh(px, py);
+        entity_sprites_refresh_player_only(px, py);
+        entity_sprites_refresh_enemy(slot);
         wait_vbl_done();
     }
     en_ofs_x[slot] = en_ofs_y[slot] = 0;
-    entity_sprites_refresh(px, py);
+    entity_sprites_refresh_player_only(px, py);
+    entity_sprites_refresh_enemy(slot);
 }
 
 void entity_sprites_run_enemy_lunges_batch(uint8_t px, uint8_t py,
@@ -320,12 +336,14 @@ void entity_sprites_run_enemy_lunges_batch(uint8_t px, uint8_t py,
             en_ofs_x[s] = (int8_t)((int16_t)dir_x[i] * (int16_t)a);
             en_ofs_y[s] = (int8_t)((int16_t)dir_y[i] * (int16_t)a);
         }
-        entity_sprites_refresh(px, py);
+        entity_sprites_refresh_player_only(px, py);
+        for (i = 0; i < count; i++) entity_sprites_refresh_enemy(slots[i]);
         wait_vbl_done();
     }
     for (i = 0; i < count; i++) {
         uint8_t s = slots[i];
         en_ofs_x[s] = en_ofs_y[s] = 0;
     }
-    entity_sprites_refresh(px, py);
+    entity_sprites_refresh_player_only(px, py);
+    for (i = 0; i < count; i++) entity_sprites_refresh_enemy(slots[i]);
 }

@@ -41,6 +41,8 @@ uint8_t enemy_effective_max_hp(uint8_t type);  // base max_hp scaled by floor_nu
 uint8_t enemy_effective_damage(uint8_t type);  // base damage scaled by floor_num (cap 255)
 
 void    enemy_grids_init(void); // clear enemy_grid + corpse_grid (call on level load)
+void    enemy_place_slot(uint8_t slot, uint8_t x, uint8_t y); // sync occupancy structures after spawn or move
+void    enemy_clear_slot(uint8_t x, uint8_t y); // clear occupancy structures before death or move
 void    enemy_anim_reset(void); // reset DIV accumulator when entering a floor
 uint8_t enemy_anim_update(void); // 1 if toggled animation frame this call
 uint8_t enemy_at(uint8_t x, uint8_t y); // enemy slot occupying tile, else ENEMY_DEAD

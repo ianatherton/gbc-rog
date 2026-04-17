@@ -179,6 +179,12 @@ typedef struct {
 
 #define PLAYER_CLASS_COUNT 4u
 
+/* Char-menu emblem BKG only: slots 4–7; gameplay load_palettes restores ladder/HUD/XP on those indices */
+#define PAL_CLASS_EMBLEM_KNIGHT     4u
+#define PAL_CLASS_EMBLEM_SCOUNDREL  5u
+#define PAL_CLASS_EMBLEM_WITCH      6u
+#define PAL_CLASS_EMBLEM_ZERKER     7u
+
 /* ── C col — lighting objects (torches, lanterns, etc.) ─────────────────── */
 #define TILE_LIGHT_1         2   /* C1  */
 #define TILE_LIGHT_2        18   /* C2  */
@@ -275,7 +281,11 @@ typedef struct {
 /* ── CGB palette slot assignments (0–7) ─────────────────────────────────── */
 #define PAL_PILLAR_BG 1 // BKG only: column/pillar wall cells; OCP slot 1 is enemy snake (separate CRAM)
 #define PAL_WALL_BG 3   // dungeon bulk walls; wall_palette_table[wall_palette_index]
-#define PAL_PLAYER  2   // hero gold on **sprites** (OCP); index shared with PAL_FLOOR_BG (BKG CRAM is separate)
+#define PAL_PLAYER  2u  // hero OCP slot (same index as PAL_FLOOR_BG on BKG only — separate CRAM); class ramp uploaded in class_palettes_sprite_player_apply
+#define PAL_PLAYER_KNIGHT     PAL_PLAYER // OAM uses PAL_PLAYER; knight ramp in class_palettes.c
+#define PAL_PLAYER_SCOUNDREL  PAL_PLAYER
+#define PAL_PLAYER_WITCH      PAL_PLAYER
+#define PAL_PLAYER_ZERKER     PAL_PLAYER
 #define PAL_FLOOR_BG 2u // BKG only: TILE_GROUND_C/D scatter deco (dark grey on black); blank + stairs use slot 0
 #define PAL_LADDER  4   // BKG pit/ladder only (blinked in render.c); OCP4 = skeleton (violet)
 #define PAL_ENEMY_SNAKE     1 // serpent + adder — green on BKG+sprites

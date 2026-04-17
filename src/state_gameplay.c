@@ -14,6 +14,7 @@
 #include "camera.h"
 #include "music.h"
 #include "wall_palettes.h"
+#include "class_palettes.h"
 #include "combat.h"
 #include <gb/gb.h>
 #include <gbdk/platform.h>
@@ -32,6 +33,7 @@ void state_gameplay_enter(void) BANKED {
     }
     g_prev_j = 0;
     BANK_DBG("GP_enter");
+    class_palettes_sprite_player_apply(); // OCP PAL_PLAYER matches player_class (title left gold on slot 2)
     music_play_game();
     wait_vbl_done();
     lcd_clear_display();

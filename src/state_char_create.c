@@ -7,6 +7,7 @@
 #include "ui.h"
 #include "defs.h"
 #include "tileset.h"
+#include "class_palettes.h"
 #include <gb/cgb.h>
 #include <gb/gb.h>
 #include <stdint.h>
@@ -87,6 +88,7 @@ void state_char_create_enter(void) BANKED {
             if (e & J_A) {
                 player_class = sel;
                 class_emblem_vram_restore();
+                class_palettes_sprite_player_apply(); // BANKED far-call — do not SWITCH_ROM here (return must see bank 1 code)
                 break;
             }
             prev_j = j;

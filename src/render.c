@@ -8,12 +8,12 @@
 #include "lcd.h"    // line-8 ISR owns SCX/SCY during play
 #include "wall_palettes.h" // wall_palette_table, NUM_WALL_PALETTES
 #include "entity_sprites.h"
+#include "class_palettes.h"
 
 static const palette_color_t pal_default[]  = { RGB(0,0,0),  RGB(8,8,8),   RGB(16,16,16), RGB(31,31,31) }; // slot 0: black field, corpses, blank floor; wall paper
 static const palette_color_t pal_floor_deco[] = { RGB(0,0,0), RGB(5,5,5), RGB(11,11,11), RGB(17,17,17) }; // BKG PAL_FLOOR_BG: E3–E5 ground deco, dark grey on black
 static const palette_color_t pal_green[]    = { RGB(0,0,0),  RGB(0,20,0),  RGB(0,26,0),   RGB(0,31,0)   }; // BKG+OCP1: serpent & adder only (snakes)
-static const palette_color_t pal_player[]   = { RGB(0,0,0),  RGB(24,18,0), RGB(30,24,4),  RGB(31,31,10) }; // slot PAL_PLAYER: gold — player + title torches only
-static const palette_color_t pal_player_hurt_flash[] = { RGB(0,0,0), RGB(26,0,2), RGB(31,6,8), RGB(31,14,12) }; // same OCP2: brief damage tint (hotter red than life bar BKG)
+static const palette_color_t pal_player_hurt_flash[] = { RGB(0,0,0), RGB(26,0,2), RGB(31,6,8), RGB(31,14,12) }; // OCP PAL_PLAYER — brief damage tint (class ramp restored after)
 static const palette_color_t pal_ladder[]   = { RGB(0,0,0),  RGB(6,8,12),  RGB(31,16,2),  RGB(31,26,8) }; // BKG4 pit/ladder base with blue-grey shadow under warm highlights
 static const palette_color_t pal_enemy_skeleton[] = { RGB(0,0,0), RGB(8,6,20),  RGB(16,10,26), RGB(22,16,31) }; // OCP4 violet / blue-purple bone
 static const palette_color_t pal_enemy_rat[]      = { RGB(0,0,0), RGB(22,6,10), RGB(30,10,16), RGB(31,18,22) }; // OCP5 red–rose (BKG5 = life bar)
@@ -23,7 +23,7 @@ static const palette_color_t pal_life_ui[]  = { RGB(0,0,0),  RGB(18,0,0),  RGB(2
 static const palette_color_t pal_ui[]       = { RGB(0,0,0),  RGB(8,8,8),   RGB(16,16,16), RGB(31,31,31) }; // slot 6: HUD text
 static const palette_color_t pal_xp_ui[]    = { RGB(0,0,0),  RGB(18,14,0), RGB(26,22,4),  RGB(31,28,10) }; // slot 7: XP HUD (gold on black)
 
-void render_sprite_palette_player_default(void) NONBANKED { set_sprite_palette(PAL_PLAYER, 1, pal_player); }
+void render_sprite_palette_player_default(void) NONBANKED { class_palettes_sprite_player_apply(); }
 void render_sprite_palette_player_hurt(void) NONBANKED { set_sprite_palette(PAL_PLAYER, 1, pal_player_hurt_flash); }
 
 void apply_wall_palette(void) { // PAL_WALL_BG bulk walls + PAL_PILLAR_BG column tiles (CGB BGP slots)
@@ -104,7 +104,7 @@ void load_palettes(void) BANKED { // slots 0–7 except walls: wall table entry 
     set_bkg_palette(PAL_XP_UI, 1, pal_xp_ui);
     set_sprite_palette(0, 1, pal_default);
     set_sprite_palette(1, 1, pal_green);
-    set_sprite_palette(2, 1, pal_player);
+    class_palettes_sprite_player_apply();
     set_sprite_palette(PAL_WALL_BG, 1, pal_ladder); // gameplay fire particle ramp uses shared ladder fire tone
     set_sprite_palette(PAL_LADDER, 1, pal_enemy_skeleton);
     set_sprite_palette(PAL_ENEMY_RAT, 1, pal_enemy_rat);

@@ -31,6 +31,9 @@ static const palette_color_t ui_default_bkg_pal0[] = { RGB(0, 0, 0), RGB(8, 8, 8
 static const palette_color_t ui_title_fire_pal[] = { // OCP7 during menu only
     RGB(0, 0, 0), RGB(8, 10, 14), RGB(31, 16, 2), RGB(31, 26, 8),
 };
+static const palette_color_t ui_title_torch_sprite_pal[] = { // OCP PAL_PLAYER: gold torches (dungeon overwrites with class ramp)
+    RGB(0, 0, 0), RGB(24, 18, 0), RGB(30, 24, 4), RGB(31, 31, 10),
+};
 
 static uint8_t ui_title_torch_lx, ui_title_torch_rx, ui_title_torch_ty; // fire spawns from torch tops
 static uint8_t ui_title_fire_y[UI_TITLE_FIRE_COUNT];
@@ -90,12 +93,8 @@ static void ui_title_torch_place(uint8_t bkg_text_row) {
 }
 
 static void ui_title_style_begin(uint8_t bkg_text_row) {
-    uint8_t sb;
     set_bkg_palette(0u, 1u, ui_title_bkg_pal);
-    sb = _current_bank;
-    SWITCH_ROM(2); // pal_player lives in render.c (bank 2); boot only ran set_default_palette — OCP2 was never gold
-    render_sprite_palette_player_default();
-    SWITCH_ROM(sb);
+    set_sprite_palette(PAL_PLAYER, 1u, ui_title_torch_sprite_pal);
     set_sprite_palette(PAL_TITLE_FIRE, 1u, ui_title_fire_pal);
     ui_title_fire_init();
     ui_title_torch_place(bkg_text_row);

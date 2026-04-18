@@ -6,6 +6,9 @@
 #include "lcd.h"
 #include "map.h"
 #include "music.h"
+#include "render.h"
+
+BANKREF_EXTERN(load_palettes)
 #include <gb/gb.h>
 #include <gbdk/platform.h>
 
@@ -21,6 +24,7 @@ void state_transition_enter(void) BANKED {
         music_play_game();
         wait_vbl_done();
         lcd_clear_display();
+        load_palettes(); // BGP after floor wipe — same pitfall as gameplay enter
         level_init_display(1);
         level_generate_and_spawn(&g_player_x, &g_player_y);
         gameplay_soft_reenter = 1u;

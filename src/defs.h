@@ -13,9 +13,9 @@
 
 /* ── Viewport dimensions (what the player sees) ─────────────────────────── */
 #define GRID_W 20   // visible columns
-#define UI_WINDOW_TILE_ROWS  4u  // window tile rows: 3 chat + bottom HUD — flush to LCD bottom (144 scanlines)
-#define UI_WINDOW_PIXEL_H    ((uint8_t)(UI_WINDOW_TILE_ROWS * 8u)) // 32 — must match tile rows × 8
-#define GRID_H               ((uint8_t)((144u - UI_WINDOW_PIXEL_H) / 8u)) // 14 — dungeon fills lines 0..UI_WINDOW_Y_START-1
+#define UI_WINDOW_TILE_ROWS  5u  // window tile rows: belt + 3 chat + HUD — flush to LCD bottom (144 scanlines)
+#define UI_WINDOW_PIXEL_H    ((uint8_t)(UI_WINDOW_TILE_ROWS * 8u)) // 40 — must match tile rows × 8
+#define GRID_H               ((uint8_t)((144u - UI_WINDOW_PIXEL_H) / 8u)) // 13 — dungeon fills lines 0..UI_WINDOW_Y_START-1
 
 /* ── Actual map dimensions ───────────────────────────────────────────────── */
 // ⚠ MEMORY NOTE: GBC has 32 KB WRAM total.
@@ -79,19 +79,22 @@ typedef struct {
 
 /* ── Screen layout ───────────────────────────────────────────────────────── */
 //   Lines  0–(UI_WINDOW_Y_START-1): dungeon — full-width BKG scroll; WY off-screen
-//   Lines  UI_WINDOW_Y_START–143 : bottom band — window rows 0–2 = log/seed/inspect; row 3 = HUD
+//   Lines  UI_WINDOW_Y_START–143 : bottom band — row 0 = belt stub; rows 1–3 = log/seed/inspect; row 4 = HUD
 #define UI_ROW_TOP       0               // legacy alias (dungeon now starts at screen line 0)
 #define DUNGEON_ROW(y)   (y)             // viewport row y → same screen tile row (no top HUD strip)
 #define UI_ROW_BOTTOM_1  (GRID_H + 1)    // legacy BKG text row aliases (unused in WIN layout)
 #define UI_ROW_BOTTOM_2  (GRID_H + 2)
 #define UI_ROW           UI_ROW_TOP      // shorthand alias
-#define UI_WINDOW_Y_START    ((uint8_t)(144u - UI_WINDOW_PIXEL_H)) // 112 — WIN rows 0–3 map to scanlines 112–143 (HUD on true bottom)
+#define UI_WINDOW_Y_START    ((uint8_t)(144u - UI_WINDOW_PIXEL_H)) // 104 — WIN rows 0–4 map to scanlines 104–143 (HUD on true bottom)
 #define UI_WINDOW_WY_OFFSCREEN 144u      // WY > 143: suppress window without HIDE_WIN (CGB may ignore LCDC.5 0→1 same frame)
-#define UI_PANEL_WIN_Y0   0u             // top line of bottom band — combat log 1 / seed / inspect name
-#define UI_PANEL_WIN_Y1   1u
-#define UI_PANEL_WIN_Y2   2u             // last text row above HUD
-#define UI_HUD_WIN_Y      3u             // bottom window row — L:♥ XP% FLOOR (physical screen bottom)
+#define UI_BELT_WIN_Y     0u             // first window row — screen tile row GRID_H (belt stub)
+#define UI_PANEL_WIN_Y0   1u             // combat log / seed / inspect — below belt
+#define UI_PANEL_WIN_Y1   2u
+#define UI_PANEL_WIN_Y2   3u             // last text row above HUD
+#define UI_HUD_WIN_Y      4u             // bottom window row — L:♥ XP% FLOOR (physical screen bottom)
+#define BELT_SLOT_COUNT   4u             // spell/item quick slots (belt row; SELECT cycles)
 #define UI_PANEL_COLS     20u
+#define UI_CHAT_RECLAIM_AFTER_TURNS 8u // no new log lines for this many player turns → clear log, show idle class row until next push
 
 /* ── Level generation ────────────────────────────────────────────────────── */
 #define WALK_STEPS 4000   // scaled up from 350 to match the larger 64×64 map
@@ -245,7 +248,7 @@ typedef struct {
 #define TILE_MONSTER_3      73   /* J5  */
 #define TILE_LOADING_SKULL   105  /* J7  - skull / loading adorn (row7 col J) */
 
-/* K col (offset 10) — empty, reserved */
+/* K col (offset 10) — K1 reserved unused on map; VRAM tile patched from M14 at boot (see main.c) */
 
 /* ── L col — floor decorations ──────────────────────────────────────────── */
 #define TILE_FLOOR_DECO_1   11   /* L1  */
@@ -262,12 +265,18 @@ typedef struct {
 #define TILE_ARROW_SW       44   /* M3  - bottom-left diagonal             */
 #define TILE_ARROW_SE       60   /* M4  - bottom-right diagonal            */
 #define TILE_ARROW_LADDER   76   /* M5  - ladder marker sprite             */
+#define TILE_SHEET_M14     220u  /* M14 — empty belt slot (ROM); (14-1)*16+12, past VRAM 0..127 pack */
 
 /* ── N+O col — HUD / UI tiles ───────────────────────────────────────────── */
 #define TILE_UI_FLOOR_L     13   /* N1  - left portion of "FLOOR" word     */
 #define TILE_UI_FLOOR_R     14   /* O1  - right portion of "FLOOR" word    */
 #define TILE_UI_HEART_FULL  29   /* N2  - full heart                       */
 #define TILE_UI_HEART_HALF  30   /* O2  - half heart                       */
+#define TILE_UI_SPELL_L     61u  /* N4  - "SPELL" label left                 */
+#define TILE_UI_SPELL_R     62u  /* O4  - "SPELL" label right               */
+#define TILE_UI_ITEM_L      93u  /* N6  - "ITEM" label left                 */
+#define TILE_UI_ITEM_R      94u  /* O6  - "ITEM" label right                */
+#define TILE_UI_SLOT_EMPTY  10u  /* K1 VRAM index; bitmap replaced with TILE_SHEET_M14 at boot */
 
 /* ── Player stats ────────────────────────────────────────────────────────── */
 #define PLAYER_HP_BASE_MAX 10

@@ -16,6 +16,7 @@
 #define SP_ENEMY_BASE 1
 #define SP_LADDER_ARROW 36u
 #define SP_BRAZIER_FIRE 37u
+#define SP_BELT_SELECTOR 35u // fixed screen-space OAM; excluded from post-enemy hide sweep
 #define BRAZIER_FIRE_TTL_VBL 12u
 
 static uint8_t brazier_fire_active;
@@ -47,6 +48,21 @@ static uint8_t lunge_amt_for_frame(uint8_t t) { // 0 .. 4 .. 0 over ENTITY_LUNGE
 }
 
 static void oam_hide(uint8_t sp) { move_sprite(sp, 0u, 0u); } // OAM Y=0: off visible lines
+
+static void refresh_belt_selector_oam(void) { // M5 arrow on dungeon row GRID_H-1 (above belt / window band)
+    uint8_t s, sx, sy, tt;
+    if (!lcd_gameplay_active) {
+        oam_hide(SP_BELT_SELECTOR);
+        return;
+    }
+    s = (uint8_t)(selected_belt_slot % BELT_SLOT_COUNT);
+    tt = (uint8_t)(TILESET_VRAM_OFFSET + TILE_ARROW_LADDER);
+    sx = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_X + 7u + (uint16_t)(2u + (uint16_t)s * 2u) * 8u - 8u); // one tile left — over slot icon (M5 art leans right)
+    sy = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_Y + (uint16_t)(GRID_H - 1u) * 8u + 2u);
+    set_sprite_tile(SP_BELT_SELECTOR, tt);
+    set_sprite_prop(SP_BELT_SELECTOR, (uint8_t)(PAL_XP_UI & 7u));
+    move_sprite(SP_BELT_SELECTOR, sx, sy);
+}
 
 static uint8_t player_tile_offset_for_class(void) {
     if (player_class == 1u) return TILE_CLASS_SCOUNDREL; // rogue — B4
@@ -242,8 +258,9 @@ void entity_sprites_refresh_all(uint8_t px, uint8_t py) {
     ladder_cache_valid = map_pit_position(&ladder_cache_mx, &ladder_cache_my);
     for (i = 0; i < num_enemies; i++) refresh_enemy_oam(i);
     for (i = (uint8_t)(SP_ENEMY_BASE + num_enemies); i < 40u; i++)
-        if (i != SP_BRAZIER_FIRE && i != SP_LADDER_ARROW) oam_hide(i);
+        if (i != SP_BRAZIER_FIRE && i != SP_LADDER_ARROW && i != SP_BELT_SELECTOR) oam_hide(i);
     if (!brazier_fire_active) oam_hide(SP_BRAZIER_FIRE); // keep slot hidden until first spawn
+    refresh_belt_selector_oam();
 }
 
 void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t dy) {

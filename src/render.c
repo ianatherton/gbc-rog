@@ -109,7 +109,7 @@ void load_palettes(void) BANKED { // slots 0–7 except walls: wall table entry 
     set_sprite_palette(PAL_LADDER, 1, pal_enemy_skeleton);
     set_sprite_palette(PAL_ENEMY_RAT, 1, pal_enemy_rat);
     set_sprite_palette(PAL_ENEMY_GOBLIN, 1, pal_enemy_goblin);
-    set_sprite_palette(PAL_ENEMY_BAT, 1, pal_enemy_bat);
+    set_sprite_palette(PAL_XP_UI, 1, pal_xp_ui); // OBJ7 — belt M5 arrow + bats share XP gold ramp (PAL_ENEMY_BAT / PAL_XP_UI both 7)
 }
 
 static void draw_ring_tile(uint8_t vx, uint8_t vy, uint8_t mx, uint8_t my) { // enemies are sprites; BG is always terrain-only

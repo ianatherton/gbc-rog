@@ -12,13 +12,14 @@ extern uint8_t  player_damage;
 extern uint16_t player_xp;
 extern uint8_t  floor_num;
 extern uint16_t run_seed;
-extern uint8_t  combat_idle_turns;
 extern uint8_t  player_class; // 0=KNIGHT 1=SCOUNDREL 2=WITCH 3=ZERKER (char create)
 
 extern uint8_t  g_player_x, g_player_y, g_prev_j;
 extern uint16_t g_run_entropy;
 
 extern uint8_t  look_cx, look_cy;
+extern uint8_t  selected_belt_slot; // gameplay belt: 0..BELT_SLOT_COUNT-1
+extern uint8_t  belt_slot_charges[BELT_SLOT_COUNT]; // uses remaining per slot (0 = hide digit until wired)
 
 #define MAX_ENEMY_ALIVE_SLOTS MAX_ENEMIES
 extern uint8_t enemy_alive[MAX_ENEMIES];

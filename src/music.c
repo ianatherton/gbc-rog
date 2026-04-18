@@ -1,8 +1,11 @@
 #include <gb/gb.h>
+#include <gbdk/platform.h>
 #include <stdint.h>
 
 #include "bwv1043_music.h"
 #include "music.h"
+
+BANKREF_EXTERN(bwv1043_music)
 
 static uint8_t  mode_title;
 static uint16_t mel_i, bas_i;
@@ -89,9 +92,9 @@ static void silence_bgm_channels(void) { // square + wave off; leave CH4 for SFX
     NR32_REG = 0x00u;
 }
 
-static void resume_bgm_hw(void) { // after loading or jingle — re-arm held notes (bwv1043 in bank 2)
+static void resume_bgm_hw(void) { // after loading or jingle — re-arm held notes (bwv1043 in own ROM bank)
     uint8_t sb = _current_bank;
-    SWITCH_ROM(2);
+    SWITCH_ROM(BANK(bwv1043_music));
     if (mel_rem > 0u && mel_i > 0u) {
         uint8_t idx = bwv1043_melody[mel_i - 1u];
         ch1_play(bwv1043_dict[idx].freq);
@@ -230,7 +233,7 @@ static void music_vbl(void) {
     }
     {
         uint8_t sb = _current_bank;
-        SWITCH_ROM(2);
+        SWITCH_ROM(BANK(bwv1043_music));
         {
             uint8_t adv = dur_steps_per_vbl();
             if (jingle_active) {

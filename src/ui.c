@@ -1,10 +1,17 @@
+#pragma bank 5
+#include <gbdk/platform.h>
+
 #include "ui.h"
+
+BANKREF(ui)
 #include "debug_bank.h"
 #include "globals.h"
 #include "defs.h"
 #include "lcd.h"         // lcd_gameplay_active for title vs play raster
 #include "music.h"       // mute BGM + footfalls during floor generation
 #include "render.h"      // load_palettes — restore sprite CRAM after title fire uses OCP7
+
+BANKREF_EXTERN(load_palettes)
 #include "seed_entropy.h" // deterministic-ish random seed from hardware jitter
 #include "enemy.h"       // inspect: enemy_defs, enemy_hp, enemy_level, trait/name
 #include <gb/cgb.h>
@@ -102,16 +109,9 @@ static void ui_title_style_begin(uint8_t bkg_text_row) {
 }
 
 static void ui_title_style_end(void) {
-    uint8_t sb;
     set_bkg_palette(0u, 1u, ui_default_bkg_pal0);
     ui_title_torch_hide();
-    sb = _current_bank;
-    BANK_DBG("UI_pal_to2");
-    SWITCH_ROM(2);
-    BANK_DBG("UI_pal_at2");
-    load_palettes();
-    SWITCH_ROM(sb);
-    BANK_DBG("UI_pal_ret");
+    load_palettes(); // BANKED in render.c — do not SWITCH_ROM here; stubs must own bank save/restore
 }
 
 static void ui_title_try_spawn_fire(uint8_t from_right, uint16_t fc) {
@@ -173,24 +173,46 @@ static char combat_log[COMBAT_LOG_LINES][COMBAT_LOG_LEN];
 UIPanelMode ui_panel_mode = UI_PANEL_COMBAT;
 static uint8_t panel_inspect_slot;
 
+static uint8_t chat_quiet_turns;              // player turns with log nonempty and reclaim not armed
+static uint8_t chat_reclaim_done_until_push; // after auto-clear: skip counting until ui_combat_log_push
+
 static uint8_t combat_log_any(void) {
     return combat_log[0][0] || combat_log[1][0] || combat_log[2][0];
 }
 
-void ui_combat_log_clear(void) {
+static void combat_log_zero_buffers(void) {
     uint8_t i, j;
     for (i = 0; i < COMBAT_LOG_LINES; i++)
         for (j = 0; j < COMBAT_LOG_LEN; j++) combat_log[i][j] = 0;
 }
 
-void ui_combat_log_push(const char *line) {
+void ui_combat_log_clear(void) BANKED {
+    combat_log_zero_buffers();
+    chat_quiet_turns = 0u;
+    chat_reclaim_done_until_push = 0u;
+}
+
+void ui_combat_log_push(const char *line) BANKED {
     uint8_t r, i;
+    chat_quiet_turns = 0u;
+    chat_reclaim_done_until_push = 0u;
     for (r = 0; r < COMBAT_LOG_LINES - 1u; r++) // shift lines up (drop oldest)
         for (i = 0; i < COMBAT_LOG_LEN; i++)
             combat_log[r][i] = combat_log[r + 1u][i];
     for (i = 0; i < COMBAT_LOG_LEN; i++) combat_log[COMBAT_LOG_LINES - 1u][i] = 0;
     for (i = 0; i < COMBAT_LOG_LEN - 1u && line[i]; i++)
         combat_log[COMBAT_LOG_LINES - 1u][i] = line[i];
+}
+
+uint8_t ui_combat_log_tick_quiet_turn(void) BANKED {
+    if (chat_reclaim_done_until_push) return 0u;
+    if (!combat_log_any()) return 0u;
+    if (chat_quiet_turns < 255u) chat_quiet_turns++;
+    if (chat_quiet_turns < UI_CHAT_RECLAIM_AFTER_TURNS) return 0u;
+    combat_log_zero_buffers();
+    chat_quiet_turns = 0u;
+    chat_reclaim_done_until_push = 1u;
+    return 1u;
 }
 
 const char *const seed_words_desc[SEED_WORDS_N] = { // first word line (adjective-ish)
@@ -259,6 +281,30 @@ static void win_clear_row(uint8_t win_y, uint8_t pal) {
     for (x = 0; x < UI_PANEL_COLS; x++) win_putc_pal(x, win_y, ' ', pal);
 }
 
+static void ui_draw_belt_placeholder_row(void) { // N4/O4 "SPELL" | 4×(slot + uses) | pad | N6/O6 "ITEM"
+    uint8_t x = 0u, s, v;
+    v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SPELL_L);
+    set_win_tile_xy(x, UI_BELT_WIN_Y, v);
+    set_win_attribute_xy(x++, UI_BELT_WIN_Y, PAL_UI);
+    v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SPELL_R);
+    set_win_tile_xy(x, UI_BELT_WIN_Y, v);
+    set_win_attribute_xy(x++, UI_BELT_WIN_Y, PAL_UI);
+    for (s = 0u; s < BELT_SLOT_COUNT; s++) {
+        v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY); // empty: M14 patched onto K1 VRAM at boot; else TILE_ITEM_* when wired
+        set_win_tile_xy(x, UI_BELT_WIN_Y, v);
+        set_win_attribute_xy(x++, UI_BELT_WIN_Y, PAL_UI);
+        if (belt_slot_charges[s] == 0u) win_put_space(x++, UI_BELT_WIN_Y);
+        else win_putc_pal(x++, UI_BELT_WIN_Y, (char)('0' + (belt_slot_charges[s] > 9u ? 9u : belt_slot_charges[s])), PAL_UI);
+    }
+    while (x < 18u) win_put_space(x++, UI_BELT_WIN_Y);
+    v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_ITEM_L);
+    set_win_tile_xy(x, UI_BELT_WIN_Y, v);
+    set_win_attribute_xy(x++, UI_BELT_WIN_Y, PAL_UI);
+    v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_ITEM_R);
+    set_win_tile_xy(x, UI_BELT_WIN_Y, v);
+    set_win_attribute_xy(x++, UI_BELT_WIN_Y, PAL_UI);
+}
+
 static void ui_draw_top_hud(void) { // bottom window row: L:♥×5 HP% XP% FLOORdd
     uint8_t hy = UI_HUD_WIN_Y, tx = 0;
     uint8_t k, pct = (uint8_t)((uint16_t)player_hp * 100u / player_hp_max);
@@ -304,11 +350,46 @@ static void ui_draw_top_hud(void) { // bottom window row: L:♥×5 HP% XP% FLOOR
     while (tx < GRID_W) win_put_space(tx++, hy);
 }
 
+static void format_class_level_buf(char *buf) { // "KNIGHT, Lvl 3" into buf (COMBAT_LOG_LEN)
+    static const char *const kc[PLAYER_CLASS_COUNT] = { "KNIGHT", "SCOUNDREL", "WITCH", "ZERKER" };
+    uint8_t i = 0u;
+    uint8_t v;
+    const char *s = kc[(unsigned)player_class % PLAYER_CLASS_COUNT];
+    while (*s) buf[i++] = *s++;
+    buf[i++] = ',';
+    buf[i++] = ' ';
+    buf[i++] = 'L';
+    buf[i++] = 'v';
+    buf[i++] = 'l';
+    buf[i++] = ' ';
+    v = (player_level > 99u) ? 99u : player_level;
+    if (v >= 10u) buf[i++] = (char)('0' + v / 10u);
+    buf[i++] = (char)('0' + (v % 10u));
+    buf[i] = '\0';
+}
+
+static void ui_draw_class_level_line(uint8_t win_y) { // idle panel top row
+    char buf[COMBAT_LOG_LEN];
+    format_class_level_buf(buf);
+    win_puts_row_pad_cols(win_y, buf, PAL_UI, UI_PANEL_COLS);
+}
+
+static void ui_draw_reclaim_idle_panel(void) { // after 8 quiet turns: one line only, no seed/zone
+    char buf[COMBAT_LOG_LEN];
+    format_class_level_buf(buf);
+    win_puts_row_pad_cols(UI_PANEL_WIN_Y0, buf, PAL_UI, UI_PANEL_COLS);
+    win_clear_row(UI_PANEL_WIN_Y1, PAL_UI);
+    win_clear_row(UI_PANEL_WIN_Y2, PAL_UI);
+}
+
 static void ui_draw_combat_panel(void) {
     uint8_t i;
     if (!combat_log_any()) {
-        ui_draw_seed_words(run_seed, UI_PANEL_WIN_Y0, UI_PANEL_WIN_Y1);
-        win_clear_row(UI_PANEL_WIN_Y2, PAL_UI);
+        if (chat_reclaim_done_until_push) ui_draw_reclaim_idle_panel();
+        else {
+            ui_draw_class_level_line(UI_PANEL_WIN_Y0);
+            ui_draw_seed_words(run_seed, UI_PANEL_WIN_Y1, UI_PANEL_WIN_Y2);
+        }
     } else {
         for (i = 0; i < COMBAT_LOG_LINES; i++)
             win_puts_row_pad_cols((uint8_t)(UI_PANEL_WIN_Y0 + i), combat_log[i], PAL_UI, UI_PANEL_COLS);
@@ -328,7 +409,7 @@ static void ui_draw_inspect_panel(void) {
     t = enemy_type[slot];
     nm = enemy_type_short_name(t);
     win_puts_row_pad_cols(UI_PANEL_WIN_Y0, nm, PAL_UI, UI_PANEL_COLS);
-    { // HP N/M — one line under name (text rows 0–2; HUD draws on row 3 after)
+    { // HP N/M — one line under name (panel rows 1–2; HUD on row 4 after ui_draw_bottom_rows)
         uint8_t hp = enemy_hp[slot], mhp = enemy_effective_max_hp(t);
         x = 0;
         win_putc_pal(x++, UI_PANEL_WIN_Y1, 'H', PAL_UI);
@@ -352,7 +433,7 @@ static void put_word5_win(uint8_t x, uint8_t y, const char *s) { // same for win
     for (i = 0; i < 5; i++) { win_putc((uint8_t)(x+i), y, s[i] ? s[i] : ' '); }
 }
 
-void run_seed_to_triple(uint16_t seed, uint8_t *d, uint8_t *n, uint8_t *p) { // same logic as ui_draw_seed_words / picker
+void run_seed_to_triple(uint16_t seed, uint8_t *d, uint8_t *n, uint8_t *p) BANKED { // same logic as ui_draw_seed_words / picker
     uint16_t s = seed;
     if (s < 1u) s = 1u;
     if (s > 64000u) s = 64000u;
@@ -362,41 +443,37 @@ void run_seed_to_triple(uint16_t seed, uint8_t *d, uint8_t *n, uint8_t *p) { // 
     *p = (uint8_t)((s / 1600u) % 40u);
 }
 
-void window_ui_show(void) { // 3 text rows + bottom HUD row; WIN from UI_WINDOW_Y_START down
+void ui_game_over_put_seed_words(uint8_t d, uint8_t n, uint8_t p) BANKED { // BKG rows 9–10; must run in bank(ui) so seed string ROM is mapped
+    put_word5(0u, 9u, seed_words_desc[d]);
+    put_word5(6u, 9u, seed_words_noun[n]);
+    put_word5(0u, 10u, seed_words_place[p]);
+}
+
+void window_ui_show(void) BANKED { // belt + 3 text rows + HUD; WIN from UI_WINDOW_Y_START down
     uint8_t wx, wy;
     WX_REG = 7u;
     WY_REG = UI_WINDOW_Y_START;
-    fill_win_rect(0, 0, 32, 4u, 0u); // rows 0..3
-    for (wy = 0; wy < 4u; wy++)
+    VBK_REG = VBK_TILES; // match lcd_clear_display: tile + attr planes stay paired (CGB)
+    fill_win_rect(0, 0, 32, UI_WINDOW_TILE_ROWS, 0u);
+    VBK_REG = VBK_ATTRIBUTES;
+    fill_win_rect(0, 0, 32, UI_WINDOW_TILE_ROWS, 0u);
+    VBK_REG = VBK_TILES;
+    for (wy = 0; wy < UI_WINDOW_TILE_ROWS; wy++)
         for (wx = 0; wx < 32u; wx++)
             set_win_attribute_xy(wx, wy, PAL_UI);
 }
 
-void window_ui_hide(void) {
+void window_ui_hide(void) BANKED {
     HIDE_WIN;
 }
 
 #define UI_LOAD_SKULL_OAM_L 38u // above SP_ENEMY_BASE+NUM_ENEMIES
 #define UI_LOAD_SKULL_OAM_R 39u
 
-volatile uint8_t ui_loading_active;
-static volatile uint8_t ui_load_phase;
+extern volatile uint8_t ui_loading_active;
+extern volatile uint8_t ui_load_phase;
 
-static const int8_t ui_load_bob12[12] = { 0, 1, 2, 2, 1, 0, -1, -2, -2, -1, 0, 0 }; // one gentle bounce / 12 VBlanks
-
-void ui_loading_vblank(void) {
-    int8_t dy;
-    uint8_t ph;
-    uint8_t hw_y;
-    if (!ui_loading_active) return;
-    ph = ui_load_phase++;
-    dy = ui_load_bob12[ph % 12u];
-    hw_y = (uint8_t)((int16_t)64 + 16 + (int16_t)dy); // screen row ~64px; hardware OAM Y includes +16
-    move_sprite(UI_LOAD_SKULL_OAM_L, (uint8_t)(24u + 8u), hw_y); // flanks 10-char label centered in GRID_W
-    move_sprite(UI_LOAD_SKULL_OAM_R, (uint8_t)(128u + 8u), hw_y);
-}
-
-void ui_loading_screen_begin(void) {
+void ui_loading_screen_begin(void) BANKED {
     uint8_t tt = (uint8_t)(TILESET_VRAM_OFFSET + TILE_LOADING_SKULL);
     ui_load_phase = 0;
     ui_loading_active = 1u;
@@ -412,14 +489,16 @@ void ui_loading_screen_begin(void) {
     move_sprite(UI_LOAD_SKULL_OAM_R, 136u, 80u);
 }
 
-void ui_loading_screen_end(void) {
+void ui_loading_screen_end(void) BANKED {
     music_loading_screen_set(0u);
     ui_loading_active = 0u;
     move_sprite(UI_LOAD_SKULL_OAM_L, 0u, 0u);
     move_sprite(UI_LOAD_SKULL_OAM_R, 0u, 0u);
 }
 
-void ui_draw_bottom_rows(void) {
+void ui_draw_bottom_rows(void) BANKED {
+    VBK_REG = VBK_TILES; // render.c leaves VBK 0 but other paths may not — win writes assume tile plane
+    ui_draw_belt_placeholder_row();
     switch (ui_panel_mode) {
         case UI_PANEL_COMBAT:   ui_draw_combat_panel();   break;
         case UI_PANEL_INSPECT:  ui_draw_inspect_panel();  break;
@@ -428,7 +507,7 @@ void ui_draw_bottom_rows(void) {
     ui_draw_top_hud();
 }
 
-void ui_draw_seed_words(uint16_t seed, uint8_t win_y_desc_noun, uint8_t win_y_place) {
+void ui_draw_seed_words(uint16_t seed, uint8_t win_y_desc_noun, uint8_t win_y_place) BANKED {
     uint8_t x, d, n, p;
     run_seed_to_triple(seed, &d, &n, &p);
     put_word5_win(0u, win_y_desc_noun, seed_words_desc[d]);
@@ -438,14 +517,14 @@ void ui_draw_seed_words(uint16_t seed, uint8_t win_y_desc_noun, uint8_t win_y_pl
     for (x = 5; x < UI_PANEL_COLS; x++) win_put_space(x, win_y_place);
 }
 
-void ui_panel_show_combat(void) { ui_panel_mode = UI_PANEL_COMBAT; }
+void ui_panel_show_combat(void) BANKED { ui_panel_mode = UI_PANEL_COMBAT; }
 
-void ui_panel_show_inspect(uint8_t enemy_slot) {
+void ui_panel_show_inspect(uint8_t enemy_slot) BANKED {
     panel_inspect_slot = enemy_slot;
     ui_panel_mode = UI_PANEL_INSPECT;
 }
 
-uint8_t ui_panel_inspect_slot(void) { return panel_inspect_slot; }
+uint8_t ui_panel_inspect_slot(void) BANKED { return panel_inspect_slot; }
 
 static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t entropy_hint) { // interactive seed picker
     uint8_t  word_pos = 0, prev_j = 0; // word_pos 0..2 selects which word the caret edits
@@ -511,7 +590,7 @@ static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t entropy_
     }
 }
 
-uint16_t title_screen(uint16_t entropy_hint) { // blocking until START or SELECT path returns a seed
+uint16_t title_screen(uint16_t entropy_hint) BANKED { // blocking until START or SELECT path returns a seed
     uint8_t  blink_counter = 0, blink_visible = 1, prev_j = 0;
     uint16_t frame_counter = 0;
 

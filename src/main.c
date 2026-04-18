@@ -37,6 +37,8 @@ int main(void) {
         uint8_t sb = _current_bank;
         SWITCH_ROM(BANK(tileset));
         set_bkg_data(TILESET_VRAM_OFFSET, TILESET_NTILES_VRAM, tileset_tiles);
+        set_bkg_data((uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY), 1u, // K1 VRAM ← M14 empty-slot art (ROM past first 128)
+            tileset_tiles + (uint16_t)TILE_SHEET_M14 * 16u);
         SWITCH_ROM(sb);
     }
     BANK_DBG("boot_tiles");

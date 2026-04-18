@@ -29,5 +29,4 @@ void level_init_display(uint8_t from_pit) BANKED {
         ui_loading_screen_begin();
     }
     ui_combat_log_clear();
-    combat_idle_turns = 5;
 }

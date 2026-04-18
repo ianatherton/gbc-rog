@@ -19,8 +19,6 @@
 #include <gb/gb.h>
 #include <gbdk/platform.h>
 
-static const char *const s_class_names[4] = { "KNIGHT", "SCOUNDREL", "WITCH", "ZERKER" };
-
 BANKREF(state_gameplay_enter)
 void state_gameplay_enter(void) BANKED {
     if (gameplay_soft_reenter) {
@@ -37,9 +35,11 @@ void state_gameplay_enter(void) BANKED {
     music_play_game();
     wait_vbl_done();
     lcd_clear_display();
+    load_palettes(); // restore BGP slots (PAL_UI etc.) after char create / loading — avoids blank or flat-white WIN
     level_init_display(0);
     BANK_DBG("GP_gen");
     level_generate_and_spawn(&g_player_x, &g_player_y);
+    selected_belt_slot = 0u;
     BANK_DBG("GP_done");
 }
 
@@ -69,9 +69,10 @@ void state_gameplay_tick(void) BANKED {
         return;
     }
 
-    if (lcd_gameplay_active && (j & J_SELECT)) {
+    if (lcd_gameplay_active && (j & J_SELECT) && (j & (J_LEFT | J_RIGHT | J_UP | J_DOWN))) {
         uint8_t edge_s = (uint8_t)(j & (uint8_t)~g_prev_j);
-        if (!(g_prev_j & J_SELECT)) {
+        if (!(g_prev_j & J_SELECT)
+                || (!(g_prev_j & (J_LEFT | J_RIGHT | J_UP | J_DOWN)) && (j & (J_LEFT | J_RIGHT | J_UP | J_DOWN)))) {
             look_cx = g_player_x;
             look_cy = g_player_y;
         }
@@ -93,6 +94,17 @@ void state_gameplay_tick(void) BANKED {
         g_prev_j = j;
         wait_vbl_done();
         draw_screen(g_player_x, g_player_y);
+        return;
+    }
+    if (lcd_gameplay_active && (j & J_SELECT)) {
+        uint8_t edge_sel = (uint8_t)(j & (uint8_t)~g_prev_j);
+        if (edge_sel & J_SELECT) {
+            selected_belt_slot = (uint8_t)((selected_belt_slot + 1u) % BELT_SLOT_COUNT);
+            wait_vbl_done();
+            draw_screen(g_player_x, g_player_y);
+        }
+        g_prev_j = j;
+        wait_vbl_done();
         return;
     }
     if (lcd_gameplay_active && (g_prev_j & J_SELECT) && !(j & J_SELECT)) {
@@ -117,9 +129,10 @@ void state_gameplay_tick(void) BANKED {
     if (nx != g_player_x || ny != g_player_y) {
         uint8_t ei = enemy_at(nx, ny);
         uint8_t result = 0;
+        uint8_t consumed_turn = 0u;
 
         if (ei != ENEMY_DEAD) {
-            combat_idle_turns = 0;
+            consumed_turn = 1u;
             combat_player_attacks(ei, g_player_x, g_player_y, nx, ny);
             wait_vbl_done();
             draw_screen(g_player_x, g_player_y);
@@ -160,15 +173,7 @@ void state_gameplay_tick(void) BANKED {
                 return;
             } else {
                 uint8_t opx = g_player_x, opy = g_player_y;
-                if (combat_idle_turns < 255u) combat_idle_turns++;
-                if (combat_idle_turns == 5u) {
-                    ui_combat_log_clear();
-                    ui_combat_log_push(s_class_names[(unsigned)player_class % PLAYER_CLASS_COUNT]);
-                    { char lb[5]; lb[0]='L'; lb[1]='V';
-                      lb[2]=(char)('0'+player_level%10u); lb[3]=0;
-                      if (player_level>=10u) { lb[3]=lb[2]; lb[2]=(char)('0'+player_level/10u); lb[4]=0; }
-                      ui_combat_log_push(lb); }
-                }
+                consumed_turn = 1u;
                 wait_vbl_done();
                 draw_cell(g_player_x, g_player_y);
                 g_player_x = nx;
@@ -196,7 +201,6 @@ void state_gameplay_tick(void) BANKED {
                     entity_sprites_run_enemy_glide(g_player_x, g_player_y, old_ex, old_ey, old_ea);
                 }
                 result = resolve_enemy_hits_and_animate(g_player_x, g_player_y);
-                if (result) combat_idle_turns = 0;
                 wait_vbl_done();
                 draw_screen(g_player_x, g_player_y);
 
@@ -211,6 +215,10 @@ void state_gameplay_tick(void) BANKED {
                 delay(TURN_DELAY_MS);
 #endif
             }
+        }
+        if (consumed_turn && ui_combat_log_tick_quiet_turn()) {
+            wait_vbl_done();
+            draw_screen(g_player_x, g_player_y);
         }
     }
 

@@ -14,14 +14,6 @@
 
 BANKREF_EXTERN(load_palettes)
 
-static void go_put_word5(uint8_t x, uint8_t y, const char *s) { // BKG text like ui put_word5
-    uint8_t i;
-    for (i = 0; i < 5u; i++) {
-        gotoxy((uint8_t)(x + i), y);
-        setchar(s[i] ? s[i] : ' ');
-    }
-}
-
 BANKREF(state_game_over_enter)
 void state_game_over_enter(void) BANKED {
     uint8_t d, n, p;
@@ -35,9 +27,7 @@ void state_game_over_enter(void) BANKED {
     gotoxy(5, 6);
     printf("GAME OVER");
     run_seed_to_triple(run_seed, &d, &n, &p);
-    go_put_word5(0u, 9u, seed_words_desc[d]);
-    go_put_word5(6u, 9u, seed_words_noun[n]);
-    go_put_word5(0u, 10u, seed_words_place[p]);
+    ui_game_over_put_seed_words(d, n, p);
     gotoxy(4, 13);
     printf("START=again");
     while (1) {

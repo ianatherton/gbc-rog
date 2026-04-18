@@ -13,13 +13,14 @@ uint8_t  player_damage = 1;
 uint16_t player_xp  = 0;
 uint8_t  floor_num  = 1;
 uint16_t run_seed   = 12345;
-uint8_t  combat_idle_turns = 0;
 uint8_t  player_class = 0;
 
 uint8_t  g_player_x, g_player_y, g_prev_j;
 uint16_t g_run_entropy;
 
 uint8_t  look_cx, look_cy;
+uint8_t  selected_belt_slot = 0u;
+uint8_t  belt_slot_charges[BELT_SLOT_COUNT] = { 0 };
 
 uint8_t enemy_alive[MAX_ENEMIES];
 uint8_t dead_enemy_pool[MAX_ENEMIES];

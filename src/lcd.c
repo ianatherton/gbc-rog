@@ -15,7 +15,7 @@ static void lcd_vbl_handler(void) { // VBL: gameplay = dungeon scroll whole fram
         SCY_REG = (uint8_t)ty;
         LYC_REG = UI_WINDOW_Y_START;
         SHOW_WIN; // keep LCDC.5 on — toggling mid-frame unreliable on CGB (pan docs)
-        WY_REG = UI_WINDOW_WY_OFFSCREEN; // hide WIN until bottom band (rows 0–2 text, row 3 HUD)
+        WY_REG = UI_WINDOW_WY_OFFSCREEN; // hide WIN until bottom band (belt + 3 text rows + HUD)
     } else {
         SCX_REG = 0u;
         SCY_REG = 0u;

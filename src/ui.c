@@ -169,6 +169,7 @@ static void ui_title_menu_anim_tick(uint16_t frame_counter) {
 }
 
 static char combat_log[COMBAT_LOG_LINES][COMBAT_LOG_LEN];
+static uint8_t combat_log_pal[COMBAT_LOG_LINES]; // per-row CGB palette when drawing log lines
 
 UIPanelMode ui_panel_mode = UI_PANEL_COMBAT;
 static uint8_t panel_inspect_slot;
@@ -182,8 +183,10 @@ static uint8_t combat_log_any(void) {
 
 static void combat_log_zero_buffers(void) {
     uint8_t i, j;
-    for (i = 0; i < COMBAT_LOG_LINES; i++)
+    for (i = 0; i < COMBAT_LOG_LINES; i++) {
         for (j = 0; j < COMBAT_LOG_LEN; j++) combat_log[i][j] = 0;
+        combat_log_pal[i] = PAL_UI;
+    }
 }
 
 void ui_combat_log_clear(void) BANKED {
@@ -192,16 +195,23 @@ void ui_combat_log_clear(void) BANKED {
     chat_reclaim_done_until_push = 0u;
 }
 
-void ui_combat_log_push(const char *line) BANKED {
+void ui_combat_log_push_pal(const char *line, uint8_t pal) BANKED {
     uint8_t r, i;
     chat_quiet_turns = 0u;
     chat_reclaim_done_until_push = 0u;
-    for (r = 0; r < COMBAT_LOG_LINES - 1u; r++) // shift lines up (drop oldest)
+    for (r = 0; r < COMBAT_LOG_LINES - 1u; r++) { // shift lines up (drop oldest)
         for (i = 0; i < COMBAT_LOG_LEN; i++)
             combat_log[r][i] = combat_log[r + 1u][i];
+        combat_log_pal[r] = combat_log_pal[r + 1u];
+    }
     for (i = 0; i < COMBAT_LOG_LEN; i++) combat_log[COMBAT_LOG_LINES - 1u][i] = 0;
     for (i = 0; i < COMBAT_LOG_LEN - 1u && line[i]; i++)
         combat_log[COMBAT_LOG_LINES - 1u][i] = line[i];
+    combat_log_pal[COMBAT_LOG_LINES - 1u] = pal;
+}
+
+void ui_combat_log_push(const char *line) BANKED {
+    ui_combat_log_push_pal(line, PAL_UI);
 }
 
 uint8_t ui_combat_log_tick_quiet_turn(void) BANKED {
@@ -392,7 +402,7 @@ static void ui_draw_combat_panel(void) {
         }
     } else {
         for (i = 0; i < COMBAT_LOG_LINES; i++)
-            win_puts_row_pad_cols((uint8_t)(UI_PANEL_WIN_Y0 + i), combat_log[i], PAL_UI, UI_PANEL_COLS);
+            win_puts_row_pad_cols((uint8_t)(UI_PANEL_WIN_Y0 + i), combat_log[i], combat_log_pal[i], UI_PANEL_COLS);
     }
 }
 

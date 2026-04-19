@@ -21,7 +21,8 @@ void     ui_draw_seed_words(uint16_t seed, uint8_t win_y_desc_noun, uint8_t win_
 void     window_ui_show(void) BANKED;
 void     window_ui_hide(void) BANKED;
 void     ui_combat_log_clear(void) BANKED;
-void     ui_combat_log_push(const char *line) BANKED;
+void     ui_combat_log_push(const char *line) BANKED;           // window palette PAL_UI
+void     ui_combat_log_push_pal(const char *line, uint8_t pal) BANKED; // CGB BGP palette index (e.g. PAL_XP_UI)
 uint8_t  ui_combat_log_tick_quiet_turn(void) BANKED; // returns 1 if log was reclaimed (caller should redraw UI)
 void     ui_panel_show_combat(void) BANKED;
 void     ui_panel_show_inspect(uint8_t enemy_slot) BANKED;

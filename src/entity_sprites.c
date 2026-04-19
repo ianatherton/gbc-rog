@@ -12,8 +12,6 @@
 #define PLAYER_HURT_FLASH_DURATION_VBL 60u // 1 s at ~60 Hz VBlank
 #define PLAYER_HURT_FLASH_TOGGLE_VBL    8u // red vs gold half-beat (~7.5 full cycles/s)
 
-#define SP_PLAYER 0
-#define SP_ENEMY_BASE 1
 #define SP_LADDER_ARROW 36u
 #define SP_BRAZIER_FIRE 37u
 #define SP_BELT_SELECTOR 35u // fixed screen-space OAM; excluded from post-enemy hide sweep
@@ -32,13 +30,23 @@ static const int8_t ladder_arrow_bob12[12] = { 0, 1, 2, 2, 1, 0, -1, -2, -2, -1,
 
 static int16_t player_override_wx = -1; // negative = use px*8
 static int16_t player_override_wy = -1;
+static int16_t player_override_aura_wx = -1; // glide only — world pos for aura (no walk bob on Y)
+static int16_t player_override_aura_wy = -1;
 static uint8_t player_flip_x;
 static uint8_t player_hurt_flash_ttl;
 static uint8_t player_hurt_flash_restore_needed; // 1 after flash until OCP2 restored to gold
 static uint8_t player_cache_tx, player_cache_ty; // last refresh tile — VBL hurt blink repaints without full refresh
+static uint8_t player_aura_vbl_sub;               // counts VBL within one A/B hold window
+static uint8_t player_aura_ab_idx;               // 0 = tile A, 1 = tile B — toggles each PLAYER_AURA_TOGGLE_VBL
 
 static int8_t pl_ofs_x, pl_ofs_y;                    // attack lunge (player)
 static int8_t en_ofs_x[MAX_ENEMIES], en_ofs_y[MAX_ENEMIES]; // per-slot lunge
+static uint8_t enemy_poof_ttl[MAX_ENEMIES];          // dead slot: VBlanks left showing TILE_POOF_CLOUD (OCP0)
+static uint8_t en_hit_flash_age[MAX_ENEMIES];       // 0 off; 1..ENEMY_HIT_FLASH_VBL — grey hit pulses in refresh_enemy_oam
+
+#define ENEMY_POOF_DURATION_VBL 22u // ~370ms @60Hz — overlaps corpse then clears
+#define ENEMY_HIT_FLASH_VBL     8u // two 2-VBL pulses OCP0 vs native — ages 1..8 then clear
+#define PLAYER_AURA_TOGGLE_VBL  15u // ~0.25s @ ~60Hz — M15 ↔ M16 (was every VBL; too fast to read)
 
 static uint8_t lunge_amt_for_frame(uint8_t t) { // 0 .. 4 .. 0 over ENTITY_LUNGE_FRAMES (keep FRAMES >= 4)
     uint8_t last = (uint8_t)(ENTITY_LUNGE_FRAMES - 1u);
@@ -112,18 +120,31 @@ static void move_entity_oam(uint8_t sp, int16_t wx, int16_t wy, uint8_t tile, ui
     {
         uint8_t prop = (uint8_t)(pal & 7u); // CGB palette index matches BG slot 0..7
         if (sp == SP_PLAYER && player_flip_x) prop |= S_FLIPX;
+        if (sp == SP_PLAYER_AURA_OAM && player_flip_x) prop |= S_FLIPX;
         set_sprite_prop(sp, prop);
     }
     move_sprite(sp, sx, sy);
 }
 
+void entity_sprites_poof_clear_all(void) {
+    memset(enemy_poof_ttl, 0, sizeof enemy_poof_ttl);
+    memset(en_hit_flash_age, 0, sizeof en_hit_flash_age);
+}
+
+void entity_sprites_enemy_poof_begin(uint8_t slot) {
+    if (slot < MAX_ENEMIES) enemy_poof_ttl[slot] = ENEMY_POOF_DURATION_VBL;
+}
+
 void entity_sprites_init(void) {
     uint8_t i;
+    entity_sprites_poof_clear_all();
     memset(en_ofs_x, 0, sizeof en_ofs_x);
     memset(en_ofs_y, 0, sizeof en_ofs_y);
     pl_ofs_x = pl_ofs_y = 0;
     player_override_wx = -1;
     player_override_wy = -1;
+    player_override_aura_wx = -1;
+    player_override_aura_wy = -1;
     player_flip_x = 0u;
     player_hurt_flash_ttl = 0u;
     player_hurt_flash_restore_needed = 0u;
@@ -133,6 +154,8 @@ void entity_sprites_init(void) {
     ladder_arrow_phase = 0u;
     ladder_arrow_tick = 0u;
     ladder_cache_valid = 0u;
+    player_aura_vbl_sub = 0u;
+    player_aura_ab_idx = 0u;
     for (i = 0; i < 40u; i++) oam_hide(i);
     SHOW_SPRITES;
 }
@@ -146,18 +169,47 @@ void entity_sprites_player_hurt_flash(void) {
     player_hurt_flash_ttl = PLAYER_HURT_FLASH_DURATION_VBL;
 }
 
+static void player_world_xy_for_oam(int16_t *pwx, int16_t *pwy) {
+    if (player_override_wx >= 0 && player_override_wy >= 0) {
+        *pwx = player_override_wx;
+        *pwy = player_override_wy;
+    } else {
+        *pwx = (int16_t)player_cache_tx * 8;
+        *pwy = (int16_t)player_cache_ty * 8;
+    }
+    *pwx += pl_ofs_x;
+    *pwy += pl_ofs_y;
+}
+
+/* Glide: aura uses bob-free track when set; else sprite override or tile — never pl_ofs (combat lunge only). */
+static void player_aura_world_xy(int16_t *awx, int16_t *awy) {
+    if (player_override_aura_wx >= 0 && player_override_aura_wy >= 0) {
+        *awx = player_override_aura_wx;
+        *awy = player_override_aura_wy;
+    } else if (player_override_wx >= 0 && player_override_wy >= 0) {
+        *awx = player_override_wx;
+        *awy = player_override_wy;
+    } else {
+        *awx = (int16_t)player_cache_tx * 8;
+        *awy = (int16_t)player_cache_ty * 8;
+    }
+}
+
+static uint8_t player_aura_tile_vram(void) {
+    return player_aura_ab_idx ? TILE_PLAYER_AURA_VRAM_B : TILE_PLAYER_AURA_VRAM_A;
+}
+
+static void refresh_player_aura_oam_vbl(void) { // position every VBL; M15/M16 swap on PLAYER_AURA_TOGGLE_VBL cadence
+    int16_t ax, ay;
+    if (!lcd_gameplay_active) return;
+    player_aura_world_xy(&ax, &ay);
+    move_entity_oam(SP_PLAYER_AURA_OAM, ax, (int16_t)(ay + 3), player_aura_tile_vram(), PAL_XP_UI);
+}
+
 static void refresh_player_oam_from_cache(void) { // player only — same math as entity_sprites_refresh player block
     int16_t pwx, pwy;
     uint8_t player_pal = PAL_PLAYER;
-    if (player_override_wx >= 0 && player_override_wy >= 0) {
-        pwx = player_override_wx;
-        pwy = player_override_wy;
-    } else {
-        pwx = (int16_t)player_cache_tx * 8;
-        pwy = (int16_t)player_cache_ty * 8;
-    }
-    pwx += pl_ofs_x;
-    pwy += pl_ofs_y;
+    player_world_xy_for_oam(&pwx, &pwy);
     if (player_hurt_flash_ttl > 0u) {
         uint8_t blk = (uint8_t)((PLAYER_HURT_FLASH_DURATION_VBL - player_hurt_flash_ttl) / PLAYER_HURT_FLASH_TOGGLE_VBL);
         if ((blk & 1u) == 0u) render_sprite_palette_player_hurt();
@@ -167,13 +219,36 @@ static void refresh_player_oam_from_cache(void) { // player only — same math a
         render_sprite_palette_player_default();
         player_hurt_flash_restore_needed = 0u;
     }
+    if (lcd_gameplay_active) {
+        int16_t ax, ay;
+        player_aura_world_xy(&ax, &ay);
+        move_entity_oam(SP_PLAYER_AURA_OAM, ax, (int16_t)(ay + 3), player_aura_tile_vram(), PAL_XP_UI);
+    } else {
+        oam_hide(SP_PLAYER_AURA_OAM);
+    }
     move_entity_oam(SP_PLAYER, pwx, pwy,
             (uint8_t)(TILESET_VRAM_OFFSET + player_tile_offset_for_class()), player_pal);
 }
 
 static void refresh_enemy_oam(uint8_t slot) {
     uint8_t sp = (uint8_t)(SP_ENEMY_BASE + slot);
-    if (slot >= num_enemies || !enemy_alive[slot]) {
+    if (slot >= num_enemies) {
+        oam_hide(sp);
+        return;
+    }
+    if (!enemy_alive[slot]) {
+        if (enemy_poof_ttl[slot] > 0u) {
+            uint8_t mx = enemy_x[slot], my = enemy_y[slot];
+            if (mx < CAM_TX || mx >= (uint8_t)(CAM_TX + GRID_W)
+                    || my < CAM_TY || my >= (uint8_t)(CAM_TY + GRID_H)
+                    || !lighting_is_revealed(mx, my)) {
+                oam_hide(sp);
+                return;
+            }
+            move_entity_oam(sp, (int16_t)mx * 8 + en_ofs_x[slot], (int16_t)my * 8 + en_ofs_y[slot],
+                    (uint8_t)(TILESET_VRAM_OFFSET + TILE_POOF_CLOUD), 0u); // OCP0 = pal_default (light/white ramp)
+            return;
+        }
         oam_hide(sp);
         return;
     }
@@ -189,7 +264,15 @@ static void refresh_enemy_oam(uint8_t slot) {
             oam_hide(sp);
             return;
         }
-        move_entity_oam(sp, ewx, ewy, tt, def->palette);
+        {
+            uint8_t pal = def->palette;
+            uint8_t h = en_hit_flash_age[slot];
+            if (h > 0u && h <= ENEMY_HIT_FLASH_VBL) {
+                uint8_t age0 = (uint8_t)(h - 1u); // 0..7 — two quick OCP0 bands: ages 1-2, 5-6
+                if (((age0 >> 1) & 1u) == 0u) pal = 0u; // OCP0 grey ramp vs native enemy ramp
+            }
+            move_entity_oam(sp, ewx, ewy, tt, pal);
+        }
     }
 }
 
@@ -230,16 +313,38 @@ void entity_sprites_vbl_tick(void) {
         refresh_player_oam_from_cache(); // palette + OAM before ttl tick so all 60 frames flash
         player_hurt_flash_ttl--;
     }
+    if (lcd_gameplay_active) {
+        uint8_t pi;
+        if (++player_aura_vbl_sub >= PLAYER_AURA_TOGGLE_VBL) {
+            player_aura_vbl_sub = 0u;
+            player_aura_ab_idx ^= 1u;
+        }
+        refresh_player_aura_oam_vbl();
+        for (pi = 0u; pi < num_enemies; pi++) {
+            if (enemy_poof_ttl[pi] > 0u) {
+                enemy_poof_ttl[pi]--;
+                refresh_enemy_oam(pi);
+            } else if (en_hit_flash_age[pi] > 0u && enemy_alive[pi]) {
+                en_hit_flash_age[pi]++;
+                if (en_hit_flash_age[pi] > ENEMY_HIT_FLASH_VBL) en_hit_flash_age[pi] = 0u;
+                refresh_enemy_oam(pi);
+            }
+        }
+    }
 }
 
-void entity_sprites_set_player_world(int16_t wx, int16_t wy) {
-    player_override_wx = wx;
-    player_override_wy = wy;
+void entity_sprites_set_player_world(int16_t spr_wx, int16_t spr_wy, int16_t aura_wx, int16_t aura_wy) {
+    player_override_wx = spr_wx;
+    player_override_wy = spr_wy;
+    player_override_aura_wx = aura_wx;
+    player_override_aura_wy = aura_wy;
 }
 
 void entity_sprites_clear_player_world(void) {
     player_override_wx = -1;
     player_override_wy = -1;
+    player_override_aura_wx = -1;
+    player_override_aura_wy = -1;
 }
 
 void entity_sprites_refresh_player_only(uint8_t px, uint8_t py) {
@@ -258,18 +363,28 @@ void entity_sprites_refresh_all(uint8_t px, uint8_t py) {
     ladder_cache_valid = map_pit_position(&ladder_cache_mx, &ladder_cache_my);
     for (i = 0; i < num_enemies; i++) refresh_enemy_oam(i);
     for (i = (uint8_t)(SP_ENEMY_BASE + num_enemies); i < 40u; i++)
-        if (i != SP_BRAZIER_FIRE && i != SP_LADDER_ARROW && i != SP_BELT_SELECTOR) oam_hide(i);
+        if (i != SP_BRAZIER_FIRE && i != SP_LADDER_ARROW && i != SP_BELT_SELECTOR && i != SP_PLAYER_AURA_OAM)
+            oam_hide(i);
     if (!brazier_fire_active) oam_hide(SP_BRAZIER_FIRE); // keep slot hidden until first spawn
     refresh_belt_selector_oam();
 }
 
-void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t dy) {
+void entity_sprites_enemy_hit_flash_clear(uint8_t slot) {
+    if (slot < MAX_ENEMIES) en_hit_flash_age[slot] = 0u;
+}
+
+void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t dy, uint8_t hit_enemy_slot) {
     uint8_t t;
+    uint8_t mid_t = (uint8_t)(ENTITY_LUNGE_FRAMES >> 1); // strike read lands halfway through lunge arc
     for (t = 0; t < ENTITY_LUNGE_FRAMES; t++) {
         uint8_t a = lunge_amt_for_frame(t);
         pl_ofs_x = (int8_t)((int16_t)dx * (int16_t)a);
         pl_ofs_y = (int8_t)((int16_t)dy * (int16_t)a);
         entity_sprites_refresh_player_only(px, py);
+        if (hit_enemy_slot < MAX_ENEMIES && enemy_alive[hit_enemy_slot] && t == mid_t) {
+            en_hit_flash_age[hit_enemy_slot] = 1u;
+            refresh_enemy_oam(hit_enemy_slot);
+        }
         wait_vbl_done();
     }
     pl_ofs_x = pl_ofs_y = 0;

@@ -21,7 +21,7 @@ static const palette_color_t pal_enemy_goblin[]   = { RGB(0,0,0), RGB(18,4,18), 
 static const palette_color_t pal_enemy_bat[]      = { RGB(0,0,0), RGB(0,14,18), RGB(4,22,24),  RGB(10,28,28) }; // OCP7 aqua–turquoise (BKG7 = XP gold)
 static const palette_color_t pal_life_ui[]  = { RGB(0,0,0),  RGB(18,0,0),  RGB(25,2,2),   RGB(31,4,4)   }; // slot 5: bar fill
 static const palette_color_t pal_ui[]       = { RGB(0,0,0),  RGB(8,8,8),   RGB(16,16,16), RGB(31,31,31) }; // slot 6: HUD text
-static const palette_color_t pal_xp_ui[]    = { RGB(0,0,0),  RGB(18,14,0), RGB(26,22,4),  RGB(31,28,10) }; // slot 7: XP HUD (gold on black)
+static const palette_color_t pal_xp_ui[]    = { RGB(0,0,0),  RGB(23,9,0), RGB(30,17,0), RGB(31,27,1) }; // slot 7: saturated gold ramp — low B keeps hue; steps stay dark/mid/bright
 
 void render_sprite_palette_player_default(void) NONBANKED { class_palettes_sprite_player_apply(); }
 void render_sprite_palette_player_hurt(void) NONBANKED { set_sprite_palette(PAL_PLAYER, 1, pal_player_hurt_flash); }

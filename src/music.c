@@ -11,6 +11,7 @@ static uint8_t  mode_title;
 static uint16_t mel_i, bas_i;
 static uint16_t mel_rem, bas_rem;
 static uint8_t  title_slow_vbl; // prelude: skip every other VBlank (~½ tempo)
+static uint16_t game_tempo_accum; // fractional BGM steps/VBlank in dungeon (dur_steps_per_vbl)
 
 static uint8_t     jingle_active;
 static uint8_t     jingle_idx;
@@ -50,7 +51,18 @@ static uint8_t dur_steps_per_vbl(void) {
         }
         return 1u;
     }
-    return 1u;
+    if (jingle_active) {
+        return 1u; // jingle at written tempo (BGM uses fractional advance below)
+    }
+    game_tempo_accum = (uint16_t)(game_tempo_accum + 100u); // ~15% slow vs 1 step/VBlank: 1/1.15 ≈ 100/115
+    {
+        uint8_t steps = 0u;
+        while (game_tempo_accum >= 115u) {
+            game_tempo_accum = (uint16_t)(game_tempo_accum - 115u);
+            steps++;
+        }
+        return steps;
+    }
 }
 
 static void ch1_play(uint16_t f) {
@@ -256,6 +268,7 @@ void music_play_title(void) {
     mode_title = 1u;
     mel_i = bas_i = 0;
     mel_rem = bas_rem = 0;
+    game_tempo_accum = 0u;
     title_slow_vbl = 0;
     jingle_active = 0;
     loading_audio = 0;
@@ -266,6 +279,7 @@ void music_play_game(void) {
     mel_i      = BWV1043_GAME_START_MELODY;
     bas_i      = BWV1043_GAME_START_BASS;
     mel_rem = bas_rem = 0;
+    game_tempo_accum = 0u;
     title_slow_vbl = 0;
     jingle_active = 0;
     loading_audio = 0;

@@ -4,6 +4,8 @@
 #include "globals.h"
 #include "map.h"
 #include "ui.h"
+#include "entity_sprites.h"
+#include "lcd.h"
 #include <string.h>
 
 const EnemyDef enemy_defs[NUM_ENEMY_TYPES] = { // one OCP ramp per type; snakes share green only
@@ -247,6 +249,7 @@ static void step_random(uint8_t sx, uint8_t sy,
 
 void enemy_resolve_hit(uint8_t slot) { // one strike: log line + subtract HP
     uint8_t hit = enemy_effective_damage(enemy_type[slot]);
+    uint8_t hp_before = player_hp;
     char logbuf[20];
     uint8_t p = 0, d = hit; // d consumed while formatting digits
     logbuf[p++] = 'Y'; logbuf[p++] = 'O'; logbuf[p++] = 'U'; logbuf[p++] = ' '; logbuf[p++] = '-';
@@ -254,9 +257,14 @@ void enemy_resolve_hit(uint8_t slot) { // one strike: log line + subtract HP
     else if (d >= 10u) { logbuf[p++] = (char)('0' + d / 10u); d %= 10u; }
     logbuf[p++] = (char)('0' + d);
     logbuf[p] = 0;
-    ui_combat_log_push(logbuf);
+    ui_combat_log_push_pal(logbuf, PAL_LIFE_UI);
     if (player_hp > hit) player_hp -= hit;
     else                 player_hp  = 0;
+    if (player_hp_max > 0u) {
+        uint8_t pct_b = (uint8_t)(((uint16_t)hp_before * 100u) / (uint16_t)player_hp_max);
+        uint8_t pct_a = (uint8_t)(((uint16_t)player_hp * 100u) / (uint16_t)player_hp_max);
+        if (pct_b > 30u && pct_a <= 30u) lcd_hp_panic_flash_trigger();
+    }
 }
 
 uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes — HP applied later in enemy_resolve_hit per hit
@@ -300,6 +308,7 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
         enemy_y[i] = ny;
         if (tile_at(nx, ny) == TILE_PIT) {
             enemy_alive[i] = 0u;
+            entity_sprites_enemy_poof_begin(i);
             if (dead_enemy_pool_count < MAX_ENEMIES)
                 dead_enemy_pool[dead_enemy_pool_count++] = i;
         } else {

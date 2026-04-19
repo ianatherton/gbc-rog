@@ -7,6 +7,7 @@
 #include "camera.h"
 #include "ui.h"
 #include "lcd.h"
+#include "entity_sprites.h"
 #include "wall_palettes.h"
 #include <gbdk/platform.h>
 #include <rand.h>
@@ -359,6 +360,7 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     num_corpses       = 0;
     enemy_grids_init();
     dead_enemy_pool_count = 0;
+    entity_sprites_poof_clear_all();
     {
         uint8_t q;
         for (q = 0; q < MAX_ENEMIES; q++) enemy_alive[q] = 0;

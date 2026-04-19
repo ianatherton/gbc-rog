@@ -101,9 +101,14 @@ typedef struct {
 #define NUM_PITS     1    // single descent tile per floor
 
 /* ── Enemy roster ────────────────────────────────────────────────────────── */
-#define MAX_ENEMIES    29
-#define NUM_ENEMIES    29
+#define MAX_ENEMIES    28 // one fewer live slots; OAM layout reserves aura + player before enemy run
+#define NUM_ENEMIES    28
 #define ENEMY_DEAD    255
+
+/* OAM draw order: lower index = in front. Aura must be < player or the 8×8 hero covers it completely. */
+#define SP_PLAYER_AURA_OAM    0u // M15/M16 gold flicker (+3px Y under refresh_player_oam_from_cache)
+#define SP_PLAYER             1u // hero body
+#define SP_ENEMY_BASE         2u // enemies use OAM [SP_ENEMY_BASE .. SP_ENEMY_BASE + num_enemies - 1]
 
 /* ── Enemy movement styles ───────────────────────────────────────────────── */
 #define MOVE_CHASE   0   // always step toward the player
@@ -265,6 +270,11 @@ typedef struct {
 #define TILE_ARROW_SW       44   /* M3  - bottom-left diagonal             */
 #define TILE_ARROW_SE       60   /* M4  - bottom-right diagonal            */
 #define TILE_ARROW_LADDER   76   /* M5  - ladder marker sprite             */
+#define TILE_POOF_CLOUD    108u  /* M7  - enemy death puff (sprite; OCP0 grey/white ramp) */
+#define TILE_PLAYER_AURA_ROM_A 236u /* M15 — copied to TILE_PLAYER_AURA_VRAM_* for OBJ */
+#define TILE_PLAYER_AURA_ROM_B 252u /* M16 */
+#define TILE_PLAYER_AURA_VRAM_A 248u // below CLASS_EMBLEM_VRAM_START 252 — gameplay aura only
+#define TILE_PLAYER_AURA_VRAM_B 249u
 #define TILE_SHEET_M14     220u  /* M14 — empty belt slot (ROM); (14-1)*16+12, past VRAM 0..127 pack */
 
 /* ── N+O col — HUD / UI tiles ───────────────────────────────────────────── */

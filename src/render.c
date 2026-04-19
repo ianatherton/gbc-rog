@@ -2,7 +2,7 @@
 
 #include "render.h"
 #include "map.h"
-#include "enemy.h"
+#include "enemy.h" // corpse_sheet_at — draw_cell_terrain_only
 #include "globals.h"
 #include "ui.h"     // ui_draw_bottom_rows
 #include "lcd.h"    // line-8 ISR owns SCX/SCY during play
@@ -26,11 +26,16 @@ static const palette_color_t pal_xp_ui[]    = { RGB(0,0,0),  RGB(23,9,0), RGB(30
 void render_sprite_palette_player_default(void) NONBANKED { class_palettes_sprite_player_apply(); }
 void render_sprite_palette_player_hurt(void) NONBANKED { set_sprite_palette(PAL_PLAYER, 1, pal_player_hurt_flash); }
 
+static uint8_t wall_palette_hw_iw = 255u, wall_palette_hw_ip = 255u; // 255 = out of band; invalidated in load_palettes
+
 void apply_wall_palette(void) { // PAL_WALL_BG bulk walls + PAL_PILLAR_BG column tiles (CGB BGP slots)
     uint8_t iw = wall_palette_index, ip = pillar_palette_index;
     palette_color_t wall_pal[4], pil_pal[4];
     if (iw >= NUM_WALL_PALETTES) iw = 0;
     if (ip >= NUM_WALL_PALETTES) ip = 0;
+    if (iw == wall_palette_hw_iw && ip == wall_palette_hw_ip) return; // skip CRAM when draw_screen repeats same ramp
+    wall_palette_hw_iw = iw;
+    wall_palette_hw_ip = ip;
     wall_pal[0] = pal_default[0]; // black field — seamless with blank / pit-adjacent open cells
     wall_pal[1] = wall_palette_table[iw][1];
     wall_pal[2] = wall_palette_table[iw][2];
@@ -110,6 +115,7 @@ void load_palettes(void) BANKED { // slots 0–7 except walls: wall table entry 
     set_sprite_palette(PAL_ENEMY_RAT, 1, pal_enemy_rat);
     set_sprite_palette(PAL_ENEMY_GOBLIN, 1, pal_enemy_goblin);
     set_sprite_palette(PAL_XP_UI, 1, pal_xp_ui); // OBJ7 — belt M5 arrow + bats share XP gold ramp (PAL_ENEMY_BAT / PAL_XP_UI both 7)
+    wall_palette_hw_iw = wall_palette_hw_ip = 255u; // load stomps wall BGP to table[0] — next apply must push true indices
 }
 
 static void draw_ring_tile(uint8_t vx, uint8_t vy, uint8_t mx, uint8_t my) { // enemies are sprites; BG is always terrain-only
@@ -160,24 +166,6 @@ void draw_screen(uint8_t px, uint8_t py) { // full repaint: dungeon ring, then t
     // SCX/SCY: VBL + LYC (lcd.c) — do not write here during gameplay
 }
 
-void draw_enemy_cells(uint8_t px, uint8_t py) { // fast path when only anim toggle changed
-    uint8_t i;
-    for (i = 0; i < num_enemies; i++) {
-        if (!enemy_alive[i]) continue;
-        {
-            uint8_t mx = enemy_x[i], my = enemy_y[i];
-            if (mx < CAM_TX || mx >= (uint8_t)(CAM_TX + GRID_W)) continue; // cull off-screen
-            if (my < CAM_TY || my >= (uint8_t)(CAM_TY + GRID_H)) continue;
-            {
-                uint8_t vx = (uint8_t)(mx & 31u), vy = RING_BKG_VY_WORLD(my);
-                draw_cell_terrain_only(vx, vy, mx, my); // keep BG correct under sprite
-            }
-        }
-    }
-    if (px >= CAM_TX && px < (uint8_t)(CAM_TX + GRID_W)
-            && py >= CAM_TY && py < (uint8_t)(CAM_TY + GRID_H)) {
-        draw_cell_terrain_only((uint8_t)(px & 31u), RING_BKG_VY_WORLD(py), px, py);
-    }
-    ui_draw_bottom_rows();
-    entity_sprites_refresh_all(px, py);
+void draw_enemy_cells(uint8_t px, uint8_t py) { // idle glyph flip: OAM only — BG + WIN unchanged vs last draw_screen
+    entity_sprites_refresh_oam_only(px, py);
 }

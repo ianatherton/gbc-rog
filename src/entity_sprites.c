@@ -357,16 +357,20 @@ void entity_sprites_refresh_enemy(uint8_t slot) {
     refresh_enemy_oam(slot);
 }
 
-void entity_sprites_refresh_all(uint8_t px, uint8_t py) {
+void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) {
     uint8_t i;
     entity_sprites_refresh_player_only(px, py);
-    ladder_cache_valid = map_pit_position(&ladder_cache_mx, &ladder_cache_my);
     for (i = 0; i < num_enemies; i++) refresh_enemy_oam(i);
     for (i = (uint8_t)(SP_ENEMY_BASE + num_enemies); i < 40u; i++)
         if (i != SP_BRAZIER_FIRE && i != SP_LADDER_ARROW && i != SP_BELT_SELECTOR && i != SP_PLAYER_AURA_OAM)
             oam_hide(i);
     if (!brazier_fire_active) oam_hide(SP_BRAZIER_FIRE); // keep slot hidden until first spawn
     refresh_belt_selector_oam();
+}
+
+void entity_sprites_refresh_all(uint8_t px, uint8_t py) {
+    ladder_cache_valid = map_pit_position(&ladder_cache_mx, &ladder_cache_my);
+    entity_sprites_refresh_oam_only(px, py);
 }
 
 void entity_sprites_enemy_hit_flash_clear(uint8_t slot) {

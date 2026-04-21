@@ -11,6 +11,7 @@ BANKREF(ui)
 #include "music.h"       // mute BGM + footfalls during floor generation
 #include "render.h"      // load_palettes — restore sprite CRAM after title fire uses OCP7
 #include "perf.h"
+#include "title_logo.h"  // title_logo_* — tileset ROM read in HOME (not bank 5) to avoid MBC mismatch crashes
 
 BANKREF_EXTERN(load_palettes)
 #include "seed_entropy.h" // deterministic-ish random seed from hardware jitter
@@ -109,7 +110,23 @@ static void ui_title_style_begin(uint8_t bkg_text_row) {
     SHOW_SPRITES;
 }
 
+static void ui_title_logo_draw_bkg(uint8_t map_x, uint8_t map_y_top) { // TITLE_LOGO_BKG_W×2 map tiles, BKG pal 0
+    uint8_t buf[TITLE_LOGO_BKG_W];
+    uint8_t i;
+    for (i = 0u; i < TITLE_LOGO_BKG_W; i++) buf[i] = (uint8_t)(TITLE_LOGO_BKG_VRAM0 + i);
+    set_bkg_tiles(map_x, map_y_top, TITLE_LOGO_BKG_W, 1u, buf);
+    for (i = 0u; i < TITLE_LOGO_BKG_W; i++) buf[i] = (uint8_t)(TITLE_LOGO_BKG_VRAM0 + TITLE_LOGO_BKG_W + i);
+    set_bkg_tiles(map_x, (uint8_t)(map_y_top + 1u), TITLE_LOGO_BKG_W, 1u, buf);
+    VBK_REG = VBK_ATTRIBUTES;
+    for (i = 0u; i < TITLE_LOGO_BKG_W; i++) {
+        set_bkg_attribute_xy((uint8_t)(map_x + i), map_y_top, 0u);
+        set_bkg_attribute_xy((uint8_t)(map_x + i), (uint8_t)(map_y_top + 1u), 0u);
+    }
+    VBK_REG = VBK_TILES;
+}
+
 static void ui_title_style_end(void) {
+    title_logo_bkg_vram_restore(); // HOME: MBC-safe tileset read — was in bank 5 and could white-screen after return
     set_bkg_palette(0u, 1u, ui_default_bkg_pal0);
     ui_title_torch_hide();
     load_palettes(); // BANKED in render.c — do not SWITCH_ROM here; stubs must own bank save/restore
@@ -651,7 +668,9 @@ uint16_t title_screen(uint16_t entropy_hint) BANKED { // blocking until START or
     BANK_DBG("UI_title");
     ui_title_style_begin(7u);
     ui_title_menu_border_draw();
-    gotoxy(4,  7); printf("Mara's Abyss");
+    title_logo_bkg_vram_patch();
+    ui_title_logo_draw_bkg(5u, 5u); // 6×2 wordmark; +8px R / +8px U vs old (4,6) anchor
+    gotoxy(11, 6); printf("Abyss"); // to the right of logo bottom row (logo cols 5–10)
     gotoxy(3, 12); printf("SELECT=seed words");
 
     while (1) {

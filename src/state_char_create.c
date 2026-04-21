@@ -15,8 +15,26 @@
 #include <string.h>
 #include <gbdk/platform.h>
 
-#define CLASS_MENU_EMBLEM_X 12u // one 2×2 on the right; text stays left
+#define CLASS_MENU_EMBLEM_X 12u // one 8×8 on the right; text stays left
 #define CLASS_MENU_EMBLEM_Y  7u
+#define CLASS_EMBLEM_VRAM_SCALE4_START 176u
+#define CLASS_EMBLEM_VRAM_SCALE4_COUNT 64u
+#define CLASS_EMBLEM_VRAM_SCALE4_ROM_RESTORE 48u
+
+static uint8_t tile2bpp_get_px(const uint8_t *tile, uint8_t x, uint8_t y) {
+    uint8_t m = (uint8_t)(0x80u >> x);
+    uint8_t lo = (tile[(uint8_t)(y * 2u)] & m) ? 1u : 0u;
+    uint8_t hi = (tile[(uint8_t)(y * 2u + 1u)] & m) ? 2u : 0u;
+    return (uint8_t)(lo | hi);
+}
+
+static void tile2bpp_set_px(uint8_t *tile, uint8_t x, uint8_t y, uint8_t c) {
+    uint8_t m = (uint8_t)(0x80u >> x);
+    uint8_t lo_i = (uint8_t)(y * 2u);
+    uint8_t hi_i = (uint8_t)(lo_i + 1u);
+    if (c & 1u) tile[lo_i] |= m; else tile[lo_i] &= (uint8_t)~m;
+    if (c & 2u) tile[hi_i] |= m; else tile[hi_i] &= (uint8_t)~m;
+}
 
 /* One emblem 2×2: ROM indices base, base+1, base+16, base+17 (e.g. Knight A15 B15 / A16 B16). Boot only loads ROM 0–127 → VRAM; emblems are 224+ so copy from banked tileset_tiles into scratch VRAM. */
 static void class_emblem_draw(uint8_t sel) {
@@ -27,9 +45,10 @@ static void class_emblem_draw(uint8_t sel) {
         (uint8_t)TILE_EMBLEM_ZERKER_TL,
     };
     uint8_t base = tl[(unsigned)sel % PLAYER_CLASS_COUNT];
-    uint8_t pack[64]; // 4×16-byte tiles in map order: TL, TR, BL, BR
-    uint8_t buf[4];
-    uint8_t i, j;
+    uint8_t pack[64]; // 4×16-byte source tiles in map order: TL, TR, BL, BR
+    uint8_t out[1024]; // 64×16-byte tiles: true 4× nearest-neighbor scale (16×16 -> 64×64)
+    uint8_t buf[64];
+    uint8_t i, j, ox, oy;
     uint8_t sb = (uint8_t)_current_bank;
     SWITCH_ROM(BANK(tileset));
     memcpy(pack + 0u, tileset_tiles + (uint16_t)base * 16u, 16u);
@@ -37,23 +56,49 @@ static void class_emblem_draw(uint8_t sel) {
     memcpy(pack + 32u, tileset_tiles + (uint16_t)(uint8_t)(base + 16u) * 16u, 16u);
     memcpy(pack + 48u, tileset_tiles + (uint16_t)(uint8_t)(base + 17u) * 16u, 16u);
     SWITCH_ROM(sb);
-    set_bkg_data(CLASS_EMBLEM_VRAM_START, 4u, pack);
-    buf[0] = CLASS_EMBLEM_VRAM_START;
-    buf[1] = (uint8_t)(CLASS_EMBLEM_VRAM_START + 1u);
-    buf[2] = (uint8_t)(CLASS_EMBLEM_VRAM_START + 2u);
-    buf[3] = (uint8_t)(CLASS_EMBLEM_VRAM_START + 3u);
-    set_bkg_tiles(CLASS_MENU_EMBLEM_X, CLASS_MENU_EMBLEM_Y, 2u, 2u, buf);
+    memset(out, 0, sizeof(out));
+    for (oy = 0u; oy < 64u; oy++) {
+        for (ox = 0u; ox < 64u; ox++) {
+            uint8_t sx = (uint8_t)(ox >> 2u);
+            uint8_t sy = (uint8_t)(oy >> 2u);
+            uint8_t qx = (sx >= 8u) ? 1u : 0u;
+            uint8_t qy = (sy >= 8u) ? 1u : 0u;
+            uint8_t src_id = (uint8_t)(qy * 2u + qx);
+            uint8_t src_x = (uint8_t)(sx & 7u);
+            uint8_t src_y = (uint8_t)(sy & 7u);
+            uint8_t c = tile2bpp_get_px(pack + (uint16_t)src_id * 16u, src_x, src_y);
+            uint8_t tx = (uint8_t)(ox >> 3u);
+            uint8_t ty = (uint8_t)(oy >> 3u);
+            uint8_t tid = (uint8_t)(ty * 8u + tx);
+            uint8_t dx = (uint8_t)(ox & 7u);
+            uint8_t dy = (uint8_t)(oy & 7u);
+            tile2bpp_set_px(out + (uint16_t)tid * 16u, dx, dy, c);
+        }
+    }
+    set_bkg_data(CLASS_EMBLEM_VRAM_SCALE4_START, CLASS_EMBLEM_VRAM_SCALE4_COUNT, out);
+    for (j = 0u; j < 8u; j++) {
+        for (i = 0u; i < 8u; i++) {
+            buf[(uint8_t)(j * 8u + i)] = (uint8_t)(CLASS_EMBLEM_VRAM_SCALE4_START + (uint8_t)(j * 8u + i));
+        }
+    }
+    set_bkg_tiles(CLASS_MENU_EMBLEM_X, CLASS_MENU_EMBLEM_Y, 8u, 8u, buf);
     VBK_REG = VBK_ATTRIBUTES;
-    for (j = 0u; j < 2u; j++)
-        for (i = 0u; i < 2u; i++)
-            set_bkg_attribute_xy((uint8_t)(CLASS_MENU_EMBLEM_X + i), (uint8_t)(CLASS_MENU_EMBLEM_Y + j), 0u);
+    {
+        uint8_t pal = PAL_CLASS_EMBLEM_KNIGHT;
+        if (sel == 1u) pal = PAL_CLASS_EMBLEM_SCOUNDREL;
+        else if (sel == 2u) pal = PAL_CLASS_EMBLEM_WITCH;
+        else if (sel == 3u) pal = PAL_CLASS_EMBLEM_ZERKER;
+    for (j = 0u; j < 8u; j++)
+        for (i = 0u; i < 8u; i++)
+            set_bkg_attribute_xy((uint8_t)(CLASS_MENU_EMBLEM_X + i), (uint8_t)(CLASS_MENU_EMBLEM_Y + j), pal);
+    }
     VBK_REG = VBK_TILES;
 }
 
-static void class_emblem_vram_restore(void) { // put back ROM 124–127 tiles overwritten by scratch slots
+static void class_emblem_vram_restore(void) { // restore ROM tiles for 64-tile class-menu scratch region
     uint8_t sb = (uint8_t)_current_bank;
     SWITCH_ROM(BANK(tileset));
-    set_bkg_data(CLASS_EMBLEM_VRAM_START, 4u, tileset_tiles + (uint16_t)CLASS_EMBLEM_VRAM_ROM_RESTORE * 16u);
+    set_bkg_data(CLASS_EMBLEM_VRAM_SCALE4_START, CLASS_EMBLEM_VRAM_SCALE4_COUNT, tileset_tiles + (uint16_t)CLASS_EMBLEM_VRAM_SCALE4_ROM_RESTORE * 16u);
     SWITCH_ROM(sb);
 }
 
@@ -63,6 +108,7 @@ void state_char_create_enter(void) BANKED {
     BANK_DBG("CC_enter");
     lcd_gameplay_active = 0u;
     window_ui_hide();
+    class_palettes_bkg_emblem_init();
     wait_vbl_done();
     lcd_clear_display();
     for (;;) {

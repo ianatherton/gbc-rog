@@ -10,27 +10,27 @@
 /* BKG 4–7: large 2×2 menu emblems — high contrast on cleared nametable */
 static const palette_color_t s_bkg_emblem_knight[] = {
     RGB(0, 0, 0),
-    RGB(6, 10, 18),   // steel shadow
-    RGB(18, 20, 24),  // plate mid
-    RGB(31, 28, 8),   // gold crest
+    RGB(6, 12, 28),   // blue
+    RGB(31, 31, 31),  // white
+    RGB(31, 25, 4),   // gold
 };
 static const palette_color_t s_bkg_emblem_scoundrel[] = {
     RGB(0, 0, 0),
-    RGB(2, 14, 10),   // deep teal
-    RGB(8, 22, 18),   // sea glass
-    RGB(26, 20, 6),   // leather / coin
+    RGB(18, 10, 4),   // brown
+    RGB(28, 22, 14),  // tan
+    RGB(10, 22, 8),   // green
 };
 static const palette_color_t s_bkg_emblem_witch[] = {
     RGB(0, 0, 0),
-    RGB(12, 4, 18),   // void violet
-    RGB(22, 6, 24),   // robe
-    RGB(28, 22, 10),  // bone / wax
+    RGB(8, 22, 10),   // green
+    RGB(20, 8, 24),   // purple
+    RGB(29, 24, 16),  // beige
 };
 static const palette_color_t s_bkg_emblem_zerker[] = {
     RGB(0, 0, 0),
-    RGB(14, 6, 6),    // dried blood
-    RGB(28, 6, 4),    // fresh red
-    RGB(31, 28, 26),  // fur / tooth
+    RGB(14, 14, 14),  // grey
+    RGB(31, 31, 31),  // white
+    RGB(30, 4, 4),    // red
 };
 
 /* OCP PAL_PLAYER: one hardware slot; pick one of four ramps from player_class */

@@ -8,6 +8,8 @@ void render_sprite_palette_player_default(void) NONBANKED; // OCP PAL_PLAYER —
 void render_sprite_palette_player_hurt(void) NONBANKED;    // OCP PAL_PLAYER — saturated red tint
 void apply_wall_palette(void); // PAL_WALL_BG + PAL_PILLAR_BG from wall_palette_index / pillar_palette_index
 void draw_screen(uint8_t px, uint8_t py); // full BG redraw + sprite refresh
+void draw_gameplay_overlays(uint8_t px, uint8_t py); // WIN/HUD + sprites only — skip BKG dungeon ring when unchanged
+void draw_gameplay_overlays_profiled(uint8_t px, uint8_t py); // overlay-only metric path; excludes draw_screen()
 void draw_cell(uint8_t mx, uint8_t my); // single map cell if visible (terrain only)
 void draw_col_strip(uint8_t mx); // one world column for horizontal scroll
 void draw_row_strip(uint8_t my); // one world row for vertical scroll

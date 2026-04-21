@@ -9,6 +9,7 @@
 #include "entity_sprites.h"
 #include "music.h"
 #include "camera.h"
+#include "perf.h"
 #include <gb/gb.h>
 
 #define MSG_LINE 20u // matches ui combat log row cap
@@ -130,20 +131,22 @@ void grant_xp_from_kill(uint8_t enemy_damage) {
 }
 
 uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) {
+    uint8_t perf_stamp = perf_stamp_now();
     uint8_t a;
     if (!enemy_attack_count) return 0;
     for (a = 0; a < enemy_attack_count; a++)
         enemy_resolve_hit(enemy_attack_slots[a]);
     wait_vbl_done();
-    draw_screen(px, py);
+    draw_gameplay_overlays_profiled(px, py); // HP/log in WIN; lunges are sprites — BKG unchanged here
     sfx_lunge_hit();
     entity_sprites_run_enemy_lunges_batch(px, py, enemy_attack_slots, enemy_attack_count);
     entity_sprites_player_hurt_flash();
     camera_shake();
+    perf_record(PERF_HIT_RESOLVE, perf_stamp_elapsed(&perf_stamp));
     return (player_hp == 0) ? 2u : 1u;
 }
 
-void combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, uint8_t ny) {
+uint8_t combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, uint8_t ny) {
     int8_t adx = (nx > px) ? 1 : (nx < px ? -1 : 0);
     int8_t ady = (ny > py) ? 1 : (ny < py ? -1 : 0);
     entity_sprites_run_player_lunge(px, py, adx, ady, ei);
@@ -151,6 +154,7 @@ void combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, uint8
     if (enemy_hp[ei] > player_damage) {
         enemy_hp[ei] = (uint8_t)(enemy_hp[ei] - player_damage);
         push_combat_log(enemy_type[ei], player_damage, enemy_hp[ei]);
+        return 0u;
     } else {
         push_combat_log(enemy_type[ei], 0, 0);
         uint8_t kill_xp = enemy_effective_damage(enemy_type[ei]);
@@ -160,7 +164,7 @@ void combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, uint8
             corpse_x[num_corpses] = dx;
             corpse_y[num_corpses] = dy;
             corpse_tile[num_corpses] = corpse_deco_random();
-            BIT_SET(corpse_occ, TILE_IDX(dx, dy));
+            corpse_place_slot(num_corpses, dx, dy);
             num_corpses++;
         }
         enemy_clear_slot(dx, dy);
@@ -170,5 +174,6 @@ void combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, uint8
         if (dead_enemy_pool_count < MAX_ENEMIES)
             dead_enemy_pool[dead_enemy_pool_count++] = ei;
         grant_xp_from_kill(kill_xp);
+        return 1u;
     }
 }

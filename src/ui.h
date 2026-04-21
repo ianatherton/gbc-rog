@@ -8,6 +8,7 @@ BANKREF_EXTERN(ui)
 
 typedef enum {
     UI_PANEL_COMBAT   = 0,
+    UI_PANEL_PERF     = 1,
     UI_PANEL_INSPECT  = 2,
 } UIPanelMode;
 
@@ -25,6 +26,7 @@ void     ui_combat_log_push(const char *line) BANKED;           // window palett
 void     ui_combat_log_push_pal(const char *line, uint8_t pal) BANKED; // CGB BGP palette index (e.g. PAL_XP_UI)
 uint8_t  ui_combat_log_tick_quiet_turn(void) BANKED; // returns 1 if log was reclaimed (caller should redraw UI)
 void     ui_panel_show_combat(void) BANKED;
+void     ui_panel_toggle_perf(void) BANKED;
 void     ui_panel_show_inspect(uint8_t enemy_slot) BANKED;
 uint8_t  ui_panel_inspect_slot(void) BANKED;
 

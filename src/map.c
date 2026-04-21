@@ -412,5 +412,6 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     ui_panel_show_combat();
     wait_vbl_done();
     draw_screen(*px, *py);
+    lighting_dirty_clear(); // full repaint consumed initial reveals — avoid stale dirty list
 }
 

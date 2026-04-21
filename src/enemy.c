@@ -6,6 +6,7 @@
 #include "ui.h"
 #include "entity_sprites.h"
 #include "lcd.h"
+#include "perf.h"
 #include <string.h>
 
 const EnemyDef enemy_defs[NUM_ENEMY_TYPES] = { // one OCP ramp per type; snakes share green only
@@ -29,13 +30,18 @@ uint8_t corpse_tile[MAX_CORPSES]; // L1–L5 floor deco (random at kill)
 uint8_t num_corpses;
 
 uint8_t enemy_occ[BITSET_BYTES];
-uint8_t corpse_occ[BITSET_BYTES];
 
 #define ENEMY_SLOT_HASH_SIZE 64u
 #define ENEMY_SLOT_EMPTY 0xFFFFu
 #define ENEMY_SLOT_TOMBSTONE 0xFFFEu
 static uint16_t enemy_slot_keys[ENEMY_SLOT_HASH_SIZE];
 static uint8_t enemy_slot_vals[ENEMY_SLOT_HASH_SIZE];
+
+#define CORPSE_SLOT_HASH_SIZE 64u
+#define CORPSE_SLOT_EMPTY 0xFFFFu
+#define CORPSE_SLOT_TOMBSTONE 0xFFFEu
+static uint16_t corpse_slot_keys[CORPSE_SLOT_HASH_SIZE];
+static uint8_t corpse_slot_vals[CORPSE_SLOT_HASH_SIZE];
 
 static uint8_t enemy_slot_hash_idx(uint16_t tile_idx) {
     return (uint8_t)(tile_idx & (ENEMY_SLOT_HASH_SIZE - 1u)); // size is power-of-two
@@ -44,10 +50,13 @@ static uint8_t enemy_slot_hash_idx(uint16_t tile_idx) {
 void enemy_grids_init(void) {
     uint8_t i;
     memset(enemy_occ, 0, sizeof enemy_occ);
-    memset(corpse_occ, 0, sizeof corpse_occ);
     for (i = 0; i < ENEMY_SLOT_HASH_SIZE; i++) {
         enemy_slot_keys[i] = ENEMY_SLOT_EMPTY;
         enemy_slot_vals[i] = ENEMY_DEAD;
+    }
+    for (i = 0; i < CORPSE_SLOT_HASH_SIZE; i++) {
+        corpse_slot_keys[i] = CORPSE_SLOT_EMPTY;
+        corpse_slot_vals[i] = ENEMY_DEAD;
     }
 }
 
@@ -94,6 +103,47 @@ void enemy_clear_slot(uint8_t x, uint8_t y) {
     }
 }
 
+void corpse_place_slot(uint8_t slot, uint8_t x, uint8_t y) {
+    uint16_t idx = TILE_IDX(x, y);
+    uint8_t h = (uint8_t)(idx & (CORPSE_SLOT_HASH_SIZE - 1u));
+    uint8_t probe;
+    uint8_t first_tombstone = ENEMY_DEAD;
+    for (probe = 0; probe < CORPSE_SLOT_HASH_SIZE; probe++) {
+        uint8_t p = (uint8_t)((h + probe) & (CORPSE_SLOT_HASH_SIZE - 1u));
+        if (corpse_slot_keys[p] == idx) {
+            corpse_slot_vals[p] = slot;
+            return;
+        }
+        if (corpse_slot_keys[p] == CORPSE_SLOT_TOMBSTONE && first_tombstone == ENEMY_DEAD)
+            first_tombstone = p;
+        if (corpse_slot_keys[p] == CORPSE_SLOT_EMPTY) {
+            uint8_t w = (first_tombstone != ENEMY_DEAD) ? first_tombstone : p;
+            corpse_slot_keys[w] = idx;
+            corpse_slot_vals[w] = slot;
+            return;
+        }
+    }
+    if (first_tombstone != ENEMY_DEAD) {
+        corpse_slot_keys[first_tombstone] = idx;
+        corpse_slot_vals[first_tombstone] = slot;
+    }
+}
+
+void corpse_clear_slot(uint8_t x, uint8_t y) {
+    uint16_t idx = TILE_IDX(x, y);
+    uint8_t h = (uint8_t)(idx & (CORPSE_SLOT_HASH_SIZE - 1u));
+    uint8_t probe;
+    for (probe = 0; probe < CORPSE_SLOT_HASH_SIZE; probe++) {
+        uint8_t p = (uint8_t)((h + probe) & (CORPSE_SLOT_HASH_SIZE - 1u));
+        if (corpse_slot_keys[p] == CORPSE_SLOT_EMPTY) return;
+        if (corpse_slot_keys[p] == idx) {
+            corpse_slot_keys[p] = CORPSE_SLOT_TOMBSTONE;
+            corpse_slot_vals[p] = ENEMY_DEAD;
+            return;
+        }
+    }
+}
+
 static const uint8_t CORPSE_DECO_OFF[2] = { // defs.h L column — one picked per corpse
     TILE_FLOOR_DECO_2, TILE_FLOOR_DECO_3
 };
@@ -101,6 +151,7 @@ static const uint8_t CORPSE_DECO_OFF[2] = { // defs.h L column — one picked pe
 uint8_t enemy_anim_toggle; // flips each ENEMY_ANIM_DIV_TICKS of DIV accumulation
 uint8_t enemy_attack_slots[MAX_ENEMIES];
 uint8_t enemy_attack_count;
+uint8_t enemy_force_active[MAX_ENEMIES];
 
 const char *enemy_type_short_name(uint8_t t) {
     static const char *const n[NUM_ENEMY_TYPES] = {
@@ -159,10 +210,14 @@ uint8_t enemy_at(uint8_t x, uint8_t y) { // slot map keeps occupied lookups O(1)
 
 uint8_t corpse_sheet_at(uint8_t x, uint8_t y) { // O(1) when no corpse (common case)
     uint16_t idx = TILE_IDX(x, y);
-    uint8_t i;
-    if (!BIT_GET(corpse_occ, idx)) return 255;
-    for (i = 0; i < num_corpses; i++)
-        if (corpse_x[i] == x && corpse_y[i] == y) return corpse_tile[i];
+    uint8_t h = (uint8_t)(idx & (CORPSE_SLOT_HASH_SIZE - 1u));
+    uint8_t probe;
+    for (probe = 0; probe < CORPSE_SLOT_HASH_SIZE; probe++) {
+        uint8_t p = (uint8_t)((h + probe) & (CORPSE_SLOT_HASH_SIZE - 1u));
+        uint16_t k = corpse_slot_keys[p];
+        if (k == CORPSE_SLOT_EMPTY) return 255;
+        if (k == idx) return corpse_tile[corpse_slot_vals[p]];
+    }
     return 255;
 }
 
@@ -173,6 +228,7 @@ uint8_t corpse_deco_random(void) { return CORPSE_DECO_OFF[rand() & 1u]; } // L2/
 void spawn_enemies(void) { // random placement with collision checks
     uint8_t i;
     num_enemies = 0;
+    for (i = 0; i < MAX_ENEMIES; i++) enemy_force_active[i] = 0u;
     if (floor_num == 1u) return; // entry floor is a safe 20x20 no-monster zone
     for (i = 0; i < NUM_ENEMIES; i++) {
         uint8_t attempts;
@@ -187,12 +243,23 @@ void spawn_enemies(void) { // random placement with collision checks
                 enemy_type[num_enemies] = (uint8_t)(rand() % NUM_ENEMY_TYPES);
                 enemy_hp[num_enemies]   = enemy_effective_max_hp(enemy_type[num_enemies]);
                 enemy_alive[num_enemies] = 1u;
+                enemy_force_active[num_enemies] = 0u;
                 enemy_place_slot(num_enemies, tx, ty);
                 num_enemies++;
                 break;
             }
         }
     }
+}
+
+void enemy_set_force_active(uint8_t slot, uint8_t on) {
+    if (slot >= MAX_ENEMIES) return;
+    enemy_force_active[slot] = on ? 1u : 0u;
+}
+
+uint8_t enemy_get_force_active(uint8_t slot) {
+    if (slot >= MAX_ENEMIES) return 0u;
+    return enemy_force_active[slot];
 }
 
 static void step_direct(uint8_t sx, uint8_t sy,
@@ -268,6 +335,7 @@ void enemy_resolve_hit(uint8_t slot) { // one strike: log line + subtract HP
 }
 
 uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes — HP applied later in enemy_resolve_hit per hit
+    uint8_t perf_stamp = perf_stamp_now();
     uint8_t i;
     uint8_t player_node = nearest_nav_node(px, py);
     uint8_t next_hop_cache[MAX_NAV_NODES];
@@ -279,6 +347,14 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
         uint8_t sx = enemy_x[i], sy = enemy_y[i];
         uint8_t nx = sx,         ny = sy; // default no move
         const EnemyDef *def = &enemy_defs[enemy_type[i]];
+#if ENEMY_SLEEP_OFFSCREEN
+        if (!enemy_force_active[i]) {
+            uint8_t dx = (sx > px) ? (uint8_t)(sx - px) : (uint8_t)(px - sx);
+            uint8_t dy = (sy > py) ? (uint8_t)(sy - py) : (uint8_t)(py - sy);
+            uint8_t md = (uint8_t)(dx + dy);
+            if (md > ENEMY_WAKE_MANHATTAN && !lighting_is_revealed(sx, sy)) continue;
+        }
+#endif
 
         switch (def->move_style) {
             case MOVE_CHASE:
@@ -315,5 +391,6 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
             enemy_place_slot(i, nx, ny);
         }
     }
+    perf_record(PERF_ENEMY_MOVE, perf_stamp_elapsed(&perf_stamp));
     return enemy_attack_count ? 1u : 0u;
 }

@@ -9,6 +9,7 @@
 #include "wall_palettes.h" // wall_palette_table, NUM_WALL_PALETTES
 #include "entity_sprites.h"
 #include "class_palettes.h"
+#include "perf.h"
 
 static const palette_color_t pal_default[]  = { RGB(0,0,0),  RGB(8,8,8),   RGB(16,16,16), RGB(31,31,31) }; // slot 0: black field, corpses, blank floor; wall paper
 static const palette_color_t pal_floor_deco[] = { RGB(0,0,0), RGB(5,5,5), RGB(11,11,11), RGB(17,17,17) }; // BKG PAL_FLOOR_BG: E3–E5 ground deco, dark grey on black
@@ -148,7 +149,13 @@ void draw_ui_rows(void) { // 3-line panel + bottom HUD row after BKG ring update
     ui_draw_bottom_rows();
 }
 
+void draw_gameplay_overlays(uint8_t px, uint8_t py) { // used when look/belt/panel change but BKG ring matches last full draw
+    ui_draw_bottom_rows();
+    entity_sprites_refresh_all(px, py);
+}
+
 void draw_screen(uint8_t px, uint8_t py) { // full repaint: dungeon ring, then text panel + bottom HUD
+    uint8_t perf_stamp = perf_stamp_now();
     uint8_t x, y;
 
     apply_wall_palette(); // keep slot PAL_WALL_BG in sync after floor load or A-button cycle
@@ -161,9 +168,15 @@ void draw_screen(uint8_t px, uint8_t py) { // full repaint: dungeon ring, then t
         }
     }
 
-    ui_draw_bottom_rows();
-    entity_sprites_refresh_all(px, py);
+    draw_gameplay_overlays(px, py);
     // SCX/SCY: VBL + LYC (lcd.c) — do not write here during gameplay
+    perf_record(PERF_DRAW_SCREEN, perf_stamp_elapsed(&perf_stamp));
+}
+
+void draw_gameplay_overlays_profiled(uint8_t px, uint8_t py) { // overlay-only path metric; excludes full-screen redraws
+    uint8_t perf_stamp = perf_stamp_now();
+    draw_gameplay_overlays(px, py);
+    perf_record(PERF_DRAW_OVERLAY, perf_stamp_elapsed(&perf_stamp));
 }
 
 void draw_enemy_cells(uint8_t px, uint8_t py) { // idle glyph flip: OAM only — BG + WIN unchanged vs last draw_screen

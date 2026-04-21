@@ -6,6 +6,7 @@
 #include "entity_sprites.h"
 #include "lcd.h"
 #include "render.h"
+#include "perf.h"
 #include <gbdk/platform.h>
 
 BANKREF(camera_init)
@@ -44,6 +45,7 @@ static void player_glide_when_camera_idle(uint8_t opx, uint8_t opy, uint8_t px, 
 
 void camera_scroll_to(uint8_t target_tx, uint8_t target_ty,
                       uint8_t opx, uint8_t opy, uint8_t px, uint8_t py) BANKED { // smooth pan; sprite steps from old tile with camera (16-bit only)
+    uint8_t perf_stamp = perf_stamp_now();
     uint16_t target_px = (uint16_t)target_tx * 8u;
     uint16_t target_py = (uint16_t)target_ty * 8u;
     uint16_t guard_steps = 0u;
@@ -53,6 +55,7 @@ void camera_scroll_to(uint8_t target_tx, uint8_t target_ty,
 
     if (camera_px == target_px && camera_py == target_py && (opx != px || opy != py)) {
         player_glide_when_camera_idle(opx, opy, px, py);
+        perf_record(PERF_CAMERA_SCROLL, perf_stamp_elapsed(&perf_stamp));
         return;
     }
 
@@ -98,6 +101,7 @@ void camera_scroll_to(uint8_t target_tx, uint8_t target_ty,
     }
     entity_sprites_clear_player_world();
     entity_sprites_refresh_all(px, py);
+    perf_record(PERF_CAMERA_SCROLL, perf_stamp_elapsed(&perf_stamp));
 }
 
 void camera_shake(void) BANKED { // jitter in VBL scroll path — whole dungeon including top row

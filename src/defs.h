@@ -114,6 +114,8 @@ typedef struct {
 #define MOVE_CHASE   0   // always step toward the player
 #define MOVE_RANDOM  1   // random walkable neighbour each turn
 #define MOVE_WANDER  2   // 50% chase, 50% random
+#define ENEMY_SLEEP_OFFSCREEN 1u // 1: skip AI updates for distant unrevealed enemies to stabilize crowded-floor turn cost
+#define ENEMY_WAKE_MANHATTAN  12u // offscreen enemies inside this player distance still simulate so near-edge threats stay responsive
 
 /* ── Enemy type IDs ──────────────────────────────────────────────────────── */
 #define ENEMY_SERPENT   0

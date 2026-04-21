@@ -10,6 +10,7 @@ BANKREF(ui)
 #include "lcd.h"         // lcd_gameplay_active for title vs play raster
 #include "music.h"       // mute BGM + footfalls during floor generation
 #include "render.h"      // load_palettes — restore sprite CRAM after title fire uses OCP7
+#include "perf.h"
 
 BANKREF_EXTERN(load_palettes)
 #include "seed_entropy.h" // deterministic-ish random seed from hardware jitter
@@ -433,6 +434,39 @@ static void ui_draw_inspect_panel(void) {
     win_clear_row(UI_PANEL_WIN_Y2, PAL_UI);
 }
 
+static uint8_t ui_u8_digits(uint8_t v) { // compact width accounting for perf panel layout
+    if (v >= 100u) return 3u;
+    if (v >= 10u) return 2u;
+    return 1u;
+}
+
+static void ui_draw_perf_metric(uint8_t y, uint8_t *x, const char *tag, PerfMetric m) { // "TAGa/m" compact metric fragment
+    uint8_t avg = perf_avg(m);
+    uint8_t max = perf_max(m);
+    win_puts(*x, y, tag, PAL_UI); *x = (uint8_t)(*x + 2u);
+    win_put_uint8(*x, y, avg, 2u, PAL_UI); *x = (uint8_t)(*x + ui_u8_digits(avg));
+    win_putc_pal((*x)++, y, '/', PAL_UI);
+    win_put_uint8(*x, y, max, 2u, PAL_UI); *x = (uint8_t)(*x + ui_u8_digits(max));
+}
+
+static void ui_draw_perf_pair(uint8_t y, const char *tag_l, PerfMetric l, const char *tag_r, PerfMetric r) {
+    uint8_t x = 0u;
+    ui_draw_perf_metric(y, &x, tag_l, l);
+    win_putc_pal(x++, y, ' ', PAL_UI);
+    ui_draw_perf_metric(y, &x, tag_r, r);
+    while (x < UI_PANEL_COLS) win_put_space(x++, y);
+}
+
+static void ui_draw_perf_panel(void) { // 3-line rolling avg/max in DIV ticks
+    ui_draw_perf_pair(UI_PANEL_WIN_Y0, "AI", PERF_ENEMY_MOVE, "CM", PERF_CAMERA_SCROLL);
+    ui_draw_perf_pair(UI_PANEL_WIN_Y1, "RD", PERF_DRAW_SCREEN, "OV", PERF_DRAW_OVERLAY);
+    {
+        uint8_t x = 0u;
+        ui_draw_perf_metric(UI_PANEL_WIN_Y2, &x, "HT", PERF_HIT_RESOLVE);
+        while (x < UI_PANEL_COLS) win_put_space(x++, UI_PANEL_WIN_Y2);
+    }
+}
+
 static void put_word5(uint8_t x, uint8_t y, const char *s) { // fixed 5-char word into BKG via setchar
     uint8_t i;
     for (i = 0; i < 5; i++) { gotoxy((uint8_t)(x+i), y); setchar(s[i] ? s[i] : ' '); } // pad short strings
@@ -511,6 +545,7 @@ void ui_draw_bottom_rows(void) BANKED {
     ui_draw_belt_placeholder_row();
     switch (ui_panel_mode) {
         case UI_PANEL_COMBAT:   ui_draw_combat_panel();   break;
+        case UI_PANEL_PERF:     ui_draw_perf_panel();     break;
         case UI_PANEL_INSPECT:  ui_draw_inspect_panel();  break;
         default:                ui_draw_combat_panel();   break;
     }
@@ -528,6 +563,11 @@ void ui_draw_seed_words(uint16_t seed, uint8_t win_y_desc_noun, uint8_t win_y_pl
 }
 
 void ui_panel_show_combat(void) BANKED { ui_panel_mode = UI_PANEL_COMBAT; }
+
+void ui_panel_toggle_perf(void) BANKED {
+    if (ui_panel_mode == UI_PANEL_PERF) ui_panel_mode = UI_PANEL_COMBAT;
+    else ui_panel_mode = UI_PANEL_PERF;
+}
 
 void ui_panel_show_inspect(uint8_t enemy_slot) BANKED {
     panel_inspect_slot = enemy_slot;

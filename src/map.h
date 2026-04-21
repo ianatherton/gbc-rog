@@ -44,6 +44,10 @@ uint8_t wall_ortho_wall_count_xy(uint8_t x, uint8_t y); // count orthogonal wall
 void lighting_reset(void); // clear revealed bits for new floor
 void lighting_reveal_radius(uint8_t cx, uint8_t cy, uint8_t radius); // reveal a square around center
 uint8_t lighting_is_revealed(uint8_t x, uint8_t y); // fog gate helper for renderer
+uint8_t lighting_dirty_count(void); // tiles newly revealed in last lighting_reveal_radius (fog only)
+void lighting_dirty_tile(uint8_t i, uint8_t *x, uint8_t *y); // i < lighting_dirty_count()
+uint8_t lighting_dirty_overflow(void); // 1 if last reveal exceeded buffer — use full draw_screen
+void lighting_dirty_clear(void); // after painting dirty cells (optional hygiene between reveals)
 
 uint8_t nearest_nav_node(uint8_t x, uint8_t y); // for mapping entity tiles to graph
 uint8_t nav_next_step(uint8_t from, uint8_t to); // BFS first hop on nav graph

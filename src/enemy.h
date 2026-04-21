@@ -21,9 +21,8 @@ extern uint8_t enemy_type[MAX_ENEMIES];
 extern uint8_t enemy_hp[MAX_ENEMIES];
 extern uint8_t num_enemies;
 
-/* ── Spatial bitsets for O(1) presence checks (replaces linear scans) ────── */
+/* ── Spatial occupancy ────────────────────────────────────────────────────── */
 extern uint8_t enemy_occ[BITSET_BYTES];  // 1 = enemy present at this tile
-extern uint8_t corpse_occ[BITSET_BYTES]; // 1 = corpse present at this tile
 
 /* ── Corpse state ────────────────────────────────────────────────────────── */
 extern uint8_t corpse_x[MAX_CORPSES];
@@ -35,6 +34,7 @@ extern uint8_t num_corpses;
 extern uint8_t enemy_anim_toggle;
 extern uint8_t enemy_attack_slots[MAX_ENEMIES]; // slots that struck player this phase (prefix of length enemy_attack_count)
 extern uint8_t enemy_attack_count;
+extern uint8_t enemy_force_active[MAX_ENEMIES]; // 1 = AI runs even when unrevealed/offscreen (boss hook)
 
 const char *enemy_type_short_name(uint8_t t); // uppercase kind label for log / inspect
 uint8_t enemy_effective_max_hp(uint8_t type);  // base max_hp scaled by floor_num (cap 255)
@@ -43,6 +43,8 @@ uint8_t enemy_effective_damage(uint8_t type);  // base damage scaled by floor_nu
 void    enemy_grids_init(void); // clear enemy_grid + corpse_grid (call on level load)
 void    enemy_place_slot(uint8_t slot, uint8_t x, uint8_t y); // sync occupancy structures after spawn or move
 void    enemy_clear_slot(uint8_t x, uint8_t y); // clear occupancy structures before death or move
+void    corpse_place_slot(uint8_t slot, uint8_t x, uint8_t y); // sync corpse hash after a kill
+void    corpse_clear_slot(uint8_t x, uint8_t y); // sync corpse hash when tile is reclaimed
 void    enemy_anim_reset(void); // reset DIV accumulator when entering a floor
 uint8_t enemy_anim_update(void); // 1 if toggled animation frame this call
 uint8_t enemy_at(uint8_t x, uint8_t y); // enemy slot occupying tile, else ENEMY_DEAD
@@ -52,6 +54,8 @@ uint8_t corpse_deco_random(void);                // random L1–L5 sheet offset 
 void    spawn_enemies(void); // fill world with NUM_ENEMIES instances
 uint8_t move_enemies(uint8_t px, uint8_t py); // enemy turn: moves + records strikes in enemy_attack_* (no HP yet); 0 none, 1 pending hits
 void    enemy_resolve_hit(uint8_t slot);      // combat log + apply that slot's damage (call before its lunge)
+void    enemy_set_force_active(uint8_t slot, uint8_t on); // per-enemy override for always-active AI (future boss behavior)
+uint8_t enemy_get_force_active(uint8_t slot); // query override state (0 or 1)
 
 #endif // ENEMY_H
 

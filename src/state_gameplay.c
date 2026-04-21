@@ -16,6 +16,7 @@
 #include "wall_palettes.h"
 #include "class_palettes.h"
 #include "combat.h"
+#include "perf.h"
 #include <gb/gb.h>
 #include <gbdk/platform.h>
 
@@ -32,6 +33,7 @@ void state_gameplay_enter(void) BANKED {
     g_prev_j = 0;
     BANK_DBG("GP_enter");
     class_palettes_sprite_player_apply(); // OCP PAL_PLAYER matches player_class (title left gold on slot 2)
+    perf_clear_all();
     music_play_game();
     wait_vbl_done();
     lcd_clear_display();
@@ -69,6 +71,14 @@ void state_gameplay_tick(void) BANKED {
         return;
     }
 
+    if (lcd_gameplay_active && (j & J_SELECT) && (j & J_B) && !(g_prev_j & J_B)) {
+        ui_panel_toggle_perf();
+        g_prev_j = j;
+        wait_vbl_done();
+        draw_gameplay_overlays_profiled(g_player_x, g_player_y);
+        return;
+    }
+
     if (lcd_gameplay_active && (j & J_SELECT) && (j & (J_LEFT | J_RIGHT | J_UP | J_DOWN))) {
         uint8_t edge_s = (uint8_t)(j & (uint8_t)~g_prev_j);
         if (!(g_prev_j & J_SELECT)
@@ -93,7 +103,11 @@ void state_gameplay_tick(void) BANKED {
         }
         g_prev_j = j;
         wait_vbl_done();
-        draw_screen(g_player_x, g_player_y);
+#if GBC_ROG_DEBUG
+        if (edge_s & J_A) draw_screen(g_player_x, g_player_y); // wall sheet cycle — BKG must repaint
+        else
+#endif
+            draw_gameplay_overlays_profiled(g_player_x, g_player_y); // look cursor + panel only; dungeon unchanged
         return;
     }
     if (lcd_gameplay_active && (j & J_SELECT)) {
@@ -101,7 +115,7 @@ void state_gameplay_tick(void) BANKED {
         if (edge_sel & J_SELECT) {
             selected_belt_slot = (uint8_t)((selected_belt_slot + 1u) % BELT_SLOT_COUNT);
             wait_vbl_done();
-            draw_screen(g_player_x, g_player_y);
+            draw_gameplay_overlays_profiled(g_player_x, g_player_y); // belt row + selector sprite; BKG ring unchanged
         }
         g_prev_j = j;
         wait_vbl_done();
@@ -110,7 +124,7 @@ void state_gameplay_tick(void) BANKED {
     if (lcd_gameplay_active && (g_prev_j & J_SELECT) && !(j & J_SELECT)) {
         ui_panel_show_combat();
         wait_vbl_done();
-        draw_screen(g_player_x, g_player_y);
+        draw_gameplay_overlays_profiled(g_player_x, g_player_y); // panel mode back to combat; BKG unchanged
     }
 
     if (j & J_LEFT)  { nx = g_player_x > 0       ? (uint8_t)(g_player_x-1) : g_player_x; entity_sprites_set_player_facing(-1); }
@@ -133,9 +147,12 @@ void state_gameplay_tick(void) BANKED {
 
         if (ei != ENEMY_DEAD) {
             consumed_turn = 1u;
-            combat_player_attacks(ei, g_player_x, g_player_y, nx, ny);
-            wait_vbl_done();
-            draw_screen(g_player_x, g_player_y);
+            {
+                uint8_t killed = combat_player_attacks(ei, g_player_x, g_player_y, nx, ny);
+                wait_vbl_done();
+                if (killed) draw_cell(nx, ny); // corpse BG only; non-kill leaves terrain unchanged (enemy is sprite)
+                draw_gameplay_overlays_profiled(g_player_x, g_player_y);
+            }
 
             {
                 uint8_t old_ex[MAX_ENEMIES], old_ey[MAX_ENEMIES], old_ea[MAX_ENEMIES], k;
@@ -202,7 +219,21 @@ void state_gameplay_tick(void) BANKED {
                 }
                 result = resolve_enemy_hits_and_animate(g_player_x, g_player_y);
                 wait_vbl_done();
-                draw_screen(g_player_x, g_player_y);
+#if FEATURE_MAP_FOG
+                if (lighting_dirty_overflow())
+                    draw_screen(g_player_x, g_player_y);
+                else {
+                    uint8_t ni, dmx, dmy;
+                    for (ni = 0u; ni < lighting_dirty_count(); ni++) {
+                        lighting_dirty_tile(ni, &dmx, &dmy);
+                        draw_cell(dmx, dmy);
+                    }
+                    draw_gameplay_overlays_profiled(g_player_x, g_player_y);
+                }
+                lighting_dirty_clear();
+#else
+                draw_gameplay_overlays_profiled(g_player_x, g_player_y);
+#endif
 
                 if (result == 2) {
                     pending_transition = TRANS_TO_GAME_OVER;
@@ -218,7 +249,7 @@ void state_gameplay_tick(void) BANKED {
         }
         if (consumed_turn && ui_combat_log_tick_quiet_turn()) {
             wait_vbl_done();
-            draw_screen(g_player_x, g_player_y);
+            draw_gameplay_overlays_profiled(g_player_x, g_player_y); // reclaim panel text only
         }
     }
 

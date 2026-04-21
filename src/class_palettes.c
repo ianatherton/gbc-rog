@@ -22,14 +22,14 @@ static const palette_color_t s_bkg_emblem_scoundrel[] = {
 };
 static const palette_color_t s_bkg_emblem_witch[] = {
     RGB(0, 0, 0),
-    RGB(8, 22, 10),   // green
     RGB(20, 8, 24),   // purple
     RGB(29, 24, 16),  // beige
+    RGB(8, 22, 10),   // green
 };
 static const palette_color_t s_bkg_emblem_zerker[] = {
     RGB(0, 0, 0),
-    RGB(14, 14, 14),  // grey
     RGB(31, 31, 31),  // white
+    RGB(14, 14, 14),  // grey
     RGB(30, 4, 4),    // red
 };
 

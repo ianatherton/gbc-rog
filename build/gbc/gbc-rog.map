@@ -48,7 +48,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000000C  l__GSINIT |    00000013  l__HRAM   |    00000030  l__HEADER
      00000033  l__INITIA |    00000033  l__INITIA |    00000060  l__HEADER
      000000AB  l__HEADER |    00000200  s__CODE   |    00000205  l__CODE_3
-     00000B98  l__HOME   |    00000B9B  l__CODE_4 |    00001743  l__CODE_1
+     00000B98  l__HOME   |    00000B9B  l__CODE_4 |    0000173C  l__CODE_1
      000017D9  l__DATA   |    0000190D  l__CODE_5 |    00002000  _rROMB0  
      000023E3  l__CODE   |    000025E3  s__HOME   |    00003000  _rROMB1  
      0000317B  s__BASE   |    0000317B  s__CODE_0 |    0000317B  s__INITIA
@@ -426,14 +426,14 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_1                00014000    00001743 =        5955. bytes (REL,CON)
+_CODE_1                00014000    0000173C =        5948. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00014349  ___func_s |    00014349  _state_ch |    000144DD  ___func_s
-     000144DD  _state_ga |    00014589  ___func_s |    00014589  _state_tr
-     000145E8  ___func_s |    000145E8  _state_ti |    0001463B  ___func_t
-     0001463B  _tileset_ |    00014643  _tileset_ |    00015643  _tileset_
+     00014342  ___func_s |    00014342  _state_ch |    000144D6  ___func_s
+     000144D6  _state_ga |    00014582  ___func_s |    00014582  _state_tr
+     000145E1  ___func_s |    000145E1  _state_ti |    00014634  ___func_t
+     00014634  _tileset_ |    0001463C  _tileset_ |    0001563C  _tileset_
 ASxxxx Linker V03.00/V05.40 + sdld,  page 30.
 Hexadecimal  [32-Bits]
 

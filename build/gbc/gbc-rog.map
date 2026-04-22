@@ -49,7 +49,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00000033  l__INITIA |    00000033  l__INITIA |    00000060  l__HEADER
      000000AB  l__HEADER |    00000200  s__CODE   |    00000205  l__CODE_3
      00000B98  l__HOME   |    00000B9B  l__CODE_4 |    0000173C  l__CODE_1
-     000019BC  l__CODE_5 |    00001B99  l__DATA   |    00002000  _rROMB0  
+     00001BAD  l__DATA   |    00001C6E  l__CODE_5 |    00002000  _rROMB0  
      000026BF  l__CODE   |    000028BF  s__HOME   |    00003000  _rROMB1  
      00003457  s__BASE   |    00003457  s__CODE_0 |    00003457  s__INITIA
      00003457  s__LIT    |    0000348A  s__GSINIT |    00003496  s__GSFINA
@@ -68,8 +68,8 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
         -----  ------            -----  ------            -----  ------    
      0000A020  _rMBC7_AC |    0000A030  _rMBC7_AC |    0000A040  _rMBC7_AC
      0000A050  _rMBC7_AC |    0000C000  __RAM     |    0000C000  _shadow_O
-     0000C0A0  s__DATA   |    0000D000  __RAMBANK |    0000DC39  s__BSS   
-     0000DC39  s__INITIA |    0000DC6C  s__HEAP   |    0000DC6C  s__HEAP_E
+     0000C0A0  s__DATA   |    0000D000  __RAMBANK |    0000DC4D  s__BSS   
+     0000DC4D  s__INITIA |    0000DC80  s__HEAP   |    0000DC80  s__HEAP_E
      0000E000  .STACK    |    0000FE00  __OAMRAM  |    0000FF00  _P1_REG  
      0000FF00  __IO      |    0000FF01  _SB_REG   |    0000FF02  _SC_REG  
      0000FF04  _DIV_REG  |    0000FF05  _TIMA_REG |    0000FF06  _TMA_REG 
@@ -371,7 +371,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_DATA                  0000C0A0    00001B99 =        7065. bytes (REL,CON)
+_DATA                  0000C0A0    00001BAD =        7085. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -388,29 +388,29 @@ _DATA                  0000C0A0    00001B99 =        7065. bytes (REL,CON)
      0000D524  _num_enem |    0000D525  _corpse_x |    0000D541  _corpse_y
      0000D55D  _corpse_t |    0000D579  _num_corp |    0000D57A  _enemy_oc
      0000DB7A  _enemy_an |    0000DB7B  _enemy_at |    0000DB97  _enemy_at
-     0000DB98  _enemy_fo |    0000DC19  ___rand_s |    0000DC1B  font_curr
-     0000DC1E  font_firs |    0000DC1F  font_tabl |    0000DC31  .int_0x48
+     0000DB98  _enemy_fo |    0000DC2D  ___rand_s |    0000DC2F  font_curr
+     0000DC32  font_firs |    0000DC33  font_tabl |    0000DC45  .int_0x48
 ASxxxx Linker V03.00/V05.40 + sdld,  page 27.
 Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_INITIALIZED           0000DC39    00000033 =          51. bytes (REL,CON)
+_INITIALIZED           0000DC4D    00000033 =          51. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     0000DC41  _current_ |    0000DC42  _next_sta |    0000DC43  _pending_
-     0000DC44  _gameplay |    0000DC45  _player_h |    0000DC46  _player_h
-     0000DC47  _player_l |    0000DC48  _player_d |    0000DC49  _player_x
-     0000DC4B  _floor_nu |    0000DC4C  _run_seed |    0000DC4E  _player_c
-     0000DC4F  _selected |    0000DC50  _belt_slo |    0000DC54  _lcd_game
-     0000DC55  _lcd_shak |    0000DC56  _lcd_shak |    0000DC57  _wall_til
-     0000DC58  _wall_pal |    0000DC59  _pillar_p |    0000DC5A  _active_m
-     0000DC5B  _active_m |    0000DC5C  _player_s |    0000DC5D  _player_s
-     0000DC5E  _floor_co |    0000DC5F  _camera_p |    0000DC61  _camera_p
-     0000DC65  _ui_panel |    0000DC66  .curx     |    0000DC67  .cury    
-     0000DC68  .fg_colou |    0000DC68  __current |    0000DC69  .bg_colou
-     0000DC6A  .draw_mod |    0000DC6B  __map_til
+     0000DC55  _current_ |    0000DC56  _next_sta |    0000DC57  _pending_
+     0000DC58  _gameplay |    0000DC59  _player_h |    0000DC5A  _player_h
+     0000DC5B  _player_l |    0000DC5C  _player_d |    0000DC5D  _player_x
+     0000DC5F  _floor_nu |    0000DC60  _run_seed |    0000DC62  _player_c
+     0000DC63  _selected |    0000DC64  _belt_slo |    0000DC68  _lcd_game
+     0000DC69  _lcd_shak |    0000DC6A  _lcd_shak |    0000DC6B  _wall_til
+     0000DC6C  _wall_pal |    0000DC6D  _pillar_p |    0000DC6E  _active_m
+     0000DC6F  _active_m |    0000DC70  _player_s |    0000DC71  _player_s
+     0000DC72  _floor_co |    0000DC73  _camera_p |    0000DC75  _camera_p
+     0000DC79  _ui_panel |    0000DC7A  .curx     |    0000DC7B  .cury    
+     0000DC7C  .fg_colou |    0000DC7C  __current |    0000DC7D  .bg_colou
+     0000DC7E  .draw_mod |    0000DC7F  __map_til
 ASxxxx Linker V03.00/V05.40 + sdld,  page 28.
 Hexadecimal  [32-Bits]
 
@@ -495,17 +495,17 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_5                00054000    000019BC =        6588. bytes (REL,CON)
+_CODE_5                00054000    00001C6E =        7278. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00054000  ___func_u |    00054561  _ui_comba |    0005456C  _ui_comba
-     0005464C  _ui_comba |    00054661  _ui_comba |    000546A3  _seed_wor
-     000546F3  _seed_wor |    00054743  _seed_wor |    0005526C  _run_seed
-     000552E9  _ui_game_ |    0005532A  _window_u |    0005537A  _window_u
-     00055381  _ui_loadi |    000553D5  _ui_loadi |    000553EE  _ui_draw_
-     00055421  _ui_draw_ |    000554AA  _ui_panel |    000554AF  _ui_panel
-     000554BF  _ui_panel |    000554CB  _ui_panel |    00055878  _title_sc
+     00054000  ___func_u |    00054813  _ui_comba |    0005481E  _ui_comba
+     000548FE  _ui_comba |    00054913  _ui_comba |    00054955  _seed_wor
+     000549A5  _seed_wor |    000549F5  _seed_wor |    0005551E  _run_seed
+     0005559B  _ui_game_ |    000555DC  _window_u |    0005562C  _window_u
+     00055633  _ui_loadi |    00055687  _ui_loadi |    000556A0  _ui_draw_
+     000556D3  _ui_draw_ |    0005575C  _ui_panel |    00055761  _ui_panel
+     00055771  _ui_panel |    0005577D  _ui_panel |    00055B2A  _title_sc
 ASxxxx Linker V03.00/V05.40 + sdld,  page 34.
 Hexadecimal  [32-Bits]
 

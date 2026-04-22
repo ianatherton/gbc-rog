@@ -487,24 +487,18 @@ void entity_sprites_run_enemy_lunges_batch(uint8_t px, uint8_t py,
 }
 
 void entity_sprites_run_projectile(uint8_t sx, uint8_t sy, uint8_t tx, uint8_t ty, uint8_t tile_off, uint8_t pal) {
-    int8_t dx = (tx > sx) ? 1 : (tx < sx ? -1 : 0);
-    int8_t dy = (ty > sy) ? 1 : (ty < sy ? -1 : 0);
-    int16_t wx = (int16_t)sx * 8;
-    int16_t wy = (int16_t)sy * 8;
-    uint8_t steps = 0u;
-    while (sx != tx || sy != ty) {
-        if (dx > 0) sx++;
-        else if (dx < 0) sx--;
-        if (dy > 0) sy++;
-        else if (dy < 0) sy--;
-        wx = (int16_t)sx * 8;
-        wy = (int16_t)sy * 8;
+    uint8_t frame;
+    const uint8_t frames = 10u;
+    int16_t sxw = (int16_t)sx * 8;
+    int16_t syw = (int16_t)sy * 8;
+    int16_t txw = (int16_t)tx * 8;
+    int16_t tyw = (int16_t)ty * 8;
+    for (frame = 1u; frame <= frames; frame++) {
+        int16_t wx = (int16_t)(sxw + ((int16_t)(txw - sxw) * frame) / frames);
+        int16_t wy = (int16_t)(syw + ((int16_t)(tyw - syw) * frame) / frames);
         move_entity_oam(SP_PROJECTILE, wx, wy, (uint8_t)(TILESET_VRAM_OFFSET + tile_off), pal);
         wait_vbl_done();
-        wait_vbl_done(); // base extra hold per step so bolt reads clearly on DMG/CGB motion
-        steps++;
-        if ((steps & 1u) == 0u) wait_vbl_done(); // additional cadence pause every 2 steps
-        if (steps > 31u) break;
+        wait_vbl_done(); // keep projectile readable; effect-only flight, not tile stepping
     }
     oam_hide(SP_PROJECTILE);
 }

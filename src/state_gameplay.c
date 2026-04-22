@@ -20,50 +20,39 @@
 #include <gb/gb.h>
 #include <gbdk/platform.h>
 
+#define WITCH_BOLT_RANGE_TILES 4u
+
 static uint8_t abs_u8_diff(uint8_t a, uint8_t b) {
     return (a > b) ? (uint8_t)(a - b) : (uint8_t)(b - a);
 }
 
-static uint8_t witch_find_los_target(uint8_t px, uint8_t py, uint8_t *out_slot, uint8_t *out_tx, uint8_t *out_ty) {
+static uint8_t witch_find_los_target(uint8_t px, uint8_t py, uint8_t *out_slot, uint8_t *out_tx, uint8_t *out_ty, uint8_t *out_too_far) {
     uint8_t best_dist = 255u;
     uint8_t i;
+    *out_too_far = 0u;
     for (i = 0u; i < num_enemies; i++) {
         uint8_t ex;
         uint8_t ey;
-        uint8_t adx;
-        uint8_t ady;
+        uint8_t dx;
+        uint8_t dy;
         uint8_t dist;
-        int8_t stepx;
-        int8_t stepy;
-        uint8_t blocked = 0u;
-        uint8_t s;
-        uint8_t cx;
-        uint8_t cy;
         if (!enemy_alive[i]) continue;
         ex = enemy_x[i];
         ey = enemy_y[i];
-        adx = abs_u8_diff(ex, px);
-        ady = abs_u8_diff(ey, py);
-        if (!(adx == 0u || ady == 0u || adx == ady)) continue; // orthogonal or diagonal only
-        dist = (adx > ady) ? adx : ady;
-        if (dist == 0u || dist >= best_dist) continue;
-        stepx = (ex > px) ? 1 : (ex < px ? -1 : 0);
-        stepy = (ey > py) ? 1 : (ey < py ? -1 : 0);
-        cx = px;
-        cy = py;
-        for (s = 1u; s < dist; s++) {
-            cx = (uint8_t)((int16_t)cx + stepx);
-            cy = (uint8_t)((int16_t)cy + stepy);
-            if (!is_walkable(cx, cy)) {
-                blocked = 1u;
-                break;
+        if (!lighting_is_revealed(ex, ey)) continue;
+        dx = abs_u8_diff(ex, px);
+        dy = abs_u8_diff(ey, py);
+        dist = (dx > dy) ? dx : dy; // tile distance in 8-direction space
+        if (dist <= WITCH_BOLT_RANGE_TILES) {
+            if (dist < best_dist) {
+                best_dist = dist;
+                *out_slot = i;
+                *out_tx = ex;
+                *out_ty = ey;
             }
+        } else {
+            *out_too_far = 1u;
         }
-        if (blocked) continue;
-        best_dist = dist;
-        *out_slot = i;
-        *out_tx = ex;
-        *out_ty = ey;
     }
     return (best_dist != 255u) ? 1u : 0u;
 }
@@ -80,13 +69,28 @@ static void push_witch_no_los_line(void) {
     ui_combat_log_push(buf);
 }
 
+static void push_witch_too_far_line(void) {
+    char buf[20];
+    buf[0] = 't';
+    buf[1] = 'o';
+    buf[2] = 'o';
+    buf[3] = ' ';
+    buf[4] = 'f';
+    buf[5] = 'a';
+    buf[6] = 'r';
+    buf[7] = 0;
+    ui_combat_log_push(buf);
+}
+
 static uint8_t witch_cast_shot(uint8_t px, uint8_t py) {
     uint8_t burst_i;
     uint8_t ei;
+    uint8_t too_far;
     uint8_t tx;
     uint8_t ty;
-    if (!witch_find_los_target(px, py, &ei, &tx, &ty)) {
-        push_witch_no_los_line();
+    if (!witch_find_los_target(px, py, &ei, &tx, &ty, &too_far)) {
+        if (too_far) push_witch_too_far_line();
+        else push_witch_no_los_line();
         return 0u;
     }
     sfx_spell_zap();

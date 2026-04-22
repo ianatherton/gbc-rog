@@ -146,20 +146,20 @@ uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) {
     return (player_hp == 0) ? 2u : 1u;
 }
 
-uint8_t combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, uint8_t ny) {
-    int8_t adx = (nx > px) ? 1 : (nx < px ? -1 : 0);
-    int8_t ady = (ny > py) ? 1 : (ny < py ? -1 : 0);
-    entity_sprites_run_player_lunge(px, py, adx, ady, ei);
-    sfx_lunge_hit();
-    if (enemy_hp[ei] > player_damage) {
-        enemy_hp[ei] = (uint8_t)(enemy_hp[ei] - player_damage);
-        push_combat_log(enemy_type[ei], player_damage, enemy_hp[ei]);
+uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage) {
+    if (enemy_hp[ei] > damage) {
+        enemy_hp[ei] = (uint8_t)(enemy_hp[ei] - damage);
+        push_combat_log(enemy_type[ei], damage, enemy_hp[ei]);
         return 0u;
     } else {
+        uint8_t kill_xp;
+        uint8_t dx;
+        uint8_t dy;
         push_combat_log(enemy_type[ei], 0, 0);
-        uint8_t kill_xp = enemy_effective_damage(enemy_type[ei]);
+        kill_xp = enemy_effective_damage(enemy_type[ei]);
         push_xp_gain_line(kill_xp);
-        uint8_t dx = enemy_x[ei], dy = enemy_y[ei];
+        dx = enemy_x[ei];
+        dy = enemy_y[ei];
         if (num_corpses < MAX_CORPSES) {
             corpse_x[num_corpses] = dx;
             corpse_y[num_corpses] = dy;
@@ -176,4 +176,12 @@ uint8_t combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, ui
         grant_xp_from_kill(kill_xp);
         return 1u;
     }
+}
+
+uint8_t combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, uint8_t ny) {
+    int8_t adx = (nx > px) ? 1 : (nx < px ? -1 : 0);
+    int8_t ady = (ny > py) ? 1 : (ny < py ? -1 : 0);
+    entity_sprites_run_player_lunge(px, py, adx, ady, ei);
+    sfx_lunge_hit();
+    return combat_damage_enemy(ei, player_damage);
 }

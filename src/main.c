@@ -40,6 +40,10 @@ int main(void) {
         set_bkg_data(TILESET_VRAM_OFFSET, TILESET_NTILES_VRAM, tileset_tiles);
         set_bkg_data((uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY), 1u, // K1 VRAM ← M14 empty-slot art (ROM past first 128)
             tileset_tiles + (uint16_t)TILE_SHEET_M14 * 16u);
+        set_bkg_data(TILE_WITCH_BOLT_VRAM, 1u, // dedicated VRAM tile for witch icon/projectile (M12 source is outside first 128)
+            tileset_tiles + (uint16_t)TILE_SHEET_M12 * 16u);
+        set_sprite_data(TILE_WITCH_BOLT_VRAM, 1u,
+            tileset_tiles + (uint16_t)TILE_SHEET_M12 * 16u);
         {
             uint8_t buf[16];
             memcpy(buf, tileset_tiles + (uint16_t)TILE_PLAYER_AURA_ROM_A * 16u, 16u); // sheet uses idx0 as clear; 0→3 remaps made a solid 8×8

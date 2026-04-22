@@ -21,6 +21,7 @@ uint16_t g_run_entropy;
 uint8_t  look_cx, look_cy;
 uint8_t  selected_belt_slot = 0u;
 uint8_t  belt_slot_charges[BELT_SLOT_COUNT] = { 0 };
+uint8_t  witch_shot_cooldown_turns = 0u;
 
 uint8_t enemy_alive[MAX_ENEMIES];
 uint8_t dead_enemy_pool[MAX_ENEMIES];

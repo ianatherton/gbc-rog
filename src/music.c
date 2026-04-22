@@ -264,6 +264,13 @@ void sfx_lunge_hit(void) {
     sfx_ch4_hit_noise();
 }
 
+void sfx_spell_zap(void) {
+    NR21_REG = 0x80u; // 50% duty, short length
+    NR22_REG = 0xD2u; // loud start, quick decay
+    NR23_REG = 0x40u; // lower bits of pitch
+    NR24_REG = 0x86u; // trigger + high bits of pitch
+}
+
 void music_play_title(void) {
     mode_title = 1u;
     mel_i = bas_i = 0;

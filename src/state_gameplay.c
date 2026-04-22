@@ -20,6 +20,136 @@
 #include <gb/gb.h>
 #include <gbdk/platform.h>
 
+static uint8_t abs_u8_diff(uint8_t a, uint8_t b) {
+    return (a > b) ? (uint8_t)(a - b) : (uint8_t)(b - a);
+}
+
+static uint8_t witch_find_los_target(uint8_t px, uint8_t py, uint8_t *out_slot, uint8_t *out_tx, uint8_t *out_ty) {
+    uint8_t best_dist = 255u;
+    uint8_t i;
+    for (i = 0u; i < num_enemies; i++) {
+        uint8_t ex;
+        uint8_t ey;
+        uint8_t adx;
+        uint8_t ady;
+        uint8_t dist;
+        int8_t stepx;
+        int8_t stepy;
+        uint8_t blocked = 0u;
+        uint8_t s;
+        uint8_t cx;
+        uint8_t cy;
+        if (!enemy_alive[i]) continue;
+        ex = enemy_x[i];
+        ey = enemy_y[i];
+        adx = abs_u8_diff(ex, px);
+        ady = abs_u8_diff(ey, py);
+        if (!(adx == 0u || ady == 0u || adx == ady)) continue; // orthogonal or diagonal only
+        dist = (adx > ady) ? adx : ady;
+        if (dist == 0u || dist >= best_dist) continue;
+        stepx = (ex > px) ? 1 : (ex < px ? -1 : 0);
+        stepy = (ey > py) ? 1 : (ey < py ? -1 : 0);
+        cx = px;
+        cy = py;
+        for (s = 1u; s < dist; s++) {
+            cx = (uint8_t)((int16_t)cx + stepx);
+            cy = (uint8_t)((int16_t)cy + stepy);
+            if (!is_walkable(cx, cy)) {
+                blocked = 1u;
+                break;
+            }
+        }
+        if (blocked) continue;
+        best_dist = dist;
+        *out_slot = i;
+        *out_tx = ex;
+        *out_ty = ey;
+    }
+    return (best_dist != 255u) ? 1u : 0u;
+}
+
+static void push_witch_no_los_line(void) {
+    char buf[20];
+    buf[0] = 'n';
+    buf[1] = 'o';
+    buf[2] = ' ';
+    buf[3] = 'l';
+    buf[4] = 'o';
+    buf[5] = 's';
+    buf[6] = 0;
+    ui_combat_log_push(buf);
+}
+
+static uint8_t witch_cast_shot(uint8_t px, uint8_t py) {
+    uint8_t burst_i;
+    uint8_t ei;
+    uint8_t tx;
+    uint8_t ty;
+    if (!witch_find_los_target(px, py, &ei, &tx, &ty)) {
+        push_witch_no_los_line();
+        return 0u;
+    }
+    sfx_spell_zap();
+    for (burst_i = 0u; burst_i < 3u; burst_i++) {
+        entity_sprites_run_projectile(px, py, tx, ty, (uint8_t)(TILE_WITCH_BOLT_VRAM - TILESET_VRAM_OFFSET), PAL_XP_UI);
+    }
+    sfx_lunge_hit();
+    {
+        uint8_t spell_damage = (uint8_t)((player_damage + 1u) >> 1);
+        uint8_t killed = combat_damage_enemy(ei, spell_damage);
+        if (killed) draw_cell(tx, ty);
+    }
+    witch_shot_cooldown_turns = 2u;
+    return 1u;
+}
+
+static void tick_turn_cooldowns(void) {
+    if (witch_shot_cooldown_turns > 0u) witch_shot_cooldown_turns--;
+}
+
+static void push_witch_recharge_line(uint8_t turns) {
+    char buf[20];
+    buf[0] = 'r';
+    buf[1] = 'e';
+    buf[2] = 'c';
+    buf[3] = 'h';
+    buf[4] = 'a';
+    buf[5] = 'r';
+    buf[6] = 'g';
+    buf[7] = 'i';
+    buf[8] = 'n';
+    buf[9] = 'g';
+    buf[10] = ':';
+    buf[11] = ' ';
+    buf[12] = (char)('0' + (turns > 9u ? 9u : turns));
+    buf[13] = ' ';
+    buf[14] = 't';
+    buf[15] = 'u';
+    buf[16] = 'r';
+    buf[17] = 'n';
+    buf[18] = 's';
+    buf[19] = 0;
+    ui_combat_log_push(buf);
+}
+
+static void push_selected_belt_description(void) {
+    if (selected_belt_slot == 0u && player_class == 2u && player_level >= 1u) {
+        char buf[20];
+        buf[0] = 'f';
+        buf[1] = 'e';
+        buf[2] = 't';
+        buf[3] = 'i';
+        buf[4] = 'd';
+        buf[5] = ' ';
+        buf[6] = 'b';
+        buf[7] = 'o';
+        buf[8] = 'l';
+        buf[9] = 't';
+        buf[10] = 0;
+        ui_combat_log_push(buf);
+    }
+}
+
 BANKREF(state_gameplay_enter)
 void state_gameplay_enter(void) BANKED {
     if (gameplay_soft_reenter) {
@@ -42,6 +172,7 @@ void state_gameplay_enter(void) BANKED {
     BANK_DBG("GP_gen");
     level_generate_and_spawn(&g_player_x, &g_player_y);
     selected_belt_slot = 0u;
+    witch_shot_cooldown_turns = 0u;
     BANK_DBG("GP_done");
 }
 
@@ -114,6 +245,7 @@ void state_gameplay_tick(void) BANKED {
         uint8_t edge_sel = (uint8_t)(j & (uint8_t)~g_prev_j);
         if (edge_sel & J_SELECT) {
             selected_belt_slot = (uint8_t)((selected_belt_slot + 1u) % BELT_SLOT_COUNT);
+            push_selected_belt_description();
             wait_vbl_done();
             draw_gameplay_overlays_profiled(g_player_x, g_player_y); // belt row + selector sprite; BKG ring unchanged
         }
@@ -125,6 +257,52 @@ void state_gameplay_tick(void) BANKED {
         ui_panel_show_combat();
         wait_vbl_done();
         draw_gameplay_overlays_profiled(g_player_x, g_player_y); // panel mode back to combat; BKG unchanged
+    }
+
+    if (lcd_gameplay_active && (j & J_B) && !(g_prev_j & J_B)) {
+        if (player_class == 2u && player_level >= 1u && witch_shot_cooldown_turns == 0u) {
+            uint8_t consumed_turn = witch_cast_shot(g_player_x, g_player_y);
+            wait_vbl_done();
+            draw_gameplay_overlays_profiled(g_player_x, g_player_y);
+            if (consumed_turn) {
+                uint8_t old_ex[MAX_ENEMIES], old_ey[MAX_ENEMIES], old_ea[MAX_ENEMIES], k;
+                uint8_t result;
+                for (k = 0; k < num_enemies; k++) {
+                    old_ex[k] = enemy_x[k];
+                    old_ey[k] = enemy_y[k];
+                    old_ea[k] = enemy_alive[k];
+                }
+                move_enemies(g_player_x, g_player_y);
+                entity_sprites_run_enemy_glide(g_player_x, g_player_y, old_ex, old_ey, old_ea);
+                result = resolve_enemy_hits_and_animate(g_player_x, g_player_y);
+                if (!result) { wait_vbl_done(); draw_enemy_cells(g_player_x, g_player_y); }
+                if (result == 2) {
+                    pending_transition = TRANS_TO_GAME_OVER;
+                    next_state         = STATE_TRANSITION;
+                    g_prev_j           = j;
+                    wait_vbl_done();
+                    return;
+                }
+                tick_turn_cooldowns();
+                if (ui_combat_log_tick_quiet_turn()) {
+                    wait_vbl_done();
+                    draw_gameplay_overlays_profiled(g_player_x, g_player_y);
+                }
+            }
+            g_prev_j = j;
+            wait_vbl_done();
+            return;
+        } else if (player_class == 2u && player_level >= 1u && witch_shot_cooldown_turns > 0u) {
+            push_witch_recharge_line((uint8_t)(witch_shot_cooldown_turns - 1u));
+            wait_vbl_done();
+            draw_gameplay_overlays_profiled(g_player_x, g_player_y);
+            g_prev_j = j;
+            wait_vbl_done();
+            return;
+        }
+        g_prev_j = j;
+        wait_vbl_done();
+        return;
     }
 
     if (j & J_LEFT)  { nx = g_player_x > 0       ? (uint8_t)(g_player_x-1) : g_player_x; entity_sprites_set_player_facing(-1); }
@@ -248,8 +426,11 @@ void state_gameplay_tick(void) BANKED {
             }
         }
         if (consumed_turn && ui_combat_log_tick_quiet_turn()) {
+            tick_turn_cooldowns();
             wait_vbl_done();
             draw_gameplay_overlays_profiled(g_player_x, g_player_y); // reclaim panel text only
+        } else if (consumed_turn) {
+            tick_turn_cooldowns();
         }
     }
 

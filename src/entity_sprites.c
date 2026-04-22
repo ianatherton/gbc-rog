@@ -14,6 +14,7 @@
 
 #define SP_LADDER_ARROW 36u
 #define SP_BRAZIER_FIRE 37u
+#define SP_PROJECTILE 38u
 #define SP_BELT_SELECTOR 35u // fixed screen-space OAM; excluded from post-enemy hide sweep
 #define BRAZIER_FIRE_TTL_VBL 12u
 
@@ -483,4 +484,27 @@ void entity_sprites_run_enemy_lunges_batch(uint8_t px, uint8_t py,
     }
     entity_sprites_refresh_player_only(px, py);
     for (i = 0; i < count; i++) entity_sprites_refresh_enemy(slots[i]);
+}
+
+void entity_sprites_run_projectile(uint8_t sx, uint8_t sy, uint8_t tx, uint8_t ty, uint8_t tile_off, uint8_t pal) {
+    int8_t dx = (tx > sx) ? 1 : (tx < sx ? -1 : 0);
+    int8_t dy = (ty > sy) ? 1 : (ty < sy ? -1 : 0);
+    int16_t wx = (int16_t)sx * 8;
+    int16_t wy = (int16_t)sy * 8;
+    uint8_t steps = 0u;
+    while (sx != tx || sy != ty) {
+        if (dx > 0) sx++;
+        else if (dx < 0) sx--;
+        if (dy > 0) sy++;
+        else if (dy < 0) sy--;
+        wx = (int16_t)sx * 8;
+        wy = (int16_t)sy * 8;
+        move_entity_oam(SP_PROJECTILE, wx, wy, (uint8_t)(TILESET_VRAM_OFFSET + tile_off), pal);
+        wait_vbl_done();
+        wait_vbl_done(); // base extra hold per step so bolt reads clearly on DMG/CGB motion
+        steps++;
+        if ((steps & 1u) == 0u) wait_vbl_done(); // additional cadence pause every 2 steps
+        if (steps > 31u) break;
+    }
+    oam_hide(SP_PROJECTILE);
 }

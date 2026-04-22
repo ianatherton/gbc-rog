@@ -366,7 +366,7 @@ static void win_clear_row(uint8_t win_y, uint8_t pal) {
 }
 
 static void ui_draw_belt_placeholder_row(void) { // N4/O4 "SPELL" | 4×(slot + uses) | pad | N6/O6 "ITEM"
-    uint8_t x = 0u, s, v;
+    uint8_t x = 0u, s, v, icon_pal;
     v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SPELL_L);
     set_win_tile_xy(x, UI_BELT_WIN_Y, v);
     set_win_attribute_xy(x++, UI_BELT_WIN_Y, PAL_UI);
@@ -374,9 +374,15 @@ static void ui_draw_belt_placeholder_row(void) { // N4/O4 "SPELL" | 4×(slot + u
     set_win_tile_xy(x, UI_BELT_WIN_Y, v);
     set_win_attribute_xy(x++, UI_BELT_WIN_Y, PAL_UI);
     for (s = 0u; s < BELT_SLOT_COUNT; s++) {
-        v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY); // empty: M14 patched onto K1 VRAM at boot; else TILE_ITEM_* when wired
+        if (s == 0u && player_class == 2u && player_level >= 1u) {
+            v = TILE_WITCH_BOLT_VRAM;
+            icon_pal = (witch_shot_cooldown_turns == 0u) ? PAL_WALL_BG : PAL_CORPSE;
+        } else {
+            v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY); // empty: M14 patched onto K1 VRAM at boot; else TILE_ITEM_* when wired
+            icon_pal = PAL_UI;
+        }
         set_win_tile_xy(x, UI_BELT_WIN_Y, v);
-        set_win_attribute_xy(x++, UI_BELT_WIN_Y, PAL_UI);
+        set_win_attribute_xy(x++, UI_BELT_WIN_Y, icon_pal);
         if (belt_slot_charges[s] == 0u) win_put_space(x++, UI_BELT_WIN_Y);
         else win_putc_pal(x++, UI_BELT_WIN_Y, (char)('0' + (belt_slot_charges[s] > 9u ? 9u : belt_slot_charges[s])), PAL_UI);
     }

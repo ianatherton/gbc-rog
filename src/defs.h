@@ -272,11 +272,13 @@ typedef struct {
 #define TILE_ARROW_SW       44   /* M3  - bottom-left diagonal             */
 #define TILE_ARROW_SE       60   /* M4  - bottom-right diagonal            */
 #define TILE_ARROW_LADDER   76   /* M5  - ladder marker sprite             */
+#define TILE_SHEET_M12     188u  /* M12 - witch bolt art in source sheet   */
 #define TILE_POOF_CLOUD    108u  /* M7  - enemy death puff (sprite; OCP0 grey/white ramp) */
 #define TILE_PLAYER_AURA_ROM_A 236u /* M15 — copied to TILE_PLAYER_AURA_VRAM_* for OBJ */
 #define TILE_PLAYER_AURA_ROM_B 252u /* M16 */
 #define TILE_PLAYER_AURA_VRAM_A 248u // below CLASS_EMBLEM_VRAM_START 252 — gameplay aura only
 #define TILE_PLAYER_AURA_VRAM_B 249u
+#define TILE_WITCH_BOLT_VRAM 250u // copied from TILE_SHEET_M12 at boot for UI icon + projectile sprite
 #define TILE_SHEET_M14     220u  /* M14 — empty belt slot (ROM); (14-1)*16+12, past VRAM 0..127 pack */
 
 /* ── N+O col — HUD / UI tiles ───────────────────────────────────────────── */

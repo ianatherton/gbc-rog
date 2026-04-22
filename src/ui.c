@@ -29,6 +29,7 @@ BANKREF_EXTERN(load_palettes)
 #define UI_TITLE_FIRE_FIRST   22u
 #define UI_TITLE_FIRE_COUNT   8u
 #define PAL_TITLE_FIRE        7u  // OCP7: orange flame; gameplay restores via load_palettes in ui_title_style_end
+#define UI_TITLE_TORCH_PAD_L_TITLE 24u // OAM X = DEVICE_SPRITE_PX_OFFSET_X + this (seed menu uses 8u = 16px further left)
 
 static const palette_color_t ui_title_bkg_pal[] = { // BKG pal 0: dark red field + light text (font pen 3 / paper 0)
     RGB(5, 0, 1),
@@ -37,11 +38,11 @@ static const palette_color_t ui_title_bkg_pal[] = { // BKG pal 0: dark red field
     RGB(30, 28, 26),
 };
 static const palette_color_t ui_default_bkg_pal0[] = { RGB(0, 0, 0), RGB(8, 8, 8), RGB(16, 16, 16), RGB(31, 31, 31) };
-static const palette_color_t ui_title_fire_pal[] = { // OCP7 during menu only
-    RGB(0, 0, 0), RGB(8, 10, 14), RGB(31, 16, 2), RGB(31, 26, 8),
+static const palette_color_t ui_title_fire_pal[] = { // OCP PAL_TITLE_FIRE — duplicate of render.c pal_ladder (brazier fire sprite in play)
+    RGB(0, 0, 0), RGB(6, 8, 12), RGB(31, 16, 2), RGB(31, 26, 8),
 };
-static const palette_color_t ui_title_torch_sprite_pal[] = { // OCP PAL_PLAYER: gold torches (dungeon overwrites with class ramp)
-    RGB(0, 0, 0), RGB(24, 18, 0), RGB(30, 24, 4), RGB(31, 31, 10),
+static const palette_color_t ui_title_torch_sprite_pal[] = { // OCP PAL_PLAYER on menus only — duplicate of pal_ladder (floor brazier BKG in play)
+    RGB(0, 0, 0), RGB(6, 8, 12), RGB(31, 16, 2), RGB(31, 26, 8),
 };
 
 static uint8_t ui_title_torch_lx, ui_title_torch_rx, ui_title_torch_ty; // fire spawns from torch tops
@@ -84,10 +85,10 @@ static void ui_title_menu_border_draw(void) { // 20×18 view: one tile deep; clo
     for (y = 16; y >= 1; y--) ui_title_menu_border_put(0u, (uint8_t)y, &seq);
 }
 
-static void ui_title_torch_place(uint8_t bkg_text_row) {
+static void ui_title_torch_place(uint8_t bkg_text_row, uint8_t left_pad_px) {
     uint8_t tt = (uint8_t)(TILESET_VRAM_OFFSET + TILE_LIGHT_3); // C3 torch art
     uint8_t ty = (uint8_t)((uint16_t)bkg_text_row * 8u + 4u + 16u); // same baseline as original single-torch title
-    uint8_t lx = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_X + 24u); // OAM X = 8+screen px; 24px from left = well right of skull border
+    uint8_t lx = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_X + left_pad_px);
     uint8_t rx = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_X + (160u - 8u - 24u)); // mirror: 24px margin from right visible edge
     uint8_t p = (uint8_t)(PAL_PLAYER & 7u);
     ui_title_torch_lx = lx;
@@ -101,26 +102,27 @@ static void ui_title_torch_place(uint8_t bkg_text_row) {
     move_sprite(UI_TITLE_TORCH_OAM_R, rx, ty);
 }
 
-static void ui_title_style_begin(uint8_t bkg_text_row) {
+static void ui_title_style_begin(uint8_t bkg_text_row, uint8_t torch_left_pad_px) {
     set_bkg_palette(0u, 1u, ui_title_bkg_pal);
     set_sprite_palette(PAL_PLAYER, 1u, ui_title_torch_sprite_pal);
     set_sprite_palette(PAL_TITLE_FIRE, 1u, ui_title_fire_pal);
     ui_title_fire_init();
-    ui_title_torch_place(bkg_text_row);
+    ui_title_torch_place(bkg_text_row, torch_left_pad_px);
     SHOW_SPRITES;
 }
 
-static void ui_title_logo_draw_bkg(uint8_t map_x, uint8_t map_y_top) { // TITLE_LOGO_BKG_W×2 map tiles, BKG pal 0
-    uint8_t buf[TITLE_LOGO_BKG_W];
-    uint8_t i;
-    for (i = 0u; i < TITLE_LOGO_BKG_W; i++) buf[i] = (uint8_t)(TITLE_LOGO_BKG_VRAM0 + i);
-    set_bkg_tiles(map_x, map_y_top, TITLE_LOGO_BKG_W, 1u, buf);
-    for (i = 0u; i < TITLE_LOGO_BKG_W; i++) buf[i] = (uint8_t)(TITLE_LOGO_BKG_VRAM0 + TITLE_LOGO_BKG_W + i);
-    set_bkg_tiles(map_x, (uint8_t)(map_y_top + 1u), TITLE_LOGO_BKG_W, 1u, buf);
+static void ui_title_logo_draw_bkg(uint8_t map_x, uint8_t map_y_top) { // TITLE_LOGO_MAP_W×H scaled tiles, BKG pal 0
+    uint8_t buf[TITLE_LOGO_MAP_W];
+    uint8_t j, i;
+    for (j = 0u; j < TITLE_LOGO_MAP_H; j++) {
+        for (i = 0u; i < TITLE_LOGO_MAP_W; i++)
+            buf[i] = title_logo_bkg_vram_slot[j * TITLE_LOGO_MAP_W + i];
+        set_bkg_tiles(map_x, (uint8_t)(map_y_top + j), TITLE_LOGO_MAP_W, 1u, buf);
+    }
     VBK_REG = VBK_ATTRIBUTES;
-    for (i = 0u; i < TITLE_LOGO_BKG_W; i++) {
-        set_bkg_attribute_xy((uint8_t)(map_x + i), map_y_top, 0u);
-        set_bkg_attribute_xy((uint8_t)(map_x + i), (uint8_t)(map_y_top + 1u), 0u);
+    for (j = 0u; j < TITLE_LOGO_MAP_H; j++) {
+        for (i = 0u; i < TITLE_LOGO_MAP_W; i++)
+            set_bkg_attribute_xy((uint8_t)(map_x + i), (uint8_t)(map_y_top + j), 0u);
     }
     VBK_REG = VBK_TILES;
 }
@@ -606,7 +608,7 @@ static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t entropy_
     wait_vbl_done();
     lcd_clear_display();
     BANK_DBG("UI:seed");
-    ui_title_style_begin(1u);
+    ui_title_style_begin(1u, (uint8_t)(UI_TITLE_TORCH_PAD_L_TITLE - 16u)); // left brazier −16px vs title
 
     while (1) {
         gotoxy(3, 1); printf("SEED WORDS");
@@ -666,12 +668,13 @@ uint16_t title_screen(uint16_t entropy_hint) BANKED { // blocking until START or
     wait_vbl_done();
     lcd_clear_display();
     BANK_DBG("UI_title");
-    ui_title_style_begin(7u);
+    ui_title_style_begin(7u, UI_TITLE_TORCH_PAD_L_TITLE);
     ui_title_menu_border_draw();
     title_logo_bkg_vram_patch();
-    ui_title_logo_draw_bkg(5u, 5u); // 6×2 wordmark; +8px R / +8px U vs old (4,6) anchor
-    gotoxy(11, 6); printf("Abyss"); // to the right of logo bottom row (logo cols 5–10)
-    gotoxy(3, 12); printf("SELECT=seed words");
+    ui_title_logo_draw_bkg(4u, 3u); // 12×4 scaled; centered (x=4), one row up vs (4,4)
+    gotoxy(7, 7); printf("Abyss"); // centered; 8px below logo (map row below 4-row block: 3+4=7)
+    gotoxy(4, 10); printf("Start: Quest"); // 12 chars — (20−12)/2; shown before blink loop
+    gotoxy(4, 12); printf("Select: Seed"); // blank row 11 under Start: Quest
 
     while (1) {
         uint8_t  j    = joypad();
@@ -690,9 +693,9 @@ uint16_t title_screen(uint16_t entropy_hint) BANKED { // blocking until START or
         blink_counter++;
         if (blink_counter >= 30) { // ~0.5s at 60Hz VBlank loop
             blink_counter = 0; blink_visible ^= 1;
-            gotoxy(5, 10);
-            if (blink_visible) printf("PRESS START");
-            else               printf("           ");
+            gotoxy(4, 10);
+            if (blink_visible) printf("Start: Quest");
+            else               printf("            "); // 12 spaces
         }
         frame_counter++;
         wait_vbl_done();

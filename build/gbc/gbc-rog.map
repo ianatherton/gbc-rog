@@ -49,7 +49,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00000034  l__INITIA |    00000034  l__INITIA |    00000060  l__HEADER
      000000AB  l__HEADER |    00000200  s__CODE   |    00000205  l__CODE_3
      00000B98  l__HOME   |    00000B9B  l__CODE_4 |    0000173C  l__CODE_1
-     00001BAD  l__DATA   |    00001C90  l__CODE_5 |    00002000  _rROMB0  
+     00001BAD  l__DATA   |    00001C33  l__CODE_5 |    00002000  _rROMB0  
      000027B1  l__CODE   |    000029B1  s__HOME   |    00003000  _rROMB1  
      00003549  s__BASE   |    00003549  s__CODE_0 |    00003549  s__INITIA
      00003549  s__LIT    |    0000357D  s__GSINIT |    00003589  s__GSFINA
@@ -497,17 +497,17 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_5                00054000    00001C90 =        7312. bytes (REL,CON)
+_CODE_5                00054000    00001C33 =        7219. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00054000  ___func_u |    00054813  _ui_comba |    0005481E  _ui_comba
-     000548FE  _ui_comba |    00054913  _ui_comba |    00054955  _seed_wor
-     000549A5  _seed_wor |    000549F5  _seed_wor |    00055540  _run_seed
-     000555BD  _ui_game_ |    000555FE  _window_u |    0005564E  _window_u
-     00055655  _ui_loadi |    000556A9  _ui_loadi |    000556C2  _ui_draw_
-     000556F5  _ui_draw_ |    0005577E  _ui_panel |    00055783  _ui_panel
-     00055793  _ui_panel |    0005579F  _ui_panel |    00055B4C  _title_sc
+     00054000  ___func_u |    000547B6  _ui_comba |    000547C1  _ui_comba
+     000548A1  _ui_comba |    000548B6  _ui_comba |    000548F8  _seed_wor
+     00054948  _seed_wor |    00054998  _seed_wor |    000554E3  _run_seed
+     00055560  _ui_game_ |    000555A1  _window_u |    000555F1  _window_u
+     000555F8  _ui_loadi |    0005564C  _ui_loadi |    00055665  _ui_draw_
+     00055698  _ui_draw_ |    00055721  _ui_panel |    00055726  _ui_panel
+     00055736  _ui_panel |    00055742  _ui_panel |    00055AEF  _title_sc
 ASxxxx Linker V03.00/V05.40 + sdld,  page 34.
 Hexadecimal  [32-Bits]
 

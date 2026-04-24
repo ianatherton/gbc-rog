@@ -28,7 +28,7 @@ BANKREF_EXTERN(load_palettes)
 #define UI_TITLE_TORCH_OAM_R  21u
 #define UI_TITLE_FIRE_FIRST   22u
 #define UI_TITLE_FIRE_COUNT   8u
-#define UI_TITLE_RISE_FIRST   30u // below SP_BELT_SELECTOR 35 — bottom-edge fire/skull wisps (title + seed menus)
+#define UI_TITLE_RISE_FIRST   30u // below SP_BELT_SELECTOR 35 — falling border-skull wisps (title + seed menus)
 #define UI_TITLE_RISE_COUNT   5u
 #define PAL_TITLE_FIRE        7u  // OCP7: orange flame; gameplay restores via load_palettes in ui_title_style_end
 #define PAL_TITLE_RISE_SKULL  3u  // OCP3: duplicate of BGP 0 border ramp (ui_title_bkg_pal) for TILE_LOADING_SKULL wisps
@@ -55,7 +55,7 @@ static uint8_t ui_title_fire_ttl[UI_TITLE_FIRE_COUNT]; // 0 = slot free
 static uint8_t ui_title_rise_y[UI_TITLE_RISE_COUNT];
 static uint8_t ui_title_rise_x[UI_TITLE_RISE_COUNT];
 static uint8_t ui_title_rise_ttl[UI_TITLE_RISE_COUNT];
-static uint8_t ui_title_rise_kind[UI_TITLE_RISE_COUNT]; // 0 = TILE_TITLE_FIRE, 1 = border skull tile + PAL_TITLE_RISE_SKULL
+static int8_t ui_title_rise_vx[UI_TITLE_RISE_COUNT];
 
 static void ui_title_torch_hide(void) {
     uint8_t i;
@@ -160,16 +160,16 @@ static void ui_title_try_spawn_fire(uint8_t from_right, uint16_t fc) {
     }
 }
 
-static void ui_title_try_spawn_rise(uint16_t fc) { // embers / tiny skulls from bottom edge (screen-space)
+static void ui_title_try_spawn_rise(uint16_t fc) { // border-skull sprites only; fall from top with horizontal tumble (screen-space)
     uint8_t i;
     for (i = 0u; i < UI_TITLE_RISE_COUNT; i++) {
         if (ui_title_rise_ttl[i] != 0u) continue;
         {
             uint8_t x = (uint8_t)(16u + (uint8_t)((uint16_t)(DIV_REG + (uint8_t)fc + (uint16_t)i * 23u) % 120u));
             ui_title_rise_x[i] = x;
-            ui_title_rise_y[i] = 150u; // near lower visible edge; drifts upward like torch sparks
-            ui_title_rise_ttl[i] = (uint8_t)(26u + (uint8_t)(DIV_REG & 21u));
-            ui_title_rise_kind[i] = (uint8_t)(((fc >> 1) + (uint16_t)i + (uint16_t)DIV_REG) & 1u);
+            ui_title_rise_y[i] = (uint8_t)(16u + (uint8_t)(DIV_REG & 15u)); // top band; DIV jitter spreads rows
+            ui_title_rise_ttl[i] = (uint8_t)(72u + (uint8_t)(DIV_REG & 47u)); // long enough to cross ~144px at ~2px/frame
+            ui_title_rise_vx[i] = (int8_t)((DIV_REG & 1u) ? 2 : -2);
             return;
         }
     }
@@ -212,20 +212,24 @@ static void ui_title_menu_anim_tick(uint16_t frame_counter) {
         {
             uint8_t y = ui_title_rise_y[i];
             int16_t nx = (int16_t)ui_title_rise_x[i];
-            if (((frame_counter + (uint16_t)i) & 3u) == 2u) nx++;
-            else if (((frame_counter + (uint16_t)i) & 3u) == 0u) nx--;
-            if (nx < 8) nx = 8;
-            if (nx > 152) nx = 152;
-            y = (uint8_t)((uint16_t)y - 1u);
-            if (((frame_counter + i) & 1u) == 0u) y = (uint8_t)((uint16_t)y - 1u);
+            int8_t vx = ui_title_rise_vx[i];
+            nx += (int16_t)vx;
+            if ((((uint16_t)y + frame_counter + (uint16_t)i) & 7u) == 0u)
+                nx += ((DIV_REG & 1u) ? 2 : -2);
+            if (nx < 8) { nx = 8; if (vx < 0) vx = (int8_t)(-vx); }
+            if (nx > 152) { nx = 152; if (vx > 0) vx = (int8_t)(-vx); }
+            ui_title_rise_vx[i] = vx;
+            y = (uint8_t)((uint16_t)y + 1u);
+            if ((((uint16_t)frame_counter + (uint16_t)i + (uint16_t)DIV_REG) & 1u) == 0u)
+                y = (uint8_t)((uint16_t)y + 1u);
             ui_title_rise_ttl[i] = (uint8_t)(ui_title_rise_ttl[i] - 1u);
-            if (ui_title_rise_ttl[i] == 0u || y < 22u) {
+            if (ui_title_rise_ttl[i] == 0u || y > 164u) {
                 ui_title_rise_ttl[i] = 0u;
                 move_sprite((uint8_t)(UI_TITLE_RISE_FIRST + i), 0u, 0u);
             } else {
-                uint8_t tt = (uint8_t)(TILESET_VRAM_OFFSET
-                    + (ui_title_rise_kind[i] ? TILE_LOADING_SKULL : TILE_TITLE_FIRE));
-                uint8_t pr = ui_title_rise_kind[i] ? (uint8_t)(PAL_TITLE_RISE_SKULL & 7u) : (uint8_t)(PAL_TITLE_FIRE & 7u);
+                uint8_t tt = (uint8_t)(TILESET_VRAM_OFFSET + TILE_LOADING_SKULL);
+                uint8_t pr = (uint8_t)(PAL_TITLE_RISE_SKULL & 7u);
+                if ((((uint16_t)frame_counter + (uint16_t)i + (uint16_t)(y >> 2u)) & 1u) != 0u) pr |= S_FLIPX;
                 ui_title_rise_y[i] = y;
                 ui_title_rise_x[i] = (uint8_t)nx;
                 set_sprite_tile((uint8_t)(UI_TITLE_RISE_FIRST + i), tt);

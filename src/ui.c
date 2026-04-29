@@ -292,6 +292,64 @@ void ui_combat_log_push(const char *line) BANKED {
     ui_combat_log_push_pal(line, PAL_UI);
 }
 
+#define UI_MSG_LINE 20u // matches ui combat log row cap
+
+void ui_push_combat_log(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_pct) BANKED {
+    char logbuf[UI_MSG_LINE];
+    char namebuf[12]; // SLIMESKULL + NUL is the longest current name; copy here to stay valid after bcall returns to bank 5
+    uint8_t p = 0, d = dmg, mhp, pct, ni;
+    enemy_type_short_name_copy(type_idx, namebuf, sizeof namebuf);
+    for (ni = 0u; namebuf[ni] && p < 9u; ni++) logbuf[p++] = namebuf[ni];
+    logbuf[p++] = ' ';
+    if (d) {
+        logbuf[p++] = '-';
+        if (d >= 100u) { logbuf[p++] = (char)('0' + d / 100u); d %= 100u; }
+        if (d >= 10u)  { logbuf[p++] = (char)('0' + d / 10u);  d %= 10u; }
+        logbuf[p++] = (char)('0' + d);
+        mhp = enemy_effective_max_hp(type_idx);
+        pct = mhp ? (uint8_t)(((uint16_t)hp_remaining_for_pct * 100u) / (uint16_t)mhp) : 0u;
+        if (pct > 99u) pct = 99u;
+        logbuf[p++] = ' ';
+        if (pct >= 10u) { logbuf[p++] = (char)('0' + pct / 10u); logbuf[p++] = (char)('0' + pct % 10u); }
+        else            { logbuf[p++] = (char)('0' + pct); }
+        logbuf[p++] = '%';
+    } else {
+        logbuf[p++] = 'D'; logbuf[p++] = 'I'; logbuf[p++] = 'E'; logbuf[p++] = 'S';
+    }
+    logbuf[p] = 0;
+    ui_combat_log_push_pal(logbuf, PAL_UI);
+}
+
+void ui_push_xp_gain_line(uint8_t amt) BANKED {
+    char buf[UI_MSG_LINE];
+    uint8_t p = 0;
+    uint16_t need = (uint16_t)PLAYER_LEVEL_XP_BASE + (uint16_t)(player_level - 1u) * PLAYER_LEVEL_XP_STEP;
+    uint16_t pct16 = need ? (((uint16_t)amt * 100u) / need) : 0u;
+    uint8_t pct = (pct16 > 100u) ? 100u : (uint8_t)pct16;
+    buf[p++] = '+';
+    if (amt >= 100u)      { buf[p++] = (char)('0' + amt / 100u); buf[p++] = (char)('0' + (amt % 100u) / 10u); buf[p++] = (char)('0' + amt % 10u); }
+    else if (amt >= 10u)  { buf[p++] = (char)('0' + amt / 10u);  buf[p++] = (char)('0' + amt % 10u); }
+    else                  { buf[p++] = (char)('0' + amt); }
+    buf[p++] = ' '; buf[p++] = 'X'; buf[p++] = 'P'; buf[p++] = ' '; buf[p++] = '(';
+    if (pct >= 100u)     { buf[p++] = '1'; buf[p++] = '0'; buf[p++] = '0'; }
+    else if (pct >= 10u) { buf[p++] = (char)('0' + pct / 10u); buf[p++] = (char)('0' + pct % 10u); }
+    else                 { buf[p++] = (char)('0' + pct); }
+    buf[p++] = '%'; buf[p++] = ')'; buf[p] = 0;
+    ui_combat_log_push_pal(buf, PAL_XP_UI);
+}
+
+void ui_push_level_up_line(uint8_t new_level) BANKED {
+    char buf[UI_MSG_LINE];
+    uint8_t i = 0;
+    const char *s = "You level up! (";
+    while (*s) buf[i++] = *s++;
+    if (new_level >= 100u)     { buf[i++] = (char)('0' + new_level / 100u); buf[i++] = (char)('0' + (new_level % 100u) / 10u); buf[i++] = (char)('0' + new_level % 10u); }
+    else if (new_level >= 10u) { buf[i++] = (char)('0' + new_level / 10u);  buf[i++] = (char)('0' + new_level % 10u); }
+    else                       { buf[i++] = (char)('0' + new_level); }
+    buf[i++] = ')'; buf[i] = 0;
+    ui_combat_log_push_pal(buf, PAL_UI);
+}
+
 uint8_t ui_combat_log_tick_quiet_turn(void) BANKED {
     if (chat_reclaim_done_until_push) return 0u;
     if (!combat_log_any()) return 0u;
@@ -381,6 +439,9 @@ static void ui_draw_belt_placeholder_row(void) { // N4/O4 "SPELL" | 4×(slot + u
         if (s == 0u && player_class == 2u && player_level >= 1u) {
             v = TILE_WITCH_BOLT_VRAM;
             icon_pal = (witch_shot_cooldown_turns == 0u) ? PAL_WALL_BG : PAL_CORPSE;
+        } else if (s == 0u && player_class == 0u && player_level >= 1u) { // knight slot 0 — holy fire shield (I9 art; LIFE_UI palette while active, WALL_BG when ready)
+            v = TILE_KNIGHT_SHIELD_VRAM;
+            icon_pal = knight_shield_active ? PAL_LIFE_UI : PAL_WALL_BG;
         } else {
             v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY); // empty: M14 patched onto K1 VRAM at boot; else TILE_ITEM_* when wired
             icon_pal = PAL_UI;
@@ -493,7 +554,6 @@ static void ui_draw_combat_panel(void) {
 static void ui_draw_inspect_panel(void) {
     uint8_t slot = panel_inspect_slot;
     uint8_t t, x;
-    const char *nm;
     if (slot >= num_enemies || !enemy_alive[slot]) {
         win_clear_row(UI_PANEL_WIN_Y0, PAL_UI);
         win_clear_row(UI_PANEL_WIN_Y1, PAL_UI);
@@ -501,8 +561,11 @@ static void ui_draw_inspect_panel(void) {
         return;
     }
     t = enemy_type[slot];
-    nm = enemy_type_short_name(t);
-    win_puts_row_pad_cols(UI_PANEL_WIN_Y0, nm, PAL_UI, UI_PANEL_COLS);
+    {
+        char namebuf[12];
+        enemy_type_short_name_copy(t, namebuf, sizeof namebuf);
+        win_puts_row_pad_cols(UI_PANEL_WIN_Y0, namebuf, PAL_UI, UI_PANEL_COLS);
+    }
     { // HP N/M — one line under name (panel rows 1–2; HUD on row 4 after ui_draw_bottom_rows)
         uint8_t hp = enemy_hp[slot], mhp = enemy_effective_max_hp(t);
         x = 0;

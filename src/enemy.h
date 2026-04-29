@@ -2,6 +2,7 @@
 #define ENEMY_H
 
 #include "defs.h"
+#include <gbdk/platform.h>
 
 typedef struct {
     uint8_t tile;         // sheet offset (added to TILESET_VRAM_OFFSET in renderer)
@@ -12,7 +13,8 @@ typedef struct {
     uint8_t move_style;   // MOVE_CHASE / MOVE_RANDOM / MOVE_WANDER
 } EnemyDef;
 
-extern const EnemyDef enemy_defs[NUM_ENEMY_TYPES];
+extern EnemyDef enemy_defs[NUM_ENEMY_TYPES]; // HOME-resident; biome_load_active fills from bank 10/11/12
+extern uint8_t  enemy_defs_count;            // <= NUM_ENEMY_TYPES; spawn picks rand()%enemy_defs_count
 
 /* ── Per-enemy instance state ────────────────────────────────────────────── */
 extern uint8_t enemy_x[MAX_ENEMIES]; // last tile column while slot used; undefined if !enemy_alive[i]
@@ -36,24 +38,27 @@ extern uint8_t enemy_attack_slots[MAX_ENEMIES]; // slots that struck player this
 extern uint8_t enemy_attack_count;
 extern uint8_t enemy_force_active[MAX_ENEMIES]; // 1 = AI runs even when unrevealed/offscreen (boss hook)
 
-const char *enemy_type_short_name(uint8_t t); // uppercase kind label for log / inspect
-uint8_t enemy_effective_max_hp(uint8_t type);  // base max_hp scaled by floor_num (cap 255)
-uint8_t enemy_effective_damage(uint8_t type);  // base damage scaled by floor_num (cap 255)
+// Copies the short name into caller-supplied buffer (NUL-terminated, capped at cap-1 chars).
+// Use the copy variant from ANY non-bank-2 caller — a returned pointer would land in a
+// non-mapped ROM range after the bcall trampoline restores the caller's bank.
+void enemy_type_short_name_copy(uint8_t t, char *out, uint8_t cap) BANKED;
+uint8_t enemy_effective_max_hp(uint8_t type) BANKED;  // base max_hp scaled by floor_num (cap 255)
+uint8_t enemy_effective_damage(uint8_t type) BANKED;  // base damage scaled by floor_num (cap 255)
 
 void    enemy_grids_init(void); // clear enemy_grid + corpse_grid (call on level load)
 void    enemy_place_slot(uint8_t slot, uint8_t x, uint8_t y); // sync occupancy structures after spawn or move
-void    enemy_clear_slot(uint8_t x, uint8_t y); // clear occupancy structures before death or move
-void    corpse_place_slot(uint8_t slot, uint8_t x, uint8_t y); // sync corpse hash after a kill
+void    enemy_clear_slot(uint8_t x, uint8_t y) BANKED; // clear occupancy structures before death or move
+void    corpse_place_slot(uint8_t slot, uint8_t x, uint8_t y) BANKED; // sync corpse hash after a kill
 void    corpse_clear_slot(uint8_t x, uint8_t y); // sync corpse hash when tile is reclaimed
 void    enemy_anim_reset(void); // reset DIV accumulator when entering a floor
 uint8_t enemy_anim_update(void); // 1 if toggled animation frame this call
 uint8_t enemy_at(uint8_t x, uint8_t y); // enemy slot occupying tile, else ENEMY_DEAD
 uint8_t corpse_at(uint8_t x, uint8_t y); // nonzero if a corpse marker sits here
 uint8_t corpse_sheet_at(uint8_t x, uint8_t y); // TILE_FLOOR_DECO_* offset or 255 if none
-uint8_t corpse_deco_random(void);                // random L1–L5 sheet offset for new corpse
+uint8_t corpse_deco_random(void) BANKED;          // random L1–L5 sheet offset for new corpse
 void    spawn_enemies(void); // fill world with NUM_ENEMIES instances
 uint8_t move_enemies(uint8_t px, uint8_t py); // enemy turn: moves + records strikes in enemy_attack_* (no HP yet); 0 none, 1 pending hits
-void    enemy_resolve_hit(uint8_t slot);      // combat log + apply that slot's damage (call before its lunge)
+void    enemy_resolve_hit(uint8_t slot) BANKED; // combat log + apply that slot's damage (call before its lunge)
 void    enemy_set_force_active(uint8_t slot, uint8_t on); // per-enemy override for always-active AI (future boss behavior)
 uint8_t enemy_get_force_active(uint8_t slot); // query override state (0 or 1)
 

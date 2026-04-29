@@ -9,6 +9,7 @@
 #include "lcd.h"
 #include "entity_sprites.h"
 #include "wall_palettes.h"
+#include "biome.h"
 #include <gbdk/platform.h>
 #include <rand.h>
 
@@ -379,6 +380,8 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
         pillar_palette_index = (uint8_t)(h % NUM_WALL_PALETTES);
     }
     initrand(floor_seed);
+    knight_shield_active = 0u; // floor-scoped buff — clear on every regen so it doesn't leak across stairs
+    biome_load_active(biome_pick_for_floor(floor_num, run_seed)); // fills HOME enemy_defs[] from coral bank before spawn
     generate_level(floor_seed);
     lighting_reset();
     if (pit_present) lighting_reveal_radius(pit_x, pit_y, LIGHT_RADIUS_LADDER_DOWN);

@@ -109,6 +109,7 @@ typedef struct {
 #define SP_PLAYER_AURA_OAM    0u // M15/M16 gold flicker (+3px Y under refresh_player_oam_from_cache)
 #define SP_PLAYER             1u // hero body
 #define SP_ENEMY_BASE         2u // enemies use OAM [SP_ENEMY_BASE .. SP_ENEMY_BASE + num_enemies - 1]
+#define SP_BUFF_ICON         39u // top-right HUD slot for active player buffs (knight shield, etc.) — survives hide sweep
 
 /* ── Enemy movement styles ───────────────────────────────────────────────── */
 #define MOVE_CHASE   0   // always step toward the player
@@ -279,6 +280,7 @@ typedef struct {
 #define TILE_PLAYER_AURA_VRAM_A 248u // below CLASS_EMBLEM_VRAM_START 252 — gameplay aura only
 #define TILE_PLAYER_AURA_VRAM_B 249u
 #define TILE_WITCH_BOLT_VRAM 250u // copied from TILE_SHEET_M12 at boot for UI icon + projectile sprite
+#define TILE_KNIGHT_SHIELD_VRAM 251u // copied from TILE_ITEM_9 (I9) at boot for knight shield UI icon + corner buff sprite
 #define TILE_SHEET_M14     220u  /* M14 — empty belt slot (ROM); (14-1)*16+12, past VRAM 0..127 pack */
 
 /* ── N+O col — HUD / UI tiles ───────────────────────────────────────────── */

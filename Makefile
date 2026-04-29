@@ -49,7 +49,8 @@ assets: $(TILESET_C)
 
 $(TILESET_C): $(TILESET_PNG)
 	$(PNG2ASSET) $< -o $@ -map -keep_duplicate_tiles -noflip
-	@grep -q '#pragma bank 255' $@ || sed -i '2a #pragma bank 255' $@
+	@sed -i '/#pragma bank /d' $@
+	@sed -i '2a #pragma bank 1' $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(LCC) $(CFLAGS) -c -o $@ $<

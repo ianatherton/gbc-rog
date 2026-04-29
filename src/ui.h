@@ -24,6 +24,11 @@ void     window_ui_hide(void) BANKED;
 void     ui_combat_log_clear(void) BANKED;
 void     ui_combat_log_push(const char *line) BANKED;           // window palette PAL_UI
 void     ui_combat_log_push_pal(const char *line, uint8_t pal) BANKED; // CGB BGP palette index (e.g. PAL_XP_UI)
+
+// combat-side text formatters — live in bank 5 (UI) to keep HOME small; BANKED so combat.c (HOME) can far-call them
+void     ui_push_combat_log(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_pct) BANKED;
+void     ui_push_xp_gain_line(uint8_t amt) BANKED;
+void     ui_push_level_up_line(uint8_t new_level) BANKED;
 uint8_t  ui_combat_log_tick_quiet_turn(void) BANKED; // returns 1 if log was reclaimed (caller should redraw UI)
 void     ui_panel_show_combat(void) BANKED;
 void     ui_panel_toggle_perf(void) BANKED;

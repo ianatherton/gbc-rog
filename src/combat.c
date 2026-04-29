@@ -1,5 +1,3 @@
-#pragma bank 2
-
 #include "combat.h"
 #include "globals.h"
 #include "defs.h"
@@ -11,105 +9,6 @@
 #include "camera.h"
 #include "perf.h"
 #include <gb/gb.h>
-
-#define MSG_LINE 20u // matches ui combat log row cap
-
-static void push_xp_gain_line(uint8_t amt) {
-    char buf[MSG_LINE];
-    uint8_t p = 0;
-    uint16_t need = (uint16_t)PLAYER_LEVEL_XP_BASE + (uint16_t)(player_level - 1u) * PLAYER_LEVEL_XP_STEP;
-    uint16_t pct16 = need ? (((uint16_t)amt * 100u) / need) : 0u;
-    uint8_t pct = (pct16 > 100u) ? 100u : (uint8_t)pct16;
-    buf[p++] = '+';
-    if (amt >= 100u) {
-        buf[p++] = (char)('0' + amt / 100u);
-        buf[p++] = (char)('0' + (amt % 100u) / 10u);
-        buf[p++] = (char)('0' + amt % 10u);
-    } else if (amt >= 10u) {
-        buf[p++] = (char)('0' + amt / 10u);
-        buf[p++] = (char)('0' + amt % 10u);
-    } else {
-        buf[p++] = (char)('0' + amt);
-    }
-    buf[p++] = ' ';
-    buf[p++] = 'X';
-    buf[p++] = 'P';
-    buf[p++] = ' ';
-    buf[p++] = '(';
-    if (pct >= 100u) {
-        buf[p++] = '1';
-        buf[p++] = '0';
-        buf[p++] = '0';
-    } else if (pct >= 10u) {
-        buf[p++] = (char)('0' + pct / 10u);
-        buf[p++] = (char)('0' + pct % 10u);
-    } else {
-        buf[p++] = (char)('0' + pct);
-    }
-    buf[p++] = '%';
-    buf[p++] = ')';
-    buf[p] = 0;
-    ui_combat_log_push_pal(buf, PAL_XP_UI);
-}
-
-static void push_level_up_line(uint8_t new_level) {
-    char buf[MSG_LINE];
-    uint8_t i = 0;
-    const char *s = "You level up! (";
-    while (*s) buf[i++] = *s++;
-    if (new_level >= 100u) {
-        buf[i++] = (char)('0' + new_level / 100u);
-        buf[i++] = (char)('0' + (new_level % 100u) / 10u);
-        buf[i++] = (char)('0' + new_level % 10u);
-    } else if (new_level >= 10u) {
-        buf[i++] = (char)('0' + new_level / 10u);
-        buf[i++] = (char)('0' + new_level % 10u);
-    } else {
-        buf[i++] = (char)('0' + new_level);
-    }
-    buf[i++] = ')';
-    buf[i] = 0;
-    ui_combat_log_push(buf);
-}
-
-void push_combat_log(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_pct) {
-    char logbuf[MSG_LINE];
-    const char *name = enemy_type_short_name(type_idx);
-    uint8_t p = 0, d = dmg, mhp, pct;
-    while (*name && p < 9u) logbuf[p++] = *name++;
-    logbuf[p++] = ' ';
-    if (d) {
-        logbuf[p++] = '-';
-        if (d >= 100u) {
-            logbuf[p++] = (char)('0' + d / 100u);
-            d %= 100u;
-        }
-        if (d >= 10u) {
-            logbuf[p++] = (char)('0' + d / 10u);
-            d %= 10u;
-        }
-        logbuf[p++] = (char)('0' + d);
-        mhp = enemy_effective_max_hp(type_idx);
-        pct = 0;
-        if (mhp) pct = (uint8_t)(((uint16_t)hp_remaining_for_pct * 100u) / (uint16_t)mhp);
-        if (pct > 99u) pct = 99u;
-        logbuf[p++] = ' ';
-        if (pct >= 10u) {
-            logbuf[p++] = (char)('0' + pct / 10u);
-            logbuf[p++] = (char)('0' + pct % 10u);
-        } else {
-            logbuf[p++] = (char)('0' + pct);
-        }
-        logbuf[p++] = '%';
-    } else {
-        logbuf[p++] = 'D';
-        logbuf[p++] = 'I';
-        logbuf[p++] = 'E';
-        logbuf[p++] = 'S';
-    }
-    logbuf[p] = 0;
-    ui_combat_log_push(logbuf);
-}
 
 void grant_xp_from_kill(uint8_t enemy_damage) {
     uint16_t next_level_xp;
@@ -124,7 +23,7 @@ void grant_xp_from_kill(uint8_t enemy_damage) {
         if (player_hp_max <= 245u) player_hp_max = (uint8_t)(player_hp_max + 10u);
         else player_hp_max = 255u;
         player_hp = player_hp_max;
-        push_level_up_line(player_level);
+        ui_push_level_up_line(player_level); // bank 5 — keeps HOME thin
         did_level = 1;
     }
     if (did_level) music_play_levelup_jingle();
@@ -142,6 +41,18 @@ uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) {
     entity_sprites_run_enemy_lunges_batch(px, py, enemy_attack_slots, enemy_attack_count);
     entity_sprites_player_hurt_flash();
     camera_shake();
+    if (knight_shield_active && player_hp != 0u) { // reply: 1 dmg/level + fireball — only adjacent strikers reach here, so no range gate needed
+        uint8_t reflect_dmg = player_level ? player_level : 1u;
+        for (a = 0; a < enemy_attack_count; a++) {
+            uint8_t ei = enemy_attack_slots[a];
+            if (!enemy_alive[ei]) continue; // could've been killed earlier this frame
+            entity_sprites_run_projectile(px, py, enemy_x[ei], enemy_y[ei],
+                (uint8_t)(TILE_WITCH_BOLT_VRAM - TILESET_VRAM_OFFSET), PAL_XP_UI);
+            (void)combat_damage_enemy(ei, reflect_dmg); // log + xp + corpse handled inside
+        }
+        wait_vbl_done();
+        draw_gameplay_overlays_profiled(px, py);
+    }
     perf_record(PERF_HIT_RESOLVE, perf_stamp_elapsed(&perf_stamp));
     return (player_hp == 0) ? 2u : 1u;
 }
@@ -149,15 +60,15 @@ uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) {
 uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage) {
     if (enemy_hp[ei] > damage) {
         enemy_hp[ei] = (uint8_t)(enemy_hp[ei] - damage);
-        push_combat_log(enemy_type[ei], damage, enemy_hp[ei]);
+        ui_push_combat_log(enemy_type[ei], damage, enemy_hp[ei]);
         return 0u;
     } else {
         uint8_t kill_xp;
         uint8_t dx;
         uint8_t dy;
-        push_combat_log(enemy_type[ei], 0, 0);
+        ui_push_combat_log(enemy_type[ei], 0, 0);
         kill_xp = enemy_effective_damage(enemy_type[ei]);
-        push_xp_gain_line(kill_xp);
+        ui_push_xp_gain_line(kill_xp);
         dx = enemy_x[ei];
         dy = enemy_y[ei];
         if (num_corpses < MAX_CORPSES) {

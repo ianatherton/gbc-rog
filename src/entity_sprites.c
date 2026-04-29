@@ -58,6 +58,18 @@ static uint8_t lunge_amt_for_frame(uint8_t t) { // 0 .. 4 .. 0 over ENTITY_LUNGE
 
 static void oam_hide(uint8_t sp) { move_sprite(sp, 0u, 0u); } // OAM Y=0: off visible lines
 
+static void refresh_buff_icon_oam(void) { // top-right HUD slot — show I9 shield while knight buff is up, hide otherwise
+    if (!lcd_gameplay_active || !knight_shield_active) {
+        oam_hide(SP_BUFF_ICON);
+        return;
+    }
+    set_sprite_tile(SP_BUFF_ICON, TILE_KNIGHT_SHIELD_VRAM);
+    set_sprite_prop(SP_BUFF_ICON, (uint8_t)(PAL_LIFE_UI & 7u)); // active = warm/red ramp; future buffs can pick their own palette
+    move_sprite(SP_BUFF_ICON, // OAM (160, 16) → on-screen (152, 0): top-right 8×8
+        (uint8_t)(DEVICE_SPRITE_PX_OFFSET_X + 152u),
+        (uint8_t)(DEVICE_SPRITE_PX_OFFSET_Y + 0u));
+}
+
 static void refresh_belt_selector_oam(void) { // M5 arrow on dungeon row GRID_H-1 (above belt / window band)
     uint8_t s, sx, sy, tt;
     if (!lcd_gameplay_active) {
@@ -363,10 +375,11 @@ void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) {
     entity_sprites_refresh_player_only(px, py);
     for (i = 0; i < num_enemies; i++) refresh_enemy_oam(i);
     for (i = (uint8_t)(SP_ENEMY_BASE + num_enemies); i < 40u; i++)
-        if (i != SP_BRAZIER_FIRE && i != SP_LADDER_ARROW && i != SP_BELT_SELECTOR && i != SP_PLAYER_AURA_OAM)
+        if (i != SP_BRAZIER_FIRE && i != SP_LADDER_ARROW && i != SP_BELT_SELECTOR && i != SP_PLAYER_AURA_OAM && i != SP_BUFF_ICON)
             oam_hide(i);
     if (!brazier_fire_active) oam_hide(SP_BRAZIER_FIRE); // keep slot hidden until first spawn
     refresh_belt_selector_oam();
+    refresh_buff_icon_oam();
 }
 
 void entity_sprites_refresh_all(uint8_t px, uint8_t py) {

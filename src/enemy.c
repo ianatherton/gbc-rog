@@ -9,14 +9,7 @@
 #include "perf.h"
 #include <string.h>
 
-const EnemyDef enemy_defs[NUM_ENEMY_TYPES] = { // one OCP ramp per type; snakes share green only
-    /* ENEMY_SERPENT  */ { TILE_SPIDER_1,   TILE_SPIDER_2,   2, 1, PAL_ENEMY_SNAKE,    MOVE_CHASE  },   // J1/J2 green
-    /* ENEMY_ADDER    */ { TILE_MONSTER_1,  TILE_MONSTER_1,  1, 1, PAL_ENEMY_SNAKE,    MOVE_CHASE  },   // J3 green
-    /* ENEMY_RAT      */ { TILE_MONSTER_2,  TILE_MONSTER_2,  1, 1, PAL_ENEMY_RAT,      MOVE_WANDER },    // J4 red–rose
-    /* ENEMY_BAT      */ { TILE_MONSTER_3,  TILE_MONSTER_3,  1, 1, PAL_ENEMY_BAT,      MOVE_RANDOM },   // J5 aqua–turquoise
-    /* ENEMY_SKELETON */ { TILE_MONSTER_1,  TILE_MONSTER_2,  3, 2, PAL_ENEMY_SKELETON, MOVE_CHASE  },   // J3/J4 violet
-    /* ENEMY_GOBLIN   */ { TILE_MONSTER_2,  TILE_MONSTER_3,  2, 2, PAL_ENEMY_GOBLIN,   MOVE_CHASE  },   // J4/J5 magenta
-};
+// enemy_defs[] is defined in biome.c (HOME) — populated from bank 10/11/12 by biome_load_active
 
 uint8_t enemy_x[MAX_ENEMIES];    // map column; ENEMY_DEAD means slot unused
 uint8_t enemy_y[MAX_ENEMIES];    // map row
@@ -87,7 +80,7 @@ void enemy_place_slot(uint8_t slot, uint8_t x, uint8_t y) {
     }
 }
 
-void enemy_clear_slot(uint8_t x, uint8_t y) {
+void enemy_clear_slot(uint8_t x, uint8_t y) BANKED {
     uint16_t idx = TILE_IDX(x, y);
     uint8_t h = enemy_slot_hash_idx(idx);
     uint8_t probe;
@@ -103,7 +96,7 @@ void enemy_clear_slot(uint8_t x, uint8_t y) {
     }
 }
 
-void corpse_place_slot(uint8_t slot, uint8_t x, uint8_t y) {
+void corpse_place_slot(uint8_t slot, uint8_t x, uint8_t y) BANKED {
     uint16_t idx = TILE_IDX(x, y);
     uint8_t h = (uint8_t)(idx & (CORPSE_SLOT_HASH_SIZE - 1u));
     uint8_t probe;
@@ -153,14 +146,18 @@ uint8_t enemy_attack_slots[MAX_ENEMIES];
 uint8_t enemy_attack_count;
 uint8_t enemy_force_active[MAX_ENEMIES];
 
-const char *enemy_type_short_name(uint8_t t) {
+void enemy_type_short_name_copy(uint8_t t, char *out, uint8_t cap) BANKED {
     static const char *const n[NUM_ENEMY_TYPES] = {
         "SERPENT", "SLIMESKULL", "RAT", "BAT", "SKELETON", "GOBLIN"
     };
-    return (t < NUM_ENEMY_TYPES) ? n[t] : "?";
+    const char *s = (t < NUM_ENEMY_TYPES) ? n[t] : "?";
+    uint8_t i = 0u;
+    if (cap == 0u) return;
+    while (s[i] && (uint8_t)(i + 1u) < cap) { out[i] = s[i]; i++; } // bytes copy while bank 2 is mapped — safe across the bcall return
+    out[i] = 0;
 }
 
-uint8_t enemy_effective_max_hp(uint8_t type) {
+uint8_t enemy_effective_max_hp(uint8_t type) BANKED {
     uint8_t scale_floor;
     if (type >= NUM_ENEMY_TYPES) return 1u;
     scale_floor = (floor_num > 1u) ? (uint8_t)(floor_num - 1u) : 1u; // entry floor doesn't inflate stats; floor 2 starts baseline
@@ -168,7 +165,7 @@ uint8_t enemy_effective_max_hp(uint8_t type) {
       return (v > 255u) ? 255u : (uint8_t)v; }
 }
 
-uint8_t enemy_effective_damage(uint8_t type) {
+uint8_t enemy_effective_damage(uint8_t type) BANKED {
     uint8_t scale_floor;
     if (type >= NUM_ENEMY_TYPES) return 1u;
     scale_floor = (floor_num > 1u) ? (uint8_t)(floor_num - 1u) : 1u; // keep damage curve aligned with HP scaling
@@ -223,7 +220,7 @@ uint8_t corpse_sheet_at(uint8_t x, uint8_t y) { // O(1) when no corpse (common c
 
 uint8_t corpse_at(uint8_t x, uint8_t y) { return corpse_sheet_at(x, y) != 255; }
 
-uint8_t corpse_deco_random(void) { return CORPSE_DECO_OFF[rand() & 1u]; } // L2/L3
+uint8_t corpse_deco_random(void) BANKED { return CORPSE_DECO_OFF[rand() & 1u]; } // L2/L3
 
 void spawn_enemies(void) { // random placement with collision checks
     uint8_t i;
@@ -240,7 +237,7 @@ void spawn_enemies(void) { // random placement with collision checks
                     && enemy_at(tx, ty) == ENEMY_DEAD) {
                 enemy_x[num_enemies]    = tx;
                 enemy_y[num_enemies]    = ty;
-                enemy_type[num_enemies] = (uint8_t)(rand() % NUM_ENEMY_TYPES);
+                enemy_type[num_enemies] = (uint8_t)(rand() % (enemy_defs_count ? enemy_defs_count : 1u));
                 enemy_hp[num_enemies]   = enemy_effective_max_hp(enemy_type[num_enemies]);
                 enemy_alive[num_enemies] = 1u;
                 enemy_force_active[num_enemies] = 0u;
@@ -314,7 +311,7 @@ static void step_random(uint8_t sx, uint8_t sy,
     }
 }
 
-void enemy_resolve_hit(uint8_t slot) { // one strike: log line + subtract HP
+void enemy_resolve_hit(uint8_t slot) BANKED { // one strike: log line + subtract HP
     uint8_t hit = enemy_effective_damage(enemy_type[slot]);
     uint8_t hp_before = player_hp;
     char logbuf[20];

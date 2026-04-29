@@ -1,4 +1,4 @@
-#pragma bank 1
+#pragma bank 3
 
 #include "debug_bank.h"
 #include "game_state.h"
@@ -7,6 +7,7 @@
 #include "ui.h"
 #include "defs.h"
 #include "tileset.h"
+#include "tileset_io.h"
 #include "class_palettes.h"
 #include <gb/cgb.h>
 #include <gb/gb.h>
@@ -49,13 +50,10 @@ static void class_emblem_draw(uint8_t sel) {
     uint8_t out[256]; // 16×16-byte tiles: true 2× nearest-neighbor scale (16×16 -> 32×32)
     uint8_t buf[16];
     uint8_t i, j, ox, oy;
-    uint8_t sb = (uint8_t)_current_bank;
-    SWITCH_ROM(BANK(tileset));
-    memcpy(pack + 0u, tileset_tiles + (uint16_t)base * 16u, 16u);
-    memcpy(pack + 16u, tileset_tiles + (uint16_t)(uint8_t)(base + 1u) * 16u, 16u);
-    memcpy(pack + 32u, tileset_tiles + (uint16_t)(uint8_t)(base + 16u) * 16u, 16u);
-    memcpy(pack + 48u, tileset_tiles + (uint16_t)(uint8_t)(base + 17u) * 16u, 16u);
-    SWITCH_ROM(sb);
+    tileset_read_tiles(pack + 0u,  base,                   1u); // HOME shim — bank 3 caller never unmaps itself
+    tileset_read_tiles(pack + 16u, (uint8_t)(base + 1u),   1u);
+    tileset_read_tiles(pack + 32u, (uint8_t)(base + 16u),  1u);
+    tileset_read_tiles(pack + 48u, (uint8_t)(base + 17u),  1u);
     memset(out, 0, sizeof(out));
     for (oy = 0u; oy < 32u; oy++) {
         for (ox = 0u; ox < 32u; ox++) {
@@ -96,10 +94,9 @@ static void class_emblem_draw(uint8_t sel) {
 }
 
 static void class_emblem_vram_restore(void) { // restore ROM tiles for 64-tile class-menu scratch region
-    uint8_t sb = (uint8_t)_current_bank;
-    SWITCH_ROM(BANK(tileset));
-    set_bkg_data(CLASS_EMBLEM_VRAM_SCALE2_START, CLASS_EMBLEM_VRAM_SCALE2_COUNT, tileset_tiles + (uint16_t)CLASS_EMBLEM_VRAM_SCALE2_ROM_RESTORE * 16u);
-    SWITCH_ROM(sb);
+    tileset_load_bkg_tiles(CLASS_EMBLEM_VRAM_SCALE2_START,
+                           CLASS_EMBLEM_VRAM_SCALE2_COUNT,
+                           CLASS_EMBLEM_VRAM_SCALE2_ROM_RESTORE);
 }
 
 BANKREF(state_char_create_enter)

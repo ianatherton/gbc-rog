@@ -58,11 +58,11 @@ void state_gameplay_enter(void) BANKED {
     BANK_DBG("GP_enter");
     class_palettes_sprite_player_apply(); // OCP PAL_PLAYER matches player_class (title left gold on slot 2)
     perf_clear_all();
-    music_play_game();
     wait_vbl_done();
     lcd_clear_display();
     load_palettes(); // restore BGP slots (PAL_UI etc.) after char create / loading — avoids blank or flat-white WIN
-    level_init_display(0);
+    level_init_display(0); // sets floor_num = 1 before BGM pick
+    music_begin_floor_bgm();
     BANK_DBG("GP_gen");
     level_generate_and_spawn(&g_player_x, &g_player_y);
     selected_belt_slot = 0u;

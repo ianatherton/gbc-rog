@@ -4,10 +4,14 @@
 #include <stdint.h>
 
 #include "bwv1043_music.h"
+#include "bwv527_music.h"
+#include "globals.h"
 #include "music.h"
 
 BANKREF_EXTERN(bwv1043_music)
+BANKREF_EXTERN(bwv527_music)
 
+static uint8_t  bgm_track; // 0 = BWV 1043, 1 = BWV 527
 static uint8_t  mode_title;
 static uint16_t mel_i, bas_i;
 static uint16_t mel_rem, bas_rem;
@@ -107,16 +111,28 @@ static void silence_bgm_channels(void) { // square + wave off; leave CH4 for SFX
     NR32_REG = 0x00u;
 }
 
-static void resume_bgm_hw(void) { // after loading or jingle — re-arm held notes (bwv1043 in own ROM bank)
+static void resume_bgm_hw(void) { // after loading or jingle — re-arm held notes (BGM in ROM bank)
     uint8_t sb = _current_bank;
-    SWITCH_ROM(BANK(bwv1043_music));
-    if (mel_rem > 0u && mel_i > 0u) {
-        uint8_t idx = bwv1043_melody[mel_i - 1u];
-        ch1_play(bwv1043_dict[idx].freq);
-    }
-    if (bas_rem > 0u && bas_i > 0u) {
-        uint8_t idx = bwv1043_bass[bas_i - 1u];
-        ch3_play(bwv1043_dict[idx].freq);
+    if (bgm_track == 0u) {
+        SWITCH_ROM(BANK(bwv1043_music));
+        if (mel_rem > 0u && mel_i > 0u) {
+            uint8_t idx = bwv1043_melody[mel_i - 1u];
+            ch1_play(bwv1043_dict[idx].freq);
+        }
+        if (bas_rem > 0u && bas_i > 0u) {
+            uint8_t idx = bwv1043_bass[bas_i - 1u];
+            ch3_play(bwv1043_dict[idx].freq);
+        }
+    } else {
+        SWITCH_ROM(BANK(bwv527_music));
+        if (mel_rem > 0u && mel_i > 0u) {
+            uint8_t idx = bwv527_melody[mel_i - 1u];
+            ch1_play(bwv527_dict[idx].freq);
+        }
+        if (bas_rem > 0u && bas_i > 0u) {
+            uint8_t idx = bwv527_bass[bas_i - 1u];
+            ch3_play(bwv527_dict[idx].freq);
+        }
     }
     SWITCH_ROM(sb);
 }
@@ -210,23 +226,44 @@ static void push_jingle(uint8_t *adv) {
 static void push_melody(uint8_t adv) {
     while (adv > 0u) {
         if (mel_rem == 0u) {
-            if (mode_title && mel_i >= BWV1043_PRELUDE_END_MELODY) {
-                mel_i   = 0;
-                bas_i   = 0;
-                bas_rem = 0;
-            }
-            uint8_t idx = bwv1043_melody[mel_i];
-            if (idx == BWV1043_SENTINEL) {
-                mel_i   = mode_title ? 0u : BWV1043_GAME_START_MELODY;
-                bas_i   = mode_title ? 0u : BWV1043_GAME_START_BASS;
-                bas_rem = 0u;
-                continue;
-            }
-            ch1_play(bwv1043_dict[idx].freq);
-            mel_rem = bwv1043_dict[idx].dur;
-            mel_i++;
-            if (mel_i >= BWV1043_NUM_MELODY_EVENTS) {
-                mel_i = 0;
+            if (bgm_track == 0u) {
+                if (mode_title && mel_i >= BWV1043_PRELUDE_END_MELODY) {
+                    mel_i   = 0;
+                    bas_i   = 0;
+                    bas_rem = 0;
+                }
+                uint8_t idx = bwv1043_melody[mel_i];
+                if (idx == BWV1043_SENTINEL) {
+                    mel_i   = mode_title ? 0u : BWV1043_GAME_START_MELODY;
+                    bas_i   = mode_title ? 0u : BWV1043_GAME_START_BASS;
+                    bas_rem = 0u;
+                    continue;
+                }
+                ch1_play(bwv1043_dict[idx].freq);
+                mel_rem = bwv1043_dict[idx].dur;
+                mel_i++;
+                if (mel_i >= BWV1043_NUM_MELODY_EVENTS) {
+                    mel_i = 0;
+                }
+            } else {
+                if (mode_title && mel_i >= BWV527_PRELUDE_END_MELODY) {
+                    mel_i   = 0;
+                    bas_i   = 0;
+                    bas_rem = 0;
+                }
+                uint8_t idx = bwv527_melody[mel_i];
+                if (idx == BWV527_SENTINEL) {
+                    mel_i   = mode_title ? 0u : BWV527_GAME_START_MELODY;
+                    bas_i   = mode_title ? 0u : BWV527_GAME_START_BASS;
+                    bas_rem = 0u;
+                    continue;
+                }
+                ch1_play(bwv527_dict[idx].freq);
+                mel_rem = bwv527_dict[idx].dur;
+                mel_i++;
+                if (mel_i >= BWV527_NUM_MELODY_EVENTS) {
+                    mel_i = 0;
+                }
             }
         }
         uint16_t take = (mel_rem <= (uint16_t)adv) ? mel_rem : (uint16_t)adv;
@@ -238,16 +275,30 @@ static void push_melody(uint8_t adv) {
 static void push_bass(uint8_t adv) {
     while (adv > 0u) {
         if (bas_rem == 0u) {
-            uint8_t idx = bwv1043_bass[bas_i];
-            if (idx == BWV1043_SENTINEL) {
-                bas_i = mode_title ? 0u : BWV1043_GAME_START_BASS;
-                continue;
-            }
-            ch3_play(bwv1043_dict[idx].freq);
-            bas_rem = bwv1043_dict[idx].dur;
-            bas_i++;
-            if (bas_i >= BWV1043_NUM_BASS_EVENTS) {
-                bas_i = 0;
+            if (bgm_track == 0u) {
+                uint8_t idx = bwv1043_bass[bas_i];
+                if (idx == BWV1043_SENTINEL) {
+                    bas_i = mode_title ? 0u : BWV1043_GAME_START_BASS;
+                    continue;
+                }
+                ch3_play(bwv1043_dict[idx].freq);
+                bas_rem = bwv1043_dict[idx].dur;
+                bas_i++;
+                if (bas_i >= BWV1043_NUM_BASS_EVENTS) {
+                    bas_i = 0;
+                }
+            } else {
+                uint8_t idx = bwv527_bass[bas_i];
+                if (idx == BWV527_SENTINEL) {
+                    bas_i = mode_title ? 0u : BWV527_GAME_START_BASS;
+                    continue;
+                }
+                ch3_play(bwv527_dict[idx].freq);
+                bas_rem = bwv527_dict[idx].dur;
+                bas_i++;
+                if (bas_i >= BWV527_NUM_BASS_EVENTS) {
+                    bas_i = 0;
+                }
             }
         }
         uint16_t take = (bas_rem <= (uint16_t)adv) ? bas_rem : (uint16_t)adv;
@@ -272,7 +323,11 @@ static void music_vbl(void) {
     }
     {
         uint8_t sb = _current_bank;
-        SWITCH_ROM(BANK(bwv1043_music));
+        if (bgm_track == 0u) {
+            SWITCH_ROM(BANK(bwv1043_music));
+        } else {
+            SWITCH_ROM(BANK(bwv527_music));
+        }
         {
             uint8_t adv = dur_steps_per_vbl();
             if (jingle_active) {
@@ -326,8 +381,13 @@ void music_play_title(void) {
 
 void music_play_game(void) {
     mode_title = 0u;
-    mel_i      = BWV1043_GAME_START_MELODY;
-    bas_i      = BWV1043_GAME_START_BASS;
+    if (bgm_track == 0u) {
+        mel_i = BWV1043_GAME_START_MELODY;
+        bas_i = BWV1043_GAME_START_BASS;
+    } else {
+        mel_i = BWV527_GAME_START_MELODY;
+        bas_i = BWV527_GAME_START_BASS;
+    }
     mel_rem = bas_rem = 0;
     game_tempo_accum = 0u;
     title_slow_vbl = 0;
@@ -335,6 +395,20 @@ void music_play_game(void) {
     loading_audio = 0;
     whirlwind_burst_remaining = 0u;
     whirlwind_burst_gap = 0u;
+}
+
+void music_set_bgm_track(uint8_t track) {
+    bgm_track = (track != 0u) ? 1u : 0u;
+}
+
+uint8_t music_get_bgm_track(void) {
+    return bgm_track;
+}
+
+void music_begin_floor_bgm(void) { // per-floor A/B so descents and new runs differ without touching level PRNG
+    uint8_t bit = (uint8_t)((uint8_t)DIV_REG + floor_num + (uint8_t)(run_seed >> 5) + (uint8_t)(run_seed >> 13)) & 1u;
+    music_set_bgm_track(bit);
+    music_play_game();
 }
 
 void music_loading_screen_set(uint8_t on) {
@@ -380,6 +454,7 @@ void music_init(void) {
     NR12_REG = 0x08;
     NR14_REG = 0x80;
     NR32_REG = 0x00u;
+    bgm_track = 0u;
     music_play_title();
     add_VBL(music_vbl);
 }

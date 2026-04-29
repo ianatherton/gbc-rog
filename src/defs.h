@@ -279,6 +279,7 @@ typedef struct {
 #define TILE_POOF_CLOUD    108u  /* M7  - enemy death puff (sprite; OCP0 grey/white ramp) */
 #define TILE_PLAYER_AURA_ROM_A 236u /* M15 — copied to TILE_PLAYER_AURA_VRAM_* for OBJ */
 #define TILE_PLAYER_AURA_ROM_B 252u /* M16 */
+#define TILE_ZERKER_WHIRLWIND_VRAM 247u // copied from TILE_ITEM_10 (I10) at boot for Zerker Whirlwind belt icon
 #define TILE_PLAYER_AURA_VRAM_A 248u // below CLASS_EMBLEM_VRAM_START 252 — gameplay aura only
 #define TILE_PLAYER_AURA_VRAM_B 249u
 #define TILE_WITCH_BOLT_VRAM 250u // copied from TILE_SHEET_M12 at boot for UI icon + projectile sprite

@@ -44,6 +44,10 @@ int main(void) {
             tileset_tiles + (uint16_t)TILE_SHEET_M12 * 16u);
         set_sprite_data(TILE_WITCH_BOLT_VRAM, 1u,
             tileset_tiles + (uint16_t)TILE_SHEET_M12 * 16u);
+        set_bkg_data(TILE_ZERKER_WHIRLWIND_VRAM, 1u, // dedicated VRAM tile for zerker Whirlwind icon (I10 source exceeds first 128 upload)
+            tileset_tiles + (uint16_t)TILE_ITEM_10 * 16u);
+        set_sprite_data(TILE_ZERKER_WHIRLWIND_VRAM, 1u,
+            tileset_tiles + (uint16_t)TILE_ITEM_10 * 16u);
         set_bkg_data(TILE_KNIGHT_SHIELD_VRAM, 1u, // I9 source for knight shield belt icon + HUD buff sprite
             tileset_tiles + (uint16_t)TILE_ITEM_9 * 16u);
         set_sprite_data(TILE_KNIGHT_SHIELD_VRAM, 1u,

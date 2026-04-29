@@ -48,7 +48,7 @@ static void cast_bolt(uint8_t px, uint8_t py, AbilityResult *out) {
 
 static void push_recharge(uint8_t turns) {
     char buf[20];
-    const char *s = "recharging: ";
+    const char *s = "Recharging: ";
     uint8_t i = 0u;
     while (*s) buf[i++] = *s++;
     buf[i++] = (char)('0' + (turns > 9u ? 9u : turns));

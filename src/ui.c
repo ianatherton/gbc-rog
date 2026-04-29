@@ -439,6 +439,9 @@ static void ui_draw_belt_placeholder_row(void) { // N4/O4 "SPELL" | 4×(slot + u
         if (s == 0u && player_class == 2u && player_level >= 1u) {
             v = TILE_WITCH_BOLT_VRAM;
             icon_pal = (witch_shot_cooldown_turns == 0u) ? PAL_WALL_BG : PAL_CORPSE;
+        } else if (s == 0u && player_class == 3u && player_level >= 1u) { // zerker slot 0 — Whirlwind (I10)
+            v = TILE_ZERKER_WHIRLWIND_VRAM;
+            icon_pal = (zerker_whirlwind_cooldown_turns == 0u) ? PAL_WALL_BG : PAL_CORPSE;
         } else if (s == 0u && player_class == 0u && player_level >= 1u) { // knight slot 0 — holy fire shield (I9 art; LIFE_UI palette while active, WALL_BG when ready)
             v = TILE_KNIGHT_SHIELD_VRAM;
             icon_pal = knight_shield_active ? PAL_LIFE_UI : PAL_WALL_BG;

@@ -1,4 +1,5 @@
 #include <gb/gb.h>
+#include <gb/hardware.h>
 #include <gbdk/platform.h>
 #include <stdint.h>
 
@@ -23,6 +24,8 @@ static uint8_t     jingle_sav_mode_title;
 static uint8_t     loading_audio;   // mutes CH1/CH3 advance; CH4 footfalls only
 static uint8_t     loading_step_i;  // 0..6 — six hits then idle
 static uint8_t     loading_vbl_gap; // vblanks until next hit
+static uint8_t     whirlwind_burst_remaining; // queued extra whooshes after initial cast pulse
+static uint8_t     whirlwind_burst_gap;       // VBlank spacing between queued whooshes
 
 // C5→E6 rising major line; .dur in VBlanks (~1 s total)
 static const GBNote levelup_jingle[10] = {
@@ -119,9 +122,24 @@ static void resume_bgm_hw(void) { // after loading or jingle — re-arm held not
 }
 
 static void sfx_ch4_hit_noise(void) { // shared CH4 patch — lunge/deciding hit + loading steps
-    NR41_REG = 0x3Fu;   // min length — cuts off quickly (64−t1)/256 s
-    NR42_REG = 0x41u;   // start vol 4/15, decay, envelope step 1 — quiet + short tail
-    NR43_REG = 0x68u;   // lighter noise than old hit
+    NR41_REG = 0x22u;   // medium-short length for a chunkier body
+    NR42_REG = 0xF2u;   // loud attack, decay envelope for punch
+    NR43_REG = 0x36u;   // lower-frequency noise gives a crunchier impact
+    NR44_REG = 0x80u;
+}
+
+static void sfx_ch4_hit_noise_alt(void) { // alternate crunchy profile to vary repeated combat impacts
+    NR41_REG = 0x24u;   // similar body length to primary hit
+    NR42_REG = 0xC2u;   // strong attack but less bright than zap-like patches
+    NR43_REG = 0x62u;   // close to legacy hit noise color, just a touch different from primary
+    NR44_REG = 0x80u;
+}
+
+static void sfx_ch4_whirlwind_woosh(uint8_t phase) { // phase 0..2 for tiny timbral drift across the three-pulse burst
+    static const uint8_t n43[3] = { 0x38u, 0x3Cu, 0x48u }; // lower-pitched whoosh set
+    NR41_REG = 0x10u;
+    NR42_REG = 0xC3u;   // bright attack + short decay
+    NR43_REG = n43[phase % 3u];
     NR44_REG = 0x80u;
 }
 
@@ -243,6 +261,15 @@ static void music_vbl(void) {
         loading_vbl_tick();
         return;
     }
+    if (whirlwind_burst_remaining > 0u) {
+        if (whirlwind_burst_gap > 0u) whirlwind_burst_gap--;
+        if (whirlwind_burst_gap == 0u) {
+            uint8_t phase = (uint8_t)(3u - whirlwind_burst_remaining); // 1,2 for queued pulses (0 is fired immediately)
+            sfx_ch4_whirlwind_woosh(phase);
+            whirlwind_burst_remaining--;
+            whirlwind_burst_gap = 6u; // ~100ms at 60Hz between whooshes
+        }
+    }
     {
         uint8_t sb = _current_bank;
         SWITCH_ROM(BANK(bwv1043_music));
@@ -261,7 +288,8 @@ static void music_vbl(void) {
 }
 
 void sfx_lunge_hit(void) {
-    sfx_ch4_hit_noise();
+    if ((DIV_REG & 3u) == 0u) sfx_ch4_hit_noise_alt(); // ~25% chance for alternate strike color
+    else                      sfx_ch4_hit_noise();
 }
 
 void sfx_spell_zap(void) {
@@ -269,6 +297,19 @@ void sfx_spell_zap(void) {
     NR22_REG = 0xD2u; // loud start, quick decay
     NR23_REG = 0x40u; // lower bits of pitch
     NR24_REG = 0x86u; // trigger + high bits of pitch
+}
+
+void sfx_whirlwind_cast(void) {
+    sfx_ch4_whirlwind_woosh(0u);    // immediate first whoosh
+    whirlwind_burst_remaining = 2u; // queue two more whooshes for a 3-pulse cast signature
+    whirlwind_burst_gap = 6u;       // ~100ms before next pulse
+}
+
+void sfx_shield_sparkle(void) {
+    NR21_REG = 0x40u; // 25% duty for a bell-like tone
+    NR22_REG = 0xB3u; // bright attack with brief tail
+    NR23_REG = 0xD0u; // high pitch
+    NR24_REG = 0x87u; // trigger + high bits
 }
 
 void music_play_title(void) {
@@ -279,6 +320,8 @@ void music_play_title(void) {
     title_slow_vbl = 0;
     jingle_active = 0;
     loading_audio = 0;
+    whirlwind_burst_remaining = 0u;
+    whirlwind_burst_gap = 0u;
 }
 
 void music_play_game(void) {
@@ -290,6 +333,8 @@ void music_play_game(void) {
     title_slow_vbl = 0;
     jingle_active = 0;
     loading_audio = 0;
+    whirlwind_burst_remaining = 0u;
+    whirlwind_burst_gap = 0u;
 }
 
 void music_loading_screen_set(uint8_t on) {
@@ -297,12 +342,16 @@ void music_loading_screen_set(uint8_t on) {
         loading_audio    = 1u;
         loading_step_i   = 0u;
         loading_vbl_gap  = 0u;
+        whirlwind_burst_remaining = 0u;
+        whirlwind_burst_gap = 0u;
         silence_bgm_channels();
         return;
     }
     loading_audio   = 0u;
     loading_step_i  = 0u;
     loading_vbl_gap = 0u;
+    whirlwind_burst_remaining = 0u;
+    whirlwind_burst_gap = 0u;
     resume_bgm_hw();
 }
 

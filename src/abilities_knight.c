@@ -4,6 +4,7 @@
 #include "ability_dispatch.h"
 #include "globals.h"
 #include "ui.h"
+#include "music.h"
 #include <gbdk/platform.h>
 
 static void push_short(const char *s) {
@@ -19,10 +20,11 @@ void ability_knight_cast_belt(uint8_t belt_slot, uint8_t px, uint8_t py, Ability
     (void)belt_slot; (void)px; (void)py;
     if (player_level < 1u) return;
     if (knight_shield_active) {
-        push_short("shield is up");
+        push_short("Shield Is Up");
         return; // no consumed_turn — toggling re-cast is free, no double-charge
     }
     knight_shield_active = 1u;
-    push_short("holy fire shield");
+    sfx_shield_sparkle();
+    push_short("Holy Fire Shield");
     out->consumed_turn = 1u; // raising the shield counts as a player action
 }

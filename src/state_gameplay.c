@@ -23,12 +23,14 @@
 
 static void tick_turn_cooldowns(void) {
     if (witch_shot_cooldown_turns > 0u) witch_shot_cooldown_turns--;
+    if (zerker_whirlwind_cooldown_turns > 0u) zerker_whirlwind_cooldown_turns--;
 }
 
 static const char *belt_name_for(uint8_t slot) { // bank-2 table — strings live here, not HOME, to keep HOME footprint tight
     if (slot != 0u) return 0;
-    if (player_class == 0u && player_level >= 1u) return "holy fire shield";
-    if (player_class == 2u && player_level >= 1u) return "fetid bolt";
+    if (player_class == 0u && player_level >= 1u) return "Holy Fire Shield";
+    if (player_class == 2u && player_level >= 1u) return "Fetid Bolt";
+    if (player_class == 3u && player_level >= 1u) return "Whirlwind";
     return 0;
 }
 
@@ -65,6 +67,7 @@ void state_gameplay_enter(void) BANKED {
     level_generate_and_spawn(&g_player_x, &g_player_y);
     selected_belt_slot = 0u;
     witch_shot_cooldown_turns = 0u;
+    zerker_whirlwind_cooldown_turns = 0u;
     BANK_DBG("GP_done");
 }
 
@@ -156,7 +159,7 @@ void state_gameplay_tick(void) BANKED {
         ability_dispatch_cast_belt(selected_belt_slot, g_player_x, g_player_y, &ar);
         if (ar.did_kill) {
             wait_vbl_done();
-            draw_cell(ar.kill_x, ar.kill_y); // banked ability never touches BKG; render in gameplay bank
+            draw_enemy_cells(g_player_x, g_player_y); // abilities can kill multiple enemies (e.g. Whirlwind); redraw full enemy/corpse pass
         }
         wait_vbl_done();
         draw_gameplay_overlays_profiled(g_player_x, g_player_y);

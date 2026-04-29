@@ -7,10 +7,10 @@
 
 // Cavern roster — bats + serpents + rats; expand with cavern-unique creatures later.
 static const EnemyDef defs[] = {
-    /* BAT     */ { TILE_MONSTER_3,  TILE_MONSTER_3,  1, 1, PAL_ENEMY_BAT,   MOVE_RANDOM },
-    /* SERPENT */ { TILE_SPIDER_1,   TILE_SPIDER_2,   2, 1, PAL_ENEMY_SNAKE, MOVE_CHASE  },
-    /* RAT     */ { TILE_MONSTER_2,  TILE_MONSTER_2,  1, 1, PAL_ENEMY_RAT,   MOVE_WANDER },
-    /* ADDER   */ { TILE_MONSTER_1,  TILE_MONSTER_1,  1, 1, PAL_ENEMY_SNAKE, MOVE_CHASE  },
+    /* BAT     */ { TILE_BAT_1,      TILE_BAT_2,      1, 1, PAL_ENEMY_BAT,   MOVE_BLINK,  3 }, // J2/K2 — blink up to 3 squares
+    /* SERPENT */ { TILE_SPIDER_1,   TILE_SPIDER_1,   2, 1, PAL_ENEMY_SNAKE, MOVE_CHASE,  0 }, // J1 only — J2 reserved for Bat
+    /* RAT     */ { TILE_MONSTER_2,  TILE_MONSTER_2,  1, 1, PAL_ENEMY_RAT,   MOVE_WANDER, 0 },
+    /* ADDER   */ { TILE_MONSTER_1,  TILE_MONSTER_1,  1, 1, PAL_ENEMY_SNAKE, MOVE_CHASE,  0 },
 };
 
 BANKREF(biome_cavern_copy_defs)

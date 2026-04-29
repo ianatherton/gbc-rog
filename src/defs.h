@@ -115,6 +115,7 @@ typedef struct {
 #define MOVE_CHASE   0   // always step toward the player
 #define MOVE_RANDOM  1   // random walkable neighbour each turn
 #define MOVE_WANDER  2   // 50% chase, 50% random
+#define MOVE_BLINK   3   // teleport to a tile adjacent to player; def->param caps Chebyshev jump range (0 = default 3)
 #define ENEMY_SLEEP_OFFSCREEN 1u // 1: skip AI updates for distant unrevealed enemies to stabilize crowded-floor turn cost
 #define ENEMY_WAKE_MANHATTAN  12u // offscreen enemies inside this player distance still simulate so near-edge threats stay responsive
 
@@ -128,8 +129,8 @@ typedef struct {
 #define NUM_ENEMY_TYPES 6
 
 /* ── Animation ───────────────────────────────────────────────────────────── */
-// DIV_REG runs at 16384 Hz; 68266 ticks ≈ 4.16s between flips (≈250 frames at 60fps)
-#define ENEMY_ANIM_DIV_TICKS 18266UL
+// DIV_REG runs at 16384 Hz; 1638 ticks ≈ 0.10s between frame flips
+#define ENEMY_ANIM_DIV_TICKS 1638UL
 
 /* ── Corpses ─────────────────────────────────────────────────────────────── */
 #define MAX_CORPSES MAX_ENEMIES
@@ -250,13 +251,14 @@ typedef struct {
 
 /* ── J col — enemy sprites ───────────────────────────────────────────────── */
 #define TILE_SPIDER_1        9   /* J1  - spider frame 1                   */
-#define TILE_SPIDER_2       25   /* J2  - spider frame 2                   */
+#define TILE_BAT_1          25   /* J2  - bat frame 1 (only used by Bat archetype) */
 #define TILE_MONSTER_1      41   /* J3  */
 #define TILE_MONSTER_2      57   /* J4  */
 #define TILE_MONSTER_3      73   /* J5  */
 #define TILE_LOADING_SKULL   105  /* J7  - skull / loading adorn (row7 col J) */
 
 /* K col (offset 10) — K1 reserved unused on map; VRAM tile patched from M14 at boot (see main.c) */
+#define TILE_BAT_2          26   /* K2  - bat frame 2 (only used by Bat archetype) */
 
 /* ── L col — floor decorations ──────────────────────────────────────────── */
 #define TILE_FLOOR_DECO_1   11   /* L1  */

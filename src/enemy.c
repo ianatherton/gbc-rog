@@ -311,6 +311,42 @@ static void step_random(uint8_t sx, uint8_t sy,
     }
 }
 
+#define BLINK_RANGE_DEFAULT 3u // fallback Chebyshev cap when EnemyDef.param == 0
+
+static void step_blink(uint8_t sx, uint8_t sy,
+                       uint8_t px, uint8_t py, uint8_t max_range,
+                       uint8_t *nx, uint8_t *ny) { // warp to a player-adjacent tile within max_range Chebyshev squares; fall back to random if none reachable
+    uint8_t apx = (px > sx) ? (uint8_t)(px - sx) : (uint8_t)(sx - px);
+    uint8_t apy = (py > sy) ? (uint8_t)(py - sy) : (uint8_t)(sy - py);
+    uint8_t cheb_player = (apx > apy) ? apx : apy;
+    int8_t  ox, oy; // offsets around player
+    uint8_t best_x = sx, best_y = sy;
+    uint8_t best_d = 0xFFu;
+
+    if (cheb_player <= 1u) { *nx = px; *ny = py; return; } // already adjacent — strike player tile (dispatcher records the hit)
+
+    for (oy = -1; oy <= 1; oy++) {
+        for (ox = -1; ox <= 1; ox++) {
+            if (ox == 0 && oy == 0) continue; // skip player tile itself
+            int16_t tx = (int16_t)px + ox;
+            int16_t ty = (int16_t)py + oy;
+            if (tx < 0 || tx >= MAP_W || ty < 0 || ty >= MAP_H) continue;
+            { uint8_t utx = (uint8_t)tx, uty = (uint8_t)ty;
+              uint8_t bx  = (utx > sx) ? (uint8_t)(utx - sx) : (uint8_t)(sx - utx);
+              uint8_t by  = (uty > sy) ? (uint8_t)(uty - sy) : (uint8_t)(sy - uty);
+              uint8_t cd  = (bx > by) ? bx : by;
+              if (cd == 0u || cd > max_range)             continue; // standing on bat or out of jump
+              if (!is_walkable(utx, uty))                 continue;
+              if (enemy_at(utx, uty) != ENEMY_DEAD)       continue;
+              if (cd < best_d) { best_d = cd; best_x = utx; best_y = uty; } // prefer the shortest hop
+            }
+        }
+    }
+
+    if (best_d != 0xFFu) { *nx = best_x; *ny = best_y; return; }
+    step_random(sx, sy, nx, ny); // no viable landing — shuffle in place
+}
+
 void enemy_resolve_hit(uint8_t slot) BANKED { // one strike: log line + subtract HP
     uint8_t hit = enemy_effective_damage(enemy_type[slot]);
     uint8_t hp_before = player_hp;
@@ -364,6 +400,11 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
                 if (rand() & 1) step_nav_chase(sx, sy, px, py, player_node, next_hop_cache, &nx, &ny);
                 else            step_random(sx, sy, &nx, &ny);
                 break;
+            case MOVE_BLINK: {
+                uint8_t r = def->param ? def->param : BLINK_RANGE_DEFAULT; // 0 → default cap
+                step_blink(sx, sy, px, py, r, &nx, &ny);
+                break;
+            }
         }
 
         if (nx == sx && ny == sy)              continue; // AI chose stay

@@ -10,7 +10,8 @@ typedef struct {
     uint8_t max_hp;       // full health when spawned
     uint8_t damage;       // subtracted from player_hp on collision
     uint8_t palette;      // CGB attribute palette 0..7
-    uint8_t move_style;   // MOVE_CHASE / MOVE_RANDOM / MOVE_WANDER
+    uint8_t move_style;   // MOVE_CHASE / MOVE_RANDOM / MOVE_WANDER / MOVE_BLINK
+    uint8_t param;        // per-style tunable (e.g. MOVE_BLINK Chebyshev jump cap); unused styles set 0
 } EnemyDef;
 
 extern EnemyDef enemy_defs[NUM_ENEMY_TYPES]; // HOME-resident; biome_load_active fills from bank 10/11/12

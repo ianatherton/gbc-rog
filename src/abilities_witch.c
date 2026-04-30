@@ -36,7 +36,7 @@ static void cast_bolt(uint8_t px, uint8_t py, AbilityResult *out) {
     }
     sfx_lunge_hit();
     dmg = (uint8_t)((player_damage + 1u) >> 1); // half damage, rounded up
-    killed = combat_damage_enemy(ei, dmg);
+    killed = combat_damage_enemy(ei, dmg, 0u);
     witch_shot_cooldown_turns = WITCH_BOLT_COOLDOWN;
     out->consumed_turn = 1u;
     if (killed) {

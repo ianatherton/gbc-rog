@@ -105,8 +105,9 @@ typedef struct {
 #define NUM_ENEMIES    28
 #define ENEMY_DEAD    255
 
-/* OAM draw order: lower index = in front. Aura must be < player or the 8×8 hero covers it completely. */
-#define SP_PLAYER_AURA_OAM    0u // M15/M16 gold flicker (+3px Y under refresh_player_oam_from_cache)
+/* OAM draw order: lower index = in front (hardware). Aura must be < player or the 8×8 hero covers it completely.
+   Flight FX (witch bolt, shield fireball) borrow SP_PLAYER_AURA_OAM during entity_sprites_run_projectile so bolts sit above the hero. */
+#define SP_PLAYER_AURA_OAM    0u // M15/M16 gold flicker — slot also drives bolt/fireball FX (same index = above hero)
 #define SP_PLAYER             1u // hero body
 #define SP_ENEMY_BASE         2u // enemies use OAM [SP_ENEMY_BASE .. SP_ENEMY_BASE + num_enemies - 1]
 #define SP_BUFF_ICON         39u // top-right HUD slot for active player buffs (knight shield, etc.) — survives hide sweep

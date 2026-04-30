@@ -14,7 +14,6 @@
 
 #define SP_LADDER_ARROW 36u
 #define SP_BRAZIER_FIRE 37u
-#define SP_PROJECTILE 38u
 #define SP_BELT_SELECTOR 35u // fixed screen-space OAM; excluded from post-enemy hide sweep
 #define BRAZIER_FIRE_TTL_VBL 12u
 
@@ -39,6 +38,7 @@ static uint8_t player_hurt_flash_restore_needed; // 1 after flash until OCP2 res
 static uint8_t player_cache_tx, player_cache_ty; // last refresh tile — VBL hurt blink repaints without full refresh
 static uint8_t player_aura_vbl_sub;               // counts VBL within one A/B hold window
 static uint8_t player_aura_ab_idx;               // 0 = tile A, 1 = tile B — toggles each PLAYER_AURA_TOGGLE_VBL
+static uint8_t projectile_overrides_aura;        // 1: slot 0 is bolt/fireball — skip aura VBL/refresh so FX draws above SP_PLAYER
 
 static int8_t pl_ofs_x, pl_ofs_y;                    // attack lunge (player)
 static int8_t en_ofs_x[MAX_ENEMIES], en_ofs_y[MAX_ENEMIES]; // per-slot lunge
@@ -133,7 +133,7 @@ static void move_entity_oam(uint8_t sp, int16_t wx, int16_t wy, uint8_t tile, ui
     {
         uint8_t prop = (uint8_t)(pal & 7u); // CGB palette index matches BG slot 0..7
         if (sp == SP_PLAYER && player_flip_x) prop |= S_FLIPX;
-        if (sp == SP_PLAYER_AURA_OAM && player_flip_x) prop |= S_FLIPX;
+        if (sp == SP_PLAYER_AURA_OAM && player_flip_x && !projectile_overrides_aura) prop |= S_FLIPX;
         set_sprite_prop(sp, prop);
     }
     move_sprite(sp, sx, sy);
@@ -214,7 +214,7 @@ static uint8_t player_aura_tile_vram(void) {
 
 static void refresh_player_aura_oam_vbl(void) { // position every VBL; M15/M16 swap on PLAYER_AURA_TOGGLE_VBL cadence
     int16_t ax, ay;
-    if (!lcd_gameplay_active) return;
+    if (!lcd_gameplay_active || projectile_overrides_aura) return;
     player_aura_world_xy(&ax, &ay);
     move_entity_oam(SP_PLAYER_AURA_OAM, ax, (int16_t)(ay + 3), player_aura_tile_vram(), PAL_XP_UI);
 }
@@ -232,11 +232,11 @@ static void refresh_player_oam_from_cache(void) { // player only — same math a
         render_sprite_palette_player_default();
         player_hurt_flash_restore_needed = 0u;
     }
-    if (lcd_gameplay_active) {
+    if (lcd_gameplay_active && !projectile_overrides_aura) {
         int16_t ax, ay;
         player_aura_world_xy(&ax, &ay);
         move_entity_oam(SP_PLAYER_AURA_OAM, ax, (int16_t)(ay + 3), player_aura_tile_vram(), PAL_XP_UI);
-    } else {
+    } else if (!lcd_gameplay_active) {
         oam_hide(SP_PLAYER_AURA_OAM);
     }
     move_entity_oam(SP_PLAYER, pwx, pwy,
@@ -506,12 +506,14 @@ void entity_sprites_run_projectile(uint8_t sx, uint8_t sy, uint8_t tx, uint8_t t
     int16_t syw = (int16_t)sy * 8;
     int16_t txw = (int16_t)tx * 8;
     int16_t tyw = (int16_t)ty * 8;
+    projectile_overrides_aura = 1u; // OAM slot 0 draws above SP_PLAYER (lower index = front)
     for (frame = 1u; frame <= frames; frame++) {
         int16_t wx = (int16_t)(sxw + ((int16_t)(txw - sxw) * frame) / frames);
         int16_t wy = (int16_t)(syw + ((int16_t)(tyw - syw) * frame) / frames);
-        move_entity_oam(SP_PROJECTILE, wx, wy, (uint8_t)(TILESET_VRAM_OFFSET + tile_off), pal);
+        move_entity_oam(SP_PLAYER_AURA_OAM, wx, wy, (uint8_t)(TILESET_VRAM_OFFSET + tile_off), pal);
         wait_vbl_done();
         wait_vbl_done(); // keep projectile readable; effect-only flight, not tile stepping
     }
-    oam_hide(SP_PROJECTILE);
+    projectile_overrides_aura = 0u;
+    entity_sprites_refresh_player_only(g_player_x, g_player_y);
 }

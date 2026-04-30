@@ -48,7 +48,7 @@ uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) {
             if (!enemy_alive[ei]) continue; // could've been killed earlier this frame
             entity_sprites_run_projectile(px, py, enemy_x[ei], enemy_y[ei],
                 (uint8_t)(TILE_WITCH_BOLT_VRAM - TILESET_VRAM_OFFSET), PAL_XP_UI);
-            (void)combat_damage_enemy(ei, reflect_dmg); // log + xp + corpse handled inside
+            (void)combat_damage_enemy(ei, reflect_dmg, 1u); // log + xp + corpse; "burned" line
         }
         wait_vbl_done();
         draw_gameplay_overlays_profiled(px, py);
@@ -57,16 +57,18 @@ uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) {
     return (player_hp == 0) ? 2u : 1u;
 }
 
-uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage) {
+uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage, uint8_t from_shield_burn) {
     if (enemy_hp[ei] > damage) {
         enemy_hp[ei] = (uint8_t)(enemy_hp[ei] - damage);
-        ui_push_combat_log(enemy_type[ei], damage, enemy_hp[ei]);
+        if (from_shield_burn) ui_push_combat_log_shield_burn(enemy_type[ei], damage, enemy_hp[ei]);
+        else                  ui_push_combat_log(enemy_type[ei], damage, enemy_hp[ei]);
         return 0u;
     } else {
         uint8_t kill_xp;
         uint8_t dx;
         uint8_t dy;
-        ui_push_combat_log(enemy_type[ei], 0, 0);
+        if (from_shield_burn) ui_push_combat_log_shield_burn(enemy_type[ei], damage, 0); // killing burn — no separate DIES line
+        else                  ui_push_combat_log(enemy_type[ei], 0, 0);
         kill_xp = enemy_effective_damage(enemy_type[ei]);
         ui_push_xp_gain_line(kill_xp);
         dx = enemy_x[ei];
@@ -94,5 +96,5 @@ uint8_t combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, ui
     int8_t ady = (ny > py) ? 1 : (ny < py ? -1 : 0);
     entity_sprites_run_player_lunge(px, py, adx, ady, ei);
     sfx_lunge_hit();
-    return combat_damage_enemy(ei, player_damage);
+    return combat_damage_enemy(ei, player_damage, 0u);
 }

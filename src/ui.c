@@ -320,6 +320,52 @@ void ui_push_combat_log(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_
     ui_combat_log_push_pal(logbuf, PAL_UI);
 }
 
+void ui_push_combat_log_shield_burn(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_pct) BANKED {
+    char logbuf[UI_MSG_LINE];
+    char namebuf[12];
+    uint8_t p = 0, d = dmg, mhp, pct, ni;
+    if (dmg == 0u) return; // only "-N" lines; kills pass lethal damage, not a separate DIES
+    enemy_type_short_name_copy(type_idx, namebuf, sizeof namebuf);
+    for (ni = 0u; namebuf[ni] && p < 9u; ni++) logbuf[p++] = namebuf[ni];
+    logbuf[p++] = ' ';
+    logbuf[p++] = 'b';
+    logbuf[p++] = 'u';
+    logbuf[p++] = 'r';
+    logbuf[p++] = 'n';
+    logbuf[p++] = 'e';
+    logbuf[p++] = 'd';
+    logbuf[p++] = ' ';
+    if (d) {
+        logbuf[p++] = '-';
+        if (d >= 100u) {
+            logbuf[p++] = (char)('0' + d / 100u);
+            d %= 100u;
+        }
+        if (d >= 10u) {
+            logbuf[p++] = (char)('0' + d / 10u);
+            d %= 10u;
+        }
+        logbuf[p++] = (char)('0' + d);
+        if (hp_remaining_for_pct > 0u) {
+            mhp = enemy_effective_max_hp(type_idx);
+            pct = mhp ? (uint8_t)(((uint16_t)hp_remaining_for_pct * 100u) / (uint16_t)mhp) : 0u;
+            if (pct > 99u) pct = 99u;
+            if (p + 5u < COMBAT_LOG_LEN) {
+                logbuf[p++] = ' ';
+                if (pct >= 10u) {
+                    logbuf[p++] = (char)('0' + pct / 10u);
+                    logbuf[p++] = (char)('0' + pct % 10u);
+                } else {
+                    logbuf[p++] = (char)('0' + pct);
+                }
+                logbuf[p++] = '%';
+            }
+        }
+    }
+    logbuf[p] = 0;
+    ui_combat_log_push_pal(logbuf, PAL_XP_UI);
+}
+
 void ui_push_xp_gain_line(uint8_t amt) BANKED {
     char buf[UI_MSG_LINE];
     uint8_t p = 0;

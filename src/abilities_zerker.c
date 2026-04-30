@@ -49,7 +49,7 @@ static void cast_whirlwind(uint8_t px, uint8_t py, AbilityResult *out) {
         dy = (ey > py) ? (uint8_t)(ey - py) : (uint8_t)(py - ey);
         if (dx > 1u || dy > 1u || (dx == 0u && dy == 0u)) continue; // adjacent 8 tiles only
         hits = 1u;
-        killed = combat_damage_enemy(ei, dmg);
+        killed = combat_damage_enemy(ei, dmg, 0u);
         if (killed) {
             out->did_kill = 1u;
             out->kill_x = ex;

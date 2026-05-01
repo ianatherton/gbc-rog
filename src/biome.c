@@ -17,10 +17,14 @@ void biome_load_active(uint8_t biome_id) {
     }
 }
 
-// Deterministic biome rotation by floor — keeps runs reproducible from run_seed without WRAM history.
-// floors 1..3 dungeon, 4..6 crypt, 7..9 cavern, then loop with seed-based offset.
+// Floor 1: always dungeon (safe entry + matches no-spawn floor). Floor 2+: pseudo-random biome per floor
+// from run_seed so the same seed still reproduces the same sequence without storing prior floors in WRAM.
 uint8_t biome_pick_for_floor(uint8_t floor_n, uint16_t seed) {
-    uint16_t band = ((uint16_t)floor_n - 1u) / 3u;
-    uint16_t mix = band ^ (seed >> 4);
-    return (uint8_t)(mix % BIOME_COUNT);
+    uint16_t h;
+    if (floor_n <= 1u) return BIOME_DUNGEON;
+    h = (uint16_t)(seed ^ (uint16_t)((uint16_t)floor_n * 2053u));
+    h ^= (uint16_t)(h >> 8);
+    h ^= (uint16_t)((uint16_t)floor_n * 6361u);
+    h ^= (uint16_t)(h >> 7);
+    return (uint8_t)(h % BIOME_COUNT);
 }

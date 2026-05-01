@@ -210,6 +210,9 @@ typedef struct {
 #define TILE_COLUMN_2       19   /* D2  */
 #define TILE_COLUMN_3       35   /* D3  */
 #define TILE_COLUMN_4       51   /* D4  */
+#define TILE_COLUMN_5       67   /* D5  */
+#define TILE_COLUMN_6       83   /* D6  */
+#define TILE_COLUMN_7       99   /* D7  */
 
 /* ── E col — ground / floor tiles ───────────────────────────────────────── */
 #define TILE_GROUND_A        4   /* E1  */

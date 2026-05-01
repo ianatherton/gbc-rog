@@ -7,6 +7,7 @@
 #include "ui.h"     // ui_draw_bottom_rows
 #include "lcd.h"    // line-8 ISR owns SCX/SCY during play
 #include "wall_palettes.h" // wall_palette_table, NUM_WALL_PALETTES
+#include "biome.h"
 #include "entity_sprites.h"
 #include "class_palettes.h"
 #include "perf.h"
@@ -83,7 +84,15 @@ static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t m
             set_bkg_attribute_xy(sx, sy, floor_tile_palette_xy(mx, my));
         } else if (t == TILE_WALL) {
             uint8_t n = wall_ortho_wall_count_xy(mx, my); // computed from floor_bits at draw-time to save WRAM
-            uint8_t off = (n == 0u || n == 2u || n == 3u) ? floor_column_off : wall_tileset_index;
+            uint8_t off = wall_tileset_index;
+            if (n == 0u || n == 2u || n == 3u) {
+                if (floor_biome == BIOME_CAVERN) {
+                    uint8_t mix = (uint8_t)((uint8_t)(mx * 13u) ^ (uint8_t)(my * 29u) ^ run_seed);
+                    off = (mix & 1u) ? TILE_COLUMN_7 : TILE_COLUMN_6;
+                } else {
+                    off = floor_column_off;
+                }
+            }
             uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + off);
             uint8_t attr = (n == 0u || n == 2u || n == 3u) ? PAL_PILLAR_BG : PAL_WALL_BG;
             set_bkg_tiles(sx, sy, 1, 1, &vram);

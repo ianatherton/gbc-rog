@@ -382,6 +382,7 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     initrand(floor_seed);
     knight_shield_active = 0u; // floor-scoped buff — clear on every regen so it doesn't leak across stairs
     biome_load_active(biome_pick_for_floor(floor_num, run_seed)); // fills HOME enemy_defs[] from coral bank before spawn
+    if (floor_biome == BIOME_CAVERN) wall_tileset_index = TILE_WALL_F;
     generate_level(floor_seed);
     lighting_reset();
     if (pit_present) lighting_reveal_radius(pit_x, pit_y, LIGHT_RADIUS_LADDER_DOWN);

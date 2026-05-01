@@ -139,6 +139,24 @@ static void move_entity_oam(uint8_t sp, int16_t wx, int16_t wy, uint8_t tile, ui
     move_sprite(sp, sx, sy);
 }
 
+static void refresh_scoundrel_fox_oam(void) {
+    uint8_t fx, fy;
+    if (!lcd_gameplay_active || player_class != 1u || !scoundrel_fox_active) {
+        oam_hide(SP_SCOUNDREL_FOX);
+        return;
+    }
+    fx = scoundrel_fox_x;
+    fy = scoundrel_fox_y;
+    if (fx < CAM_TX || fx >= (uint8_t)(CAM_TX + GRID_W)
+            || fy < CAM_TY || fy >= (uint8_t)(CAM_TY + GRID_H)
+            || !lighting_is_revealed(fx, fy)) {
+        oam_hide(SP_SCOUNDREL_FOX);
+        return;
+    }
+    move_entity_oam(SP_SCOUNDREL_FOX, (int16_t)fx * 8, (int16_t)fy * 8,
+            TILE_FOX_J9_VRAM, PAL_ENEMY_BAT);
+}
+
 void entity_sprites_poof_clear_all(void) {
     memset(enemy_poof_ttl, 0, sizeof enemy_poof_ttl);
     memset(en_hit_flash_age, 0, sizeof en_hit_flash_age);
@@ -375,11 +393,13 @@ void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) {
     entity_sprites_refresh_player_only(px, py);
     for (i = 0; i < num_enemies; i++) refresh_enemy_oam(i);
     for (i = (uint8_t)(SP_ENEMY_BASE + num_enemies); i < 40u; i++)
-        if (i != SP_BRAZIER_FIRE && i != SP_LADDER_ARROW && i != SP_BELT_SELECTOR && i != SP_PLAYER_AURA_OAM && i != SP_BUFF_ICON)
+        if (i != SP_BRAZIER_FIRE && i != SP_LADDER_ARROW && i != SP_BELT_SELECTOR && i != SP_PLAYER_AURA_OAM && i != SP_BUFF_ICON
+                && i != SP_SCOUNDREL_FOX)
             oam_hide(i);
     if (!brazier_fire_active) oam_hide(SP_BRAZIER_FIRE); // keep slot hidden until first spawn
     refresh_belt_selector_oam();
     refresh_buff_icon_oam();
+    refresh_scoundrel_fox_oam();
 }
 
 void entity_sprites_refresh_all(uint8_t px, uint8_t py) {

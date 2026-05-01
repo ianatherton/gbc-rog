@@ -491,6 +491,9 @@ static void ui_draw_belt_placeholder_row(void) { // N4/O4 "SPELL" | 4×(slot + u
         } else if (s == 0u && player_class == 0u && player_level >= 1u) { // knight slot 0 — holy fire shield (I9 art; LIFE_UI palette while active, WALL_BG when ready)
             v = TILE_KNIGHT_SHIELD_VRAM;
             icon_pal = knight_shield_active ? PAL_LIFE_UI : PAL_WALL_BG;
+        } else if (s == 0u && player_class == 1u && player_level >= 1u) { // scoundrel — Call Fox; BKG7 = same ramp as bat (PAL_ENEMY_BAT / PAL_XP_UI)
+            v = TILE_FOX_J9_VRAM;
+            icon_pal = scoundrel_fox_active ? PAL_XP_UI : PAL_WALL_BG;
         } else {
             v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY); // empty: M14 patched onto K1 VRAM at boot; else TILE_ITEM_* when wired
             icon_pal = PAL_UI;

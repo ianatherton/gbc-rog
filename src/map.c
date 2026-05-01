@@ -10,6 +10,7 @@
 #include "entity_sprites.h"
 #include "wall_palettes.h"
 #include "biome.h"
+#include "scoundrel_fox.h"
 #include <gbdk/platform.h>
 #include <rand.h>
 
@@ -381,6 +382,7 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     }
     initrand(floor_seed);
     knight_shield_active = 0u; // floor-scoped buff — clear on every regen so it doesn't leak across stairs
+    scoundrel_fox_clear();
     biome_load_active(biome_pick_for_floor(floor_num, run_seed)); // fills HOME enemy_defs[] from coral bank before spawn
     if (floor_biome == BIOME_CAVERN) wall_tileset_index = TILE_WALL_F;
     generate_level(floor_seed);

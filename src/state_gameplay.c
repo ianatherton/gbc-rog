@@ -18,6 +18,7 @@
 #include "combat.h"
 #include "perf.h"
 #include "ability_dispatch.h"
+#include "scoundrel_fox.h"
 #include <gb/gb.h>
 #include <gbdk/platform.h>
 
@@ -29,6 +30,7 @@ static void tick_turn_cooldowns(void) {
 static const char *belt_name_for(uint8_t slot) { // bank-2 table — strings live here, not HOME, to keep HOME footprint tight
     if (slot != 0u) return 0;
     if (player_class == 0u && player_level >= 1u) return "Holy Fire Shield";
+    if (player_class == 1u && player_level >= 1u) return "Call Fox";
     if (player_class == 2u && player_level >= 1u) return "Fetid Bolt";
     if (player_class == 3u && player_level >= 1u) return "Whirlwind";
     return 0;
@@ -166,6 +168,10 @@ void state_gameplay_tick(void) BANKED {
         if (ar.consumed_turn) {
             uint8_t old_ex[MAX_ENEMIES], old_ey[MAX_ENEMIES], old_ea[MAX_ENEMIES], k;
             uint8_t result;
+            {
+                uint8_t fk = scoundrel_fox_turn_tick(g_player_x, g_player_y);
+                if (fk) { wait_vbl_done(); draw_enemy_cells(g_player_x, g_player_y); }
+            }
             for (k = 0; k < num_enemies; k++) {
                 old_ex[k] = enemy_x[k];
                 old_ey[k] = enemy_y[k];
@@ -222,6 +228,10 @@ void state_gameplay_tick(void) BANKED {
 
             {
                 uint8_t old_ex[MAX_ENEMIES], old_ey[MAX_ENEMIES], old_ea[MAX_ENEMIES], k;
+                {
+                    uint8_t fk = scoundrel_fox_turn_tick(g_player_x, g_player_y);
+                    if (fk) { wait_vbl_done(); draw_enemy_cells(g_player_x, g_player_y); }
+                }
                 for (k = 0; k < num_enemies; k++) {
                     old_ex[k] = enemy_x[k];
                     old_ey[k] = enemy_y[k];
@@ -275,6 +285,10 @@ void state_gameplay_tick(void) BANKED {
                 }
                 {
                     uint8_t old_ex[MAX_ENEMIES], old_ey[MAX_ENEMIES], old_ea[MAX_ENEMIES], k;
+                    {
+                        uint8_t fk = scoundrel_fox_turn_tick(g_player_x, g_player_y);
+                        if (fk) { wait_vbl_done(); draw_enemy_cells(g_player_x, g_player_y); }
+                    }
                     for (k = 0; k < num_enemies; k++) {
                         old_ex[k] = enemy_x[k];
                         old_ey[k] = enemy_y[k];

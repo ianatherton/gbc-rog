@@ -24,5 +24,6 @@ uint8_t ability_dispatch_belt_ready(uint8_t belt_slot) {
     if (player_class == 0u && player_level >= 1u && !knight_shield_active) return 1u; // knight: ready while shield down
     if (player_class == 2u && player_level >= 1u && witch_shot_cooldown_turns == 0u) return 1u;
     if (player_class == 3u && player_level >= 1u && zerker_whirlwind_cooldown_turns == 0u) return 1u;
+    if (player_class == 1u && player_level >= 1u) return 1u;
     return 0u;
 }

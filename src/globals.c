@@ -25,6 +25,10 @@ uint8_t  belt_slot_charges[BELT_SLOT_COUNT] = { 0 };
 uint8_t  witch_shot_cooldown_turns = 0u;
 uint8_t  zerker_whirlwind_cooldown_turns = 0u;
 uint8_t  knight_shield_active = 0u;
+uint8_t  scoundrel_fox_active   = 0u;
+uint8_t  scoundrel_fox_x        = 0u;
+uint8_t  scoundrel_fox_y        = 0u;
+uint8_t  scoundrel_fox_chase_ei = ENEMY_DEAD;
 
 uint8_t enemy_alive[MAX_ENEMIES];
 uint8_t dead_enemy_pool[MAX_ENEMIES];

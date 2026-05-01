@@ -52,6 +52,10 @@ int main(void) {
             tileset_tiles + (uint16_t)TILE_ITEM_9 * 16u);
         set_sprite_data(TILE_KNIGHT_SHIELD_VRAM, 1u,
             tileset_tiles + (uint16_t)TILE_ITEM_9 * 16u);
+        set_bkg_data(TILE_FOX_J9_VRAM, 1u,
+            tileset_tiles + (uint16_t)TILE_FOX_J9 * 16u);
+        set_sprite_data(TILE_FOX_J9_VRAM, 1u,
+            tileset_tiles + (uint16_t)TILE_FOX_J9 * 16u);
         {
             uint8_t buf[16];
             memcpy(buf, tileset_tiles + (uint16_t)TILE_PLAYER_AURA_ROM_A * 16u, 16u); // sheet uses idx0 as clear; 0→3 remaps made a solid 8×8

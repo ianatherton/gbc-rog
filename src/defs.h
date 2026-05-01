@@ -110,6 +110,7 @@ typedef struct {
 #define SP_PLAYER_AURA_OAM    0u // M15/M16 gold flicker — slot also drives bolt/fireball FX (same index = above hero)
 #define SP_PLAYER             1u // hero body
 #define SP_ENEMY_BASE         2u // enemies use OAM [SP_ENEMY_BASE .. SP_ENEMY_BASE + num_enemies - 1]
+#define SP_SCOUNDREL_FOX       30u // Call Fox pet — below belt/ladder/brazier; above max enemy slot 2+28-1
 #define SP_BUFF_ICON         39u // top-right HUD slot for active player buffs (knight shield, etc.) — survives hide sweep
 
 /* ── Enemy movement styles ───────────────────────────────────────────────── */
@@ -260,6 +261,8 @@ typedef struct {
 #define TILE_MONSTER_2      57   /* J4  */
 #define TILE_MONSTER_3      73   /* J5  */
 #define TILE_LOADING_SKULL   105  /* J7  - skull / loading adorn (row7 col J) */
+#define TILE_FOX_J9          137u /* J9  - sheet/ROM index (past first VRAM pack); copied to TILE_FOX_J9_VRAM at boot */
+#define TILE_FOX_J9_VRAM     246u // OBJ + belt UI — same pattern as TILE_KNIGHT_SHIELD_VRAM for sheet tiles >127
 
 /* K col (offset 10) — K1 reserved unused on map; VRAM tile patched from M14 at boot (see main.c) */
 #define TILE_BAT_2          26   /* K2  - bat frame 2 (only used by Bat archetype) */

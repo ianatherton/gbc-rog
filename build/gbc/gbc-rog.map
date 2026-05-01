@@ -70,9 +70,9 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00000060  l__CODE_7 |    00000060  l__HEADER |    0000007A  l__CODE_6
      000000AB  l__HEADER |    000001AE  l__CODE_8 |    00000200  s__CODE  
      00000203  l__CODE_9 |    000007DE  l__CODE_3 |    00000B98  l__HOME  
-     00000B9B  l__CODE_4 |    00001108  l__CODE_1 |    00001BDB  l__DATA  
+     00000B9B  l__CODE_4 |    00001108  l__CODE_1 |    00001C2F  l__DATA  
      00002000  _rROMB0   |    00003000  _rROMB1   |    0000320A  l__CODE  
-     0000340A  s__HOME   |    000038D5  l__CODE_5 |    00003DD7  l__CODE_2
+     0000340A  s__HOME   |    000038D5  l__CODE_5 |    00003EE0  l__CODE_2
      00003FA2  s__BASE   |    00003FA2  s__CODE_0 |    00003FA2  s__INITIA
      00003FA2  s__LIT    |    00003FDE  s__GSINIT |    00003FEA  s__GSFINA
      00004000  _rMBC7_SR |    00004000  _rRAMB    |    00008000  __VRAM   
@@ -81,8 +81,8 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000A000  _rMBC7_LA |    0000A010  _rMBC7_LA |    0000A020  _rMBC7_AC
      0000A030  _rMBC7_AC |    0000A040  _rMBC7_AC |    0000A050  _rMBC7_AC
      0000C000  __RAM     |    0000C000  _shadow_O |    0000C0A0  s__DATA  
-     0000D000  __RAMBANK |    0000DC7B  s__BSS    |    0000DC7B  s__INITIA
-     0000DCB7  s__HEAP   |    0000DCB7  s__HEAP_E |    0000E000  .STACK   
+     0000D000  __RAMBANK |    0000DCCF  s__BSS    |    0000DCCF  s__INITIA
+     0000DD0B  s__HEAP   |    0000DD0B  s__HEAP_E |    0000E000  .STACK   
      0000FE00  __OAMRAM  |    0000FF00  _P1_REG   |    0000FF00  __IO     
      0000FF01  _SB_REG   |    0000FF02  _SC_REG   |    0000FF04  _DIV_REG 
      0000FF05  _TIMA_REG |    0000FF06  _TMA_REG  |    0000FF07  _TAC_REG 
@@ -392,7 +392,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_DATA                  0000C0A0    00001BDB =        7131. bytes (REL,CON)
+_DATA                  0000C0A0    00001C2F =        7215. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -409,33 +409,33 @@ _DATA                  0000C0A0    00001BDB =        7131. bytes (REL,CON)
      0000D536  _enemy_hp |    0000D552  _num_enem |    0000D553  _corpse_x
      0000D56F  _corpse_y |    0000D58B  _corpse_t |    0000D5A7  _num_corp
      0000D5A8  _enemy_oc |    0000DBA8  _enemy_an |    0000DBA9  _enemy_at
-     0000DBC5  _enemy_at |    0000DBC6  _enemy_fo |    0000DC5B  ___rand_s
-     0000DC5D  font_curr |    0000DC60  font_firs |    0000DC61  font_tabl
-     0000DC73  .int_0x48
+     0000DBC5  _enemy_at |    0000DBC6  _enemy_fo |    0000DCAF  ___rand_s
+     0000DCB1  font_curr |    0000DCB4  font_firs |    0000DCB5  font_tabl
+     0000DCC7  .int_0x48
 ASxxxx Linker V03.00/V05.40 + sdld,  page 27.
 Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_INITIALIZED           0000DC7B    0000003C =          60. bytes (REL,CON)
+_INITIALIZED           0000DCCF    0000003C =          60. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     0000DC7B  _enemy_de |    0000DC84  _current_ |    0000DC85  _next_sta
-     0000DC86  _pending_ |    0000DC87  _gameplay |    0000DC88  _player_h
-     0000DC89  _player_h |    0000DC8A  _player_l |    0000DC8B  _player_d
-     0000DC8C  _player_x |    0000DC8E  _floor_nu |    0000DC8F  _run_seed
-     0000DC91  _player_c |    0000DC92  _floor_bi |    0000DC93  _selected
-     0000DC94  _belt_slo |    0000DC98  _witch_sh |    0000DC99  _zerker_w
-     0000DC9A  _knight_s |    0000DC9B  _scoundre |    0000DC9C  _scoundre
-     0000DC9D  _scoundre |    0000DC9E  _scoundre |    0000DC9F  _lcd_game
-     0000DCA0  _lcd_shak |    0000DCA1  _lcd_shak |    0000DCA2  _wall_til
-     0000DCA3  _wall_pal |    0000DCA4  _pillar_p |    0000DCA5  _active_m
-     0000DCA6  _active_m |    0000DCA7  _player_s |    0000DCA8  _player_s
-     0000DCA9  _floor_co |    0000DCAA  _camera_p |    0000DCAC  _camera_p
-     0000DCB0  _ui_panel |    0000DCB1  .curx     |    0000DCB2  .cury    
-     0000DCB3  .fg_colou |    0000DCB3  __current |    0000DCB4  .bg_colou
-     0000DCB5  .draw_mod |    0000DCB6  __map_til
+     0000DCCF  _enemy_de |    0000DCD8  _current_ |    0000DCD9  _next_sta
+     0000DCDA  _pending_ |    0000DCDB  _gameplay |    0000DCDC  _player_h
+     0000DCDD  _player_h |    0000DCDE  _player_l |    0000DCDF  _player_d
+     0000DCE0  _player_x |    0000DCE2  _floor_nu |    0000DCE3  _run_seed
+     0000DCE5  _player_c |    0000DCE6  _floor_bi |    0000DCE7  _selected
+     0000DCE8  _belt_slo |    0000DCEC  _witch_sh |    0000DCED  _zerker_w
+     0000DCEE  _knight_s |    0000DCEF  _scoundre |    0000DCF0  _scoundre
+     0000DCF1  _scoundre |    0000DCF2  _scoundre |    0000DCF3  _lcd_game
+     0000DCF4  _lcd_shak |    0000DCF5  _lcd_shak |    0000DCF6  _wall_til
+     0000DCF7  _wall_pal |    0000DCF8  _pillar_p |    0000DCF9  _active_m
+     0000DCFA  _active_m |    0000DCFB  _player_s |    0000DCFC  _player_s
+     0000DCFD  _floor_co |    0000DCFE  _camera_p |    0000DD00  _camera_p
+     0000DD04  _ui_panel |    0000DD05  .curx     |    0000DD06  .cury    
+     0000DD07  .fg_colou |    0000DD07  __current |    0000DD08  .bg_colou
+     0000DD09  .draw_mod |    0000DD0A  __map_til
 ASxxxx Linker V03.00/V05.40 + sdld,  page 28.
 Hexadecimal  [32-Bits]
 
@@ -463,7 +463,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_2                00024000    00003DD7 =       15831. bytes (REL,CON)
+_CODE_2                00024000    00003EE0 =       16096. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -479,16 +479,16 @@ _CODE_2                00024000    00003DD7 =       15831. bytes (REL,CON)
      000257F9  _enemy_at |    0002586A  _corpse_s |    000258E2  _corpse_a
      000258EE  _corpse_d |    000258FD  _spawn_en |    00025A0F  _enemy_se
      00025A27  _enemy_ge |    00025D8A  _enemy_re |    00025EBD  _move_ene
-     0002622E  ___func_s |    0002622E  _state_ga |    0002628C  ___func_s
-     0002628C  _state_ga |    000269D5  ___func_c |    000269D5  _camera_i
-     00026C4F  _camera_s |    000270D8  _camera_s |    000273B3  _scoundre
-     00027436  ___func_s |    00027436  _scoundre |    0002752A  _scoundre
-     00027686  _apply_wa |    00027926  ___func_l |    00027926  _load_pal
-     00027A0A  _draw_cel |    00027A5E  _draw_col |    00027A98  _draw_row
-     00027ACF  _draw_ui_ |    00027AD7  _draw_gam |    00027AE6  _draw_scr
-     00027B65  _draw_gam |    00027B82  _draw_ene |    00027B85  _wall_pal
-     00027D21  ___func_c |    00027D21  _class_pa |    00027D5C  _class_pa
-     00027D73  ___func_l |    00027D73  _level_in
+     00026279  ___func_s |    00026279  _state_ga |    000262D7  ___func_s
+     000262D7  _state_ga |    000269D6  ___func_c |    000269D6  _camera_i
+     00026C50  _camera_s |    000270D9  _camera_s |    000273B4  _scoundre
+     00027437  ___func_s |    00027437  _scoundre |    0002752B  _scoundre
+     00027633  _scoundre |    0002778F  _apply_wa |    00027A2F  ___func_l
+     00027A2F  _load_pal |    00027B13  _draw_cel |    00027B67  _draw_col
+     00027BA1  _draw_row |    00027BD8  _draw_ui_ |    00027BE0  _draw_gam
+     00027BEF  _draw_scr |    00027C6E  _draw_gam |    00027C8B  _draw_ene
+     00027C8E  _wall_pal |    00027E2A  ___func_c |    00027E2A  _class_pa
+     00027E65  _class_pa |    00027E7C  ___func_l |    00027E7C  _level_in
 ASxxxx Linker V03.00/V05.40 + sdld,  page 31.
 Hexadecimal  [32-Bits]
 

@@ -22,9 +22,20 @@
 #include <gb/gb.h>
 #include <gbdk/platform.h>
 
+static uint8_t turn_snap_ex[MAX_ENEMIES], turn_snap_ey[MAX_ENEMIES], turn_snap_ea[MAX_ENEMIES]; // enemy pos before AI — file static so SDCC does not stack three 28-byte arrays in one tick()
+
 static void tick_turn_cooldowns(void) {
     if (witch_shot_cooldown_turns > 0u) witch_shot_cooldown_turns--;
     if (zerker_whirlwind_cooldown_turns > 0u) zerker_whirlwind_cooldown_turns--;
+}
+
+static void gameplay_fox_turn_and_glide(uint8_t px, uint8_t py) {
+    uint8_t fox_ox = scoundrel_fox_x, fox_oy = scoundrel_fox_y, fox_was = scoundrel_fox_active;
+    uint8_t fk = scoundrel_fox_turn_tick(px, py);
+    if (fk) { wait_vbl_done(); draw_enemy_cells(px, py); }
+    if (scoundrel_fox_active && fox_was
+            && (fox_ox != scoundrel_fox_x || fox_oy != scoundrel_fox_y))
+        scoundrel_fox_run_glide(fox_ox, fox_oy); // bank 2 — direct OAM ease, no HOME bytes added
 }
 
 static const char *belt_name_for(uint8_t slot) { // bank-2 table — strings live here, not HOME, to keep HOME footprint tight
@@ -166,19 +177,16 @@ void state_gameplay_tick(void) BANKED {
         wait_vbl_done();
         draw_gameplay_overlays_profiled(g_player_x, g_player_y);
         if (ar.consumed_turn) {
-            uint8_t old_ex[MAX_ENEMIES], old_ey[MAX_ENEMIES], old_ea[MAX_ENEMIES], k;
+            uint8_t k;
             uint8_t result;
-            {
-                uint8_t fk = scoundrel_fox_turn_tick(g_player_x, g_player_y);
-                if (fk) { wait_vbl_done(); draw_enemy_cells(g_player_x, g_player_y); }
-            }
+            gameplay_fox_turn_and_glide(g_player_x, g_player_y);
             for (k = 0; k < num_enemies; k++) {
-                old_ex[k] = enemy_x[k];
-                old_ey[k] = enemy_y[k];
-                old_ea[k] = enemy_alive[k];
+                turn_snap_ex[k] = enemy_x[k];
+                turn_snap_ey[k] = enemy_y[k];
+                turn_snap_ea[k] = enemy_alive[k];
             }
             move_enemies(g_player_x, g_player_y);
-            entity_sprites_run_enemy_glide(g_player_x, g_player_y, old_ex, old_ey, old_ea);
+            entity_sprites_run_enemy_glide(g_player_x, g_player_y, turn_snap_ex, turn_snap_ey, turn_snap_ea);
             result = resolve_enemy_hits_and_animate(g_player_x, g_player_y);
             if (!result) { wait_vbl_done(); draw_enemy_cells(g_player_x, g_player_y); }
             if (result == 2) {
@@ -227,18 +235,15 @@ void state_gameplay_tick(void) BANKED {
             }
 
             {
-                uint8_t old_ex[MAX_ENEMIES], old_ey[MAX_ENEMIES], old_ea[MAX_ENEMIES], k;
-                {
-                    uint8_t fk = scoundrel_fox_turn_tick(g_player_x, g_player_y);
-                    if (fk) { wait_vbl_done(); draw_enemy_cells(g_player_x, g_player_y); }
-                }
+                uint8_t k;
+                gameplay_fox_turn_and_glide(g_player_x, g_player_y);
                 for (k = 0; k < num_enemies; k++) {
-                    old_ex[k] = enemy_x[k];
-                    old_ey[k] = enemy_y[k];
-                    old_ea[k] = enemy_alive[k];
+                    turn_snap_ex[k] = enemy_x[k];
+                    turn_snap_ey[k] = enemy_y[k];
+                    turn_snap_ea[k] = enemy_alive[k];
                 }
                 move_enemies(g_player_x, g_player_y);
-                entity_sprites_run_enemy_glide(g_player_x, g_player_y, old_ex, old_ey, old_ea);
+                entity_sprites_run_enemy_glide(g_player_x, g_player_y, turn_snap_ex, turn_snap_ey, turn_snap_ea);
             }
             result = resolve_enemy_hits_and_animate(g_player_x, g_player_y);
             if (!result) { wait_vbl_done(); draw_enemy_cells(g_player_x, g_player_y); }
@@ -284,18 +289,15 @@ void state_gameplay_tick(void) BANKED {
                     camera_scroll_to(target_cx, target_cy, opx, opy, g_player_x, g_player_y);
                 }
                 {
-                    uint8_t old_ex[MAX_ENEMIES], old_ey[MAX_ENEMIES], old_ea[MAX_ENEMIES], k;
-                    {
-                        uint8_t fk = scoundrel_fox_turn_tick(g_player_x, g_player_y);
-                        if (fk) { wait_vbl_done(); draw_enemy_cells(g_player_x, g_player_y); }
-                    }
+                    uint8_t k;
+                    gameplay_fox_turn_and_glide(g_player_x, g_player_y);
                     for (k = 0; k < num_enemies; k++) {
-                        old_ex[k] = enemy_x[k];
-                        old_ey[k] = enemy_y[k];
-                        old_ea[k] = enemy_alive[k];
+                        turn_snap_ex[k] = enemy_x[k];
+                        turn_snap_ey[k] = enemy_y[k];
+                        turn_snap_ea[k] = enemy_alive[k];
                     }
                     move_enemies(g_player_x, g_player_y);
-                    entity_sprites_run_enemy_glide(g_player_x, g_player_y, old_ex, old_ey, old_ea);
+                    entity_sprites_run_enemy_glide(g_player_x, g_player_y, turn_snap_ex, turn_snap_ey, turn_snap_ea);
                 }
                 result = resolve_enemy_hits_and_animate(g_player_x, g_player_y);
                 wait_vbl_done();

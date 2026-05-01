@@ -6,6 +6,9 @@
 #include "map.h"
 #include "enemy.h"
 #include "combat.h"
+#include "lcd.h"
+#include <gb/gb.h>
+#include <gb/hardware.h>
 #include <gbdk/platform.h>
 #include <rand.h>
 
@@ -115,6 +118,33 @@ void scoundrel_fox_summon(uint8_t px, uint8_t py) BANKED {
     scoundrel_fox_y = py;
     scoundrel_fox_chase_ei = ENEMY_DEAD;
     scoundrel_fox_active = 1u;
+}
+
+void scoundrel_fox_run_glide(uint8_t old_fx, uint8_t old_fy) { // direct OAM during ease — bank 2; final OAM resync happens in next entity_sprites_refresh_oam_only
+    int8_t gx, gy;
+    if (!scoundrel_fox_active) return;
+    gx = (int8_t)(((int16_t)old_fx - (int16_t)scoundrel_fox_x) * 8);
+    gy = (int8_t)(((int16_t)old_fy - (int16_t)scoundrel_fox_y) * 8);
+    if (!gx && !gy) return;
+    while (1) {
+        uint8_t any = 0u;
+        if (gx > 0) gx = (gx > (int8_t)SCROLL_SPEED) ? (int8_t)(gx - SCROLL_SPEED) : 0;
+        else if (gx < 0) gx = (gx < -(int8_t)SCROLL_SPEED) ? (int8_t)(gx + SCROLL_SPEED) : 0;
+        if (gy > 0) gy = (gy > (int8_t)SCROLL_SPEED) ? (int8_t)(gy - SCROLL_SPEED) : 0;
+        else if (gy < 0) gy = (gy < -(int8_t)SCROLL_SPEED) ? (int8_t)(gy + SCROLL_SPEED) : 0;
+        if (gx || gy) any = 1u;
+        {
+            int16_t wx = (int16_t)scoundrel_fox_x * 8 + gx;
+            int16_t wy = (int16_t)scoundrel_fox_y * 8 + gy;
+            int16_t dx = wx - (int16_t)camera_px;
+            int16_t dy = wy - (int16_t)camera_py;
+            uint8_t sx = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_X + (uint8_t)dx + (int16_t)lcd_shake_x);
+            uint8_t sy = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_Y + (uint8_t)dy + (int16_t)lcd_shake_y);
+            move_sprite(SP_SCOUNDREL_FOX, sx, sy); // tile + palette already set by prior refresh — just slide
+        }
+        wait_vbl_done();
+        if (!any) break;
+    }
 }
 
 uint8_t scoundrel_fox_turn_tick(uint8_t px, uint8_t py) {

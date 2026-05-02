@@ -18,10 +18,13 @@
 #include "combat.h"
 #include "perf.h"
 #include "ability_dispatch.h"
-#include "scoundrel_fox.h"
+#include "ally.h"
 #include "items.h"
 #include <gb/gb.h>
 #include <gbdk/platform.h>
+
+BANKREF_EXTERN(ally_fox_turn_tick)
+BANKREF_EXTERN(ally_fox_run_glide)
 
 static uint8_t turn_snap_ex[MAX_ENEMIES], turn_snap_ey[MAX_ENEMIES], turn_snap_ea[MAX_ENEMIES]; // enemy pos before AI — file static so SDCC does not stack three 28-byte arrays in one tick()
 
@@ -30,13 +33,38 @@ static void tick_turn_cooldowns(void) {
     if (zerker_whirlwind_cooldown_turns > 0u) zerker_whirlwind_cooldown_turns--;
 }
 
-static void gameplay_fox_turn_and_glide(uint8_t px, uint8_t py) {
-    uint8_t fox_ox = scoundrel_fox_x, fox_oy = scoundrel_fox_y, fox_was = scoundrel_fox_active;
-    uint8_t fk = scoundrel_fox_turn_tick(px, py);
+static void gameplay_allies_turn_and_glide(uint8_t px, uint8_t py) {
+    uint8_t snap_x[MAX_ALLIES], snap_y[MAX_ALLIES], snap_a[MAX_ALLIES];
+    uint8_t i;
+    uint8_t fk = 0u;
+    for (i = 0u; i < MAX_ALLIES; i++) {
+        snap_x[i] = ally_x[i];
+        snap_y[i] = ally_y[i];
+        snap_a[i] = ally_active[i];
+    }
+    for (i = 0u; i < MAX_ALLIES; i++) {
+        if (!snap_a[i]) continue;
+        switch (ally_type[i]) {
+        case ALLY_TYPE_FOX:
+            fk |= ally_fox_turn_tick(i, px, py);
+            break;
+        default:
+            break;
+        }
+    }
     if (fk) { wait_vbl_done(); draw_enemy_cells(px, py); }
-    if (scoundrel_fox_active && fox_was
-            && (fox_ox != scoundrel_fox_x || fox_oy != scoundrel_fox_y))
-        scoundrel_fox_run_glide(fox_ox, fox_oy); // bank 2 — direct OAM ease, no HOME bytes added
+    for (i = 0u; i < MAX_ALLIES; i++) {
+        if (!ally_active[i] || !snap_a[i]) continue;
+        if (snap_x[i] != ally_x[i] || snap_y[i] != ally_y[i]) {
+            switch (ally_type[i]) {
+            case ALLY_TYPE_FOX:
+                ally_fox_run_glide(i, snap_x[i], snap_y[i]);
+                break;
+            default:
+                break;
+            }
+        }
+    }
 }
 
 static const char *belt_name_for(uint8_t slot) { // bank-2 table — strings live here, not HOME, to keep HOME footprint tight
@@ -190,7 +218,7 @@ void state_gameplay_tick(void) BANKED {
         if (ar.consumed_turn) {
             uint8_t k;
             uint8_t result;
-            gameplay_fox_turn_and_glide(g_player_x, g_player_y);
+            gameplay_allies_turn_and_glide(g_player_x, g_player_y);
             for (k = 0; k < num_enemies; k++) {
                 turn_snap_ex[k] = enemy_x[k];
                 turn_snap_ey[k] = enemy_y[k];
@@ -247,7 +275,7 @@ void state_gameplay_tick(void) BANKED {
 
             {
                 uint8_t k;
-                gameplay_fox_turn_and_glide(g_player_x, g_player_y);
+                gameplay_allies_turn_and_glide(g_player_x, g_player_y);
                 for (k = 0; k < num_enemies; k++) {
                     turn_snap_ex[k] = enemy_x[k];
                     turn_snap_ey[k] = enemy_y[k];
@@ -305,7 +333,7 @@ void state_gameplay_tick(void) BANKED {
                 }
                 {
                     uint8_t k;
-                    gameplay_fox_turn_and_glide(g_player_x, g_player_y);
+                    gameplay_allies_turn_and_glide(g_player_x, g_player_y);
                     for (k = 0; k < num_enemies; k++) {
                         turn_snap_ex[k] = enemy_x[k];
                         turn_snap_ey[k] = enemy_y[k];

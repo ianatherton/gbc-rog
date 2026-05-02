@@ -28,7 +28,20 @@ BANKREF_EXTERN(tileset)
 #include <gbdk/font.h>
 #include <string.h>
 
+static void boot_ally_wram_clear(void) { // stay in HOME — no banked far-call before interrupts (broken BANKREF → corrupt VRAM)
+    uint8_t i;
+    for (i = 0u; i < MAX_ALLIES; i++) {
+        ally_active[i]   = 0u;
+        ally_type[i]     = ALLY_TYPE_NONE;
+        ally_chase_ei[i] = ENEMY_DEAD;
+    }
+}
+
 int main(void) {
+    /* GSINIT can overlap/corrupt .data on tight bank-0 links — do not trust ROM init alone. */
+    current_state      = STATE_NONE;
+    next_state         = STATE_TITLE;
+    pending_transition = TRANS_NONE;
     DISPLAY_OFF;
     if (DEVICE_SUPPORTS_COLOR) cpu_fast(); // CGB double-speed for whole run; LCD off per speed-switch timing
     LCDC_REG |= LCDCF_WIN9C00;
@@ -78,6 +91,7 @@ int main(void) {
     lcd_init_raster();
     BANK_DBG("boot_lcd");
     entity_sprites_init();
+    boot_ally_wram_clear();
     BANK_DBG("boot_spr");
     music_init();
     BANK_DBG("boot_mus");
@@ -87,6 +101,14 @@ int main(void) {
     g_run_entropy = (uint16_t)DIV_REG | ((uint16_t)DIV_REG << 8);
 
     while (1) {
+        if (current_state == next_state) {
+            if (current_state == STATE_NONE)
+                next_state = STATE_TITLE;
+            else if (current_state == STATE_TITLE) {
+                current_state = STATE_NONE;
+                next_state    = STATE_TITLE;
+            }
+        }
         if (next_state != current_state) {
             GameState from_st = current_state;
             current_state = next_state;

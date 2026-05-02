@@ -112,7 +112,10 @@ typedef struct {
 #define SP_PLAYER_AURA_OAM    0u // M15/M16 gold flicker — slot also drives bolt/fireball FX (same index = above hero)
 #define SP_PLAYER             1u // hero body
 #define SP_ENEMY_BASE         2u // enemies use OAM [SP_ENEMY_BASE .. SP_ENEMY_BASE + num_enemies - 1]
-#define SP_SCOUNDREL_FOX       30u // Call Fox pet — below belt/ladder/brazier; above max enemy slot 2+28-1
+#define MAX_ALLIES            4u // parallel ally slots — OAM SP_ALLY_BASE .. SP_ALLY_BASE+MAX_ALLIES-1 (above enemy run)
+#define ALLY_TYPE_NONE        0u
+#define ALLY_TYPE_FOX         1u // Scoundrel Call Fox — further types share ally_* arrays + per-type tick/OAM in ally layer
+#define SP_ALLY_BASE          30u // first ally sprite; must stay below fixed UI sprites (e.g. SP_BELT_SELECTOR 35)
 #define SP_BUFF_ICON         39u // top-right HUD slot for active player buffs (knight shield, etc.) — survives hide sweep
 
 /* ── Enemy movement styles ───────────────────────────────────────────────── */

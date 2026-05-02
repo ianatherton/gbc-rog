@@ -9,6 +9,8 @@
 #include "music.h"
 #include <gbdk/platform.h>
 
+BANKREF_EXTERN(combat_damage_enemy)
+
 #define ZERKER_WHIRLWIND_COOLDOWN 6u
 
 static void push_short(const char *s) {

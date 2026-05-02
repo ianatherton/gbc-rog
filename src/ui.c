@@ -1,6 +1,8 @@
 #pragma bank 5
 #include <gbdk/platform.h>
 
+BANKREF_EXTERN(ally_has_type)
+
 #include "ui.h"
 
 BANKREF(ui)
@@ -13,6 +15,7 @@ BANKREF(ui)
 #include "perf.h"
 #include "title_logo.h"  // title_logo_* — tileset ROM read in HOME (not bank 5) to avoid MBC mismatch crashes
 #include "items.h"       // items_kind_tile/palette — belt right-half mirrors inventory_kind[0..3]
+#include "ally.h"
 
 BANKREF_EXTERN(load_palettes)
 #include "seed_entropy.h" // deterministic-ish random seed from hardware jitter
@@ -495,7 +498,7 @@ static void ui_belt_spell_slot(uint8_t s, uint8_t *icon_v, uint8_t *icon_pal) {
         *icon_pal = knight_shield_active ? PAL_LIFE_UI : PAL_WALL_BG;
     } else if (s == 0u && player_class == 1u && player_level >= 1u) { // scoundrel — Call Fox (J9 patched)
         *icon_v = TILE_FOX_J9_VRAM;
-        *icon_pal = scoundrel_fox_active ? PAL_XP_UI : PAL_WALL_BG;
+        *icon_pal = ally_has_type(ALLY_TYPE_FOX) ? PAL_XP_UI : PAL_WALL_BG;
     } else {
         *icon_v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY);
         *icon_pal = PAL_UI;

@@ -193,7 +193,8 @@ uint8_t enemy_anim_update(void) { // call every frame from main loop
     return 0;
 }
 
-uint8_t enemy_at(uint8_t x, uint8_t y) { // slot map keeps occupied lookups O(1)
+BANKREF(enemy_at)
+uint8_t enemy_at(uint8_t x, uint8_t y) BANKED { // slot map keeps occupied lookups O(1)
     uint16_t idx = TILE_IDX(x, y);
     uint8_t h = enemy_slot_hash_idx(idx);
     uint8_t probe;

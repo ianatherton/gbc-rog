@@ -25,10 +25,11 @@ extern uint8_t  belt_slot_charges[BELT_SLOT_COUNT]; // uses remaining per slot (
 extern uint8_t  witch_shot_cooldown_turns;
 extern uint8_t  zerker_whirlwind_cooldown_turns;
 extern uint8_t  knight_shield_active; // holy fire shield buff — set by ability_knight_cast_belt, cleared on floor gen
-extern uint8_t  scoundrel_fox_active;
-extern uint8_t  scoundrel_fox_x;
-extern uint8_t  scoundrel_fox_y;
-extern uint8_t  scoundrel_fox_chase_ei; // ENEMY_DEAD = follow player; else blink+strike that slot
+extern uint8_t  ally_active[MAX_ALLIES];
+extern uint8_t  ally_x[MAX_ALLIES];
+extern uint8_t  ally_y[MAX_ALLIES];
+extern uint8_t  ally_type[MAX_ALLIES];    // ALLY_TYPE_* — dispatch in ally_fox_* / future ally_* AI
+extern uint8_t  ally_chase_ei[MAX_ALLIES]; // ENEMY_DEAD = follow player / wander; else blink+strike that enemy slot
 
 #define MAX_ENEMY_ALIVE_SLOTS MAX_ENEMIES
 extern uint8_t enemy_alive[MAX_ENEMIES];

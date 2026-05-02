@@ -3,11 +3,11 @@
 #include "abilities_class.h"
 #include "ability_dispatch.h"
 #include "globals.h"
-#include "scoundrel_fox.h"
+#include "ally.h"
 #include "ui.h"
 #include <gbdk/platform.h>
 
-BANKREF_EXTERN(scoundrel_fox_summon)
+BANKREF_EXTERN(ally_summon_fox)
 
 static void push_short(const char *s) {
     char buf[20];
@@ -22,6 +22,6 @@ void ability_scoundrel_cast_belt(uint8_t belt_slot, uint8_t px, uint8_t py, Abil
     (void)belt_slot;
     if (player_level < 1u) return;
     push_short("Call Fox");
-    scoundrel_fox_summon(px, py);
+    ally_summon_fox(px, py);
     out->consumed_turn = 1u;
 }

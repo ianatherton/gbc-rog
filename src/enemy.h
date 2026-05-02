@@ -53,7 +53,7 @@ void    corpse_place_slot(uint8_t slot, uint8_t x, uint8_t y) BANKED; // sync co
 void    corpse_clear_slot(uint8_t x, uint8_t y); // sync corpse hash when tile is reclaimed
 void    enemy_anim_reset(void); // reset DIV accumulator when entering a floor
 uint8_t enemy_anim_update(void); // 1 if toggled animation frame this call
-uint8_t enemy_at(uint8_t x, uint8_t y); // enemy slot occupying tile, else ENEMY_DEAD
+uint8_t enemy_at(uint8_t x, uint8_t y) BANKED; // enemy slot occupying tile, else ENEMY_DEAD
 uint8_t corpse_at(uint8_t x, uint8_t y); // nonzero if a corpse marker sits here
 uint8_t corpse_sheet_at(uint8_t x, uint8_t y); // TILE_FLOOR_DECO_* offset or 255 if none
 uint8_t corpse_deco_random(void) BANKED;          // random L1–L5 sheet offset for new corpse

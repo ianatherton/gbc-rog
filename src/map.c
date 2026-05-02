@@ -10,10 +10,12 @@
 #include "entity_sprites.h"
 #include "wall_palettes.h"
 #include "biome.h"
-#include "scoundrel_fox.h"
+#include "ally.h"
 #include "items.h"
 #include <gbdk/platform.h>
 #include <rand.h>
+
+BANKREF_EXTERN(ally_clear_all)
 
 uint8_t floor_bits[BITSET_BYTES]; // 1 = open tile (floor or pit); 0 = wall
 uint8_t pit_bits[BITSET_BYTES];   // subset of floor: 1 = pit hazard
@@ -54,7 +56,8 @@ static uint8_t floor_tile_is_blank(uint8_t x, uint8_t y) {
 static const int8_t NAV_DX[4] = {  0,  0, -1,  1 }; // 0=up 1=down 2=left 3=right: Δx per step
 static const int8_t NAV_DY[4] = { -1,  1,  0,  0 }; // Δy per step along corridor trace
 
-uint8_t tile_at(uint8_t x, uint8_t y) { // decode logical tile from two bitsets
+BANKREF(tile_at)
+uint8_t tile_at(uint8_t x, uint8_t y) BANKED { // decode logical tile from two bitsets
     uint16_t idx = TILE_IDX(x, y); // flat index for BIT_* macros
     if (!BIT_GET(floor_bits, idx)) return TILE_WALL; // not carved → solid
     if ( BIT_GET(pit_bits,   idx)) return TILE_PIT;  // carved + pit flag
@@ -106,7 +109,8 @@ void set_pit(uint8_t x, uint8_t y) { // walkable hole; player falls to next floo
     pit_present = 1u;
 }
 
-uint8_t is_walkable(uint8_t x, uint8_t y) { // used by AI and pit checks
+BANKREF(is_walkable)
+uint8_t is_walkable(uint8_t x, uint8_t y) BANKED { // used by AI and pit checks
     return BIT_GET(floor_bits, TILE_IDX(x, y)); // pits count as walkable until movement resolves
 }
 
@@ -403,7 +407,7 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     }
     initrand(floor_seed);
     knight_shield_active = 0u; // floor-scoped buff — clear on every regen so it doesn't leak across stairs
-    scoundrel_fox_clear();
+    ally_clear_all();
     biome_load_active(biome_pick_for_floor(floor_num, run_seed)); // fills HOME enemy_defs[] from coral bank before spawn
     if (floor_biome == BIOME_CAVERN) wall_tileset_index = TILE_WALL_F;
     generate_level(floor_seed);

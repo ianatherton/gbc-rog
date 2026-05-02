@@ -1,6 +1,6 @@
 #pragma bank 3
 
-#include "scoundrel_fox.h"
+#include "ally.h"
 #include "globals.h"
 #include "defs.h"
 #include "map.h"
@@ -11,6 +11,12 @@
 #include <gb/hardware.h>
 #include <gbdk/platform.h>
 #include <rand.h>
+
+BANKREF_EXTERN(ally_clear_slot)
+BANKREF_EXTERN(combat_damage_enemy)
+BANKREF_EXTERN(is_walkable)
+BANKREF_EXTERN(tile_at)
+BANKREF_EXTERN(enemy_at)
 
 #define FOX_BLINK_RANGE 3u
 #define FOX_LEASH_CHEB  5u
@@ -73,12 +79,6 @@ static void fox_blink_toward(uint8_t sx, uint8_t sy, uint8_t tx, uint8_t ty, uin
     fox_step_random(sx, sy, nx, ny);
 }
 
-BANKREF(scoundrel_fox_clear)
-void scoundrel_fox_clear(void) BANKED {
-    scoundrel_fox_active    = 0u;
-    scoundrel_fox_chase_ei  = ENEMY_DEAD;
-}
-
 static uint8_t fox_pick_aggro_target(uint8_t px, uint8_t py) {
     uint8_t best = ENEMY_DEAD;
     uint8_t best_d = 255u;
@@ -93,12 +93,13 @@ static uint8_t fox_pick_aggro_target(uint8_t px, uint8_t py) {
     return best;
 }
 
-BANKREF(scoundrel_fox_summon)
-void scoundrel_fox_summon(uint8_t px, uint8_t py) BANKED {
+BANKREF(ally_fox_summon)
+void ally_fox_summon(uint8_t slot, uint8_t px, uint8_t py) BANKED {
     static const int8_t OX[8] = { -1, 0, 1, -1, 1, -1, 0, 1 };
     static const int8_t OY[8] = { -1, -1, -1, 0, 0, 1, 1, 1 };
     uint8_t start = (uint8_t)(rand() & 7u);
     uint8_t t;
+    if (slot >= MAX_ALLIES) return;
     for (t = 0; t < 8u; t++) {
         uint8_t i = (uint8_t)((start + t) & 7u);
         int16_t x = (int16_t)px + OX[i];
@@ -108,25 +109,27 @@ void scoundrel_fox_summon(uint8_t px, uint8_t py) BANKED {
           if (!is_walkable(ux, uy)) continue;
           if (tile_at(ux, uy) == TILE_PIT) continue;
           if (enemy_at(ux, uy) != ENEMY_DEAD) continue;
-          scoundrel_fox_x = ux;
-          scoundrel_fox_y = uy;
-          scoundrel_fox_chase_ei = ENEMY_DEAD;
-          scoundrel_fox_active = 1u;
+          ally_x[slot] = ux;
+          ally_y[slot] = uy;
+          ally_chase_ei[slot] = ENEMY_DEAD;
+          ally_type[slot]     = ALLY_TYPE_FOX;
+          ally_active[slot]   = 1u;
           return;
         }
     }
-    scoundrel_fox_x = px;
-    scoundrel_fox_y = py;
-    scoundrel_fox_chase_ei = ENEMY_DEAD;
-    scoundrel_fox_active = 1u;
+    ally_x[slot] = px;
+    ally_y[slot] = py;
+    ally_chase_ei[slot] = ENEMY_DEAD;
+    ally_type[slot]     = ALLY_TYPE_FOX;
+    ally_active[slot]   = 1u;
 }
 
-BANKREF(scoundrel_fox_run_glide)
-void scoundrel_fox_run_glide(uint8_t old_fx, uint8_t old_fy) BANKED { // direct OAM during ease; final OAM resync happens in next entity_sprites_refresh_oam_only
+BANKREF(ally_fox_run_glide)
+void ally_fox_run_glide(uint8_t slot, uint8_t old_fx, uint8_t old_fy) BANKED {
     int8_t gx, gy;
-    if (!scoundrel_fox_active) return;
-    gx = (int8_t)(((int16_t)old_fx - (int16_t)scoundrel_fox_x) * 8);
-    gy = (int8_t)(((int16_t)old_fy - (int16_t)scoundrel_fox_y) * 8);
+    if (slot >= MAX_ALLIES || !ally_active[slot] || ally_type[slot] != ALLY_TYPE_FOX) return;
+    gx = (int8_t)(((int16_t)old_fx - (int16_t)ally_x[slot]) * 8);
+    gy = (int8_t)(((int16_t)old_fy - (int16_t)ally_y[slot]) * 8);
     if (!gx && !gy) return;
     while (1) {
         uint8_t any = 0u;
@@ -136,58 +139,60 @@ void scoundrel_fox_run_glide(uint8_t old_fx, uint8_t old_fy) BANKED { // direct 
         else if (gy < 0) gy = (gy < -(int8_t)SCROLL_SPEED) ? (int8_t)(gy + SCROLL_SPEED) : 0;
         if (gx || gy) any = 1u;
         {
-            int16_t wx = (int16_t)scoundrel_fox_x * 8 + gx;
-            int16_t wy = (int16_t)scoundrel_fox_y * 8 + gy;
+            int16_t wx = (int16_t)ally_x[slot] * 8 + gx;
+            int16_t wy = (int16_t)ally_y[slot] * 8 + gy;
             int16_t dx = wx - (int16_t)camera_px;
             int16_t dy = wy - (int16_t)camera_py;
             uint8_t sx = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_X + (uint8_t)dx + (int16_t)lcd_shake_x);
             uint8_t sy = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_Y + (uint8_t)dy + (int16_t)lcd_shake_y);
-            move_sprite(SP_SCOUNDREL_FOX, sx, sy); // tile + palette already set by prior refresh — just slide
+            move_sprite((uint8_t)(SP_ALLY_BASE + slot), sx, sy);
         }
         wait_vbl_done();
         if (!any) break;
     }
 }
 
-BANKREF(scoundrel_fox_turn_tick)
-uint8_t scoundrel_fox_turn_tick(uint8_t px, uint8_t py) BANKED {
+BANKREF(ally_fox_turn_tick)
+uint8_t ally_fox_turn_tick(uint8_t slot, uint8_t px, uint8_t py) BANKED {
     uint8_t nx, ny;
     uint8_t ei;
     uint8_t dmg;
-    if (!scoundrel_fox_active || player_class != 1u) return 0u;
+    if (slot >= MAX_ALLIES || !ally_active[slot] || ally_type[slot] != ALLY_TYPE_FOX
+            || player_class != 1u)
+        return 0u;
 
-    if (cheb_dist(scoundrel_fox_x, scoundrel_fox_y, px, py) > FOX_LEASH_CHEB)
-        scoundrel_fox_chase_ei = ENEMY_DEAD;
+    if (cheb_dist(ally_x[slot], ally_y[slot], px, py) > FOX_LEASH_CHEB)
+        ally_chase_ei[slot] = ENEMY_DEAD;
 
-    ei = scoundrel_fox_chase_ei;
+    ei = ally_chase_ei[slot];
     if (ei != ENEMY_DEAD) {
         if (ei >= num_enemies || !enemy_alive[ei]
                 || cheb_dist(enemy_x[ei], enemy_y[ei], px, py) > FOX_AGGRO_CHEB)
-            scoundrel_fox_chase_ei = ENEMY_DEAD;
+            ally_chase_ei[slot] = ENEMY_DEAD;
     }
 
-    if (scoundrel_fox_chase_ei == ENEMY_DEAD)
-        scoundrel_fox_chase_ei = fox_pick_aggro_target(px, py);
+    if (ally_chase_ei[slot] == ENEMY_DEAD)
+        ally_chase_ei[slot] = fox_pick_aggro_target(px, py);
 
-    ei = scoundrel_fox_chase_ei;
+    ei = ally_chase_ei[slot];
     if (ei != ENEMY_DEAD && ei < num_enemies && enemy_alive[ei]) {
         uint8_t ex = enemy_x[ei], ey = enemy_y[ei];
-        if (cheb_dist(scoundrel_fox_x, scoundrel_fox_y, ex, ey) <= 1u) {
+        if (cheb_dist(ally_x[slot], ally_y[slot], ex, ey) <= 1u) {
             dmg = player_damage ? player_damage : 1u;
             return combat_damage_enemy(ei, dmg, 0u);
         }
-        fox_blink_toward(scoundrel_fox_x, scoundrel_fox_y, ex, ey, FOX_BLINK_RANGE, &nx, &ny);
+        fox_blink_toward(ally_x[slot], ally_y[slot], ex, ey, FOX_BLINK_RANGE, &nx, &ny);
     } else {
-        fox_blink_toward(scoundrel_fox_x, scoundrel_fox_y, px, py, FOX_BLINK_RANGE, &nx, &ny);
+        fox_blink_toward(ally_x[slot], ally_y[slot], px, py, FOX_BLINK_RANGE, &nx, &ny);
     }
 
-    if (nx != scoundrel_fox_x || ny != scoundrel_fox_y) {
+    if (nx != ally_x[slot] || ny != ally_y[slot]) {
         if (tile_at(nx, ny) == TILE_PIT) {
-            scoundrel_fox_clear();
+            ally_clear_slot(slot);
             return 0u;
         }
-        scoundrel_fox_x = nx;
-        scoundrel_fox_y = ny;
+        ally_x[slot] = nx;
+        ally_y[slot] = ny;
     }
     return 0u;
 }

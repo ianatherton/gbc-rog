@@ -2,7 +2,7 @@
 #include "game_state.h"
 
 volatile GameState       current_state        = STATE_NONE;
-volatile GameState       next_state;           // BSS → 0 = STATE_TITLE (same enum value)
+volatile GameState       next_state           = STATE_TITLE; // must not rely on BSS — random WRAM skips title enter
 volatile TransitionKind  pending_transition; // 0 = TRANS_NONE — omit ROM slot so .data stays below 0x4000 (BankPack overlap fix)
 uint8_t                  gameplay_soft_reenter; // 0 — set by transition only
 
@@ -25,10 +25,11 @@ uint8_t  belt_slot_charges[BELT_SLOT_COUNT];   // BSS zeroed — digits hidden u
 uint8_t  witch_shot_cooldown_turns;
 uint8_t  zerker_whirlwind_cooldown_turns;
 uint8_t  knight_shield_active;
-uint8_t  scoundrel_fox_active;
-uint8_t  scoundrel_fox_x;
-uint8_t  scoundrel_fox_y;
-uint8_t  scoundrel_fox_chase_ei = ENEMY_DEAD;
+uint8_t  ally_active[MAX_ALLIES];
+uint8_t  ally_x[MAX_ALLIES];
+uint8_t  ally_y[MAX_ALLIES];
+uint8_t  ally_type[MAX_ALLIES];
+uint8_t  ally_chase_ei[MAX_ALLIES];
 
 uint8_t enemy_alive[MAX_ENEMIES];
 uint8_t dead_enemy_pool[MAX_ENEMIES];

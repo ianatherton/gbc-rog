@@ -2,6 +2,7 @@
 #define GAME_MAP_H
 
 #include "defs.h"
+#include <gbdk/platform.h>
 
 extern uint8_t floor_bits[BITSET_BYTES]; // 1 = carved open (floor or pit)
 extern uint8_t pit_bits[BITSET_BYTES];   // 1 = pit (subset of floor_bits)
@@ -23,10 +24,10 @@ extern uint8_t brazier_x[MAX_BRAZIERS];
 extern uint8_t brazier_y[MAX_BRAZIERS];
 extern uint8_t brazier_type[MAX_BRAZIERS]; // 0=brazier C3/C4, 1=torch C1/C2
 
-uint8_t tile_at(uint8_t x, uint8_t y); // TILE_WALL / TILE_FLOOR / TILE_PIT from bitsets
+uint8_t tile_at(uint8_t x, uint8_t y) BANKED; // TILE_WALL / TILE_FLOOR / TILE_PIT from bitsets
 void    set_floor(uint8_t x, uint8_t y); // carve floor-only
 void    set_pit(uint8_t x, uint8_t y); // carve pit (sets both bits)
-uint8_t is_walkable(uint8_t x, uint8_t y); // floor_bits only
+uint8_t is_walkable(uint8_t x, uint8_t y) BANKED; // floor_bits only — BANKED: callers outside bank 2 (e.g. scoundrel_fox)
 
 char    tile_char(uint8_t t); // ASCII when not using custom tile
 uint8_t tile_vram_index(uint8_t t); // non-0 → set_bkg_tiles index

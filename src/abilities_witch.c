@@ -11,6 +11,8 @@
 #include "music.h"
 #include <gbdk/platform.h>
 
+BANKREF_EXTERN(combat_damage_enemy)
+
 #define WITCH_BOLT_RANGE_TILES 4u
 #define WITCH_BOLT_BURSTS      3u
 #define WITCH_BOLT_COOLDOWN    2u

@@ -1,3 +1,5 @@
+#pragma bank 2
+
 #include "combat.h"
 #include "globals.h"
 #include "defs.h"
@@ -9,8 +11,9 @@
 #include "camera.h"
 #include "perf.h"
 #include <gb/gb.h>
+#include <gbdk/platform.h>
 
-void grant_xp_from_kill(uint8_t enemy_damage) {
+static void grant_xp_from_kill(uint8_t enemy_damage) {
     uint16_t next_level_xp;
     uint8_t  did_level = 0;
     player_xp = (uint16_t)(player_xp + enemy_damage);
@@ -23,41 +26,14 @@ void grant_xp_from_kill(uint8_t enemy_damage) {
         if (player_hp_max <= 245u) player_hp_max = (uint8_t)(player_hp_max + 10u);
         else player_hp_max = 255u;
         player_hp = player_hp_max;
-        ui_push_level_up_line(player_level); // bank 5 — keeps HOME thin
+        ui_push_level_up_line(player_level); // bank 5 — far call
         did_level = 1;
     }
     if (did_level) music_play_levelup_jingle();
 }
 
-uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) {
-    uint8_t perf_stamp = perf_stamp_now();
-    uint8_t a;
-    if (!enemy_attack_count) return 0;
-    for (a = 0; a < enemy_attack_count; a++)
-        enemy_resolve_hit(enemy_attack_slots[a]);
-    wait_vbl_done();
-    draw_gameplay_overlays_profiled(px, py); // HP/log in WIN; lunges are sprites — BKG unchanged here
-    sfx_lunge_hit();
-    entity_sprites_run_enemy_lunges_batch(px, py, enemy_attack_slots, enemy_attack_count);
-    entity_sprites_player_hurt_flash();
-    camera_shake();
-    if (knight_shield_active && player_hp != 0u) { // reply: 1 dmg/level + fireball — only adjacent strikers reach here, so no range gate needed
-        uint8_t reflect_dmg = player_level ? player_level : 1u;
-        for (a = 0; a < enemy_attack_count; a++) {
-            uint8_t ei = enemy_attack_slots[a];
-            if (!enemy_alive[ei]) continue; // could've been killed earlier this frame
-            entity_sprites_run_projectile(px, py, enemy_x[ei], enemy_y[ei],
-                (uint8_t)(TILE_WITCH_BOLT_VRAM - TILESET_VRAM_OFFSET), PAL_XP_UI);
-            (void)combat_damage_enemy(ei, reflect_dmg, 1u); // log + xp + corpse; "burned" line
-        }
-        wait_vbl_done();
-        draw_gameplay_overlays_profiled(px, py);
-    }
-    perf_record(PERF_HIT_RESOLVE, perf_stamp_elapsed(&perf_stamp));
-    return (player_hp == 0) ? 2u : 1u;
-}
-
-uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage, uint8_t from_shield_burn) {
+BANKREF(combat_damage_enemy)
+uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage, uint8_t from_shield_burn) BANKED {
     if (enemy_hp[ei] > damage) {
         enemy_hp[ei] = (uint8_t)(enemy_hp[ei] - damage);
         if (from_shield_burn) ui_push_combat_log_shield_burn(enemy_type[ei], damage, enemy_hp[ei]);
@@ -91,10 +67,40 @@ uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage, uint8_t from_shield_burn
     }
 }
 
-uint8_t combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, uint8_t ny) {
+BANKREF(combat_player_attacks)
+uint8_t combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, uint8_t ny) BANKED {
     int8_t adx = (nx > px) ? 1 : (nx < px ? -1 : 0);
     int8_t ady = (ny > py) ? 1 : (ny < py ? -1 : 0);
     entity_sprites_run_player_lunge(px, py, adx, ady, ei);
     sfx_lunge_hit();
     return combat_damage_enemy(ei, player_damage, 0u);
+}
+
+BANKREF(resolve_enemy_hits_and_animate)
+uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) BANKED {
+    uint8_t perf_stamp = perf_stamp_now();
+    uint8_t a;
+    if (!enemy_attack_count) return 0;
+    for (a = 0; a < enemy_attack_count; a++)
+        enemy_resolve_hit(enemy_attack_slots[a]);
+    wait_vbl_done();
+    draw_gameplay_overlays_profiled(px, py); // HP/log in WIN; lunges are sprites — BKG unchanged here
+    sfx_lunge_hit();
+    entity_sprites_run_enemy_lunges_batch(px, py, enemy_attack_slots, enemy_attack_count);
+    entity_sprites_player_hurt_flash();
+    camera_shake();
+    if (knight_shield_active && player_hp != 0u) { // reply: 1 dmg/level + fireball — only adjacent strikers reach here, so no range gate needed
+        uint8_t reflect_dmg = player_level ? player_level : 1u;
+        for (a = 0; a < enemy_attack_count; a++) {
+            uint8_t ei = enemy_attack_slots[a];
+            if (!enemy_alive[ei]) continue; // could've been killed earlier this frame
+            entity_sprites_run_projectile(px, py, enemy_x[ei], enemy_y[ei],
+                (uint8_t)(TILE_WITCH_BOLT_VRAM - TILESET_VRAM_OFFSET), PAL_XP_UI);
+            (void)combat_damage_enemy(ei, reflect_dmg, 1u); // log + xp + corpse; "burned" line
+        }
+        wait_vbl_done();
+        draw_gameplay_overlays_profiled(px, py);
+    }
+    perf_record(PERF_HIT_RESOLVE, perf_stamp_elapsed(&perf_stamp));
+    return (player_hp == 0) ? 2u : 1u;
 }

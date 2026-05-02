@@ -11,8 +11,8 @@
 
 BANKREF(camera_init)
 
-uint16_t camera_px = 0;
-uint16_t camera_py = 0;
+uint16_t camera_px;
+uint16_t camera_py;
 
 static const int8_t player_bob_table[8] = { 0, -1, -2, -2, -1, 0, 1, 0 };
 

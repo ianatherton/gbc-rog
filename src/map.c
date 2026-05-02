@@ -11,6 +11,7 @@
 #include "wall_palettes.h"
 #include "biome.h"
 #include "scoundrel_fox.h"
+#include "items.h"
 #include <gbdk/platform.h>
 #include <rand.h>
 
@@ -19,14 +20,14 @@ uint8_t pit_bits[BITSET_BYTES];   // subset of floor: 1 = pit hazard
 uint8_t explored_bits[BITSET_BYTES]; // fog scaffold: 1 = tile was revealed to player
 NavNode nav_nodes[MAX_NAV_NODES]; // junction graph for enemy pathing
 uint8_t num_nav_nodes;            // how many nodes after build_nav_graph
-uint8_t wall_tileset_index = TILE_WALL_FIRST; // offset within sheet for TILE_WALL (debug cycle)
-uint8_t wall_palette_index = 0;           // bulk walls → PAL_WALL_BG
-uint8_t pillar_palette_index = 0;       // column deco walls → PAL_PILLAR_BG
-uint8_t active_map_w = MAP_W;
-uint8_t active_map_h = MAP_H;
-uint8_t player_spawn_x = MAP_W / 2;       // overwritten each generate_level(floor_seed)
-uint8_t player_spawn_y = MAP_H / 2;
-uint8_t floor_column_off = TILE_COLUMN_1; // D-column art; floor_ground_init
+uint8_t wall_tileset_index; // level_generate_and_spawn assigns TILE_* before any tile decode
+uint8_t wall_palette_index; // set from RNG in level_generate_and_spawn before render
+uint8_t pillar_palette_index;
+uint8_t active_map_w; // generate_level sets before use (never read beforehand)
+uint8_t active_map_h;
+uint8_t player_spawn_x;
+uint8_t player_spawn_y;
+uint8_t floor_column_off; // floor_ground_init sets before floor_tile_sheet_offset reads column art
 static uint16_t floor_visual_seed;        // deterministic seed for floor blank-scatter hash
 uint8_t brazier_count;
 uint8_t brazier_x[MAX_BRAZIERS];
@@ -72,6 +73,24 @@ uint8_t map_pit_position(uint8_t *x, uint8_t *y) {
     *x = pit_x;
     *y = pit_y;
     return 1u;
+}
+
+uint8_t ground_item_index_at(uint8_t x, uint8_t y) { // linear scan; pool is tiny (8 max)
+    uint8_t i;
+    for (i = 0u; i < MAX_GROUND_ITEMS; i++) {
+        if (ground_item_kind[i] != ITEM_KIND_NONE
+                && ground_item_x[i] == x && ground_item_y[i] == y) return i;
+    }
+    return 255u;
+}
+
+void ground_item_kill(uint8_t slot) {
+    if (slot < MAX_GROUND_ITEMS) ground_item_kind[slot] = ITEM_KIND_NONE;
+}
+
+static void ground_items_clear(void) {
+    uint8_t i;
+    for (i = 0u; i < MAX_GROUND_ITEMS; i++) ground_item_kind[i] = ITEM_KIND_NONE;
 }
 
 void set_floor(uint8_t x, uint8_t y) { // carve walkable (clears wall for this tile)
@@ -128,6 +147,7 @@ uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; else ran
             return (uint8_t)((((uint8_t)(DIV_REG >> 3) + x + y) & 1u) ? TILE_LIGHT_2 : TILE_LIGHT_1); // C1/C2
         }
     }
+    if (ground_item_index_at(x, y) != 255u) return TILE_ITEM_4; // mystery icon — true kind revealed in pickup dialog
     if (floor_tile_is_blank(x, y)) return 255u;
     {
         static const uint8_t ground_e34[2] = { TILE_GROUND_C, TILE_GROUND_D }; // sheet E3, E4
@@ -143,6 +163,7 @@ uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; else ran
 uint8_t floor_tile_palette_xy(uint8_t x, uint8_t y) { // stairs + blank = B&W pal 0; E3/E4 deco = dark grey PAL_FLOOR_BG
     if (x == player_spawn_x && y == player_spawn_y) return 0u;
     if (brazier_index_at(x, y) != 255u) return (uint8_t)PAL_LADDER; // brazier/torch base shares ladder fire tone
+    if (ground_item_index_at(x, y) != 255u) return (uint8_t)PAL_XP_UI; // gold pop on the dungeon floor
     if (floor_tile_is_blank(x, y)) return 0u;
     return (uint8_t)PAL_FLOOR_BG;
 }
@@ -396,6 +417,29 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
         }
     }
     spawn_enemies();
+    ground_items_clear();
+    {
+        uint8_t target = (uint8_t)(2u + (uint8_t)(rand() & 3u)); // 2..5 items per floor
+        uint8_t placed = 0u;
+        uint16_t attempts = 0u;
+        if (target > MAX_GROUND_ITEMS) target = MAX_GROUND_ITEMS;
+        while (placed < target && attempts < 200u) {
+            uint8_t tx = (uint8_t)(rand() % active_map_w);
+            uint8_t ty = (uint8_t)(rand() % active_map_h);
+            uint16_t idx = TILE_IDX(tx, ty);
+            attempts++;
+            if ((tx == player_spawn_x && ty == player_spawn_y)
+                    || !BIT_GET(floor_bits, idx)
+                    || BIT_GET(pit_bits, idx)
+                    || brazier_index_at(tx, ty) != 255u
+                    || ground_item_index_at(tx, ty) != 255u) continue;
+            ground_item_x[placed] = tx;
+            ground_item_y[placed] = ty;
+            ground_item_kind[placed] = (uint8_t)(rand() % ITEM_KIND_COUNT);
+            placed++;
+        }
+    }
+    pending_pickup_slot = 255u; // fresh floor — no carryover prompt
     *px = player_spawn_x;
     *py = player_spawn_y;
     lighting_reveal_radius(*px, *py, LIGHT_RADIUS_STAIRS_UP);

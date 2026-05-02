@@ -3,9 +3,9 @@
 #include "ui.h"   // ui_loading_vblank — no cycle: ui.h does not include lcd.h
 #include "entity_sprites.h" // entity_sprites_vbl_tick
 
-uint8_t  lcd_gameplay_active   = 0u;
-volatile int8_t lcd_shake_x    = 0;
-volatile int8_t lcd_shake_y    = 0;
+uint8_t  lcd_gameplay_active;   // BSS 0 — title/state screens drive transitions to gameplay
+volatile int8_t lcd_shake_x;
+volatile int8_t lcd_shake_y;
 
 static uint8_t lcd_hp_panic_flash_ttl; // VBlanks left: BKG pal 0 red tint then restore (match render.c pal_default[0])
 static const palette_color_t lcd_pal_hp_panic_flash[] = {

@@ -1,4 +1,4 @@
-#pragma bank 2
+#pragma bank 3
 
 #include "scoundrel_fox.h"
 #include "globals.h"
@@ -73,7 +73,8 @@ static void fox_blink_toward(uint8_t sx, uint8_t sy, uint8_t tx, uint8_t ty, uin
     fox_step_random(sx, sy, nx, ny);
 }
 
-void scoundrel_fox_clear(void) {
+BANKREF(scoundrel_fox_clear)
+void scoundrel_fox_clear(void) BANKED {
     scoundrel_fox_active    = 0u;
     scoundrel_fox_chase_ei  = ENEMY_DEAD;
 }
@@ -120,7 +121,8 @@ void scoundrel_fox_summon(uint8_t px, uint8_t py) BANKED {
     scoundrel_fox_active = 1u;
 }
 
-void scoundrel_fox_run_glide(uint8_t old_fx, uint8_t old_fy) { // direct OAM during ease — bank 2; final OAM resync happens in next entity_sprites_refresh_oam_only
+BANKREF(scoundrel_fox_run_glide)
+void scoundrel_fox_run_glide(uint8_t old_fx, uint8_t old_fy) BANKED { // direct OAM during ease; final OAM resync happens in next entity_sprites_refresh_oam_only
     int8_t gx, gy;
     if (!scoundrel_fox_active) return;
     gx = (int8_t)(((int16_t)old_fx - (int16_t)scoundrel_fox_x) * 8);
@@ -147,7 +149,8 @@ void scoundrel_fox_run_glide(uint8_t old_fx, uint8_t old_fy) { // direct OAM dur
     }
 }
 
-uint8_t scoundrel_fox_turn_tick(uint8_t px, uint8_t py) {
+BANKREF(scoundrel_fox_turn_tick)
+uint8_t scoundrel_fox_turn_tick(uint8_t px, uint8_t py) BANKED {
     uint8_t nx, ny;
     uint8_t ei;
     uint8_t dmg;

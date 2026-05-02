@@ -2,7 +2,7 @@
 #include "globals.h"
 
 EnemyDef enemy_defs[NUM_ENEMY_TYPES]; // HOME storage — biome_load_active fills this
-uint8_t  enemy_defs_count = 0u;
+uint8_t  enemy_defs_count;
 
 BANKREF_EXTERN(biome_dungeon_copy_defs)
 BANKREF_EXTERN(biome_crypt_copy_defs)

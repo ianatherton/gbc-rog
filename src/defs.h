@@ -92,7 +92,9 @@ typedef struct {
 #define UI_PANEL_WIN_Y1   2u
 #define UI_PANEL_WIN_Y2   3u             // last text row above HUD
 #define UI_HUD_WIN_Y      4u             // bottom window row — L:♥ XP% FLOOR (physical screen bottom)
-#define BELT_SLOT_COUNT   4u             // spell/item quick slots (belt row; SELECT cycles)
+#define BELT_SLOT_COUNT   4u             // spell quick slots (left half of belt row)
+#define BELT_ITEM_SLOT_COUNT 4u          // item quick slots (right half; mirrors inventory_kind[0..3])
+#define BELT_TOTAL_SLOTS  ((uint8_t)(BELT_SLOT_COUNT + BELT_ITEM_SLOT_COUNT)) // SELECT cycles 0..7
 #define UI_PANEL_COLS     20u
 #define UI_CHAT_RECLAIM_AFTER_TURNS 8u // no new log lines for this many player turns → clear log, show idle class row until next push
 

@@ -19,6 +19,7 @@
 #include "perf.h"
 #include "ability_dispatch.h"
 #include "scoundrel_fox.h"
+#include "items.h"
 #include <gb/gb.h>
 #include <gbdk/platform.h>
 
@@ -48,13 +49,20 @@ static const char *belt_name_for(uint8_t slot) { // bank-2 table — strings liv
 }
 
 static void push_selected_belt_description(void) {
-    const char *name = belt_name_for(selected_belt_slot);
     char buf[20];
     uint8_t i = 0u;
-    if (!name) return;
-    while (name[i] && i < 19u) { buf[i] = name[i]; i++; }
-    buf[i] = 0;
-    ui_combat_log_push(buf);
+    if (selected_belt_slot < BELT_SLOT_COUNT) {
+        const char *name = belt_name_for(selected_belt_slot);
+        if (!name) return;
+        while (name[i] && i < 19u) { buf[i] = name[i]; i++; }
+        buf[i] = 0;
+        ui_combat_log_push(buf);
+    } else {
+        uint8_t kind = inventory_kind[selected_belt_slot - BELT_SLOT_COUNT];
+        if (kind == ITEM_KIND_NONE) return;
+        items_kind_name_copy(kind, buf, sizeof buf);
+        ui_combat_log_push(buf);
+    }
 }
 
 BANKREF(state_gameplay_enter)
@@ -152,7 +160,7 @@ void state_gameplay_tick(void) BANKED {
     if (lcd_gameplay_active && (j & J_SELECT)) {
         uint8_t edge_sel = (uint8_t)(j & (uint8_t)~g_prev_j);
         if (edge_sel & J_SELECT) {
-            selected_belt_slot = (uint8_t)((selected_belt_slot + 1u) % BELT_SLOT_COUNT);
+            selected_belt_slot = (uint8_t)((selected_belt_slot + 1u) % BELT_TOTAL_SLOTS);
             push_selected_belt_description();
             wait_vbl_done();
             draw_gameplay_overlays_profiled(g_player_x, g_player_y); // belt row + selector sprite; BKG ring unchanged
@@ -169,7 +177,10 @@ void state_gameplay_tick(void) BANKED {
 
     if (lcd_gameplay_active && (j & J_B) && !(g_prev_j & J_B)) {
         AbilityResult ar;
-        ability_dispatch_cast_belt(selected_belt_slot, g_player_x, g_player_y, &ar);
+        if (selected_belt_slot < BELT_SLOT_COUNT)
+            ability_dispatch_cast_belt(selected_belt_slot, g_player_x, g_player_y, &ar);
+        else
+            items_use_belt((uint8_t)(selected_belt_slot - BELT_SLOT_COUNT), &ar);
         if (ar.did_kill) {
             wait_vbl_done();
             draw_enemy_cells(g_player_x, g_player_y); // abilities can kill multiple enemies (e.g. Whirlwind); redraw full enemy/corpse pass
@@ -280,6 +291,10 @@ void state_gameplay_tick(void) BANKED {
                     (player_class == 1u) ? LIGHT_RADIUS_ROGUE
                     : (player_class == 2u || player_class == 3u) ? LIGHT_RADIUS_MAGE
                     : LIGHT_RADIUS_KNIGHT);
+                {
+                    uint8_t gi = ground_item_index_at(g_player_x, g_player_y);
+                    if (gi != 255u) pending_pickup_slot = gi; // queue modal — fires after enemy turn settles below
+                }
                 if (player_hp < player_hp_max) player_hp++;
                 {
                     uint8_t target_cx = (g_player_x > GRID_W / 2) ? (uint8_t)(g_player_x - GRID_W / 2) : 0;
@@ -342,6 +357,7 @@ void state_gameplay_tick(void) BANKED {
         wait_vbl_done();
         draw_enemy_cells(g_player_x, g_player_y);
     }
+    if (pending_pickup_slot != 255u) next_state = STATE_PICKUP; // turn fully resolved — open modal next frame
     g_prev_j = j;
     wait_vbl_done();
 }

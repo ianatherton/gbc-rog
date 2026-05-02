@@ -12,6 +12,7 @@ BANKREF(ui)
 #include "render.h"      // load_palettes — restore sprite CRAM after title fire uses OCP7
 #include "perf.h"
 #include "title_logo.h"  // title_logo_* — tileset ROM read in HOME (not bank 5) to avoid MBC mismatch crashes
+#include "items.h"       // items_kind_tile/palette — belt right-half mirrors inventory_kind[0..3]
 
 BANKREF_EXTERN(load_palettes)
 #include "seed_entropy.h" // deterministic-ish random seed from hardware jitter
@@ -473,43 +474,58 @@ static void win_clear_row(uint8_t win_y, uint8_t pal) {
     for (x = 0; x < UI_PANEL_COLS; x++) win_putc_pal(x, win_y, ' ', pal);
 }
 
-static void ui_draw_belt_placeholder_row(void) { // N4/O4 "SPELL" | 4×(slot + uses) | pad | N6/O6 "ITEM"
+static void ui_belt_put_label_pair(uint8_t *x, uint8_t left_off, uint8_t right_off) {
+    uint8_t v = (uint8_t)(TILESET_VRAM_OFFSET + left_off);
+    set_win_tile_xy(*x, UI_BELT_WIN_Y, v);
+    set_win_attribute_xy((*x)++, UI_BELT_WIN_Y, PAL_UI);
+    v = (uint8_t)(TILESET_VRAM_OFFSET + right_off);
+    set_win_tile_xy(*x, UI_BELT_WIN_Y, v);
+    set_win_attribute_xy((*x)++, UI_BELT_WIN_Y, PAL_UI);
+}
+
+static void ui_belt_spell_slot(uint8_t s, uint8_t *icon_v, uint8_t *icon_pal) {
+    if (s == 0u && player_class == 2u && player_level >= 1u) { // witch — Fetid Bolt (M12 → VRAM)
+        *icon_v = TILE_WITCH_BOLT_VRAM;
+        *icon_pal = (witch_shot_cooldown_turns == 0u) ? PAL_WALL_BG : PAL_CORPSE;
+    } else if (s == 0u && player_class == 3u && player_level >= 1u) { // zerker — Whirlwind (I10)
+        *icon_v = TILE_ZERKER_WHIRLWIND_VRAM;
+        *icon_pal = (zerker_whirlwind_cooldown_turns == 0u) ? PAL_WALL_BG : PAL_CORPSE;
+    } else if (s == 0u && player_class == 0u && player_level >= 1u) { // knight — Holy Fire Shield (I9)
+        *icon_v = TILE_KNIGHT_SHIELD_VRAM;
+        *icon_pal = knight_shield_active ? PAL_LIFE_UI : PAL_WALL_BG;
+    } else if (s == 0u && player_class == 1u && player_level >= 1u) { // scoundrel — Call Fox (J9 patched)
+        *icon_v = TILE_FOX_J9_VRAM;
+        *icon_pal = scoundrel_fox_active ? PAL_XP_UI : PAL_WALL_BG;
+    } else {
+        *icon_v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY);
+        *icon_pal = PAL_UI;
+    }
+}
+
+static void ui_draw_belt_placeholder_row(void) { // [SPELL] s0 s1 s2 s3 [ITEM] i0 i1 i2 i3 — 20 tiles, no gap
     uint8_t x = 0u, s, v, icon_pal;
-    v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SPELL_L);
-    set_win_tile_xy(x, UI_BELT_WIN_Y, v);
-    set_win_attribute_xy(x++, UI_BELT_WIN_Y, PAL_UI);
-    v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SPELL_R);
-    set_win_tile_xy(x, UI_BELT_WIN_Y, v);
-    set_win_attribute_xy(x++, UI_BELT_WIN_Y, PAL_UI);
+    ui_belt_put_label_pair(&x, TILE_UI_SPELL_L, TILE_UI_SPELL_R);
     for (s = 0u; s < BELT_SLOT_COUNT; s++) {
-        if (s == 0u && player_class == 2u && player_level >= 1u) {
-            v = TILE_WITCH_BOLT_VRAM;
-            icon_pal = (witch_shot_cooldown_turns == 0u) ? PAL_WALL_BG : PAL_CORPSE;
-        } else if (s == 0u && player_class == 3u && player_level >= 1u) { // zerker slot 0 — Whirlwind (I10)
-            v = TILE_ZERKER_WHIRLWIND_VRAM;
-            icon_pal = (zerker_whirlwind_cooldown_turns == 0u) ? PAL_WALL_BG : PAL_CORPSE;
-        } else if (s == 0u && player_class == 0u && player_level >= 1u) { // knight slot 0 — holy fire shield (I9 art; LIFE_UI palette while active, WALL_BG when ready)
-            v = TILE_KNIGHT_SHIELD_VRAM;
-            icon_pal = knight_shield_active ? PAL_LIFE_UI : PAL_WALL_BG;
-        } else if (s == 0u && player_class == 1u && player_level >= 1u) { // scoundrel — Call Fox; BKG7 = same ramp as bat (PAL_ENEMY_BAT / PAL_XP_UI)
-            v = TILE_FOX_J9_VRAM;
-            icon_pal = scoundrel_fox_active ? PAL_XP_UI : PAL_WALL_BG;
-        } else {
-            v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY); // empty: M14 patched onto K1 VRAM at boot; else TILE_ITEM_* when wired
-            icon_pal = PAL_UI;
-        }
+        ui_belt_spell_slot(s, &v, &icon_pal);
         set_win_tile_xy(x, UI_BELT_WIN_Y, v);
         set_win_attribute_xy(x++, UI_BELT_WIN_Y, icon_pal);
         if (belt_slot_charges[s] == 0u) win_put_space(x++, UI_BELT_WIN_Y);
         else win_putc_pal(x++, UI_BELT_WIN_Y, (char)('0' + (belt_slot_charges[s] > 9u ? 9u : belt_slot_charges[s])), PAL_UI);
     }
-    while (x < 18u) win_put_space(x++, UI_BELT_WIN_Y);
-    v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_ITEM_L);
-    set_win_tile_xy(x, UI_BELT_WIN_Y, v);
-    set_win_attribute_xy(x++, UI_BELT_WIN_Y, PAL_UI);
-    v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_ITEM_R);
-    set_win_tile_xy(x, UI_BELT_WIN_Y, v);
-    set_win_attribute_xy(x++, UI_BELT_WIN_Y, PAL_UI);
+    ui_belt_put_label_pair(&x, TILE_UI_ITEM_L, TILE_UI_ITEM_R);
+    for (s = 0u; s < BELT_ITEM_SLOT_COUNT; s++) {
+        uint8_t kind = inventory_kind[s];
+        if (kind == ITEM_KIND_NONE) {
+            v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY);
+            icon_pal = PAL_UI;
+        } else {
+            v = (uint8_t)(TILESET_VRAM_OFFSET + items_kind_tile(kind));
+            icon_pal = items_kind_palette(kind);
+        }
+        set_win_tile_xy(x, UI_BELT_WIN_Y, v);
+        set_win_attribute_xy(x++, UI_BELT_WIN_Y, icon_pal);
+        win_put_space(x++, UI_BELT_WIN_Y); // count digit reserved; items currently 1-per-slot
+    }
 }
 
 static void ui_draw_top_hud(void) { // bottom window row: L:♥×5 HP% XP% FLOORdd

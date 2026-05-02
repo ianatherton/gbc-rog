@@ -53,5 +53,8 @@ uint8_t nearest_nav_node(uint8_t x, uint8_t y); // for mapping entity tiles to g
 uint8_t nav_next_step(uint8_t from, uint8_t to); // BFS first hop on nav graph
 uint8_t map_pit_position(uint8_t *x, uint8_t *y); // 1 when floor has a down-ladder pit coordinate
 
+uint8_t ground_item_index_at(uint8_t x, uint8_t y); // ground_item_* slot at (x,y), 255 = none
+void    ground_item_kill(uint8_t slot); // remove a ground item (pickup or discard)
+
 #endif // GAME_MAP_H
 

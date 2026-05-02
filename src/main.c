@@ -16,6 +16,8 @@ BANKREF_EXTERN(state_inventory_enter)
 BANKREF_EXTERN(state_inventory_tick)
 BANKREF_EXTERN(state_ability_enter)
 BANKREF_EXTERN(state_ability_tick)
+BANKREF_EXTERN(state_pickup_enter)
+BANKREF_EXTERN(state_pickup_tick)
 BANKREF_EXTERN(state_transition_enter)
 BANKREF_EXTERN(tileset)
 #include "lcd.h"
@@ -100,7 +102,8 @@ int main(void) {
                 BANK_DBG("m_out_class");
                 break;
             case STATE_GAMEPLAY:
-                if (from_st != STATE_STATS && from_st != STATE_INVENTORY && from_st != STATE_ABILITY) {
+                if (from_st != STATE_STATS && from_st != STATE_INVENTORY && from_st != STATE_ABILITY
+                        && from_st != STATE_PICKUP) {
                     BANK_DBG("m_in_play");
                     state_gameplay_enter();
                     BANK_DBG("m_out_play");
@@ -122,6 +125,11 @@ int main(void) {
                 BANK_DBG("m_in_abil");
                 state_ability_enter();
                 BANK_DBG("m_out_abil");
+                break;
+            case STATE_PICKUP:
+                BANK_DBG("m_in_pu");
+                state_pickup_enter();
+                BANK_DBG("m_out_pu");
                 break;
             case STATE_TRANSITION:
                 BANK_DBG("m_in_tr");
@@ -153,6 +161,9 @@ int main(void) {
             break;
         case STATE_ABILITY:
             state_ability_tick();
+            break;
+        case STATE_PICKUP:
+            state_pickup_tick();
             break;
         default:
             wait_vbl_done();

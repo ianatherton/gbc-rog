@@ -4,6 +4,7 @@
 #include <stdint.h>
 #include "defs.h"
 #include "game_state.h"
+#include "items.h"
 
 extern uint8_t  player_hp;
 extern uint8_t  player_hp_max;
@@ -36,5 +37,11 @@ extern uint8_t dead_enemy_pool_count;
 
 /* Set by STATE_TRANSITION (pit floor); state_gameplay_enter skips full regen */
 extern uint8_t gameplay_soft_reenter;
+
+extern uint8_t inventory_kind[INVENTORY_MAX_SLOTS]; // ITEM_KIND_NONE = empty
+extern uint8_t ground_item_kind[MAX_GROUND_ITEMS];   // ITEM_KIND_NONE when slot free
+extern uint8_t ground_item_x[MAX_GROUND_ITEMS];
+extern uint8_t ground_item_y[MAX_GROUND_ITEMS];
+extern uint8_t pending_pickup_slot; // ground_item_* index queued for STATE_PICKUP; 255 = none
 
 #endif // GLOBALS_H

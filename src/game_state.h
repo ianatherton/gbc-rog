@@ -10,6 +10,7 @@ typedef enum {
     STATE_STATS,
     STATE_INVENTORY,
     STATE_ABILITY,
+    STATE_PICKUP,     // modal: walked onto ground item — get/discard prompt
     STATE_TRANSITION, // bounce: floor-down, death→game over, future fades
     STATE_GAME_OVER,
     STATE_NONE = 255,

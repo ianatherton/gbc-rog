@@ -7,6 +7,7 @@
 #include "lcd.h"
 #include "ui.h"
 #include "map.h"
+BANKREF_EXTERN(ground_item_kill)
 #include <gb/gb.h>
 #include <gbdk/console.h>
 #include <stdio.h>

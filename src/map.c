@@ -78,7 +78,8 @@ uint8_t map_pit_position(uint8_t *x, uint8_t *y) {
     return 1u;
 }
 
-uint8_t ground_item_index_at(uint8_t x, uint8_t y) { // linear scan; pool is tiny (8 max)
+BANKREF(ground_item_index_at)
+uint8_t ground_item_index_at(uint8_t x, uint8_t y) BANKED { // linear scan; pool is tiny (8 max)
     uint8_t i;
     for (i = 0u; i < MAX_GROUND_ITEMS; i++) {
         if (ground_item_kind[i] != ITEM_KIND_NONE
@@ -87,7 +88,8 @@ uint8_t ground_item_index_at(uint8_t x, uint8_t y) { // linear scan; pool is tin
     return 255u;
 }
 
-void ground_item_kill(uint8_t slot) {
+BANKREF(ground_item_kill)
+void ground_item_kill(uint8_t slot) BANKED {
     if (slot < MAX_GROUND_ITEMS) ground_item_kind[slot] = ITEM_KIND_NONE;
 }
 

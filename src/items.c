@@ -6,7 +6,7 @@
 #include <string.h>
 
 static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
-    TILE_ITEM_1, // POTION
+    TILE_ITEM_3, // POTION — I3
     TILE_ITEM_2, // SCROLL
     TILE_ITEM_3, // KEY
     TILE_ITEM_5, // GEM

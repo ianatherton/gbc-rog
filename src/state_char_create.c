@@ -118,7 +118,7 @@ void state_char_create_enter(void) BANKED {
         gotoxy(2, 11); printf("WITCH");
         gotoxy(0, 13); printf(sel == 3 ? ">" : " ");
         gotoxy(2, 13); printf("ZERKER");
-        gotoxy(0, 16); printf("A=confirm");
+        gotoxy(0, 16); printf("START=confirm");
         if (sel != prev_sel) {
             class_emblem_draw(sel);
             prev_sel = sel;
@@ -128,7 +128,7 @@ void state_char_create_enter(void) BANKED {
             uint8_t e = (uint8_t)(j & (uint8_t)~prev_j);
             if (e & J_UP)   sel = (uint8_t)((sel + PLAYER_CLASS_COUNT - 1u) % PLAYER_CLASS_COUNT);
             if (e & J_DOWN) sel = (uint8_t)((sel + 1u) % PLAYER_CLASS_COUNT);
-            if (e & J_A) {
+            if (e & J_START) {
                 player_class = sel;
                 class_emblem_vram_restore();
                 class_palettes_sprite_player_apply(); // BANKED far-call — do not SWITCH_ROM here (return must see bank 1 code)

@@ -213,6 +213,22 @@ void state_gameplay_tick(void) BANKED {
             wait_vbl_done();
             draw_enemy_cells(g_player_x, g_player_y); // abilities can kill multiple enemies (e.g. Whirlwind); redraw full enemy/corpse pass
         }
+#if FEATURE_MAP_FOG
+        if (ar.lighting_refresh) {
+            uint8_t ni, dmx, dmy;
+            wait_vbl_done();
+            lighting_reveal_radius(g_player_x, g_player_y, player_light_radius());
+            if (lighting_dirty_overflow())
+                draw_screen(g_player_x, g_player_y);
+            else {
+                for (ni = 0u; ni < lighting_dirty_count(); ni++) {
+                    lighting_dirty_tile(ni, &dmx, &dmy);
+                    draw_cell(dmx, dmy);
+                }
+            }
+            lighting_dirty_clear();
+        }
+#endif
         wait_vbl_done();
         draw_gameplay_overlays_profiled(g_player_x, g_player_y);
         if (ar.consumed_turn) {
@@ -315,10 +331,7 @@ void state_gameplay_tick(void) BANKED {
                 draw_cell(g_player_x, g_player_y);
                 g_player_x = nx;
                 g_player_y = ny;
-                lighting_reveal_radius(g_player_x, g_player_y,
-                    (player_class == 1u) ? LIGHT_RADIUS_ROGUE
-                    : (player_class == 2u || player_class == 3u) ? LIGHT_RADIUS_MAGE
-                    : LIGHT_RADIUS_KNIGHT);
+                lighting_reveal_radius(g_player_x, g_player_y, player_light_radius());
                 {
                     uint8_t gi = ground_item_index_at(g_player_x, g_player_y);
                     if (gi != 255u) pending_pickup_slot = gi; // queue modal — fires after enemy turn settles below

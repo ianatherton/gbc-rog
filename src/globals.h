@@ -25,6 +25,7 @@ extern uint8_t  belt_slot_charges[BELT_SLOT_COUNT]; // uses remaining per slot (
 extern uint8_t  witch_shot_cooldown_turns;
 extern uint8_t  zerker_whirlwind_cooldown_turns;
 extern uint8_t  knight_shield_active; // holy fire shield buff — set by ability_knight_cast_belt, cleared on floor gen
+extern uint8_t  player_light_bonus;     // candle stack — cleared on floor gen; added to class base light radius
 extern uint8_t  ally_active[MAX_ALLIES];
 extern uint8_t  ally_x[MAX_ALLIES];
 extern uint8_t  ally_y[MAX_ALLIES];
@@ -44,5 +45,7 @@ extern uint8_t ground_item_kind[MAX_GROUND_ITEMS];   // ITEM_KIND_NONE when slot
 extern uint8_t ground_item_x[MAX_GROUND_ITEMS];
 extern uint8_t ground_item_y[MAX_GROUND_ITEMS];
 extern uint8_t pending_pickup_slot; // ground_item_* index queued for STATE_PICKUP; 255 = none
+
+uint8_t player_light_radius(void); // class base + player_light_bonus (HOME)
 
 #endif // GLOBALS_H

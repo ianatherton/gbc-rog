@@ -51,6 +51,7 @@
 #define LIGHT_RADIUS_KNIGHT 4u
 #define LIGHT_RADIUS_ROGUE 2u
 #define LIGHT_RADIUS_MAGE 3u
+#define CANDLE_LIGHT_BONUS 3u // per use; stacks; cleared on new floor
 #define MAX_BRAZIERS 20u // upper bound for floor brazier placements before depth reduction
 
 /* ── Navigation graph constants ──────────────────────────────────────────── */
@@ -209,6 +210,8 @@ typedef struct {
 #define TILE_LIGHT_2        18   /* C2  */
 #define TILE_LIGHT_3        34   /* C3  */
 #define TILE_LIGHT_4        50   /* C4  */
+#define TILE_LIGHT_5        66   /* C5  */
+#define TILE_LIGHT_6        82   /* C6  */
 
 /* ── D col — decorative columns ─────────────────────────────────────────── */
 /* Placed when a wall tile has no orthogonal wall neighbour, or randomly.   */

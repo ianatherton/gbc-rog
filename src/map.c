@@ -409,6 +409,7 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     }
     initrand(floor_seed);
     knight_shield_active = 0u; // floor-scoped buff — clear on every regen so it doesn't leak across stairs
+    player_light_bonus     = 0u;
     ally_clear_all();
     biome_load_active(biome_pick_for_floor(floor_num, run_seed)); // fills HOME enemy_defs[] from coral bank before spawn
     if (floor_biome == BIOME_CAVERN) wall_tileset_index = TILE_WALL_F;
@@ -449,10 +450,7 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     *px = player_spawn_x;
     *py = player_spawn_y;
     lighting_reveal_radius(*px, *py, LIGHT_RADIUS_STAIRS_UP);
-    lighting_reveal_radius(*px, *py,
-        (player_class == 1u) ? LIGHT_RADIUS_ROGUE
-        : (player_class == 2u || player_class == 3u) ? LIGHT_RADIUS_MAGE // Witch + Zerker (same as mage for now)
-        : LIGHT_RADIUS_KNIGHT);
+    lighting_reveal_radius(*px, *py, player_light_radius());
     {
         int16_t cx = (int16_t)*px - GRID_W / 2;
         int16_t cy = (int16_t)*py - GRID_H / 2;

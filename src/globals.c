@@ -1,5 +1,13 @@
 #include "globals.h"
 #include "game_state.h"
+#include "defs.h"
+
+uint8_t player_light_radius(void) {
+    uint8_t base = (player_class == 1u) ? LIGHT_RADIUS_ROGUE
+        : (player_class == 2u || player_class == 3u) ? LIGHT_RADIUS_MAGE
+        : LIGHT_RADIUS_KNIGHT;
+    return (uint8_t)((uint16_t)base + (uint16_t)player_light_bonus);
+}
 
 volatile GameState       current_state        = STATE_NONE;
 volatile GameState       next_state           = STATE_TITLE; // must not rely on BSS — random WRAM skips title enter
@@ -25,6 +33,7 @@ uint8_t  belt_slot_charges[BELT_SLOT_COUNT];   // BSS zeroed — digits hidden u
 uint8_t  witch_shot_cooldown_turns;
 uint8_t  zerker_whirlwind_cooldown_turns;
 uint8_t  knight_shield_active;
+uint8_t  player_light_bonus;
 uint8_t  ally_active[MAX_ALLIES];
 uint8_t  ally_x[MAX_ALLIES];
 uint8_t  ally_y[MAX_ALLIES];

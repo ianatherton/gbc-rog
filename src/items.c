@@ -14,18 +14,18 @@ static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
     TILE_ITEM_3, // POTION — Heal Potion
     TILE_SCROLL_BELT_OFF, // SCROLL — I11 art at TILE_SCROLL_I11_VRAM
     TILE_BIGHEAL_BELT_OFF, // KEY — BigHeal; I12 at TILE_BIGHEAL_I12_VRAM
-    TILE_ITEM_5, // GEM
+    TILE_LIGHT_6, // CANDLE — tileset C col row 6 (see defs TILE_LIGHT_*)
 };
 
 static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
     PAL_LIFE_UI, // POTION
     PAL_XP_UI,   // SCROLL
     PAL_LIFE_UI, // KEY
-    PAL_LADDER,  // GEM
+    PAL_LADDER,  // CANDLE — warm light ramp like ladder/pit accents
 };
 
 static const char *const kind_name[ITEM_KIND_COUNT] = {
-    "Heal Potion", "SCROLL", "BigHeal Potion", "GEM",
+    "Heal Potion", "SCROLL", "BigHeal Potion", "Candle",
 };
 
 uint8_t items_kind_tile(uint8_t kind) BANKED {
@@ -84,6 +84,7 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
     uint8_t kind;
     out->consumed_turn = 0u;
     out->did_kill = 0u;
+    out->lighting_refresh = 0u;
     if (item_idx >= BELT_ITEM_SLOT_COUNT) return;
     kind = inventory_kind[item_idx];
     if (kind == ITEM_KIND_NONE) return;
@@ -112,6 +113,10 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
         if (any) out->did_kill = 1u;
     } else if (kind == ITEM_KIND_KEY) {
         player_hp = player_hp_max;
+    } else if (kind == ITEM_KIND_CANDLE) {
+        uint16_t nb = (uint16_t)player_light_bonus + (uint16_t)CANDLE_LIGHT_BONUS;
+        player_light_bonus = (nb > 255u) ? 255u : (uint8_t)nb;
+        out->lighting_refresh = 1u;
     }
     inventory_remove(item_idx);
     out->consumed_turn = 1u;

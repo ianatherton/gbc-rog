@@ -6,10 +6,11 @@
 // Result struct so banked ability code never has to redraw / mutate gameplay state directly.
 // state_gameplay (bank 2) reads these flags and does the BKG/UI follow-up itself.
 typedef struct {
-    uint8_t consumed_turn; // 1 → enemies move, cooldowns tick, turn advances
-    uint8_t did_kill;      // 1 → kill_x/kill_y holds the tile to redraw
+    uint8_t consumed_turn;    // 1 → enemies move, cooldowns tick, turn advances
+    uint8_t did_kill;         // 1 → kill_x/kill_y holds the tile to redraw
     uint8_t kill_x;
     uint8_t kill_y;
+    uint8_t lighting_refresh; // 1 → fog reveal radius changed (e.g. candle) — state_gameplay repaints BKG
 } AbilityResult;
 
 // HOME-resident dispatcher. Looks up player_class + belt slot, SWITCH_ROMs into

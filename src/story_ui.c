@@ -38,7 +38,11 @@ BANKREF(story_ui_run_before_first_floor)
 
 #define STORY_TEXT_COLS   18u
 #define STORY_CRAWL_ROWS  18u // visible BKG rows used for crawl (0 = top, 17 = bottom)
-#define STORY_LEAD_LINES  20u // virtual blank doc lines before prose — bottom row stays empty until crawl reaches here
+#define STORY_HOLD_TAIL_ROWS 10u // stop crawl with this many wrapped lines on bottom rows (17 = last line)
+#if STORY_HOLD_TAIL_ROWS > STORY_CRAWL_ROWS
+#error STORY_HOLD_TAIL_ROWS must fit in crawl window
+#endif
+#define STORY_LEAD_LINES  3u // virtual blank lines before prose (was 20 ≈8s @24 VBlanks/step; 6 ≈2.4s)
 #define STORY_FIRE_FIRST  10u
 #define STORY_SCROLL_EVERY 24u // VBlanks per crawl step — 4× slower than 3 (was ~20 ms/line @60Hz → ~200 ms/line)
 #define STORY_TEXT_COL0  1u  // center 18 cols in 20-tile map
@@ -55,6 +59,79 @@ static const palette_color_t story_fire_pal[] = { // OCP3 — match ladder/brazi
     RGB(31, 16, 2),
     RGB(31, 26, 8),
 };
+static const palette_color_t story_gold_pal[] = { // BGP PAL_XP_UI — match render.c pal_xp_ui for story hilites
+    RGB(0, 0, 0),
+    RGB(23, 9, 0),
+    RGB(30, 17, 0),
+    RGB(31, 27, 1),
+};
+
+#define STORY_HILITE_SLOTS 6u
+static uint16_t story_h_lo[STORY_HILITE_SLOTS];
+static uint16_t story_h_hi[STORY_HILITE_SLOTS]; // exclusive byte offset in story_bigbuf
+static uint8_t story_h_n;
+
+static const char *story_strstr(const char *hay, const char *needle) { // GBDK string.h has no strstr
+    uint16_t hlen = (uint16_t)strlen(hay);
+    uint16_t nlen = (uint16_t)strlen(needle);
+    uint16_t i, k;
+    if (nlen == 0u || nlen > hlen) return NULL;
+    for (i = 0u; i <= hlen - nlen; i++) {
+        for (k = 0u; k < nlen && hay[i + k] == needle[k]; k++) {}
+        if (k == nlen) return hay + i;
+    }
+    return NULL;
+}
+
+static void story_hilites_build(const char *cont, const char *pcl) {
+    uint8_t j = 0u;
+    const char *p;
+    p = story_strstr(story_bigbuf, "MARA");
+    if (p != NULL && j < STORY_HILITE_SLOTS) {
+        story_h_lo[j] = (uint16_t)(p - story_bigbuf);
+        story_h_hi[j] = (uint16_t)(story_h_lo[j] + 4u);
+        j++;
+    }
+    p = story_strstr(story_bigbuf, "Crimson Keep");
+    if (p != NULL && j < STORY_HILITE_SLOTS) {
+        story_h_lo[j] = (uint16_t)(p - story_bigbuf);
+        story_h_hi[j] = (uint16_t)(story_h_lo[j] + 12u); // "Crimson Keep"
+        j++;
+    }
+    p = story_strstr(story_bigbuf, "Mara's");
+    if (p != NULL && j < STORY_HILITE_SLOTS) {
+        story_h_lo[j] = (uint16_t)(p - story_bigbuf);
+        story_h_hi[j] = (uint16_t)(story_h_lo[j] + 6u); // M a r a ' s
+        j++;
+    }
+    p = story_strstr(story_bigbuf, "your realm");
+    if (p != NULL && j < STORY_HILITE_SLOTS) {
+        story_h_lo[j] = (uint16_t)(p - story_bigbuf);
+        story_h_hi[j] = (uint16_t)(story_h_lo[j] + 10u);
+        j++;
+    }
+    p = story_strstr(story_bigbuf, cont);
+    if (p != NULL && j < STORY_HILITE_SLOTS) {
+        story_h_lo[j] = (uint16_t)(p - story_bigbuf);
+        story_h_hi[j] = (uint16_t)(story_h_lo[j] + (uint16_t)strlen(cont));
+        j++;
+    }
+    p = story_strstr(story_bigbuf, pcl);
+    if (p != NULL && j < STORY_HILITE_SLOTS) {
+        story_h_lo[j] = (uint16_t)(p - story_bigbuf);
+        story_h_hi[j] = (uint16_t)(story_h_lo[j] + (uint16_t)strlen(pcl));
+        j++;
+    }
+    story_h_n = j;
+}
+
+static uint8_t story_hilite_gold(uint16_t off) {
+    uint8_t j;
+    for (j = 0u; j < story_h_n; j++) {
+        if (off >= story_h_lo[j] && off < story_h_hi[j]) return 1u;
+    }
+    return 0u;
+}
 
 static const char *const story_continents[] = {
     "Aethervale",
@@ -212,6 +289,7 @@ static void story_draw_visible(int16_t scroll_i) { // scroll_i = doc lines risen
     uint8_t sy, x, i;
     for (sy = 0u; sy < STORY_CRAWL_ROWS; sy++) {
         int16_t doc_line = (int16_t)sy + scroll_i - (int16_t)(STORY_CRAWL_ROWS - 1u); // bottom row sy=17 shows virtual line scroll_i
+        const char *ln = NULL;
         for (x = 0u; x < 20u; x++) {
             gotoxy(x, sy);
             setchar(' ');
@@ -219,14 +297,23 @@ static void story_draw_visible(int16_t scroll_i) { // scroll_i = doc lines risen
         if (doc_line >= (int16_t)STORY_LEAD_LINES
                 && doc_line < (int16_t)STORY_LEAD_LINES + (int16_t)story_nlines) {
             uint8_t li = (uint8_t)((uint16_t)doc_line - (uint16_t)STORY_LEAD_LINES);
-            const char *ln = story_bigbuf + story_line_off[li];
+            ln = story_bigbuf + story_line_off[li];
             for (i = 0u; i < STORY_TEXT_COLS && ln[i] && ln[i] != '\n'; i++) {
                 gotoxy((uint8_t)(STORY_TEXT_COL0 + i), sy);
                 setchar(ln[i]);
             }
         }
         VBK_REG = VBK_ATTRIBUTES;
-        for (x = 0u; x < 20u; x++) set_bkg_attribute_xy(x, sy, 0u);
+        for (x = 0u; x < 20u; x++) {
+            uint8_t a = 0u;
+            if (ln != NULL && x >= STORY_TEXT_COL0 && x < (uint8_t)(STORY_TEXT_COL0 + STORY_TEXT_COLS)) {
+                uint8_t ti = (uint8_t)(x - STORY_TEXT_COL0);
+                if (ln[ti] && ln[ti] != '\n'
+                        && story_hilite_gold((uint16_t)((uint16_t)(ln - story_bigbuf) + ti)))
+                    a = (uint8_t)PAL_XP_UI;
+            }
+            set_bkg_attribute_xy(x, sy, a);
+        }
         VBK_REG = VBK_TILES;
     }
 }
@@ -234,7 +321,7 @@ static void story_draw_visible(int16_t scroll_i) { // scroll_i = doc lines risen
 void story_ui_run_before_first_floor(void) BANKED {
     uint16_t fc = 0u;
     int16_t scroll_i = 0; // virtual doc lines advanced upward each tick — bottom anchor (row 17) shows line scroll_i
-    int16_t end_scroll;
+    int16_t scroll_cap; // last doc line on bottom row → rows (CRAWL-HOLD_TAIL)..17 show last HOLD_TAIL wrapped lines
     uint8_t prev_j = 0u, sk = 0u;
     uint8_t cidx = (uint8_t)((run_seed ^ (uint16_t)player_class * 131u) % (uint16_t)STORY_CONTINENT_N);
     const char *cont = story_continents[cidx];
@@ -245,7 +332,8 @@ void story_ui_run_before_first_floor(void) BANKED {
     story_build_bigbuf(cont, pcl);
     story_wrap_newlines();
     story_build_line_table();
-    end_scroll = (int16_t)STORY_LEAD_LINES + (int16_t)story_nlines + (int16_t)(STORY_CRAWL_ROWS + 6); // prose clears past top after crawl
+    story_hilites_build(cont, pcl);
+    scroll_cap = (int16_t)STORY_LEAD_LINES + (int16_t)story_nlines - 1; // bottom row = last prose doc line; rows (CRAWL-HOLD_TAIL)..17 = last HOLD_TAIL lines when nlines>=TAIL; hold until A/START
 
     lcd_gameplay_active = 0u;
     wait_vbl_done();
@@ -253,6 +341,7 @@ void story_ui_run_before_first_floor(void) BANKED {
     SCX_REG = 0u;
     lcd_clear_display();
     set_bkg_palette(0u, 1u, story_bkg_pal);
+    set_bkg_palette((uint8_t)PAL_XP_UI, 1u, story_gold_pal);
     set_sprite_palette(PAL_WALL_BG, 1u, story_fire_pal);
     font_color(3u, 0u);
     story_fire_init();
@@ -270,9 +359,8 @@ void story_ui_run_before_first_floor(void) BANKED {
         sk++;
         if (sk >= STORY_SCROLL_EVERY) {
             sk = 0u;
-            scroll_i++;
+            if (scroll_i < scroll_cap) scroll_i++;
             story_draw_visible(scroll_i);
-            if (scroll_i >= end_scroll) break;
         }
         fc++;
         wait_vbl_done();
@@ -281,6 +369,8 @@ void story_ui_run_before_first_floor(void) BANKED {
     story_fire_hide();
     HIDE_WIN;
     SCY_REG = 0u;
+    wait_vbl_done();
+    lcd_clear_display(); // wipe story tiles+attrs before loading ISR paints — avoids ghost text one frame
     load_palettes();
     font_color(3u, 0u);
     g_prev_j = 0u;

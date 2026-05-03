@@ -82,8 +82,8 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00000059  l__CODE_7 |    00000060  l__HEADER |    0000007A  l__CODE_6
      000000AB  l__HEADER |    000000AE  l__CODE_1 |    000001B7  l__CODE_8
      00000200  s__CODE   |    0000020E  l__CODE_9 |    0000032A  l__CODE_1
-     0000096D  l__CODE_1 |    00000B9B  l__CODE_4 |    00000BB8  l__HOME  
-     00001108  l__CODE_1 |    000014B9  l__CODE_3 |    00001C94  l__DATA  
+     00000B9B  l__CODE_4 |    00000BB8  l__HOME   |    00000CD6  l__CODE_1
+     00001108  l__CODE_1 |    000014B9  l__CODE_3 |    00001CAD  l__DATA  
      00002000  _rROMB0   |    00003000  _rROMB1   |    00003130  l__CODE  
      00003330  s__HOME   |    00003953  l__CODE_5 |    00003EE8  s__BASE  
      00003EE8  s__CODE_0 |    00003EE8  s__INITIA |    00003EE8  s__LIT   
@@ -94,8 +94,8 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000A000  _rMBC7_LA |    0000A010  _rMBC7_LA |    0000A020  _rMBC7_AC
      0000A030  _rMBC7_AC |    0000A040  _rMBC7_AC |    0000A050  _rMBC7_AC
      0000C000  __RAM     |    0000C000  _shadow_O |    0000C0A0  s__DATA  
-     0000D000  __RAMBANK |    0000DD34  s__BSS    |    0000DD34  s__INITIA
-     0000DD4E  s__HEAP   |    0000DD4E  s__HEAP_E |    0000E000  .STACK   
+     0000D000  __RAMBANK |    0000DD4D  s__BSS    |    0000DD4D  s__INITIA
+     0000DD67  s__HEAP   |    0000DD67  s__HEAP_E |    0000E000  .STACK   
      0000FE00  __OAMRAM  |    0000FF00  _P1_REG   |    0000FF00  __IO     
      0000FF01  _SB_REG   |    0000FF02  _SC_REG   |    0000FF04  _DIV_REG 
      0000FF05  _TIMA_REG |    0000FF06  _TMA_REG  |    0000FF07  _TAC_REG 
@@ -419,7 +419,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_DATA                  0000C0A0    00001C94 =        7316. bytes (REL,CON)
+_DATA                  0000C0A0    00001CAD =        7341. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -448,24 +448,24 @@ _DATA                  0000C0A0    00001C94 =        7316. bytes (REL,CON)
      0000D5B0  _corpse_x |    0000D5CC  _corpse_y |    0000D5E8  _corpse_t
      0000D604  _num_corp |    0000D605  _enemy_oc |    0000DC05  _enemy_an
      0000DC06  _enemy_at |    0000DC22  _enemy_at |    0000DC23  _enemy_fo
-     0000DC98  _camera_p |    0000DC9A  _camera_p |    0000DD14  ___rand_s
-     0000DD16  font_curr |    0000DD19  font_firs |    0000DD1A  font_tabl
-     0000DD2C  .int_0x48
+     0000DC98  _camera_p |    0000DC9A  _camera_p |    0000DD2D  ___rand_s
+     0000DD2F  font_curr |    0000DD32  font_firs |    0000DD33  font_tabl
+     0000DD45  .int_0x48
 ASxxxx Linker V03.00/V05.40 + sdld,  page 28.
 Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_INITIALIZED           0000DD34    0000001A =          26. bytes (REL,CON)
+_INITIALIZED           0000DD4D    0000001A =          26. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     0000DD3C  _current_ |    0000DD3D  _next_sta |    0000DD3E  _player_h
-     0000DD3F  _player_h |    0000DD40  _player_l |    0000DD41  _player_d
-     0000DD42  _floor_nu |    0000DD43  _run_seed |    0000DD47  _ui_panel
-     0000DD48  .curx     |    0000DD49  .cury     |    0000DD4A  .fg_colou
-     0000DD4A  __current |    0000DD4B  .bg_colou |    0000DD4C  .draw_mod
-     0000DD4D  __map_til
+     0000DD55  _current_ |    0000DD56  _next_sta |    0000DD57  _player_h
+     0000DD58  _player_h |    0000DD59  _player_l |    0000DD5A  _player_d
+     0000DD5B  _floor_nu |    0000DD5C  _run_seed |    0000DD60  _ui_panel
+     0000DD61  .curx     |    0000DD62  .cury     |    0000DD63  .fg_colou
+     0000DD63  __current |    0000DD64  .bg_colou |    0000DD65  .draw_mod
+     0000DD66  __map_til
 ASxxxx Linker V03.00/V05.40 + sdld,  page 29.
 Hexadecimal  [32-Bits]
 
@@ -658,11 +658,11 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_14               000E4000    0000096D =        2413. bytes (REL,CON)
+_CODE_14               000E4000    00000CD6 =        3286. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     000E4000  ___func_s |    000E4815  _story_ui
+     000E4000  ___func_s |    000E4B66  _story_ui
 ASxxxx Linker V03.00/V05.40 + sdld,  page 44.
 Hexadecimal  [32-Bits]
 

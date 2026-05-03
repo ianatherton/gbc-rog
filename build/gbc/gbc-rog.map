@@ -82,7 +82,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00000059  l__CODE_7 |    00000060  l__HEADER |    0000007A  l__CODE_6
      000000AB  l__HEADER |    000000AE  l__CODE_1 |    000001B7  l__CODE_8
      00000200  s__CODE   |    0000020E  l__CODE_9 |    0000032A  l__CODE_1
-     00000B9B  l__CODE_4 |    00000BB8  l__HOME   |    00000CD6  l__CODE_1
+     00000B9B  l__CODE_4 |    00000BB8  l__HOME   |    00001032  l__CODE_1
      00001108  l__CODE_1 |    000014B9  l__CODE_3 |    00001CAD  l__DATA  
      00002000  _rROMB0   |    00003000  _rROMB1   |    00003130  l__CODE  
      00003330  s__HOME   |    00003953  l__CODE_5 |    00003EE8  s__BASE  
@@ -658,11 +658,11 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_14               000E4000    00000CD6 =        3286. bytes (REL,CON)
+_CODE_14               000E4000    00001032 =        4146. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     000E4000  ___func_s |    000E4B66  _story_ui
+     000E4000  ___func_s |    000E4DEE  _story_ui
 ASxxxx Linker V03.00/V05.40 + sdld,  page 44.
 Hexadecimal  [32-Bits]
 

@@ -133,19 +133,27 @@ static uint8_t story_hilite_gold(uint16_t off) {
     return 0u;
 }
 
-static const char *const story_continents[] = {
-    "Aethervale",
-    "Duskspire",
-    "Ironmarch",
-    "Thornwild",
-    "Ashfen",
-    "Stormcoast",
-    "Bleakmoor",
-    "Goldleaf",
-    "Rimehold",
-    "Emberdeep",
+/* Each token <= 7 letters; terminal suf2 unchanged */
+static const char *const story_continent_pref[] = {
+    "Aether", "Dusk", "Iron", "Thorn", "Ash", "Storm", "Bleak", "Gold", "Rime", "Ember",
+    "Mist", "Frost", "Gloom", "Raven", "Swift", "Steel", "Stone", "Night", "Dawn", "Moon",
+    "Void", "Cloud", "Bane", "Crow", "Hawk", "Wolf", "Star", "Pale", "Dark", "Bramble",
+    "Whisper", "Crims", "Silent", "Hollow", "Winter", "Summer", "Drift", "Shadow", "Wyrm", "Fell",
+    "Grim", "Salt", "Sand", "North", "South", "East", "West", "Grey", "High", "Far",
 };
-#define STORY_CONTINENT_N (sizeof story_continents / sizeof story_continents[0])
+static const char *const story_continent_suf[] = {
+    "vale", "spire", "march", "wild", "fen", "coast", "moor", "leaf", "hold", "deep",
+    "ford", "wold", "glen", "dale", "ridge", "brook", "crag", "peak", "haven", "mire",
+    "pass", "rune", "gate", "ward", "isle", "bay", "rock", "dune", "tide", "shade",
+    "marsh", "basin", "strait", "fjord", "gulch", "chasm", "vault", "crypt", "nook", "dell",
+    "thorn", "bloom", "reach", "channel", "harbor", "summit",
+};
+static const char *const story_continent_suf2[] = {
+    "os", "us", "od", "id", "", "es", "un", "", "",
+};
+#define STORY_CONTINENT_PREFIX_N (sizeof(story_continent_pref) / sizeof((story_continent_pref)[0]))
+#define STORY_CONTINENT_SUFFIX_N (sizeof(story_continent_suf) / sizeof((story_continent_suf)[0]))
+#define STORY_CONTINENT_SUFFIX2_N (sizeof(story_continent_suf2) / sizeof((story_continent_suf2)[0]))
 
 static void story_build_bigbuf(const char *cont, const char *pcl) {
     strcpy(story_bigbuf,
@@ -323,9 +331,16 @@ void story_ui_run_before_first_floor(void) BANKED {
     int16_t scroll_i = 0; // virtual doc lines advanced upward each tick — bottom anchor (row 17) shows line scroll_i
     int16_t scroll_cap; // last doc line on bottom row → rows (CRAWL-HOLD_TAIL)..17 show last HOLD_TAIL wrapped lines
     uint8_t prev_j = 0u, sk = 0u;
-    uint8_t cidx = (uint8_t)((run_seed ^ (uint16_t)player_class * 131u) % (uint16_t)STORY_CONTINENT_N);
-    const char *cont = story_continents[cidx];
+    char cont_buf[22]; // pref + suf + suf2 + NUL (e.g. Aether+coast+un)
+    uint16_t mix = (uint16_t)(run_seed ^ ((uint16_t)player_class * 131u));
+    uint8_t pi = (uint8_t)(mix % (uint16_t)STORY_CONTINENT_PREFIX_N);
+    uint8_t si = (uint8_t)(((uint16_t)(mix >> 5) ^ (uint16_t)pi * 13u ^ (uint16_t)player_class * 3u) % (uint16_t)STORY_CONTINENT_SUFFIX_N);
+    uint8_t s2 = (uint8_t)(((uint16_t)(mix >> 9) ^ (uint16_t)si * 5u ^ (uint16_t)pi * 7u ^ (uint16_t)player_class) % (uint16_t)STORY_CONTINENT_SUFFIX2_N);
+    const char *cont = cont_buf;
     const char *pcl = class_label(player_class);
+    strcpy(cont_buf, story_continent_pref[pi]);
+    strcat(cont_buf, story_continent_suf[si]);
+    strcat(cont_buf, story_continent_suf2[s2]);
 
     BANK_DBG("story");
     memset(explored_bits, 0, (size_t)ST_SCRATCH_END); // fog array not live until gen — frees ~511 B WRAM vs dedicated story globals

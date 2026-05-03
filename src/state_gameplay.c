@@ -1,4 +1,4 @@
-#pragma bank 2
+#pragma bank 2 // with map/render/generate/draw — level_init moved to bank 10 so _CODE_2 stays ≤16K
 
 #include "debug_bank.h"
 #include "state_gameplay.h"
@@ -74,6 +74,19 @@ static const char *belt_name_for(uint8_t slot) { // bank-2 table — strings liv
     if (player_class == 2u && player_level >= 1u) return "Fetid Bolt";
     if (player_class == 3u && player_level >= 1u) return "Whirlwind";
     return 0;
+}
+
+static uint8_t belt_slot_nonempty(uint8_t slot) {
+    if (slot < BELT_SLOT_COUNT) return belt_name_for(slot) != 0;
+    return inventory_kind[slot - BELT_SLOT_COUNT] != ITEM_KIND_NONE;
+}
+
+static void belt_select_advance_skip_empty(void) {
+    uint8_t i;
+    for (i = 0u; i < BELT_TOTAL_SLOTS; i++) {
+        selected_belt_slot = (uint8_t)((selected_belt_slot + 1u) % BELT_TOTAL_SLOTS);
+        if (belt_slot_nonempty(selected_belt_slot)) break;
+    }
 }
 
 static void push_selected_belt_description(void) {
@@ -188,7 +201,7 @@ void state_gameplay_tick(void) BANKED {
     if (lcd_gameplay_active && (j & J_SELECT)) {
         uint8_t edge_sel = (uint8_t)(j & (uint8_t)~g_prev_j);
         if (edge_sel & J_SELECT) {
-            selected_belt_slot = (uint8_t)((selected_belt_slot + 1u) % BELT_TOTAL_SLOTS);
+            belt_select_advance_skip_empty();
             push_selected_belt_description();
             wait_vbl_done();
             draw_gameplay_overlays_profiled(g_player_x, g_player_y); // belt row + selector sprite; BKG ring unchanged

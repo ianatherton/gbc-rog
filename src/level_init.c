@@ -1,4 +1,4 @@
-#pragma bank 2
+#pragma bank 10 // was bank 2 — swapped with state_gameplay so gameplay kernel stays one ROM bank
 
 #include "defs.h"
 #include "globals.h"

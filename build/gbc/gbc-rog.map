@@ -28,35 +28,35 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00000002  ___bank_c |    00000002  ___bank_c |    00000002  ___bank_c
      00000002  ___bank_e |    00000002  ___bank_g |    00000002  ___bank_g
      00000002  ___bank_i |    00000002  ___bank_l |    00000002  ___bank_l
-     00000002  ___bank_l |    00000002  ___bank_r |    00000002  ___bank_s
-     00000002  ___bank_s |    00000002  ___bank_t |    00000002  b_camera_
-     00000002  b_camera_ |    00000002  b_camera_ |    00000002  b_class_p
-     00000002  b_class_p |    00000002  b_combat_ |    00000002  b_combat_
-     00000002  b_corpse_ |    00000002  b_corpse_ |    00000002  b_enemy_a
-     00000002  b_enemy_c |    00000002  b_enemy_e |    00000002  b_enemy_e
-     00000002  b_enemy_r |    00000002  b_enemy_t |    00000002  b_ground_
-     00000002  b_ground_ |    00000002  b_is_walk |    00000002  b_level_g
-     00000002  b_level_i |    00000002  b_load_pa |    00000002  b_resolve
-     00000002  b_state_g |    00000002  b_state_g |    00000002  b_tile_at
-     00000002  l__HEADER |    00000002  l__HEADER |    00000002  l__HEADER
-     00000003  ___bank_a |    00000003  ___bank_a |    00000003  ___bank_a
+     00000002  ___bank_r |    00000002  ___bank_s |    00000002  ___bank_s
+     00000002  ___bank_t |    00000002  b_camera_ |    00000002  b_camera_
+     00000002  b_camera_ |    00000002  b_class_p |    00000002  b_class_p
+     00000002  b_combat_ |    00000002  b_combat_ |    00000002  b_corpse_
+     00000002  b_corpse_ |    00000002  b_enemy_a |    00000002  b_enemy_c
+     00000002  b_enemy_e |    00000002  b_enemy_e |    00000002  b_enemy_r
+     00000002  b_enemy_t |    00000002  b_ground_ |    00000002  b_ground_
+     00000002  b_is_walk |    00000002  b_level_g |    00000002  b_load_pa
+     00000002  b_resolve |    00000002  b_state_g |    00000002  b_state_g
+     00000002  b_tile_at |    00000002  l__HEADER |    00000002  l__HEADER
+     00000002  l__HEADER |    00000003  ___bank_a |    00000003  ___bank_a
+     00000003  ___bank_a |    00000003  ___bank_s |    00000003  ___bank_s
      00000003  ___bank_s |    00000003  ___bank_s |    00000003  ___bank_s
      00000003  ___bank_s |    00000003  ___bank_s |    00000003  ___bank_s
      00000003  ___bank_s |    00000003  ___bank_s |    00000003  ___bank_s
-     00000003  ___bank_s |    00000003  ___bank_s |    00000003  ___bank_s
-     00000003  b_ally_fo |    00000003  b_ally_fo |    00000003  b_ally_fo
-     00000003  b_state_a |    00000003  b_state_a |    00000003  b_state_c
-     00000003  b_state_g |    00000003  b_state_i |    00000003  b_state_i
-     00000003  b_state_p |    00000003  b_state_p |    00000003  b_state_s
-     00000003  b_state_s |    00000003  b_state_t |    00000003  b_state_t
-     00000003  l__FONT_H |    00000003  l__HEADER |    00000003  l__HEADER
-     00000004  ___bank_b |    00000005  ___bank_b |    00000005  ___bank_u
-     00000005  b_run_see |    00000005  b_title_s |    00000005  b_ui_comb
+     00000003  ___bank_s |    00000003  b_ally_fo |    00000003  b_ally_fo
+     00000003  b_ally_fo |    00000003  b_state_a |    00000003  b_state_a
+     00000003  b_state_c |    00000003  b_state_g |    00000003  b_state_i
+     00000003  b_state_i |    00000003  b_state_p |    00000003  b_state_p
+     00000003  b_state_s |    00000003  b_state_s |    00000003  b_state_t
+     00000003  b_state_t |    00000003  l__FONT_H |    00000003  l__HEADER
+     00000003  l__HEADER |    00000004  ___bank_b |    00000005  ___bank_b
+     00000005  ___bank_u |    00000005  b_run_see |    00000005  b_title_s
      00000005  b_ui_comb |    00000005  b_ui_comb |    00000005  b_ui_comb
-     00000005  b_ui_draw |    00000005  b_ui_draw |    00000005  b_ui_game
-     00000005  b_ui_load |    00000005  b_ui_load |    00000005  b_ui_pane
+     00000005  b_ui_comb |    00000005  b_ui_draw |    00000005  b_ui_draw
+     00000005  b_ui_game |    00000005  b_ui_load |    00000005  b_ui_load
      00000005  b_ui_pane |    00000005  b_ui_pane |    00000005  b_ui_pane
-     00000005  b_ui_push |    00000005  b_ui_push |    00000005  b_ui_push
+     00000005  b_ui_pane |    00000005  b_ui_push |    00000005  b_ui_push
+     00000005  b_ui_push |    00000005  b_ui_push |    00000005  b_window_
 ASxxxx Linker V03.00/V05.40 + sdld,  page 2.
 Hexadecimal  [32-Bits]
 
@@ -66,27 +66,27 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00000005  b_ui_push |    00000005  b_window_ |    00000005  b_window_
-     00000005  l__HEADER |    00000006  ___bank_a |    00000006  b_ability
-     00000006  l__HEADER |    00000007  ___bank_a |    00000007  b_ability
-     00000007  l__HEADER |    00000008  ___bank_a |    00000008  b_ability
-     00000008  l__HEADER |    00000009  ___bank_a |    00000009  b_ability
-     0000000A  ___bank_b |    0000000A  b_biome_d |    0000000B  ___bank_b
+     00000005  b_window_ |    00000005  l__HEADER |    00000006  ___bank_a
+     00000006  b_ability |    00000006  l__HEADER |    00000007  ___bank_a
+     00000007  b_ability |    00000007  l__HEADER |    00000008  ___bank_a
+     00000008  b_ability |    00000008  l__HEADER |    00000009  ___bank_a
+     00000009  b_ability |    0000000A  ___bank_b |    0000000A  ___bank_l
+     0000000A  b_biome_d |    0000000A  b_level_i |    0000000B  ___bank_b
      0000000B  b_biome_c |    0000000C  ___bank_b |    0000000C  b_biome_c
      0000000C  l__GSINIT |    0000000D  b_invento |    0000000D  b_invento
      0000000D  b_invento |    0000000D  b_invento |    0000000D  b_invento
      0000000D  b_items_k |    0000000D  b_items_k |    0000000D  b_items_k
      0000000D  b_items_u |    00000013  l__HRAM   |    0000001A  l__INITIA
      0000001A  l__INITIA |    0000002D  l__CODE_1 |    00000030  l__HEADER
-     00000034  l__CODE_1 |    00000042  l__CODE_1 |    00000059  l__CODE_7
-     00000060  l__HEADER |    0000007A  l__CODE_6 |    000000AB  l__HEADER
+     00000034  l__CODE_1 |    00000059  l__CODE_7 |    00000060  l__HEADER
+     0000007A  l__CODE_6 |    000000AB  l__HEADER |    000000AE  l__CODE_1
      000001B7  l__CODE_8 |    00000200  s__CODE   |    0000020E  l__CODE_9
      0000032A  l__CODE_1 |    00000B98  l__HOME   |    00000B9B  l__CODE_4
      00001108  l__CODE_1 |    000014A3  l__CODE_3 |    00001C90  l__DATA  
      00002000  _rROMB0   |    00003000  _rROMB1   |    0000303B  l__CODE  
      0000323B  s__HOME   |    00003953  l__CODE_5 |    00003DD3  s__BASE  
      00003DD3  s__CODE_0 |    00003DD3  s__INITIA |    00003DD3  s__LIT   
-     00003DED  s__GSINIT |    00003DF9  s__GSFINA |    00003FF5  l__CODE_2
+     00003DED  s__GSINIT |    00003DF9  s__GSFINA |    00003FC7  l__CODE_2
      00004000  _rMBC7_SR |    00004000  _rRAMB    |    00008000  __VRAM   
      00008000  __VRAM800 |    00008800  __VRAM880 |    00009000  __VRAM900
      00009800  __SCRN0   |    00009C00  __SCRN1   |    0000A000  __SRAM   
@@ -489,7 +489,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_2                00024000    00003FF5 =       16373. bytes (REL,CON)
+_CODE_2                00024000    00003FC7 =       16327. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -507,17 +507,16 @@ _CODE_2                00024000    00003FF5 =       16373. bytes (REL,CON)
      000259B6  ___func_e |    000259B6  _enemy_at |    00025A2E  _corpse_s
      00025AA6  _corpse_a |    00025AB2  _corpse_d |    00025AC1  _spawn_en
      00025BE3  _enemy_se |    00025BFB  _enemy_ge |    00025F7C  _enemy_re
-     000260AF  _move_ene |    000265FB  ___func_s |    000265FB  _state_ga
-     00026659  ___func_s |    00026659  _state_ga |    00026E02  ___func_c
-     00026E02  _camera_i |    0002707C  _camera_s |    00027505  _camera_s
-     00027554  _apply_wa |    000277FC  ___func_l |    000277FC  _load_pal
-     000278E0  _draw_cel |    00027934  _draw_col |    0002796E  _draw_row
-     000279A5  _draw_ui_ |    000279AD  _draw_gam |    000279BC  _draw_scr
-     00027A3B  _draw_gam |    00027A58  _draw_ene |    00027ADB  ___func_c
-     00027ADB  _combat_d |    00027C53  ___func_c |    00027C53  _combat_p
-     00027CAE  ___func_r |    00027CAE  _resolve_ |    00027D9B  _wall_pal
-     00027F37  ___func_c |    00027F37  _class_pa |    00027F72  _class_pa
-     00027F89  ___func_l |    00027F89  _level_in
+     000260AF  _move_ene |    00026643  ___func_s |    00026643  _state_ga
+     000266A1  ___func_s |    000266A1  _state_ga |    00026E40  ___func_c
+     00026E40  _camera_i |    000270BA  _camera_s |    00027543  _camera_s
+     00027592  _apply_wa |    0002783A  ___func_l |    0002783A  _load_pal
+     0002791E  _draw_cel |    00027972  _draw_col |    000279AC  _draw_row
+     000279E3  _draw_ui_ |    000279EB  _draw_gam |    000279FA  _draw_scr
+     00027A79  _draw_gam |    00027A96  _draw_ene |    00027B19  ___func_c
+     00027B19  _combat_d |    00027C91  ___func_c |    00027C91  _combat_p
+     00027CEC  ___func_r |    00027CEC  _resolve_ |    00027DD9  _wall_pal
+     00027F75  ___func_c |    00027F75  _class_pa |    00027FB0  _class_pa
 ASxxxx Linker V03.00/V05.40 + sdld,  page 32.
 Hexadecimal  [32-Bits]
 
@@ -612,11 +611,12 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_10               000A4000    00000042 =          66. bytes (REL,CON)
+_CODE_10               000A4000    000000AE =         174. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     000A4000  ___func_b |    000A4000  _biome_du
+     000A4000  ___func_l |    000A4000  _level_in |    000A406C  ___func_b
+     000A406C  _biome_du
 ASxxxx Linker V03.00/V05.40 + sdld,  page 40.
 Hexadecimal  [32-Bits]
 
@@ -697,7 +697,6 @@ obj/gbc/render.rel                        [ render ]
 obj/gbc/combat.rel                        [ combat ]
 obj/gbc/wall_palettes.rel                 [ wall_palettes ]
 obj/gbc/class_palettes.rel                [ class_palettes ]
-obj/gbc/level_init.rel                    [ level_init ]
 obj/gbc/scoundrel_fox.rel                 [ scoundrel_fox ]
 obj/gbc/state_char_create.rel             [ state_char_create ]
 obj/gbc/state_inventory.rel               [ state_inventory ]
@@ -714,6 +713,7 @@ obj/gbc/abilities_knight.rel              [ abilities_knight ]
 obj/gbc/abilities_scoundrel.rel           [ abilities_scoundrel ]
 obj/gbc/abilities_witch.rel               [ abilities_witch ]
 obj/gbc/abilities_zerker.rel              [ abilities_zerker ]
+obj/gbc/level_init.rel                    [ level_init ]
 obj/gbc/biome_dungeon.rel                 [ biome_dungeon ]
 obj/gbc/biome_crypt.rel                   [ biome_crypt ]
 obj/gbc/biome_cavern.rel                  [ biome_cavern ]

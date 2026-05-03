@@ -31,6 +31,7 @@ extern uint8_t  ally_x[MAX_ALLIES];
 extern uint8_t  ally_y[MAX_ALLIES];
 extern uint8_t  ally_type[MAX_ALLIES];    // ALLY_TYPE_* — dispatch in ally_fox_* / future ally_* AI
 extern uint8_t  ally_chase_ei[MAX_ALLIES]; // ENEMY_DEAD = follow player / wander; else blink+strike that enemy slot
+extern uint8_t  ally_flip_x[MAX_ALLIES];    // fox OAM S_FLIPX — 1 when last tile step was east (+x); art faces left at 0
 
 #define MAX_ENEMY_ALIVE_SLOTS MAX_ENEMIES
 extern uint8_t enemy_alive[MAX_ENEMIES];

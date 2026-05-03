@@ -142,6 +142,8 @@ static void move_entity_oam(uint8_t sp, int16_t wx, int16_t wy, uint8_t tile, ui
         uint8_t prop = (uint8_t)(pal & 7u); // CGB palette index matches BG slot 0..7
         if (sp == SP_PLAYER && player_flip_x) prop |= S_FLIPX;
         if (sp == SP_PLAYER_AURA_OAM && player_flip_x && !projectile_overrides_aura) prop |= S_FLIPX;
+        if (sp >= SP_ALLY_BASE && sp < (uint8_t)(SP_ALLY_BASE + MAX_ALLIES) && ally_flip_x[sp - SP_ALLY_BASE])
+            prop |= S_FLIPX;
         set_sprite_prop(sp, prop);
     }
     move_sprite(sp, sx, sy);

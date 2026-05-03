@@ -11,6 +11,7 @@ void ally_clear_slot(uint8_t s) {
     ally_active[s]   = 0u;
     ally_type[s]     = ALLY_TYPE_NONE;
     ally_chase_ei[s] = ENEMY_DEAD;
+    ally_flip_x[s]   = 0u;
 }
 
 BANKREF(ally_clear_all)

@@ -39,6 +39,7 @@ uint8_t  ally_x[MAX_ALLIES];
 uint8_t  ally_y[MAX_ALLIES];
 uint8_t  ally_type[MAX_ALLIES];
 uint8_t  ally_chase_ei[MAX_ALLIES];
+uint8_t  ally_flip_x[MAX_ALLIES];
 
 uint8_t enemy_alive[MAX_ENEMIES];
 uint8_t dead_enemy_pool[MAX_ENEMIES];

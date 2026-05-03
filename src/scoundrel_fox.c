@@ -139,13 +139,18 @@ void ally_fox_run_glide(uint8_t slot, uint8_t old_fx, uint8_t old_fy) BANKED {
         else if (gy < 0) gy = (gy < -(int8_t)SCROLL_SPEED) ? (int8_t)(gy + SCROLL_SPEED) : 0;
         if (gx || gy) any = 1u;
         {
+            uint8_t sp = (uint8_t)(SP_ALLY_BASE + slot);
+            uint8_t prop = (uint8_t)(PAL_ENEMY_BAT & 7u);
             int16_t wx = (int16_t)ally_x[slot] * 8 + gx;
             int16_t wy = (int16_t)ally_y[slot] * 8 + gy;
             int16_t dx = wx - (int16_t)camera_px;
             int16_t dy = wy - (int16_t)camera_py;
             uint8_t sx = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_X + (uint8_t)dx + (int16_t)lcd_shake_x);
             uint8_t sy = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_Y + (uint8_t)dy + (int16_t)lcd_shake_y);
-            move_sprite((uint8_t)(SP_ALLY_BASE + slot), sx, sy);
+            if (ally_flip_x[slot]) prop |= S_FLIPX;
+            set_sprite_tile(sp, TILE_FOX_J9_VRAM);
+            set_sprite_prop(sp, prop);
+            move_sprite(sp, sx, sy);
         }
         wait_vbl_done();
         if (!any) break;
@@ -191,6 +196,7 @@ uint8_t ally_fox_turn_tick(uint8_t slot, uint8_t px, uint8_t py) BANKED {
             ally_clear_slot(slot);
             return 0u;
         }
+        if (nx != ally_x[slot]) ally_flip_x[slot] = (nx > ally_x[slot]) ? 1u : 0u; // east → mirror (art faces left at 0)
         ally_x[slot] = nx;
         ally_y[slot] = ny;
     }

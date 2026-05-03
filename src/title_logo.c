@@ -74,9 +74,11 @@ void title_logo_bkg_vram_patch(void) { // same 2× nearest-neighbor idea as stat
 void title_logo_bkg_vram_restore(void) { // each slot → ROM tile (VRAM − 128), same as boot layout for that index
     uint8_t sb = (uint8_t)_current_bank;
     uint8_t i;
+    uint8_t slots[TITLE_LOGO_VRAM_NTILES]; // copy indices before SWITCH_ROM(tileset) — const table must not be read wrong-bank
+    memcpy(slots, title_logo_bkg_vram_slot, TITLE_LOGO_VRAM_NTILES);
     SWITCH_ROM(BANK(tileset));
     for (i = 0u; i < TITLE_LOGO_VRAM_NTILES; i++) {
-        uint8_t v = title_logo_bkg_vram_slot[i];
+        uint8_t v = slots[i];
         set_bkg_data(v, 1u, tileset_tiles + (uint16_t)(v - TILESET_VRAM_OFFSET) * 16u);
     }
     SWITCH_ROM(sb);

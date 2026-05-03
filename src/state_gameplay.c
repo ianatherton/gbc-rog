@@ -20,10 +20,12 @@
 #include "ability_dispatch.h"
 #include "ally.h"
 #include "items.h"
+#include "story_ui.h"
 #include <gb/gb.h>
 #include <gbdk/platform.h>
 
 BANKREF_EXTERN(ally_fox_turn_tick)
+BANKREF_EXTERN(story_ui_run_before_first_floor)
 BANKREF_EXTERN(ally_fox_run_glide)
 
 static uint8_t turn_snap_ex[MAX_ENEMIES], turn_snap_ey[MAX_ENEMIES], turn_snap_ea[MAX_ENEMIES]; // enemy pos before AI — file static so SDCC does not stack three 28-byte arrays in one tick()
@@ -123,6 +125,7 @@ void state_gameplay_enter(void) BANKED {
     wait_vbl_done();
     lcd_clear_display();
     load_palettes(); // restore BGP slots (PAL_UI etc.) after char create / loading — avoids blank or flat-white WIN
+    story_ui_run_before_first_floor(); // bank 14 — intro crawl before descending loading screen
     level_init_display(0); // sets floor_num = 1 before BGM pick
     music_begin_floor_bgm();
     BANK_DBG("GP_gen");

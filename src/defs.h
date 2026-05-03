@@ -258,6 +258,13 @@ typedef struct {
 #define TILE_ITEM_8        120   /* I8  */
 #define TILE_ITEM_9        136   /* I9  */
 #define TILE_ITEM_10       152   /* I10 */
+#define TILE_ITEM_11       168   /* I11 — scroll; ROM past first VRAM pack → TILE_SCROLL_I11_VRAM */
+#define TILE_ITEM_12       184   /* I12 — BigHeal potion; ROM past first VRAM pack → TILE_BIGHEAL_I12_VRAM */
+
+#define TILE_SCROLL_I11_VRAM     245u // belt/pickup UI — copied from TILE_ITEM_11 at boot (sheet >127)
+#define TILE_SCROLL_BELT_OFF ((uint8_t)(TILE_SCROLL_I11_VRAM - TILESET_VRAM_OFFSET)) // items_kind_tile(SCROLL)
+#define TILE_BIGHEAL_I12_VRAM    243u // belt/pickup UI — copied from TILE_ITEM_12 at boot
+#define TILE_BIGHEAL_BELT_OFF ((uint8_t)(TILE_BIGHEAL_I12_VRAM - TILESET_VRAM_OFFSET)) // items_kind_tile(KEY)
 
 /* ── J col — enemy sprites ───────────────────────────────────────────────── */
 #define TILE_SPIDER_1        9   /* J1  - spider frame 1                   */
@@ -280,6 +287,9 @@ typedef struct {
 #define TILE_FLOOR_DECO_5   75   /* L5  */
 #define TILE_FLOOR_DECO_6   91   /* L6  */
 #define TILE_FLOOR_DECO_7  107   /* L7  */
+#define TILE_SMILE_L10     155u  /* L10 — smile over player on level-up; ROM >127 → TILE_LEVELUP_SMILE_VRAM */
+
+#define TILE_LEVELUP_SMILE_VRAM 244u // OBJ — copied from TILE_SMILE_L10 at boot
 
 /* ── M col — directional arrows ─────────────────────────────────────────── */
 #define TILE_ARROW_NE       12   /* M1  - top-right diagonal               */

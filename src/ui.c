@@ -537,8 +537,8 @@ static void ui_draw_top_hud(void) { // bottom window row: L:♥×5 HP% XP% FLOOR
     uint8_t pct8 = pct, xp_pct;
     uint8_t vram;
 
-    win_putc_pal(tx++, hy, 'L', PAL_LIFE_UI);
-    win_putc_pal(tx++, hy, ':', PAL_LIFE_UI);
+    win_putc_pal(tx++, hy, 'L', PAL_UI);
+    win_putc_pal(tx++, hy, ':', PAL_UI);
     for (k = 0; k < LIFE_BAR_LEN; k++) {
         if (pct >= (uint8_t)(20u * (k + 1u))) {
             vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_HEART_FULL);
@@ -549,13 +549,13 @@ static void ui_draw_top_hud(void) { // bottom window row: L:♥×5 HP% XP% FLOOR
             set_win_tile_xy(tx, hy, vram);
             set_win_attribute_xy(tx, hy, PAL_LIFE_UI);
         } else {
-            win_putc_pal(tx, hy, '_', PAL_LIFE_UI);
+            win_putc_pal(tx, hy, '_', PAL_UI);
         }
         tx++;
     }
-    win_put_uint8(tx, hy, pct8, 3, PAL_LIFE_UI);
+    win_put_uint8(tx, hy, pct8, 3, PAL_UI);
     tx = (uint8_t)(tx + 3u);
-    win_putc_pal(tx++, hy, '%', PAL_LIFE_UI);
+    win_putc_pal(tx++, hy, '%', PAL_UI);
     {
         uint16_t next_level_xp = (uint16_t)PLAYER_LEVEL_XP_BASE + (uint16_t)(player_level - 1u) * PLAYER_LEVEL_XP_STEP;
         xp_pct = (player_xp >= next_level_xp) ? 99u : (uint8_t)((player_xp * 100u) / next_level_xp);

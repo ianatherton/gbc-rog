@@ -29,7 +29,7 @@ static void draw_icon(uint8_t x, uint8_t y) {
 }
 
 static void draw_phase(void) {
-    char namebuf[10];
+    char namebuf[18];
     items_kind_name_copy(pu_kind, namebuf, sizeof namebuf);
     lcd_clear_display();
     if (pu_phase == PU_PHASE_FULL) {

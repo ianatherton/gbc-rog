@@ -3,24 +3,29 @@
 #include "items.h"
 #include "globals.h"
 #include "ui.h"
+#include "combat.h"
+#include "lcd.h"
+#include "enemy.h"
 #include <string.h>
 
+BANKREF_EXTERN(combat_damage_enemy)
+
 static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
-    TILE_ITEM_3, // POTION — I3
-    TILE_ITEM_2, // SCROLL
-    TILE_ITEM_3, // KEY
+    TILE_ITEM_3, // POTION — Heal Potion
+    TILE_SCROLL_BELT_OFF, // SCROLL — I11 art at TILE_SCROLL_I11_VRAM
+    TILE_BIGHEAL_BELT_OFF, // KEY — BigHeal; I12 at TILE_BIGHEAL_I12_VRAM
     TILE_ITEM_5, // GEM
 };
 
 static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
-    PAL_LIFE_UI, // POTION — red ramp
-    PAL_XP_UI,   // SCROLL — gold ramp
-    PAL_UI,      // KEY    — white/grey
-    PAL_LADDER,  // GEM    — warm fire ramp
+    PAL_LIFE_UI, // POTION
+    PAL_XP_UI,   // SCROLL
+    PAL_LIFE_UI, // KEY
+    PAL_LADDER,  // GEM
 };
 
 static const char *const kind_name[ITEM_KIND_COUNT] = {
-    "POTION", "SCROLL", "KEY", "GEM",
+    "Heal Potion", "SCROLL", "BigHeal Potion", "GEM",
 };
 
 uint8_t items_kind_tile(uint8_t kind) BANKED {
@@ -85,7 +90,7 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
     {
         char log[20];
         const char *prefix = "Used ";
-        char namebuf[10];
+        char namebuf[18];
         uint8_t i = 0u, k = 0u;
         items_kind_name_copy(kind, namebuf, sizeof namebuf);
         while (prefix[i]) { log[i] = prefix[i]; i++; }
@@ -94,9 +99,19 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
         ui_combat_log_push(log);
     }
     if (kind == ITEM_KIND_POTION) {
-        uint8_t heal = 5u;
-        if ((uint16_t)player_hp + (uint16_t)heal >= (uint16_t)player_hp_max) player_hp = player_hp_max;
-        else player_hp = (uint8_t)(player_hp + heal);
+        uint16_t heal = (uint16_t)player_hp_max / 2u; // half max HP (integer div)
+        if ((uint16_t)player_hp + heal >= (uint16_t)player_hp_max) player_hp = player_hp_max;
+        else player_hp = (uint8_t)((uint16_t)player_hp + heal);
+    } else if (kind == ITEM_KIND_SCROLL) { // loop here — keep combat.c smaller (bank 2 was over capacity)
+        uint8_t ei, any = 0u;
+        lcd_hp_panic_flash_trigger();
+        for (ei = 0u; ei < num_enemies; ei++) {
+            if (!enemy_alive[ei]) continue;
+            if (combat_damage_enemy(ei, 255u, 0u)) any = 1u;
+        }
+        if (any) out->did_kill = 1u;
+    } else if (kind == ITEM_KIND_KEY) {
+        player_hp = player_hp_max;
     }
     inventory_remove(item_idx);
     out->consumed_turn = 1u;

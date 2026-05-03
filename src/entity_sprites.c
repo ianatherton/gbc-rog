@@ -39,6 +39,7 @@ static uint8_t player_cache_tx, player_cache_ty; // last refresh tile — VBL hu
 static uint8_t player_aura_vbl_sub;               // counts VBL within one A/B hold window
 static uint8_t player_aura_ab_idx;               // 0 = tile A, 1 = tile B — toggles each PLAYER_AURA_TOGGLE_VBL
 static uint8_t projectile_overrides_aura;        // 1: slot 0 is bolt/fireball — skip aura VBL/refresh so FX draws above SP_PLAYER
+static uint8_t level_up_smile_ttl;               // >0: aura slot shows TILE_LEVELUP_SMILE_VRAM instead of M15/M16
 
 static int8_t pl_ofs_x, pl_ofs_y;                    // attack lunge (player)
 static int8_t en_ofs_x[MAX_ENEMIES], en_ofs_y[MAX_ENEMIES]; // per-slot lunge
@@ -48,6 +49,7 @@ static uint8_t en_hit_flash_age[MAX_ENEMIES];       // 0 off; 1..ENEMY_HIT_FLASH
 #define ENEMY_POOF_DURATION_VBL 22u // ~370ms @60Hz — overlaps corpse then clears
 #define ENEMY_HIT_FLASH_VBL     8u // two 2-VBL pulses OCP0 vs native — ages 1..8 then clear
 #define PLAYER_AURA_TOGGLE_VBL  15u // ~0.25s @ ~60Hz — M15 ↔ M16 (was every VBL; too fast to read)
+#define LEVEL_UP_SMILE_DURATION_VBL 120u // 2s @~60Hz VBL — L10 smile replaces aura toggle while active
 
 static uint8_t lunge_amt_for_frame(uint8_t t) { // 0 .. 4 .. 0 over ENTITY_LUNGE_FRAMES (keep FRAMES >= 4)
     uint8_t last = (uint8_t)(ENTITY_LUNGE_FRAMES - 1u);
@@ -207,6 +209,7 @@ void entity_sprites_init(void) {
     ladder_cache_valid = 0u;
     player_aura_vbl_sub = 0u;
     player_aura_ab_idx = 0u;
+    level_up_smile_ttl = 0u;
     for (i = 0; i < 40u; i++) oam_hide(i);
     SHOW_SPRITES;
 }
@@ -214,6 +217,10 @@ void entity_sprites_init(void) {
 void entity_sprites_set_player_facing(int8_t dir_x) {
     if (dir_x < 0) player_flip_x = 1u;
     else if (dir_x > 0) player_flip_x = 0u;
+}
+
+void entity_sprites_level_up_fx_trigger(void) {
+    level_up_smile_ttl = LEVEL_UP_SMILE_DURATION_VBL;
 }
 
 void entity_sprites_player_hurt_flash(void) {
@@ -250,11 +257,20 @@ static uint8_t player_aura_tile_vram(void) {
     return player_aura_ab_idx ? TILE_PLAYER_AURA_VRAM_B : TILE_PLAYER_AURA_VRAM_A;
 }
 
+static uint8_t player_aura_oam_tile(void) { // level-up smile overrides gold flicker
+    return (level_up_smile_ttl > 0u) ? (uint8_t)TILE_LEVELUP_SMILE_VRAM : player_aura_tile_vram();
+}
+
+static int16_t player_aura_oam_y(int16_t ay) { // +3 matches default gold aura; smile −8px = one tile higher
+    if (level_up_smile_ttl > 0u) return (int16_t)(ay + 3 - 8);
+    return (int16_t)(ay + 3);
+}
+
 static void refresh_player_aura_oam_vbl(void) { // position every VBL; M15/M16 swap on PLAYER_AURA_TOGGLE_VBL cadence
     int16_t ax, ay;
     if (!lcd_gameplay_active || projectile_overrides_aura) return;
     player_aura_world_xy(&ax, &ay);
-    move_entity_oam(SP_PLAYER_AURA_OAM, ax, (int16_t)(ay + 3), player_aura_tile_vram(), PAL_XP_UI);
+    move_entity_oam(SP_PLAYER_AURA_OAM, ax, player_aura_oam_y(ay), player_aura_oam_tile(), PAL_XP_UI);
 }
 
 static void refresh_player_oam_from_cache(void) { // player only — same math as entity_sprites_refresh player block
@@ -273,7 +289,7 @@ static void refresh_player_oam_from_cache(void) { // player only — same math a
     if (lcd_gameplay_active && !projectile_overrides_aura) {
         int16_t ax, ay;
         player_aura_world_xy(&ax, &ay);
-        move_entity_oam(SP_PLAYER_AURA_OAM, ax, (int16_t)(ay + 3), player_aura_tile_vram(), PAL_XP_UI);
+        move_entity_oam(SP_PLAYER_AURA_OAM, ax, player_aura_oam_y(ay), player_aura_oam_tile(), PAL_XP_UI);
     } else if (!lcd_gameplay_active) {
         oam_hide(SP_PLAYER_AURA_OAM);
     }
@@ -366,6 +382,7 @@ void entity_sprites_vbl_tick(void) {
     }
     if (lcd_gameplay_active) {
         uint8_t pi;
+        if (level_up_smile_ttl > 0u) level_up_smile_ttl--;
         if (++player_aura_vbl_sub >= PLAYER_AURA_TOGGLE_VBL) {
             player_aura_vbl_sub = 0u;
             player_aura_ab_idx ^= 1u;

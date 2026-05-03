@@ -7,7 +7,7 @@
 
 #define ITEM_KIND_POTION   0u
 #define ITEM_KIND_SCROLL   1u
-#define ITEM_KIND_KEY      2u
+#define ITEM_KIND_KEY      2u // BigHeal Potion in UI; enum KEY retained for saves
 #define ITEM_KIND_GEM      3u
 #define ITEM_KIND_COUNT    4u
 #define ITEM_KIND_NONE   255u

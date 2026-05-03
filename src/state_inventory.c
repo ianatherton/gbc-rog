@@ -62,7 +62,7 @@ static void clear_carets(void) { // wipe the column right of every icon (cursor 
 
 static void draw_cursor_and_name(void) {
     uint8_t cx, cy;
-    char name[10];
+    char name[18];
     cell_origin(inv_cursor, &cx, &cy);
     clear_carets();
     gotoxy((uint8_t)(cx + 1u), cy); setchar('<');

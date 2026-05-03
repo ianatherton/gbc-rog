@@ -55,6 +55,12 @@ int main(void) {
         set_bkg_data(TILESET_VRAM_OFFSET, TILESET_NTILES_VRAM, tileset_tiles);
         set_bkg_data((uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY), 1u, // K1 VRAM ← M14 empty-slot art (ROM past first 128)
             tileset_tiles + (uint16_t)TILE_SHEET_M14 * 16u);
+        set_sprite_data(TILE_LEVELUP_SMILE_VRAM, 1u, // L10 smile — level-up aura (sheet past first 128)
+            tileset_tiles + (uint16_t)TILE_SMILE_L10 * 16u);
+        set_bkg_data(TILE_SCROLL_I11_VRAM, 1u, // I11 scroll — ROM past first VRAM pack
+            tileset_tiles + (uint16_t)TILE_ITEM_11 * 16u);
+        set_bkg_data(TILE_BIGHEAL_I12_VRAM, 1u, // I12 BigHeal potion
+            tileset_tiles + (uint16_t)TILE_ITEM_12 * 16u);
         set_bkg_data(TILE_WITCH_BOLT_VRAM, 1u, // dedicated VRAM tile for witch icon/projectile (M12 source is outside first 128)
             tileset_tiles + (uint16_t)TILE_SHEET_M12 * 16u);
         set_sprite_data(TILE_WITCH_BOLT_VRAM, 1u,

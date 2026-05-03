@@ -49,7 +49,7 @@ extern uint8_t pending_pickup_slot; // ground_item_* index queued for STATE_PICK
 
 /* story_ui layout constants — scratch overlays explored_bits[] before first lighting_reset (see story_ui.c) */
 #define G_STORY_BIGBUF_CAP   400u
-#define G_STORY_MAX_LINES    28u
+#define G_STORY_MAX_LINES    40u // wrap + blank lines can exceed 28; tail was dropped from story_line_off[]
 #define G_STORY_FIRE_COUNT   18u
 
 uint8_t player_light_radius(void); // class base + player_light_bonus (HOME)

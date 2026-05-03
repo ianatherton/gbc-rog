@@ -196,7 +196,7 @@ DEF l__CODE_8 0x1B7
 DEF s__CODE 0x200
 DEF l__CODE_9 0x20E
 DEF l__CODE_13 0x32A
-DEF l__CODE_14 0x969
+DEF l__CODE_14 0x96D
 DEF l__CODE_4 0xB9B
 DEF l__HOME 0xBB8
 DEF l__CODE_1 0x1108
@@ -796,5 +796,5 @@ DEF _inventory_add 0xD4106
 DEF _inventory_remove 0xD4121
 DEF _items_use_belt 0xD414B
 DEF ___func_story_ui_run_before_first_floor 0xE4000
-DEF _story_ui_run_before_first_floor 0xE4811
+DEF _story_ui_run_before_first_floor 0xE4815
 LOAD build/gbc/gbc-rog.ihx

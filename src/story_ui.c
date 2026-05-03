@@ -40,7 +40,7 @@ BANKREF(story_ui_run_before_first_floor)
 #define STORY_CRAWL_ROWS  18u // visible BKG rows used for crawl (0 = top, 17 = bottom)
 #define STORY_LEAD_LINES  20u // virtual blank doc lines before prose — bottom row stays empty until crawl reaches here
 #define STORY_FIRE_FIRST  10u
-#define STORY_SCROLL_EVERY 3u // VBlanks per crawl step (one doc line)
+#define STORY_SCROLL_EVERY 24u // VBlanks per crawl step — 4× slower than 3 (was ~20 ms/line @60Hz → ~200 ms/line)
 #define STORY_TEXT_COL0  1u  // center 18 cols in 20-tile map
 
 static const palette_color_t story_bkg_pal[] = { // pen 3 = bright red on black paper 0
@@ -72,10 +72,13 @@ static const char *const story_continents[] = {
 
 static void story_build_bigbuf(const char *cont, const char *pcl) {
     strcpy(story_bigbuf,
-        "In another world the witch-demon MARA emerged from human spite. Her town's castle became a sunken fortress of hate. Within her Crimson Keep her powers grew... Now, creeping tendrils of her rage have torn through worldly barriers into your realm.\n\n"
+        "In another world the witch-demon MARA emerged from human spite.\n\n"
+        "Her town's castle became a sunken fortress of hate.\n\n"
+        "Within her Crimson Keep her powers grew...\n\n"
+        "Now, creeping tendrils of her rage have torn through worldly barriers into your realm.\n\n"
         "Mara's evil has arrived- Here in the continent of ");
     strcat(story_bigbuf, cont);
-    strcat(story_bigbuf, " You, as the last known ");
+    strcat(story_bigbuf, "\n\nYou, as the last known ");
     strcat(story_bigbuf, pcl);
     strcat(story_bigbuf, " of repute in the region, sense a quest...");
 }

@@ -133,20 +133,20 @@ static uint8_t story_hilite_gold(uint16_t off) {
     return 0u;
 }
 
-/* Each token <= 7 letters; terminal suf2 unchanged */
+/* Each token <= 5 letters; terminal suf2 unchanged */
 static const char *const story_continent_pref[] = {
-    "Aether", "Dusk", "Iron", "Thorn", "Ash", "Storm", "Bleak", "Gold", "Rime", "Ember",
+    "Aethr", "Dusk", "Iron", "Thorn", "Ash", "Storm", "Bleak", "Gold", "Rime", "Ember",
     "Mist", "Frost", "Gloom", "Raven", "Swift", "Steel", "Stone", "Night", "Dawn", "Moon",
-    "Void", "Cloud", "Bane", "Crow", "Hawk", "Wolf", "Star", "Pale", "Dark", "Bramble",
-    "Whisper", "Crims", "Silent", "Hollow", "Winter", "Summer", "Drift", "Shadow", "Wyrm", "Fell",
+    "Void", "Cloud", "Bane", "Crow", "Hawk", "Wolf", "Star", "Pale", "Dark", "Bramb",
+    "Whisp", "Crims", "Quiet", "Holow", "Wintr", "Summr", "Drift", "Shado", "Wyrm", "Fell",
     "Grim", "Salt", "Sand", "North", "South", "East", "West", "Grey", "High", "Far",
 };
 static const char *const story_continent_suf[] = {
     "vale", "spire", "march", "wild", "fen", "coast", "moor", "leaf", "hold", "deep",
     "ford", "wold", "glen", "dale", "ridge", "brook", "crag", "peak", "haven", "mire",
     "pass", "rune", "gate", "ward", "isle", "bay", "rock", "dune", "tide", "shade",
-    "marsh", "basin", "strait", "fjord", "gulch", "chasm", "vault", "crypt", "nook", "dell",
-    "thorn", "bloom", "reach", "channel", "harbor", "summit",
+    "marsh", "basin", "strat", "fjord", "gulch", "chasm", "vault", "crypt", "nook", "dell",
+    "thorn", "bloom", "reach", "chann", "harbr", "summt",
 };
 static const char *const story_continent_suf2[] = {
     "os", "us", "od", "id", "", "es", "un", "", "",

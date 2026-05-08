@@ -80,8 +80,8 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000000F  b_scroll_ |    00000010  b_scroll_ |    00000013  l__HRAM  
      0000001A  l__INITIA |    0000001A  l__INITIA |    0000002D  l__CODE_1
      00000030  l__HEADER |    00000034  l__CODE_1 |    0000004A  l__CODE_1
-     00000059  l__CODE_7 |    00000060  l__HEADER |    0000007A  l__CODE_6
-     000000AB  l__HEADER |    000000AE  l__CODE_1 |    000000CA  l__CODE_1
+     00000059  l__CODE_7 |    00000060  l__HEADER |    00000076  l__CODE_1
+     0000007A  l__CODE_6 |    000000AB  l__HEADER |    000000AE  l__CODE_1
      000001B7  l__CODE_8 |    00000200  s__CODE   |    0000020E  l__CODE_9
      00000320  l__CODE_1 |    00000B9B  l__CODE_4 |    00000BB8  l__HOME  
      00001023  l__CODE_1 |    00001108  l__CODE_1 |    000014B9  l__CODE_3
@@ -680,7 +680,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_16               00104000    000000CA =         202. bytes (REL,CON)
+_CODE_16               00104000    00000076 =         118. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    

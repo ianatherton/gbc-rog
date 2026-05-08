@@ -15,7 +15,7 @@ static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
     TILE_SCROLL_BELT_OFF, // SCROLL (Death) — I11 art at TILE_SCROLL_I11_VRAM
     TILE_BIGHEAL_BELT_OFF,// KEY — BigHeal; I12 at TILE_BIGHEAL_I12_VRAM
     TILE_LIGHT_6,         // CANDLE
-    TILE_ITEM_6,          // SCROLL_ROOT — green vine rune
+    TILE_SCROLL_BELT_OFF, // SCROLL_ROOT — same scroll art as Death Scroll
 };
 
 static const uint8_t kind_pal[ITEM_KIND_COUNT] = {

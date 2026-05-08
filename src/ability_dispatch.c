@@ -3,8 +3,12 @@
 #include "globals.h"
 #include <string.h>
 
-// HOME-resident so any bank can safely return a pointer to this string.
-const char ability_name_swamp_root[] = "Swamp Root";
+// HOME-resident — any bank can safely return these pointers since HOME is always mapped.
+const char ability_name_holy_fire_shield[] = "Holy Fire Shield";
+const char ability_name_call_fox[]         = "Call Fox";
+const char ability_name_fetid_bolt[]       = "Fetid Bolt";
+const char ability_name_whirlwind[]        = "Whirlwind";
+const char ability_name_swamp_root[]       = "Swamp Root";
 
 BANKREF_EXTERN(ability_knight_cast_belt)
 BANKREF_EXTERN(ability_scoundrel_cast_belt)

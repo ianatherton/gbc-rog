@@ -23,6 +23,10 @@ void ability_dispatch_cast_belt(uint8_t belt_slot, uint8_t px, uint8_t py, Abili
 uint8_t ability_dispatch_belt_ready(uint8_t belt_slot);
 
 // HOME-resident spell name strings — safe to return from any bank since HOME is always mapped.
+extern const char ability_name_holy_fire_shield[];
+extern const char ability_name_call_fox[];
+extern const char ability_name_fetid_bolt[];
+extern const char ability_name_whirlwind[];
 extern const char ability_name_swamp_root[];
 
 #endif

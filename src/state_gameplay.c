@@ -69,15 +69,18 @@ static void gameplay_allies_turn_and_glide(uint8_t px, uint8_t py) {
     }
 }
 
+// Strings live in HOME (ability_dispatch.c) — always mapped, safe to return from bank 2.
 static const char *belt_name_for(uint8_t slot) {
     if (slot == 1u && player_class == 2u && player_level >= 3u) return ability_name_swamp_root;
     if (slot != 0u) return 0;
-    if (player_class == 0u) return "Holy Fire Shield"; // player_level always >=1; check removed
-    if (player_class == 1u) return "Call Fox";
-    if (player_class == 2u) return "Fetid Bolt";
-    if (player_class == 3u) return "Whirlwind";
+    if (player_class == 0u) return ability_name_holy_fire_shield;
+    if (player_class == 1u) return ability_name_call_fox;
+    if (player_class == 2u) return ability_name_fetid_bolt;
+    if (player_class == 3u) return ability_name_whirlwind;
     return 0;
 }
+
+static uint8_t select_hold_ticks;
 
 static uint8_t belt_slot_nonempty(uint8_t slot) {
     if (slot < BELT_SLOT_COUNT) return belt_name_for(slot) != 0;
@@ -178,12 +181,12 @@ void state_gameplay_tick(void) BANKED {
             look_cx = g_player_x;
             look_cy = g_player_y;
         }
-        if (edge_s & J_A) {
 #if GBC_ROG_DEBUG
+        if (edge_s & J_A) {
             wall_tileset_index = (uint8_t)(wall_tileset_index + 16u);
             if (wall_tileset_index > TILE_WALL_LAST) wall_tileset_index = TILE_WALL_FIRST;
-#endif
         }
+#endif
         if (edge_s & J_LEFT && look_cx) look_cx--;
         if (edge_s & J_RIGHT && look_cx < active_map_w - 1u) look_cx++;
         if (edge_s & J_UP && look_cy) look_cy--;
@@ -202,6 +205,7 @@ void state_gameplay_tick(void) BANKED {
             draw_gameplay_overlays_profiled(g_player_x, g_player_y); // look cursor + panel only; dungeon unchanged
         return;
     }
+#define SELECT_HOLD_RESET_FRAMES 60u // ~1 s at 60 Hz VBL
     if (lcd_gameplay_active && (j & J_SELECT)) {
         uint8_t edge_sel = (uint8_t)(j & (uint8_t)~g_prev_j);
         if (edge_sel & J_SELECT) {
@@ -209,12 +213,17 @@ void state_gameplay_tick(void) BANKED {
             push_selected_belt_description();
             wait_vbl_done();
             draw_gameplay_overlays_profiled(g_player_x, g_player_y); // belt row + selector sprite; BKG ring unchanged
+        } else if (++select_hold_ticks == SELECT_HOLD_RESET_FRAMES) {
+            selected_belt_slot = 0u;
+            wait_vbl_done();
+            draw_gameplay_overlays_profiled(g_player_x, g_player_y);
         }
         g_prev_j = j;
         wait_vbl_done();
         return;
     }
     if (lcd_gameplay_active && (g_prev_j & J_SELECT) && !(j & J_SELECT)) {
+        select_hold_ticks = 0u;
         ui_panel_show_combat();
         wait_vbl_done();
         draw_gameplay_overlays_profiled(g_player_x, g_player_y); // panel mode back to combat; BKG unchanged

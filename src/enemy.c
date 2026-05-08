@@ -11,11 +11,12 @@
 
 // enemy_defs[] is defined in biome.c (HOME) — populated from bank 10/11/12 by biome_load_active
 
-uint8_t enemy_x[MAX_ENEMIES];    // map column; ENEMY_DEAD means slot unused
-uint8_t enemy_y[MAX_ENEMIES];    // map row
-uint8_t enemy_type[MAX_ENEMIES]; // index into enemy_defs
-uint8_t enemy_hp[MAX_ENEMIES];   // hits remaining; player reduces before kill
-uint8_t num_enemies;             // live count ≤ NUM_ENEMIES after spawn
+uint8_t enemy_x[MAX_ENEMIES];      // map column; ENEMY_DEAD means slot unused
+uint8_t enemy_y[MAX_ENEMIES];      // map row
+uint8_t enemy_type[MAX_ENEMIES];   // index into enemy_defs
+uint8_t enemy_hp[MAX_ENEMIES];     // hits remaining; player reduces before kill
+uint8_t enemy_status[MAX_ENEMIES]; // root_turns counter: turns remaining skipping movement (0 = free)
+uint8_t num_enemies;               // live count ≤ NUM_ENEMIES after spawn
 
 uint8_t corpse_x[MAX_CORPSES];
 uint8_t corpse_y[MAX_CORPSES];
@@ -226,7 +227,7 @@ uint8_t corpse_deco_random(void) BANKED { return CORPSE_DECO_OFF[rand() & 1u]; }
 void spawn_enemies(void) { // random placement with collision checks
     uint8_t i;
     num_enemies = 0;
-    for (i = 0; i < MAX_ENEMIES; i++) enemy_force_active[i] = 0u;
+    for (i = 0; i < MAX_ENEMIES; i++) { enemy_force_active[i] = 0u; enemy_status[i] = 0u; }
     if (floor_num == 1u) return; // entry floor is a safe 20x20 no-monster zone
     for (i = 0; i < NUM_ENEMIES; i++) {
         uint8_t attempts;
@@ -377,6 +378,7 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
     enemy_attack_count = 0;
     for (i = 0; i < num_enemies; i++) {
         if (!enemy_alive[i]) continue;
+        if (enemy_status[i] > 0u) { enemy_status[i]--; continue; }
 
         uint8_t sx = enemy_x[i], sy = enemy_y[i];
         uint8_t nx = sx,         ny = sy; // default no move

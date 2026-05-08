@@ -5,12 +5,13 @@
 #include "ability_dispatch.h"
 #include <gbdk/platform.h>
 
-#define ITEM_KIND_POTION   0u
-#define ITEM_KIND_SCROLL   1u
-#define ITEM_KIND_KEY      2u // BigHeal Potion in UI; enum KEY retained for saves
-#define ITEM_KIND_CANDLE   3u
-#define ITEM_KIND_COUNT    4u
-#define ITEM_KIND_NONE   255u
+#define ITEM_KIND_POTION      0u
+#define ITEM_KIND_SCROLL      1u  // Death Scroll — damages all enemies
+#define ITEM_KIND_KEY         2u  // BigHeal Potion in UI; enum KEY retained for saves
+#define ITEM_KIND_CANDLE      3u
+#define ITEM_KIND_SCROLL_ROOT 4u  // Root Scroll — roots all visible enemies for 12 turns
+#define ITEM_KIND_COUNT       5u
+#define ITEM_KIND_NONE      255u
 
 #define INVENTORY_MAX_SLOTS  16u // 4x4 grid in STATE_INVENTORY
 #define MAX_GROUND_ITEMS      8u // floor-scoped pickup pool

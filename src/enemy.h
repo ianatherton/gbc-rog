@@ -22,6 +22,8 @@ extern uint8_t enemy_x[MAX_ENEMIES]; // last tile column while slot used; undefi
 extern uint8_t enemy_y[MAX_ENEMIES];
 extern uint8_t enemy_type[MAX_ENEMIES];
 extern uint8_t enemy_hp[MAX_ENEMIES];
+// root_turns: turns remaining where enemy skips movement (0 = free); set by scroll effects; cleared each floor by spawn_enemies
+extern uint8_t enemy_status[MAX_ENEMIES];
 extern uint8_t num_enemies;
 
 /* ── Spatial occupancy ────────────────────────────────────────────────────── */

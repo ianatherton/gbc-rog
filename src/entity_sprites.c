@@ -6,8 +6,11 @@
 #include "defs.h"
 #include "map.h"
 #include "ally.h"
+#include "root_icon.h"
 #include <gb/cgb.h>
 #include <string.h>
+
+BANKREF_EXTERN(root_icon_next)
 
 #define PLAYER_HURT_FLASH_DURATION_VBL 60u // 1 s at ~60 Hz VBlank
 #define PLAYER_HURT_FLASH_TOGGLE_VBL    8u // red vs gold half-beat (~7.5 full cycles/s)
@@ -15,6 +18,7 @@
 #define SP_LADDER_ARROW 36u
 #define SP_BRAZIER_FIRE 37u
 #define SP_BELT_SELECTOR 35u // fixed screen-space OAM; excluded from post-enemy hide sweep
+#define SP_ROOT_ICON     2u  // root indicator — below SP_ENEMY_BASE (3) so it draws on top of enemies
 #define BRAZIER_FIRE_TTL_VBL 12u
 
 static uint8_t brazier_fire_active;
@@ -399,6 +403,14 @@ void entity_sprites_vbl_tick(void) {
                 if (en_hit_flash_age[pi] > ENEMY_HIT_FLASH_VBL) en_hit_flash_age[pi] = 0u;
                 refresh_enemy_oam(pi);
             }
+        }
+        // Root icon — delegate cycle/search to banked root_icon_next to save HOME space
+        {
+            uint8_t rex, rey;
+            if (root_icon_next(&rex, &rey))
+                move_entity_oam(SP_ROOT_ICON, (int16_t)rex * 8, (int16_t)rey * 8, TILE_ROOT_ICON_VRAM, PAL_LIFE_UI);
+            else
+                oam_hide(SP_ROOT_ICON);
         }
     }
 }

@@ -5,6 +5,7 @@
 #include "targeting.h"
 #include "combat.h"
 #include "globals.h"
+#include "enemy.h"
 #include "defs.h"
 #include "ui.h"
 #include "entity_sprites.h"
@@ -16,6 +17,8 @@ BANKREF_EXTERN(combat_damage_enemy)
 #define WITCH_BOLT_RANGE_TILES 4u
 #define WITCH_BOLT_BURSTS      3u
 #define WITCH_BOLT_COOLDOWN    2u
+#define SWAMP_ROOT_COOLDOWN    8u
+#define SWAMP_ROOT_TURNS      12u
 
 static void push_short(const char *s) { // tiny helper — log lines are short enough to inline at call sites
     char buf[20];
@@ -60,13 +63,28 @@ static void push_recharge(uint8_t turns) {
     ui_combat_log_push(buf);
 }
 
+static void cast_swamp_root(AbilityResult *out) {
+    uint8_t ei;
+    uint8_t cam_tx = (uint8_t)(camera_px >> 3);
+    uint8_t cam_ty = (uint8_t)(camera_py >> 3);
+    for (ei = 0u; ei < num_enemies; ei++) {
+        if (!enemy_alive[ei]) continue;
+        if (enemy_x[ei] >= cam_tx && enemy_x[ei] < (uint8_t)(cam_tx + GRID_W)
+                && enemy_y[ei] >= cam_ty && enemy_y[ei] < (uint8_t)(cam_ty + GRID_H))
+            enemy_status[ei] = SWAMP_ROOT_TURNS;
+    }
+    witch_shot_cooldown_turns = SWAMP_ROOT_COOLDOWN;
+    push_short("Swamp Root!");
+    out->consumed_turn = 1u;
+}
+
 BANKREF(ability_witch_cast_belt)
 void ability_witch_cast_belt(uint8_t belt_slot, uint8_t px, uint8_t py, AbilityResult *out) BANKED {
-    (void)belt_slot; // pre-dispatch UX: B always tries witch bolt regardless of selected slot — matches legacy behavior until other slots are wired
     if (player_level < 1u) return;
     if (witch_shot_cooldown_turns > 0u) {
         push_recharge((uint8_t)(witch_shot_cooldown_turns - 1u));
         return;
     }
+    if (belt_slot == 1u && player_level >= 3u) { cast_swamp_root(out); return; }
     cast_bolt(px, py, out);
 }

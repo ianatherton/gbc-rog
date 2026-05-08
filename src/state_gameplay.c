@@ -69,12 +69,13 @@ static void gameplay_allies_turn_and_glide(uint8_t px, uint8_t py) {
     }
 }
 
-static const char *belt_name_for(uint8_t slot) { // bank-2 table — strings live here, not HOME, to keep HOME footprint tight
+static const char *belt_name_for(uint8_t slot) {
+    if (slot == 1u && player_class == 2u && player_level >= 3u) return ability_name_swamp_root;
     if (slot != 0u) return 0;
-    if (player_class == 0u && player_level >= 1u) return "Holy Fire Shield";
-    if (player_class == 1u && player_level >= 1u) return "Call Fox";
-    if (player_class == 2u && player_level >= 1u) return "Fetid Bolt";
-    if (player_class == 3u && player_level >= 1u) return "Whirlwind";
+    if (player_class == 0u) return "Holy Fire Shield"; // player_level always >=1; check removed
+    if (player_class == 1u) return "Call Fox";
+    if (player_class == 2u) return "Fetid Bolt";
+    if (player_class == 3u) return "Whirlwind";
     return 0;
 }
 

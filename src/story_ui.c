@@ -45,10 +45,10 @@ BANKREF(story_ui_run_before_first_floor)
 
 // ── Palettes ──────────────────────────────────────────────────────────────
 static const palette_color_t pal_bkg[] = {
-    RGB( 0,  0,  0), RGB( 8,  8,  8), RGB(18, 18, 18), RGB(31, 31, 31),
+    RGB(10,  2,  2), RGB(16,  5,  4), RGB(22, 10,  8), RGB(31, 31, 31),
 };
 static const palette_color_t pal_gold[] = {
-    RGB( 0,  0,  0), RGB(23,  9,  0), RGB(30, 17,  0), RGB(31, 27,  1),
+    RGB(10,  2,  2), RGB(23,  9,  0), RGB(30, 17,  0), RGB(31, 27,  1),
 };
 static const palette_color_t pal_fire[] = {
     RGB( 0,  0,  0), RGB( 6,  8, 12), RGB(31, 16,  2), RGB(31, 26,  8),
@@ -351,6 +351,8 @@ void story_ui_run_before_first_floor(void) BANKED {
 
         fire_spawn(fc);
         fire_spawn((uint16_t)(fc + 7u));
+        fire_spawn((uint16_t)(fc + 13u));
+        fire_spawn((uint16_t)(fc + 19u));
         fire_tick(fc);
         fc++;
     }

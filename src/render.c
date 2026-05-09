@@ -169,8 +169,8 @@ void draw_screen(uint8_t px, uint8_t py) { // full repaint: dungeon ring, then t
 
     apply_wall_palette(); // keep slot PAL_WALL_BG in sync after floor load or A-button cycle
 
-    for (y = 0; y < GRID_H; y++) {
-        for (x = 0; x < GRID_W; x++) {
+    for (y = 0; y < GRID_H + 1u; y++) {
+        for (x = 0; x < GRID_W + 1u; x++) {
             uint8_t mx = (uint8_t)(CAM_TX + x);
             uint8_t my = (uint8_t)(CAM_TY + y);
             draw_ring_tile((uint8_t)(mx & 31u), RING_BKG_VY_WORLD(my), mx, my);

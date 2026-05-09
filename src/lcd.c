@@ -66,6 +66,23 @@ void lcd_init_raster(void) {
     }
 }
 
+void lcd_suspend(void) {
+    CRITICAL {
+        remove_VBL(lcd_vbl_handler);
+        remove_LCD(lcd_stat_handler);
+        STAT_REG = 0;
+    }
+}
+
+void lcd_resume(void) {
+    CRITICAL {
+        STAT_REG = STATF_LYC;
+        LYC_REG  = 8u;
+        add_VBL(lcd_vbl_handler);
+        add_LCD(lcd_stat_handler);
+    }
+}
+
 void lcd_clear_display(void) { // caller must wait_vbl_done() first so LCDC is not toggled mid-scanline
     uint8_t i;
     LCDC_REG &= ~LCDCF_ON; // VRAM free of LCD timing; ~2.4k tile/attr writes + OAM well under one VBlank at double speed

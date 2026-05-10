@@ -81,7 +81,7 @@ static uint8_t belt_slot_icon_col(uint8_t slot) { // map slot 0..7 to its WIN ti
     return (uint8_t)(12u + (uint8_t)(slot - BELT_SLOT_COUNT) * 2u);                          // after ITEM label
 }
 
-static void refresh_belt_selector_oam(void) { // M5 arrow on dungeon row GRID_H-1 (above belt / window band)
+static void refresh_belt_selector_oam(void) { // M3 arrow on dungeon row GRID_H-1 (above belt / window band)
     uint8_t s, sx, sy, tt, col;
     if (!lcd_gameplay_active) {
         oam_hide(SP_BELT_SELECTOR);
@@ -90,7 +90,7 @@ static void refresh_belt_selector_oam(void) { // M5 arrow on dungeon row GRID_H-
     s = (uint8_t)(selected_belt_slot % BELT_TOTAL_SLOTS);
     tt = (uint8_t)(TILESET_VRAM_OFFSET + TILE_ARROW_LADDER);
     col = belt_slot_icon_col(s);
-    sx = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_X + 7u + (uint16_t)col * 8u - 8u); // one tile left — over slot icon (M5 art leans right)
+    sx = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_X + 7u + (uint16_t)col * 8u - 8u); // one tile left — over slot icon
     sy = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_Y + (uint16_t)(GRID_H - 1u) * 8u + 2u);
     set_sprite_tile(SP_BELT_SELECTOR, tt);
     set_sprite_prop(SP_BELT_SELECTOR, (uint8_t)(PAL_XP_UI & 7u));

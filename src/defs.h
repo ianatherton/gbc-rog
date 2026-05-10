@@ -297,9 +297,9 @@ typedef struct {
 /* ── M col — directional arrows ─────────────────────────────────────────── */
 #define TILE_ARROW_NE       12   /* M1  - top-right diagonal               */
 #define TILE_ARROW_NW       28   /* M2  - top-left diagonal                */
-#define TILE_ARROW_SW       44   /* M3  - bottom-left diagonal             */
+#define TILE_ARROW_SW       44   /* M3  - down arrow / ladder marker       */
 #define TILE_ARROW_SE       60   /* M4  - bottom-right diagonal            */
-#define TILE_ARROW_LADDER   76   /* M5  - ladder marker sprite             */
+#define TILE_ARROW_LADDER   TILE_ARROW_SW
 #define TILE_SHEET_M12     188u  /* M12 - witch bolt art in source sheet   */
 #define TILE_POOF_CLOUD    108u  /* M7  - enemy death puff (sprite; OCP0 grey/white ramp) */
 #define TILE_PLAYER_AURA_ROM_A 236u /* M15 — copied to TILE_PLAYER_AURA_VRAM_* for OBJ */

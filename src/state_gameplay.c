@@ -205,7 +205,7 @@ void state_gameplay_tick(void) BANKED {
             draw_gameplay_overlays_profiled(g_player_x, g_player_y); // look cursor + panel only; dungeon unchanged
         return;
     }
-#define SELECT_HOLD_RESET_FRAMES 60u // ~1 s at 60 Hz VBL
+#define SELECT_HOLD_RESET_FRAMES 30u // ~1 s at 60 Hz VBL
     if (lcd_gameplay_active && (j & J_SELECT)) {
         uint8_t edge_sel = (uint8_t)(j & (uint8_t)~g_prev_j);
         if (edge_sel & J_SELECT) {

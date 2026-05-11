@@ -49,6 +49,7 @@ static int8_t pl_ofs_x, pl_ofs_y;                    // attack lunge (player)
 static int8_t en_ofs_x[MAX_ENEMIES], en_ofs_y[MAX_ENEMIES]; // per-slot lunge
 static uint8_t enemy_poof_ttl[MAX_ENEMIES];          // dead slot: VBlanks left showing TILE_POOF_CLOUD (OCP0)
 static uint8_t en_hit_flash_age[MAX_ENEMIES];       // 0 off; 1..ENEMY_HIT_FLASH_VBL — grey hit pulses in refresh_enemy_oam
+static uint8_t enemy_effects_count;                 // enemies with an active poof or hit-flash; 0 = skip VBL loop entirely
 
 #define ENEMY_POOF_DURATION_VBL 22u // ~370ms @60Hz — overlaps corpse then clears
 #define ENEMY_HIT_FLASH_VBL     8u // two 2-VBL pulses OCP0 vs native — ages 1..8 then clear
@@ -188,10 +189,14 @@ static void refresh_allies_oam(void) {
 void entity_sprites_poof_clear_all(void) {
     memset(enemy_poof_ttl, 0, sizeof enemy_poof_ttl);
     memset(en_hit_flash_age, 0, sizeof en_hit_flash_age);
+    enemy_effects_count = 0u;
 }
 
 void entity_sprites_enemy_poof_begin(uint8_t slot) {
-    if (slot < MAX_ENEMIES) enemy_poof_ttl[slot] = ENEMY_POOF_DURATION_VBL;
+    if (slot < MAX_ENEMIES) {
+        if (!enemy_poof_ttl[slot]) enemy_effects_count++;
+        enemy_poof_ttl[slot] = ENEMY_POOF_DURATION_VBL;
+    }
 }
 
 void entity_sprites_init(void) {
@@ -394,14 +399,20 @@ void entity_sprites_vbl_tick(void) {
             player_aura_ab_idx ^= 1u;
         }
         refresh_player_aura_oam_vbl();
-        for (pi = 0u; pi < num_enemies; pi++) {
-            if (enemy_poof_ttl[pi] > 0u) {
-                enemy_poof_ttl[pi]--;
-                refresh_enemy_oam(pi);
-            } else if (en_hit_flash_age[pi] > 0u && enemy_alive[pi]) {
-                en_hit_flash_age[pi]++;
-                if (en_hit_flash_age[pi] > ENEMY_HIT_FLASH_VBL) en_hit_flash_age[pi] = 0u;
-                refresh_enemy_oam(pi);
+        if (enemy_effects_count) {
+            for (pi = 0u; pi < num_enemies; pi++) {
+                if (enemy_poof_ttl[pi] > 0u) {
+                    enemy_poof_ttl[pi]--;
+                    if (!enemy_poof_ttl[pi] && enemy_effects_count > 0u) enemy_effects_count--;
+                    refresh_enemy_oam(pi);
+                } else if (en_hit_flash_age[pi] > 0u && enemy_alive[pi]) {
+                    en_hit_flash_age[pi]++;
+                    if (en_hit_flash_age[pi] > ENEMY_HIT_FLASH_VBL) {
+                        en_hit_flash_age[pi] = 0u;
+                        if (enemy_effects_count > 0u) enemy_effects_count--;
+                    }
+                    refresh_enemy_oam(pi);
+                }
             }
         }
         // Root icon — delegate cycle/search to banked root_icon_next to save HOME space
@@ -459,7 +470,10 @@ void entity_sprites_refresh_all(uint8_t px, uint8_t py) {
 }
 
 void entity_sprites_enemy_hit_flash_clear(uint8_t slot) {
-    if (slot < MAX_ENEMIES) en_hit_flash_age[slot] = 0u;
+    if (slot < MAX_ENEMIES && en_hit_flash_age[slot] > 0u) {
+        en_hit_flash_age[slot] = 0u;
+        if (enemy_effects_count > 0u) enemy_effects_count--;
+    }
 }
 
 void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t dy, uint8_t hit_enemy_slot) {
@@ -471,6 +485,7 @@ void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t d
         pl_ofs_y = (int8_t)((int16_t)dy * (int16_t)a);
         entity_sprites_refresh_player_only(px, py);
         if (hit_enemy_slot < MAX_ENEMIES && enemy_alive[hit_enemy_slot] && t == mid_t) {
+            if (!en_hit_flash_age[hit_enemy_slot]) enemy_effects_count++;
             en_hit_flash_age[hit_enemy_slot] = 1u;
             refresh_enemy_oam(hit_enemy_slot);
         }

@@ -40,7 +40,6 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED; // bank 2; far-c
 
 void    floor_ground_init(uint16_t floor_seed); // per floor: visual variant seed for floor deco selection
 uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y); // sheet offset for TILE_FLOOR cell; 255 = blank tile
-uint8_t floor_tile_palette_xy(uint8_t x, uint8_t y); // CGB attr: stairs/blank ->0; floor deco -> PAL_FLOOR_BG; brazier/torch -> PAL_LADDER
 uint8_t wall_ortho_wall_count_xy(uint8_t x, uint8_t y); // count orthogonal wall neighbors from floor_bits only
 void lighting_reset(void); // clear revealed bits for new floor
 void lighting_reveal_radius(uint8_t cx, uint8_t cy, uint8_t radius); // reveal a square around center

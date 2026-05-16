@@ -588,7 +588,7 @@ void entity_sprites_run_enemy_lunges_batch(uint8_t px, uint8_t py,
 
 void entity_sprites_run_projectile(uint8_t sx, uint8_t sy, uint8_t tx, uint8_t ty, uint8_t tile_off, uint8_t pal) {
     uint8_t frame;
-    const uint8_t frames = 10u;
+    const uint8_t frames = 8u; // was 10 × 2-wait = 20 VBL; now 8 × 1-wait = 8 VBL (~133ms)
     int16_t sxw = (int16_t)sx * 8;
     int16_t syw = (int16_t)sy * 8;
     int16_t txw = (int16_t)tx * 8;
@@ -599,7 +599,6 @@ void entity_sprites_run_projectile(uint8_t sx, uint8_t sy, uint8_t tx, uint8_t t
         int16_t wy = (int16_t)(syw + ((int16_t)(tyw - syw) * frame) / frames);
         move_entity_oam(SP_PLAYER_AURA_OAM, wx, wy, (uint8_t)(TILESET_VRAM_OFFSET + tile_off), pal);
         wait_vbl_done();
-        wait_vbl_done(); // keep projectile readable; effect-only flight, not tile stepping
     }
     projectile_overrides_aura = 0u;
     entity_sprites_refresh_player_only(g_player_x, g_player_y);

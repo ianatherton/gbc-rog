@@ -75,13 +75,20 @@ static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t m
         gotoxy(sx, sy);
         if (t == TILE_FLOOR) {
             uint8_t off = floor_tile_sheet_offset(mx, my);
-            if (off == 255) {
+            uint8_t pal;
+            if (off == 255u) {
                 setchar(' ');
+                pal = 0u;
             } else {
                 uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + off);
                 set_bkg_tiles(sx, sy, 1, 1, &vram);
+                // Palette is deterministic from offset — no second brazier/item scan needed
+                if      (off == TILE_STAIRS_UP_1)  pal = 0u;
+                else if ((off & 15u) == 2u)        pal = PAL_LADDER;  // TILE_LIGHT_1..4 (col C rows 1-4: 2,18,34,50)
+                else if (off == TILE_ITEM_4)        pal = PAL_XP_UI;
+                else                               pal = PAL_FLOOR_BG;
             }
-            set_bkg_attribute_xy(sx, sy, floor_tile_palette_xy(mx, my));
+            set_bkg_attribute_xy(sx, sy, pal);
         } else if (t == TILE_WALL) {
             uint8_t n = wall_ortho_wall_count_xy(mx, my); // computed from floor_bits at draw-time to save WRAM
             uint8_t off = wall_tileset_index;

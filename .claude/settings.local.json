@@ -1,7 +1,13 @@
 {
   "permissions": {
     "allow": [
-      "Bash(make gbc *)"
+      "Bash(make gbc *)",
+      "Bash(make)",
+      "Bash(nm -S obj/gbc/map.o)",
+      "Bash(nm -S obj/gbc/render.o)",
+      "Bash(nm -S obj/gbc/camera.o)",
+      "Bash(awk '{print $2, $3}')",
+      "Bash(sort -k2 -rn)"
     ]
   }
 }

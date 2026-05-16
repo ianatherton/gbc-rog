@@ -20,7 +20,7 @@ void entity_sprites_refresh_enemy(uint8_t slot); // update one enemy OAM slot or
 void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py); // player + enemies + belt/hide sweep; no pit ladder reprobe
 void entity_sprites_refresh_all(uint8_t px, uint8_t py); // refresh_oam_only + ladder cache for pit-arrow VBL
 
-#define ENTITY_LUNGE_FRAMES       10u // ~167ms at 60Hz: snappy but readable
+#define ENTITY_LUNGE_FRAMES        8u // ~133ms at 60Hz; was 10 (~167ms)
 #define ENTITY_LUNGE_HIT_FLASH_NONE 255u // 5th arg to run_player_lunge — skip mid-strike palette pop
 void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dir_x, int8_t dir_y, uint8_t hit_enemy_slot);
 void entity_sprites_enemy_hit_flash_clear(uint8_t slot); // stop hit ramp if enemy dies same turn

@@ -166,13 +166,6 @@ uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; else ran
     }
 }
 
-uint8_t floor_tile_palette_xy(uint8_t x, uint8_t y) { // stairs + blank = B&W pal 0; E3/E4 deco = dark grey PAL_FLOOR_BG
-    if (x == player_spawn_x && y == player_spawn_y) return 0u;
-    if (brazier_index_at(x, y) != 255u) return (uint8_t)PAL_LADDER; // brazier/torch base shares ladder fire tone
-    if (ground_item_index_at(x, y) != 255u) return (uint8_t)PAL_XP_UI; // gold pop on the dungeon floor
-    if (floor_tile_is_blank(x, y)) return 0u;
-    return (uint8_t)PAL_FLOOR_BG;
-}
 
 static uint8_t is_straight_corridor(uint8_t x, uint8_t y) { // NS-only or WE-only adjacency → no junction
     uint8_t n = (y > 0       && is_walkable(x,   y-1)); // walkable north

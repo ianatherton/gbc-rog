@@ -1,6 +1,6 @@
 #include "map.h"
 
-#define LIGHTING_DIRTY_MAX 48u // knight r=4 diamond ≤41; clipped map stays within this
+#define LIGHTING_DIRTY_MAX 80u // knight r=4 diamond ≤77; 80 covers full unexplored room entry
 
 static uint8_t lighting_dirty_x[LIGHTING_DIRTY_MAX];
 static uint8_t lighting_dirty_y[LIGHTING_DIRTY_MAX];

@@ -12,10 +12,12 @@
 #include "class_palettes.h"
 #include "perf.h"
 
+BANKREF_EXTERN(entity_sprites_refresh_all)
+BANKREF_EXTERN(entity_sprites_refresh_oam_only)
+
 static const palette_color_t pal_default[]  = { RGB(0,0,0),  RGB(8,8,8),   RGB(16,16,16), RGB(31,31,31) }; // slot 0: black field, corpses, blank floor; wall paper
 static const palette_color_t pal_floor_deco[] = { RGB(0,0,0), RGB(5,5,5), RGB(11,11,11), RGB(17,17,17) }; // BKG PAL_FLOOR_BG: E3–E5 ground deco, dark grey on black
 static const palette_color_t pal_green[]    = { RGB(0,0,0),  RGB(0,20,0),  RGB(0,26,0),   RGB(0,31,0)   }; // BKG+OCP1: serpent & adder only (snakes)
-static const palette_color_t pal_player_hurt_flash[] = { RGB(0,0,0), RGB(26,0,2), RGB(31,6,8), RGB(31,14,12) }; // OCP PAL_PLAYER — brief damage tint (class ramp restored after)
 static const palette_color_t pal_ladder[]   = { RGB(0,0,0),  RGB(6,8,12),  RGB(31,16,2),  RGB(31,26,8) }; // BKG4 pit/ladder base with blue-grey shadow under warm highlights
 static const palette_color_t pal_enemy_skeleton[] = { RGB(0,0,0), RGB(8,6,20),  RGB(16,10,26), RGB(22,16,31) }; // OCP4 violet / blue-purple bone
 static const palette_color_t pal_enemy_rat[]      = { RGB(0,0,0), RGB(22,6,10), RGB(30,10,16), RGB(31,18,22) }; // OCP5 red–rose (BKG5 = life bar)
@@ -26,7 +28,11 @@ static const palette_color_t pal_ui[]       = { RGB(0,0,0),  RGB(8,8,8),   RGB(1
 static const palette_color_t pal_xp_ui[]    = { RGB(0,0,0),  RGB(23,9,0), RGB(30,17,0), RGB(31,27,1) }; // slot 7: saturated gold ramp — low B keeps hue; steps stay dark/mid/bright
 
 void render_sprite_palette_player_default(void) NONBANKED { class_palettes_sprite_player_apply(); }
-void render_sprite_palette_player_hurt(void) NONBANKED { set_sprite_palette(PAL_PLAYER, 1, pal_player_hurt_flash); }
+void render_sprite_palette_player_hurt(void) NONBANKED {
+    // stack-local: data must not be in a banked ROM section (called from entity_sprites_vbl_tick in bank 3)
+    palette_color_t pal[4] = { RGB(0,0,0), RGB(26,0,2), RGB(31,6,8), RGB(31,14,12) };
+    set_sprite_palette(PAL_PLAYER, 1u, pal);
+}
 
 static uint8_t wall_palette_hw_iw = 255u, wall_palette_hw_ip = 255u; // 255 = out of band; invalidated in load_palettes
 

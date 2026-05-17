@@ -1,4 +1,4 @@
-#pragma bank 2
+#pragma bank 3
 
 #include "class_palettes.h"
 #include "defs.h"

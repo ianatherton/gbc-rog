@@ -27,6 +27,8 @@
 BANKREF_EXTERN(ally_fox_turn_tick)
 BANKREF_EXTERN(story_ui_run_before_first_floor)
 BANKREF_EXTERN(ally_fox_run_glide)
+BANKREF_EXTERN(entity_sprites_run_enemy_glide)
+BANKREF_EXTERN(entity_sprites_set_player_facing)
 
 static uint8_t turn_snap_ex[MAX_ENEMIES], turn_snap_ey[MAX_ENEMIES], turn_snap_ea[MAX_ENEMIES]; // enemy pos before AI — file static so SDCC does not stack three 28-byte arrays in one tick()
 

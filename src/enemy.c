@@ -9,6 +9,8 @@
 #include "perf.h"
 #include <string.h>
 
+BANKREF_EXTERN(entity_sprites_enemy_poof_begin)
+
 // enemy_defs[] is defined in biome.c (HOME) — populated from bank 10/11/12 by biome_load_active
 
 uint8_t enemy_x[MAX_ENEMIES];      // map column; ENEMY_DEAD means slot unused

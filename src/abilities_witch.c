@@ -13,6 +13,7 @@
 #include <gbdk/platform.h>
 
 BANKREF_EXTERN(combat_damage_enemy)
+BANKREF_EXTERN(entity_sprites_run_projectile)
 
 #define WITCH_BOLT_RANGE_TILES 4u
 #define WITCH_BOLT_BURSTS      3u

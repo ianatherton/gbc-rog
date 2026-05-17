@@ -1,3 +1,5 @@
+#pragma bank 3
+
 #include "entity_sprites.h"
 #include "render.h"
 #include "enemy.h"
@@ -11,6 +13,7 @@
 #include <string.h>
 
 BANKREF_EXTERN(root_icon_next)
+BANKREF_EXTERN(map_pit_position)
 
 #define PLAYER_HURT_FLASH_DURATION_VBL 60u // 1 s at ~60 Hz VBlank
 #define PLAYER_HURT_FLASH_TOGGLE_VBL    8u // red vs gold half-beat (~7.5 full cycles/s)
@@ -186,20 +189,23 @@ static void refresh_allies_oam(void) {
     }
 }
 
-void entity_sprites_poof_clear_all(void) {
+BANKREF(entity_sprites_poof_clear_all)
+void entity_sprites_poof_clear_all(void) BANKED {
     memset(enemy_poof_ttl, 0, sizeof enemy_poof_ttl);
     memset(en_hit_flash_age, 0, sizeof en_hit_flash_age);
     enemy_effects_count = 0u;
 }
 
-void entity_sprites_enemy_poof_begin(uint8_t slot) {
+BANKREF(entity_sprites_enemy_poof_begin)
+void entity_sprites_enemy_poof_begin(uint8_t slot) BANKED {
     if (slot < MAX_ENEMIES) {
         if (!enemy_poof_ttl[slot]) enemy_effects_count++;
         enemy_poof_ttl[slot] = ENEMY_POOF_DURATION_VBL;
     }
 }
 
-void entity_sprites_init(void) {
+BANKREF(entity_sprites_init)
+void entity_sprites_init(void) BANKED {
     uint8_t i;
     entity_sprites_poof_clear_all();
     memset(en_ofs_x, 0, sizeof en_ofs_x);
@@ -225,16 +231,19 @@ void entity_sprites_init(void) {
     SHOW_SPRITES;
 }
 
-void entity_sprites_set_player_facing(int8_t dir_x) {
+BANKREF(entity_sprites_set_player_facing)
+void entity_sprites_set_player_facing(int8_t dir_x) BANKED {
     if (dir_x < 0) player_flip_x = 1u;
     else if (dir_x > 0) player_flip_x = 0u;
 }
 
-void entity_sprites_level_up_fx_trigger(void) {
+BANKREF(entity_sprites_level_up_fx_trigger)
+void entity_sprites_level_up_fx_trigger(void) BANKED {
     level_up_smile_ttl = LEVEL_UP_SMILE_DURATION_VBL;
 }
 
-void entity_sprites_player_hurt_flash(void) {
+BANKREF(entity_sprites_player_hurt_flash)
+void entity_sprites_player_hurt_flash(void) BANKED {
     player_hurt_flash_ttl = PLAYER_HURT_FLASH_DURATION_VBL;
 }
 
@@ -354,7 +363,8 @@ static void refresh_enemy_oam(uint8_t slot) {
     }
 }
 
-void entity_sprites_vbl_tick(void) {
+BANKREF(entity_sprites_vbl_tick)
+void entity_sprites_vbl_tick(void) BANKED {
     if (brazier_fire_active && brazier_fire_ttl > 0u) {
         brazier_fire_wy--;
         if ((brazier_fire_ttl & 1u) == 0u) brazier_fire_wx += brazier_fire_dx;
@@ -426,31 +436,36 @@ void entity_sprites_vbl_tick(void) {
     }
 }
 
-void entity_sprites_set_player_world(int16_t spr_wx, int16_t spr_wy, int16_t aura_wx, int16_t aura_wy) {
+BANKREF(entity_sprites_set_player_world)
+void entity_sprites_set_player_world(int16_t spr_wx, int16_t spr_wy, int16_t aura_wx, int16_t aura_wy) BANKED {
     player_override_wx = spr_wx;
     player_override_wy = spr_wy;
     player_override_aura_wx = aura_wx;
     player_override_aura_wy = aura_wy;
 }
 
-void entity_sprites_clear_player_world(void) {
+BANKREF(entity_sprites_clear_player_world)
+void entity_sprites_clear_player_world(void) BANKED {
     player_override_wx = -1;
     player_override_wy = -1;
     player_override_aura_wx = -1;
     player_override_aura_wy = -1;
 }
 
-void entity_sprites_refresh_player_only(uint8_t px, uint8_t py) {
+BANKREF(entity_sprites_refresh_player_only)
+void entity_sprites_refresh_player_only(uint8_t px, uint8_t py) BANKED {
     player_cache_tx = px;
     player_cache_ty = py;
     refresh_player_oam_from_cache();
 }
 
-void entity_sprites_refresh_enemy(uint8_t slot) {
+BANKREF(entity_sprites_refresh_enemy)
+void entity_sprites_refresh_enemy(uint8_t slot) BANKED {
     refresh_enemy_oam(slot);
 }
 
-void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) {
+BANKREF(entity_sprites_refresh_oam_only)
+void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) BANKED {
     uint8_t i;
     entity_sprites_refresh_player_only(px, py);
     for (i = 0; i < num_enemies; i++) refresh_enemy_oam(i);
@@ -464,19 +479,22 @@ void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) {
     refresh_allies_oam();
 }
 
-void entity_sprites_refresh_all(uint8_t px, uint8_t py) {
+BANKREF(entity_sprites_refresh_all)
+void entity_sprites_refresh_all(uint8_t px, uint8_t py) BANKED {
     ladder_cache_valid = map_pit_position(&ladder_cache_mx, &ladder_cache_my);
     entity_sprites_refresh_oam_only(px, py);
 }
 
-void entity_sprites_enemy_hit_flash_clear(uint8_t slot) {
+BANKREF(entity_sprites_enemy_hit_flash_clear)
+void entity_sprites_enemy_hit_flash_clear(uint8_t slot) BANKED {
     if (slot < MAX_ENEMIES && en_hit_flash_age[slot] > 0u) {
         en_hit_flash_age[slot] = 0u;
         if (enemy_effects_count > 0u) enemy_effects_count--;
     }
 }
 
-void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t dy, uint8_t hit_enemy_slot) {
+BANKREF(entity_sprites_run_player_lunge)
+void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t dy, uint8_t hit_enemy_slot) BANKED {
     uint8_t t;
     uint8_t mid_t = (uint8_t)(ENTITY_LUNGE_FRAMES >> 1); // strike read lands halfway through lunge arc
     for (t = 0; t < ENTITY_LUNGE_FRAMES; t++) {
@@ -495,9 +513,10 @@ void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t d
     entity_sprites_refresh_player_only(px, py);
 }
 
+BANKREF(entity_sprites_run_enemy_glide)
 void entity_sprites_run_enemy_glide(uint8_t px, uint8_t py,
                                      const uint8_t *old_ex, const uint8_t *old_ey,
-                                     const uint8_t *old_alive) {
+                                     const uint8_t *old_alive) BANKED {
     uint8_t i, any = 0, dirty_count = 0;
     uint8_t dirty_slots[MAX_ENEMIES];
     (void)px;
@@ -533,7 +552,8 @@ void entity_sprites_run_enemy_glide(uint8_t px, uint8_t py,
     for (i = 0; i < dirty_count; i++) entity_sprites_refresh_enemy(dirty_slots[i]);
 }
 
-void entity_sprites_run_enemy_lunge(uint8_t px, uint8_t py, uint8_t slot, uint8_t tgx, uint8_t tgy) {
+BANKREF(entity_sprites_run_enemy_lunge)
+void entity_sprites_run_enemy_lunge(uint8_t px, uint8_t py, uint8_t slot, uint8_t tgx, uint8_t tgy) BANKED {
     uint8_t t;
     int8_t sx = (int8_t)tgx - (int8_t)enemy_x[slot];
     int8_t sy = (int8_t)tgy - (int8_t)enemy_y[slot];
@@ -554,8 +574,9 @@ void entity_sprites_run_enemy_lunge(uint8_t px, uint8_t py, uint8_t slot, uint8_
     entity_sprites_refresh_enemy(slot);
 }
 
+BANKREF(entity_sprites_run_enemy_lunges_batch)
 void entity_sprites_run_enemy_lunges_batch(uint8_t px, uint8_t py,
-                                            const uint8_t *slots, uint8_t count) { // all attackers lunge toward player simultaneously
+                                            const uint8_t *slots, uint8_t count) BANKED { // all attackers lunge toward player simultaneously
     int8_t dir_x[MAX_ENEMIES], dir_y[MAX_ENEMIES];
     uint8_t i, t;
     for (i = 0; i < count; i++) {
@@ -586,7 +607,8 @@ void entity_sprites_run_enemy_lunges_batch(uint8_t px, uint8_t py,
     for (i = 0; i < count; i++) entity_sprites_refresh_enemy(slots[i]);
 }
 
-void entity_sprites_run_projectile(uint8_t sx, uint8_t sy, uint8_t tx, uint8_t ty, uint8_t tile_off, uint8_t pal) {
+BANKREF(entity_sprites_run_projectile)
+void entity_sprites_run_projectile(uint8_t sx, uint8_t sy, uint8_t tx, uint8_t ty, uint8_t tile_off, uint8_t pal) BANKED {
     uint8_t frame;
     const uint8_t frames = 8u; // was 10 × 2-wait = 20 VBL; now 8 × 1-wait = 8 VBL (~133ms)
     int16_t sxw = (int16_t)sx * 8;

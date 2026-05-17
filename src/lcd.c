@@ -3,6 +3,8 @@
 #include "ui.h"   // ui_loading_vblank — no cycle: ui.h does not include lcd.h
 #include "entity_sprites.h" // entity_sprites_vbl_tick
 
+BANKREF_EXTERN(entity_sprites_vbl_tick)
+
 uint8_t  lcd_gameplay_active;   // BSS 0 — title/state screens drive transitions to gameplay
 volatile int8_t lcd_shake_x;
 volatile int8_t lcd_shake_y;

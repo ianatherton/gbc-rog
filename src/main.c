@@ -20,6 +20,7 @@ BANKREF_EXTERN(state_pickup_enter)
 BANKREF_EXTERN(state_pickup_tick)
 BANKREF_EXTERN(state_transition_enter)
 BANKREF_EXTERN(tileset)
+BANKREF_EXTERN(entity_sprites_init)
 #include "lcd.h"
 #include "entity_sprites.h"
 #include "music.h"

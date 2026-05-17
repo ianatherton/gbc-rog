@@ -13,6 +13,14 @@
 #include <gb/gb.h>
 #include <gbdk/platform.h>
 
+BANKREF_EXTERN(entity_sprites_level_up_fx_trigger)
+BANKREF_EXTERN(entity_sprites_enemy_hit_flash_clear)
+BANKREF_EXTERN(entity_sprites_enemy_poof_begin)
+BANKREF_EXTERN(entity_sprites_run_player_lunge)
+BANKREF_EXTERN(entity_sprites_run_enemy_lunges_batch)
+BANKREF_EXTERN(entity_sprites_player_hurt_flash)
+BANKREF_EXTERN(entity_sprites_run_projectile)
+
 static void grant_xp_from_kill(uint8_t enemy_damage) {
     uint16_t next_level_xp;
     uint8_t  did_level = 0;

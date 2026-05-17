@@ -51,7 +51,7 @@ void lighting_dirty_clear(void); // after painting dirty cells (optional hygiene
 
 uint8_t nearest_nav_node(uint8_t x, uint8_t y); // for mapping entity tiles to graph
 uint8_t nav_next_step(uint8_t from, uint8_t to); // BFS first hop on nav graph
-uint8_t map_pit_position(uint8_t *x, uint8_t *y); // 1 when floor has a down-ladder pit coordinate
+uint8_t map_pit_position(uint8_t *x, uint8_t *y) BANKED; // 1 when floor has a down-ladder pit coordinate
 
 uint8_t ground_item_index_at(uint8_t x, uint8_t y) BANKED; // ground_item_* slot at (x,y), 255 = none
 void    ground_item_kill(uint8_t slot) BANKED; // remove a ground item (pickup or discard)

@@ -16,6 +16,7 @@
 #include <rand.h>
 
 BANKREF_EXTERN(ally_clear_all)
+BANKREF_EXTERN(entity_sprites_poof_clear_all)
 
 uint8_t floor_bits[BITSET_BYTES]; // 1 = open tile (floor or pit); 0 = wall
 uint8_t pit_bits[BITSET_BYTES];   // subset of floor: 1 = pit hazard
@@ -71,7 +72,8 @@ static uint8_t brazier_index_at(uint8_t x, uint8_t y) {
     return 255u;
 }
 
-uint8_t map_pit_position(uint8_t *x, uint8_t *y) {
+BANKREF(map_pit_position)
+uint8_t map_pit_position(uint8_t *x, uint8_t *y) BANKED {
     if (!pit_present) return 0u;
     *x = pit_x;
     *y = pit_y;

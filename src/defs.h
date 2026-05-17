@@ -145,6 +145,7 @@ typedef struct {
 
 /* ── Timing ──────────────────────────────────────────────────────────────── */
 #define SCROLL_SPEED 1 // px/frame; 2 = 4-frame glide per tile (smooth); 4 was snappy but visible jump
+#define ENEMY_GLIDE_SPEED 2u // px/frame for enemy slide; faster than SCROLL_SPEED is fine — nobody notices the difference
 #define TURN_DELAY_MS 0 // extra ms after each resolved turn; 0 = only VBlank/scroll pacing (see main.c guard)
 
 /* ── Logical tile IDs (returned by tile_at() for render compatibility) ───── */

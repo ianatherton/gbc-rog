@@ -537,19 +537,16 @@ void entity_sprites_run_enemy_glide(uint8_t px, uint8_t py,
         any = 0;
         for (i = 0; i < dirty_count; i++) {
             uint8_t s = dirty_slots[i];
-            if (en_ofs_x[s] > 0) en_ofs_x[s] = (en_ofs_x[s] > (int8_t)SCROLL_SPEED) ? (int8_t)(en_ofs_x[s] - SCROLL_SPEED) : 0;
-            else if (en_ofs_x[s] < 0) en_ofs_x[s] = (en_ofs_x[s] < -(int8_t)SCROLL_SPEED) ? (int8_t)(en_ofs_x[s] + SCROLL_SPEED) : 0;
-            if (en_ofs_y[s] > 0) en_ofs_y[s] = (en_ofs_y[s] > (int8_t)SCROLL_SPEED) ? (int8_t)(en_ofs_y[s] - SCROLL_SPEED) : 0;
-            else if (en_ofs_y[s] < 0) en_ofs_y[s] = (en_ofs_y[s] < -(int8_t)SCROLL_SPEED) ? (int8_t)(en_ofs_y[s] + SCROLL_SPEED) : 0;
+            if (en_ofs_x[s] > 0) en_ofs_x[s] = (en_ofs_x[s] > (int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_x[s] - ENEMY_GLIDE_SPEED) : 0;
+            else if (en_ofs_x[s] < 0) en_ofs_x[s] = (en_ofs_x[s] < -(int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_x[s] + ENEMY_GLIDE_SPEED) : 0;
+            if (en_ofs_y[s] > 0) en_ofs_y[s] = (en_ofs_y[s] > (int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_y[s] - ENEMY_GLIDE_SPEED) : 0;
+            else if (en_ofs_y[s] < 0) en_ofs_y[s] = (en_ofs_y[s] < -(int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_y[s] + ENEMY_GLIDE_SPEED) : 0;
             if (en_ofs_x[s] || en_ofs_y[s]) any = 1;
         }
-        for (i = 0; i < dirty_count; i++) entity_sprites_refresh_enemy(dirty_slots[i]);
+        for (i = 0; i < dirty_count; i++) refresh_enemy_oam(dirty_slots[i]);
         wait_vbl_done();
         if (!any) break;
     }
-    memset(en_ofs_x, 0, sizeof en_ofs_x);
-    memset(en_ofs_y, 0, sizeof en_ofs_y);
-    for (i = 0; i < dirty_count; i++) entity_sprites_refresh_enemy(dirty_slots[i]);
 }
 
 BANKREF(entity_sprites_run_enemy_lunge)

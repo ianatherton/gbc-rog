@@ -50,6 +50,7 @@ static uint8_t level_up_smile_ttl;               // >0: aura slot shows TILE_LEV
 
 static int8_t pl_ofs_x, pl_ofs_y;                    // attack lunge (player)
 static int8_t en_ofs_x[MAX_ENEMIES], en_ofs_y[MAX_ENEMIES]; // per-slot lunge
+static int8_t ally_ofs_x[MAX_ALLIES], ally_ofs_y[MAX_ALLIES]; // walk glide offsets (stepped during camera scroll)
 static uint8_t enemy_poof_ttl[MAX_ENEMIES];          // dead slot: VBlanks left showing TILE_POOF_CLOUD (OCP0)
 static uint8_t en_hit_flash_age[MAX_ENEMIES];       // 0 off; 1..ENEMY_HIT_FLASH_VBL — grey hit pulses in refresh_enemy_oam
 static uint8_t enemy_effects_count;                 // enemies with an active poof or hit-flash; 0 = skip VBL loop entirely
@@ -179,7 +180,7 @@ static void refresh_allies_oam(void) {
                 oam_hide((uint8_t)(SP_ALLY_BASE + i));
                 continue;
             }
-            move_entity_oam((uint8_t)(SP_ALLY_BASE + i), (int16_t)fx * 8, (int16_t)fy * 8,
+            move_entity_oam((uint8_t)(SP_ALLY_BASE + i), (int16_t)fx * 8 + ally_ofs_x[i], (int16_t)fy * 8 + ally_ofs_y[i],
                     TILE_FOX_J9_VRAM, PAL_ENEMY_BAT);
             break;
         default:
@@ -193,6 +194,8 @@ BANKREF(entity_sprites_poof_clear_all)
 void entity_sprites_poof_clear_all(void) BANKED {
     memset(enemy_poof_ttl, 0, sizeof enemy_poof_ttl);
     memset(en_hit_flash_age, 0, sizeof en_hit_flash_age);
+    memset(ally_ofs_x, 0, sizeof ally_ofs_x);
+    memset(ally_ofs_y, 0, sizeof ally_ofs_y);
     enemy_effects_count = 0u;
 }
 
@@ -511,6 +514,58 @@ void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t d
     }
     pl_ofs_x = pl_ofs_y = 0;
     entity_sprites_refresh_player_only(px, py);
+}
+
+BANKREF(entity_sprites_enemy_glide_begin)
+void entity_sprites_enemy_glide_begin(const uint8_t *old_ex, const uint8_t *old_ey,
+                                       const uint8_t *old_alive) BANKED {
+    uint8_t i;
+    for (i = 0; i < num_enemies; i++) {
+        if (!enemy_alive[i] || !old_alive[i]) {
+            en_ofs_x[i] = 0; en_ofs_y[i] = 0;
+        } else {
+            en_ofs_x[i] = (int8_t)(((int16_t)old_ex[i] - (int16_t)enemy_x[i]) * 8);
+            en_ofs_y[i] = (int8_t)(((int16_t)old_ey[i] - (int16_t)enemy_y[i]) * 8);
+        }
+    }
+}
+
+BANKREF(entity_sprites_enemy_glide_step)
+void entity_sprites_enemy_glide_step(void) BANKED {
+    uint8_t i;
+    for (i = 0; i < num_enemies; i++) {
+        if (en_ofs_x[i] > 0) en_ofs_x[i] = (en_ofs_x[i] > (int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_x[i] - ENEMY_GLIDE_SPEED) : 0;
+        else if (en_ofs_x[i] < 0) en_ofs_x[i] = (en_ofs_x[i] < -(int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_x[i] + ENEMY_GLIDE_SPEED) : 0;
+        if (en_ofs_y[i] > 0) en_ofs_y[i] = (en_ofs_y[i] > (int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_y[i] - ENEMY_GLIDE_SPEED) : 0;
+        else if (en_ofs_y[i] < 0) en_ofs_y[i] = (en_ofs_y[i] < -(int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_y[i] + ENEMY_GLIDE_SPEED) : 0;
+    }
+    for (i = 0; i < MAX_ALLIES; i++) {
+        if (ally_ofs_x[i] > 0) ally_ofs_x[i] = (ally_ofs_x[i] > (int8_t)ALLY_GLIDE_SPEED) ? (int8_t)(ally_ofs_x[i] - ALLY_GLIDE_SPEED) : 0;
+        else if (ally_ofs_x[i] < 0) ally_ofs_x[i] = (ally_ofs_x[i] < -(int8_t)ALLY_GLIDE_SPEED) ? (int8_t)(ally_ofs_x[i] + ALLY_GLIDE_SPEED) : 0;
+        if (ally_ofs_y[i] > 0) ally_ofs_y[i] = (ally_ofs_y[i] > (int8_t)ALLY_GLIDE_SPEED) ? (int8_t)(ally_ofs_y[i] - ALLY_GLIDE_SPEED) : 0;
+        else if (ally_ofs_y[i] < 0) ally_ofs_y[i] = (ally_ofs_y[i] < -(int8_t)ALLY_GLIDE_SPEED) ? (int8_t)(ally_ofs_y[i] + ALLY_GLIDE_SPEED) : 0;
+    }
+}
+
+BANKREF(entity_sprites_ally_glide_begin)
+void entity_sprites_ally_glide_begin(const uint8_t *old_ax, const uint8_t *old_ay,
+                                      const uint8_t *old_aa) BANKED {
+    uint8_t i;
+    for (i = 0; i < MAX_ALLIES; i++) {
+        if (!ally_active[i] || !old_aa[i]) {
+            ally_ofs_x[i] = 0; ally_ofs_y[i] = 0;
+        } else {
+            int16_t dx = ((int16_t)old_ax[i] - (int16_t)ally_x[i]) * 8;
+            int16_t dy = ((int16_t)old_ay[i] - (int16_t)ally_y[i]) * 8;
+            if (dx < -120 || dx > 120 || dy < -120 || dy > 120) {
+                ally_ofs_x[i] = 0; ally_ofs_y[i] = 0; // teleport — appear instantly
+            } else {
+                // Cap to ±8px (one tile) so glide always converges within the 8-frame scroll window
+                ally_ofs_x[i] = (int8_t)(dx < -8 ? -8 : dx > 8 ? 8 : dx);
+                ally_ofs_y[i] = (int8_t)(dy < -8 ? -8 : dy > 8 ? 8 : dy);
+            }
+        }
+    }
 }
 
 BANKREF(entity_sprites_run_enemy_glide)

@@ -289,9 +289,7 @@ static void step_nav_chase(uint8_t sx, uint8_t sy,
         return;
     }
 
-    if (next_hop_cache[enemy_node] == NAV_NO_LINK)
-        next_hop_cache[enemy_node] = nav_next_step(enemy_node, player_node);
-    uint8_t next_node = next_hop_cache[enemy_node];
+    uint8_t next_node = next_hop_cache[enemy_node]; // filled once upfront by nav_fill_hops_from
     if (next_node == NAV_NO_LINK) { // BFS failed (disconnected)
         step_direct(sx, sy, px, py, nx, ny);
         return;
@@ -375,8 +373,8 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
     uint8_t perf_stamp = perf_stamp_now();
     uint8_t i;
     uint8_t player_node = nearest_nav_node(px, py);
-    uint8_t next_hop_cache[MAX_NAV_NODES];
-    for (i = 0; i < MAX_NAV_NODES; i++) next_hop_cache[i] = NAV_NO_LINK;
+    uint8_t next_hop_cache[MAX_NAV_NODES]; // hop_out[n] = next node from n toward player_node
+    nav_fill_hops_from(player_node, next_hop_cache);
     enemy_attack_count = 0;
     for (i = 0; i < num_enemies; i++) {
         if (!enemy_alive[i]) continue;

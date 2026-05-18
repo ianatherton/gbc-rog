@@ -50,7 +50,7 @@ uint8_t lighting_dirty_overflow(void); // 1 if last reveal exceeded buffer — u
 void lighting_dirty_clear(void); // after painting dirty cells (optional hygiene between reveals)
 
 uint8_t nearest_nav_node(uint8_t x, uint8_t y); // for mapping entity tiles to graph
-uint8_t nav_next_step(uint8_t from, uint8_t to); // BFS first hop on nav graph
+void    nav_fill_hops_from(uint8_t player_node, uint8_t *hop_out); // single BFS; hop_out[n] = first hop from n toward player_node
 uint8_t map_pit_position(uint8_t *x, uint8_t *y) BANKED; // 1 when floor has a down-ladder pit coordinate
 
 uint8_t ground_item_index_at(uint8_t x, uint8_t y) BANKED; // ground_item_* slot at (x,y), 255 = none

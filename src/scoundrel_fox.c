@@ -22,6 +22,9 @@ BANKREF_EXTERN(enemy_at)
 #define FOX_LEASH_CHEB  5u
 #define FOX_AGGRO_CHEB  4u
 
+static const int8_t fox_adj_ox[8] = { -1, 0, 1, -1, 1, -1, 0, 1 };
+static const int8_t fox_adj_oy[8] = { -1, -1, -1, 0, 0, 1, 1, 1 };
+
 static uint8_t cheb_dist(uint8_t ax, uint8_t ay, uint8_t bx, uint8_t by) {
     uint8_t dx = (ax > bx) ? (uint8_t)(ax - bx) : (uint8_t)(bx - ax);
     uint8_t dy = (ay > by) ? (uint8_t)(ay - by) : (uint8_t)(by - ay);
@@ -95,15 +98,13 @@ static uint8_t fox_pick_aggro_target(uint8_t px, uint8_t py) {
 
 BANKREF(ally_fox_summon)
 void ally_fox_summon(uint8_t slot, uint8_t px, uint8_t py) BANKED {
-    static const int8_t OX[8] = { -1, 0, 1, -1, 1, -1, 0, 1 };
-    static const int8_t OY[8] = { -1, -1, -1, 0, 0, 1, 1, 1 };
     uint8_t start = (uint8_t)(rand() & 7u);
     uint8_t t;
     if (slot >= MAX_ALLIES) return;
     for (t = 0; t < 8u; t++) {
         uint8_t i = (uint8_t)((start + t) & 7u);
-        int16_t x = (int16_t)px + OX[i];
-        int16_t y = (int16_t)py + OY[i];
+        int16_t x = (int16_t)px + fox_adj_ox[i];
+        int16_t y = (int16_t)py + fox_adj_oy[i];
         if (x < 0 || x >= MAP_W || y < 0 || y >= MAP_H) continue;
         { uint8_t ux = (uint8_t)x, uy = (uint8_t)y;
           if (!is_walkable(ux, uy)) continue;
@@ -133,10 +134,10 @@ void ally_fox_run_glide(uint8_t slot, uint8_t old_fx, uint8_t old_fy) BANKED {
     if (!gx && !gy) return;
     while (1) {
         uint8_t any = 0u;
-        if (gx > 0) gx = (gx > (int8_t)SCROLL_SPEED) ? (int8_t)(gx - SCROLL_SPEED) : 0;
-        else if (gx < 0) gx = (gx < -(int8_t)SCROLL_SPEED) ? (int8_t)(gx + SCROLL_SPEED) : 0;
-        if (gy > 0) gy = (gy > (int8_t)SCROLL_SPEED) ? (int8_t)(gy - SCROLL_SPEED) : 0;
-        else if (gy < 0) gy = (gy < -(int8_t)SCROLL_SPEED) ? (int8_t)(gy + SCROLL_SPEED) : 0;
+        if (gx > 0) gx = (gx > (int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(gx - ENEMY_GLIDE_SPEED) : 0;
+        else if (gx < 0) gx = (gx < -(int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(gx + ENEMY_GLIDE_SPEED) : 0;
+        if (gy > 0) gy = (gy > (int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(gy - ENEMY_GLIDE_SPEED) : 0;
+        else if (gy < 0) gy = (gy < -(int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(gy + ENEMY_GLIDE_SPEED) : 0;
         if (gx || gy) any = 1u;
         {
             uint8_t sp = (uint8_t)(SP_ALLY_BASE + slot);
@@ -165,6 +166,29 @@ uint8_t ally_fox_turn_tick(uint8_t slot, uint8_t px, uint8_t py) BANKED {
     if (slot >= MAX_ALLIES || !ally_active[slot] || ally_type[slot] != ALLY_TYPE_FOX
             || player_class != 1u)
         return 0u;
+
+    // Teleport back next to player if fox has wandered off-screen
+    if (ally_x[slot] < CAM_TX || ally_x[slot] >= (uint8_t)(CAM_TX + GRID_W)
+            || ally_y[slot] < CAM_TY || ally_y[slot] >= (uint8_t)(CAM_TY + GRID_H)) {
+        uint8_t t, placed = 0u;
+        uint8_t start = (uint8_t)(rand() & 7u);
+        for (t = 0u; t < 8u && !placed; t++) {
+            uint8_t ri = (uint8_t)((start + t) & 7u);
+            int16_t rx = (int16_t)px + fox_adj_ox[ri];
+            int16_t ry = (int16_t)py + fox_adj_oy[ri];
+            if (rx < 0 || rx >= MAP_W || ry < 0 || ry >= MAP_H) continue;
+            { uint8_t ux = (uint8_t)rx, uy = (uint8_t)ry;
+              if (!is_walkable(ux, uy)) continue;
+              if (tile_at(ux, uy) == TILE_PIT) continue;
+              if (enemy_at(ux, uy) != ENEMY_DEAD) continue;
+              ally_x[slot] = ux;
+              ally_y[slot] = uy;
+              placed = 1u;
+            }
+        }
+        if (!placed) { ally_x[slot] = px; ally_y[slot] = py; } // fallback: on player tile
+        ally_chase_ei[slot] = ENEMY_DEAD; // reset targeting after teleport
+    }
 
     if (cheb_dist(ally_x[slot], ally_y[slot], px, py) > FOX_LEASH_CHEB)
         ally_chase_ei[slot] = ENEMY_DEAD;

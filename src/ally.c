@@ -4,6 +4,7 @@
 #include <gbdk/platform.h>
 
 BANKREF_EXTERN(ally_fox_summon)
+BANKREF_EXTERN(ally_fox_turn_tick)
 
 BANKREF(ally_clear_slot)
 void ally_clear_slot(uint8_t s) {
@@ -38,9 +39,29 @@ uint8_t ally_has_type(uint8_t t) {
     return 0u;
 }
 
+// Walk-step helpers: split AI tick from glide so camera can start between them.
+// Lives in HOME so bank 2 (state_gameplay) doesn't pay for the loop code.
+void ally_walk_tick_and_snap(uint8_t px, uint8_t py,
+                              uint8_t *snap_x, uint8_t *snap_y, uint8_t *snap_a) {
+    uint8_t i;
+    for (i = 0u; i < MAX_ALLIES; i++) {
+        snap_x[i] = ally_x[i];
+        snap_y[i] = ally_y[i];
+        snap_a[i] = ally_active[i];
+    }
+    for (i = 0u; i < MAX_ALLIES; i++) {
+        if (!snap_a[i]) continue;
+        if (ally_type[i] == ALLY_TYPE_FOX)
+            (void)ally_fox_turn_tick(i, px, py);
+    }
+}
+
+
 BANKREF(ally_summon_fox)
 void ally_summon_fox(uint8_t px, uint8_t py) {
-    uint8_t s = ally_find_free_slot();
+    uint8_t s;
+    if (ally_has_type(ALLY_TYPE_FOX)) return; // only one fox at a time
+    s = ally_find_free_slot();
     if (s == 255u) return;
     ally_fox_summon(s, px, py);
 }

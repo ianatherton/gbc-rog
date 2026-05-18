@@ -13,6 +13,7 @@ BANKREF_EXTERN(entity_sprites_set_player_world)
 BANKREF_EXTERN(entity_sprites_clear_player_world)
 BANKREF_EXTERN(entity_sprites_refresh_oam_only)
 BANKREF_EXTERN(entity_sprites_refresh_all)
+BANKREF_EXTERN(entity_sprites_enemy_glide_step)
 
 BANKREF(camera_init)
 
@@ -37,6 +38,7 @@ static void player_glide_when_camera_idle(uint8_t opx, uint8_t opy, uint8_t px, 
         else if (wy > ey) { if ((wy - ey) <= SCROLL_SPEED) wy = ey; else wy -= SCROLL_SPEED; }
         entity_sprites_set_player_world(wx, (int16_t)(wy + player_bob_table[bob_i]), wx, wy);
         bob_i = (uint8_t)((bob_i + 1u) & 7u);
+        entity_sprites_enemy_glide_step(); // step enemy glide offsets while player sprite eases
         entity_sprites_refresh_oam_only(px, py);
         wait_vbl_done();
     }
@@ -82,6 +84,7 @@ void camera_scroll_to(uint8_t target_tx, uint8_t target_ty,
         else if (pwy > target_pwy) { pwy -= SCROLL_SPEED; if (pwy < target_pwy) pwy = target_pwy; }
         entity_sprites_set_player_world(pwx, (int16_t)(pwy + player_bob_table[bob_i]), pwx, pwy);
         bob_i = (uint8_t)((bob_i + 1u) & 7u);
+        entity_sprites_enemy_glide_step(); // step enemy glide offsets alongside camera pan
         entity_sprites_refresh_oam_only(px, py); // shadow OAM (WRAM) — safe before VBL; DMA picks it up this frame
 
         wait_vbl_done(); // VBlank budget now free for VRAM-only strip draws

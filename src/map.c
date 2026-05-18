@@ -242,43 +242,34 @@ uint8_t nearest_nav_node(uint8_t x, uint8_t y) { // map any tile to closest junc
         uint8_t dx = (nav_nodes[i].x > x) ? nav_nodes[i].x - x : x - nav_nodes[i].x;
         uint8_t dy = (nav_nodes[i].y > y) ? nav_nodes[i].y - y : y - nav_nodes[i].y;
         uint8_t d  = dx + dy;
-        if (d < best_dist) { best_dist = d; best = i; } // tie-break: earlier index wins
+        if (d == 0) return i; // exact match — chasing enemies often sit on junctions
+        if (d < best_dist) { best_dist = d; best = i; }
     }
     return best;
 }
 
-uint8_t nav_next_step(uint8_t from, uint8_t to) { // BFS on sparse graph; first hop toward `to`
+void nav_fill_hops_from(uint8_t player_node, uint8_t *hop_out) {
+    // Single BFS from player_node. hop_out[n] = which neighbour to visit from n to reach player_node.
+    // Replaces per-enemy nav_next_step calls: one pass fills the hop table for all nav nodes.
     uint8_t visited[MAX_NAV_NODES];
-    uint8_t parent[MAX_NAV_NODES];
     uint8_t queue[MAX_NAV_NODES];
     uint8_t qhead = 0, qtail = 0, i;
-
-    if (from == NAV_NO_LINK || to == NAV_NO_LINK || from == to) return NAV_NO_LINK;
-
-    for (i = 0; i < num_nav_nodes; i++) { visited[i] = 0; parent[i] = NAV_NO_LINK; }
-    visited[from]   = 1;
-    queue[qtail++]  = from;
-
+    for (i = 0; i < MAX_NAV_NODES; i++) { visited[i] = 0; hop_out[i] = NAV_NO_LINK; }
+    if (player_node == NAV_NO_LINK) return;
+    visited[player_node] = 1;
+    queue[qtail++] = player_node;
     while (qhead < qtail) {
         uint8_t cur = queue[qhead++];
-        if (cur == to) break;
         for (i = 0; i < 4; i++) {
-            uint8_t nb = nav_nodes[cur].adj[i]; // corridor-adjacent node index
+            uint8_t nb = nav_nodes[cur].adj[i];
             if (nb == NAV_NO_LINK || visited[nb]) continue;
-            visited[nb]    = 1;
-            parent[nb]     = cur; // reconstruct path
+            visited[nb] = 1;
+            hop_out[nb] = cur; // from nb, step to cur to move toward player_node
             queue[qtail++] = nb;
-            if (qtail >= MAX_NAV_NODES) goto bfs_done; // queue full → abort search safely
+            if (qtail >= MAX_NAV_NODES) goto bfs_done;
         }
     }
-bfs_done:
-
-    if (!visited[to]) return NAV_NO_LINK; // disconnected components
-
-    uint8_t step = to; // walk parent pointers from goal toward start
-    while (step != NAV_NO_LINK && parent[step] != from)
-        step = parent[step];
-    return step; // immediate neighbour of `from` on a shortest path, or NAV_NO_LINK
+bfs_done:;
 }
 
 void generate_level(uint16_t floor_seed) { // full regen: clears map, walks, pits, then nav graph

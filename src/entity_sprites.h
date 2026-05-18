@@ -32,4 +32,11 @@ void entity_sprites_run_enemy_glide(uint8_t px, uint8_t py,
                                      const uint8_t *old_ex, const uint8_t *old_ey,
                                      const uint8_t *old_alive) BANKED;
 
+// Split glide for interleaving with camera scroll: call begin() before scroll, step() each scroll VBL.
+void entity_sprites_enemy_glide_begin(const uint8_t *old_ex, const uint8_t *old_ey,
+                                       const uint8_t *old_alive) BANKED;
+void entity_sprites_ally_glide_begin(const uint8_t *old_ax, const uint8_t *old_ay,
+                                      const uint8_t *old_aa) BANKED;
+void entity_sprites_enemy_glide_step(void) BANKED; // steps en_ofs + ally_ofs; no-op when all zero
+
 #endif // ENTITY_SPRITES_H

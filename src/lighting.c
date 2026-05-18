@@ -49,28 +49,31 @@ void lighting_reveal_radius(uint8_t cx, uint8_t cy, uint8_t radius) {
     if (min_y < 0) min_y = 0;
     if (max_x > (int16_t)(MAP_W - 1u)) max_x = (int16_t)(MAP_W - 1u);
     if (max_y > (int16_t)(MAP_H - 1u)) max_y = (int16_t)(MAP_H - 1u);
-    for (y = min_y; y <= max_y; y++) {
-        int16_t x;
-        int16_t x_start = min_x;
-        int16_t x_end = max_x;
-        if (radius != 0u
-                && (y == (int16_t)((int16_t)cy - (int16_t)radius)
-                    || y == (int16_t)((int16_t)cy + (int16_t)radius))) {
-            x_start++;
-            x_end--;
-        }
-        if (x_start > x_end) continue;
-        for (x = x_start; x <= x_end; x++) {
-            uint16_t idx = TILE_IDX((uint8_t)x, (uint8_t)y);
-            if (!BIT_GET(explored_bits, idx)) {
-                if (lighting_dirty_n < LIGHTING_DIRTY_MAX) {
-                    lighting_dirty_x[lighting_dirty_n] = (uint8_t)x;
-                    lighting_dirty_y[lighting_dirty_n] = (uint8_t)y;
-                    lighting_dirty_n++;
-                } else
-                    lighting_dirty_ovf = 1u;
+    {
+        uint16_t row_base = (uint16_t)(uint8_t)min_y * MAP_W; // increment by MAP_W per row, no per-tile multiply
+        for (y = min_y; y <= max_y; y++, row_base += MAP_W) {
+            int16_t x;
+            int16_t x_start = min_x;
+            int16_t x_end = max_x;
+            if (radius != 0u
+                    && (y == (int16_t)((int16_t)cy - (int16_t)radius)
+                        || y == (int16_t)((int16_t)cy + (int16_t)radius))) {
+                x_start++;
+                x_end--;
             }
-            BIT_SET(explored_bits, idx);
+            if (x_start > x_end) continue;
+            for (x = x_start; x <= x_end; x++) {
+                uint16_t idx = row_base + (uint16_t)x;
+                if (!BIT_GET(explored_bits, idx)) { // skip SET + dirty tracking for already-revealed tiles
+                    BIT_SET(explored_bits, idx);
+                    if (lighting_dirty_n < LIGHTING_DIRTY_MAX) {
+                        lighting_dirty_x[lighting_dirty_n] = (uint8_t)x;
+                        lighting_dirty_y[lighting_dirty_n] = (uint8_t)y;
+                        lighting_dirty_n++;
+                    } else
+                        lighting_dirty_ovf = 1u;
+                }
+            }
         }
     }
 #else

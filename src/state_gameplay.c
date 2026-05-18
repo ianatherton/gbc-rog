@@ -28,6 +28,8 @@ BANKREF_EXTERN(ally_fox_turn_tick)
 BANKREF_EXTERN(story_ui_run_before_first_floor)
 BANKREF_EXTERN(ally_fox_run_glide)
 BANKREF_EXTERN(entity_sprites_run_enemy_glide)
+BANKREF_EXTERN(entity_sprites_enemy_glide_begin)
+BANKREF_EXTERN(entity_sprites_ally_glide_begin)
 BANKREF_EXTERN(entity_sprites_set_player_facing)
 
 static uint8_t turn_snap_ex[MAX_ENEMIES], turn_snap_ey[MAX_ENEMIES], turn_snap_ea[MAX_ENEMIES]; // enemy pos before AI — file static so SDCC does not stack three 28-byte arrays in one tick()
@@ -366,15 +368,20 @@ void state_gameplay_tick(void) BANKED {
                 }
                 if (player_hp < player_hp_max) player_hp++;
                 {
-                    uint8_t target_cx = (g_player_x > GRID_W / 2) ? (uint8_t)(g_player_x - GRID_W / 2) : 0;
-                    uint8_t target_cy = (g_player_y > GRID_H / 2) ? (uint8_t)(g_player_y - GRID_H / 2) : 0;
-                    if (target_cx > (uint8_t)(active_map_w - GRID_W)) target_cx = (uint8_t)(active_map_w - GRID_W);
-                    if (target_cy > (uint8_t)(active_map_h - GRID_H)) target_cy = (uint8_t)(active_map_h - GRID_H);
-                    camera_scroll_to(target_cx, target_cy, opx, opy, g_player_x, g_player_y);
+                    uint8_t ally_snap_x[MAX_ALLIES], ally_snap_y[MAX_ALLIES], ally_snap_a[MAX_ALLIES];
+                    // Fox AI before scroll; glide offset set so fox slides with the camera pan
+                    ally_walk_tick_and_snap(g_player_x, g_player_y, ally_snap_x, ally_snap_y, ally_snap_a);
+                    entity_sprites_ally_glide_begin(ally_snap_x, ally_snap_y, ally_snap_a);
+                    {
+                        uint8_t target_cx = (g_player_x > GRID_W / 2) ? (uint8_t)(g_player_x - GRID_W / 2) : 0;
+                        uint8_t target_cy = (g_player_y > GRID_H / 2) ? (uint8_t)(g_player_y - GRID_H / 2) : 0;
+                        if (target_cx > (uint8_t)(active_map_w - GRID_W)) target_cx = (uint8_t)(active_map_w - GRID_W);
+                        if (target_cy > (uint8_t)(active_map_h - GRID_H)) target_cy = (uint8_t)(active_map_h - GRID_H);
+                        camera_scroll_to(target_cx, target_cy, opx, opy, g_player_x, g_player_y);
+                    }
                 }
                 {
                     uint8_t k;
-                    gameplay_allies_turn_and_glide(g_player_x, g_player_y);
                     for (k = 0; k < num_enemies; k++) {
                         turn_snap_ex[k] = enemy_x[k];
                         turn_snap_ey[k] = enemy_y[k];

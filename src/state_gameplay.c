@@ -165,7 +165,7 @@ void state_gameplay_tick(void) BANKED {
     }
 
     if (lcd_gameplay_active && (j & J_START) && !(g_prev_j & J_START)) {
-        next_state = STATE_STATS;
+        next_state = STATE_INVENTORY;
         g_prev_j = joypad();
         return;
     }

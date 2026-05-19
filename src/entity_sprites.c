@@ -22,6 +22,7 @@ BANKREF_EXTERN(map_pit_position)
 #define SP_BRAZIER_FIRE 37u
 #define SP_BELT_SELECTOR 35u // fixed screen-space OAM; excluded from post-enemy hide sweep
 #define SP_ROOT_ICON     2u  // root indicator — below SP_ENEMY_BASE (3) so it draws on top of enemies
+#define SP_INV_CURSOR   38u  // inventory grid cursor — Y-flipped M3 arrow; hidden outside inventory
 #define BRAZIER_FIRE_TTL_VBL 12u
 
 static uint8_t brazier_fire_active;
@@ -31,6 +32,11 @@ static int8_t brazier_fire_dx;
 static uint8_t brazier_fire_source_cursor;
 static uint8_t ladder_arrow_phase;
 static uint8_t ladder_arrow_tick;
+static uint8_t inv_cursor_active;
+static uint8_t inv_cursor_sx;
+static uint8_t inv_cursor_sy;
+static uint8_t inv_cursor_tick;
+static uint8_t inv_cursor_phase;
 static uint8_t ladder_cache_valid; // 1 when pit coords below are usable (set during refresh, read by VBL)
 static uint8_t ladder_cache_mx, ladder_cache_my;
 static const int8_t ladder_arrow_bob12[12] = { 0, 1, 2, 2, 1, 0, -1, -2, -2, -1, 0, 0 };
@@ -400,6 +406,17 @@ void entity_sprites_vbl_tick(void) BANKED {
     } else {
         oam_hide(SP_LADDER_ARROW);
     }
+    if (inv_cursor_active) {
+        uint8_t bob;
+        if (++inv_cursor_tick >= 2u) {
+            inv_cursor_tick = 0u;
+            inv_cursor_phase = (uint8_t)((inv_cursor_phase + 1u) % 12u);
+        }
+        bob = inv_cursor_phase;
+        move_sprite(SP_INV_CURSOR,
+                    inv_cursor_sx,
+                    (uint8_t)((int16_t)inv_cursor_sy - (int16_t)ladder_arrow_bob12[bob]));
+    }
     if (player_hurt_flash_ttl > 0u) {
         refresh_player_oam_from_cache(); // palette + OAM before ttl tick so all 60 frames flash
         player_hurt_flash_ttl--;
@@ -657,6 +674,23 @@ void entity_sprites_run_enemy_lunges_batch(uint8_t px, uint8_t py,
     }
     entity_sprites_refresh_player_only(px, py);
     for (i = 0; i < count; i++) entity_sprites_refresh_enemy(slots[i]);
+}
+
+BANKREF(entity_sprites_inv_cursor_show)
+void entity_sprites_inv_cursor_show(uint8_t cx, uint8_t cy) BANKED {
+    inv_cursor_sx = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_X + (uint16_t)cx * 8u);
+    inv_cursor_sy = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_Y + (uint16_t)(cy + 1u) * 8u);
+    inv_cursor_tick = 0u;
+    inv_cursor_phase = 0u;
+    inv_cursor_active = 1u;
+    set_sprite_tile(SP_INV_CURSOR, (uint8_t)(TILESET_VRAM_OFFSET + TILE_ARROW_SW));
+    set_sprite_prop(SP_INV_CURSOR, S_FLIPY);
+}
+
+BANKREF(entity_sprites_inv_cursor_hide)
+void entity_sprites_inv_cursor_hide(void) BANKED {
+    inv_cursor_active = 0u;
+    oam_hide(SP_INV_CURSOR);
 }
 
 BANKREF(entity_sprites_run_projectile)

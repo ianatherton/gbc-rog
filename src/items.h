@@ -13,7 +13,7 @@
 #define ITEM_KIND_COUNT       5u
 #define ITEM_KIND_NONE      255u
 
-#define INVENTORY_MAX_SLOTS  16u // 4x4 grid in STATE_INVENTORY
+#define INVENTORY_MAX_SLOTS  30u // 5x6 grid in STATE_INVENTORY
 #define MAX_GROUND_ITEMS      8u // floor-scoped pickup pool
 
 uint8_t items_kind_tile(uint8_t kind) BANKED; // sheet offset; 0 if invalid

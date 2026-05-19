@@ -1,6 +1,7 @@
 #pragma bank 3
 
 #include "debug_bank.h"
+#include "entity_sprites.h"
 #include "game_state.h"
 #include "globals.h"
 #include "items.h"
@@ -11,17 +12,20 @@
 #include <stdio.h>
 #include <stdint.h>
 
-#define INV_GRID_X     4u // BG col origin of the 4x4 cell grid
-#define INV_GRID_Y     5u
-#define INV_GRID_COLS  4u
-#define INV_GRID_ROWS  4u
-#define INV_CELL_DX    3u // 1-tile icon + 2-tile gap so cursor caret has its own column
+BANKREF_EXTERN(entity_sprites_inv_cursor_show)
+BANKREF_EXTERN(entity_sprites_inv_cursor_hide)
+
+#define INV_GRID_X     0u // BG col origin of the 5x6 cell grid
+#define INV_GRID_Y     1u
+#define INV_GRID_COLS  5u
+#define INV_GRID_ROWS  6u
+#define INV_CELL_DX    2u // 1-tile icon + 1-tile quantity slot; cursor is a sprite below the icon
 #define INV_CELL_DY    2u
 #define INV_NAME_ROW  14u
 #define INV_NAME_LEN  16u
 
 static uint8_t inv_prev_j;
-static uint8_t inv_cursor; // 0..15
+static uint8_t inv_cursor; // 0..29
 
 static void cell_origin(uint8_t slot, uint8_t *cx, uint8_t *cy) {
     *cx = (uint8_t)(INV_GRID_X + (slot % INV_GRID_COLS) * INV_CELL_DX);
@@ -49,23 +53,11 @@ static void draw_grid(void) {
     for (i = 0u; i < INVENTORY_MAX_SLOTS; i++) draw_cell(i);
 }
 
-static void clear_carets(void) { // wipe the column right of every icon (cursor lane)
-    uint8_t r, c;
-    for (r = 0u; r < INV_GRID_ROWS; r++) {
-        for (c = 0u; c < INV_GRID_COLS; c++) {
-            uint8_t bx = (uint8_t)(INV_GRID_X + c * INV_CELL_DX + 1u);
-            uint8_t by = (uint8_t)(INV_GRID_Y + r * INV_CELL_DY);
-            gotoxy(bx, by); setchar(' ');
-        }
-    }
-}
-
 static void draw_cursor_and_name(void) {
     uint8_t cx, cy;
     char name[18];
     cell_origin(inv_cursor, &cx, &cy);
-    clear_carets();
-    gotoxy((uint8_t)(cx + 1u), cy); setchar('<');
+    entity_sprites_inv_cursor_show(cx, cy);
     gotoxy(2, INV_NAME_ROW);
     {
         uint8_t pad;
@@ -103,8 +95,8 @@ BANKREF(state_inventory_tick)
 void state_inventory_tick(void) BANKED {
     uint8_t j = joypad();
     uint8_t e = (uint8_t)(j & (uint8_t)~inv_prev_j);
-    if (e & J_START)  { next_state = STATE_GAMEPLAY; goto out; }
-    if (e & J_SELECT) { next_state = STATE_STATS;    goto out; }
+    if (e & J_START)  { entity_sprites_inv_cursor_hide(); next_state = STATE_GAMEPLAY; goto out; }
+    if (e & J_SELECT) { entity_sprites_inv_cursor_hide(); next_state = STATE_STATS;    goto out; }
     {
         uint8_t old = inv_cursor;
         if ((e & J_LEFT)  && (inv_cursor % INV_GRID_COLS) > 0u) inv_cursor--;

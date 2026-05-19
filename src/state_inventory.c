@@ -79,27 +79,31 @@ static void draw_cursor_and_name(void) {
     }
 }
 
+static void draw_menu_tabs_inv(void) {
+    gotoxy(0, 0); printf(">ITEM STAT SPEL MAP ");
+}
+
 BANKREF(state_inventory_enter)
 void state_inventory_enter(void) BANKED {
     BANK_DBG("IV_enter");
-    inv_prev_j = joypad(); // mask buttons still held from previous state so SELECT held during stats→inv doesn't immediately bounce back
+    inv_prev_j = joypad();
     inv_cursor = 0u;
     lcd_gameplay_active = 0u;
     window_ui_hide();
     wait_vbl_done();
     lcd_clear_display();
-    gotoxy(2, 2); printf("INVENTORY");
+    draw_menu_tabs_inv();
     draw_grid();
     draw_cursor_and_name();
     gotoxy(1, 16); printf("D-pad pick");
-    gotoxy(1, 17); printf("B back  SELECT stats");
+    gotoxy(1, 17); printf("START resume");
 }
 
 BANKREF(state_inventory_tick)
 void state_inventory_tick(void) BANKED {
     uint8_t j = joypad();
     uint8_t e = (uint8_t)(j & (uint8_t)~inv_prev_j);
-    if (e & J_B)      { next_state = STATE_GAMEPLAY; goto out; }
+    if (e & J_START)  { next_state = STATE_GAMEPLAY; goto out; }
     if (e & J_SELECT) { next_state = STATE_STATS;    goto out; }
     {
         uint8_t old = inv_cursor;

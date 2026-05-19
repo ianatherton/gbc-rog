@@ -11,7 +11,8 @@
       "Bash(awk '{print $1, $3}')",
       "Bash(cat)",
       "Read(//tmp/**)",
-      "Bash(sort -t_ -k2 -n)"
+      "Bash(sort -t_ -k2 -n)",
+      "Bash(grep -E '\\\\.\\(asm|s|inc|z80\\)$')"
     ]
   }
 }

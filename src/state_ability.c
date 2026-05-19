@@ -15,21 +15,23 @@ static uint8_t ab_prev_j;
 BANKREF(state_ability_enter)
 void state_ability_enter(void) BANKED {
     BANK_DBG("AB_enter");
-    ab_prev_j = 0;
+    ab_prev_j = joypad();
     lcd_gameplay_active = 0u;
     window_ui_hide();
     wait_vbl_done();
     lcd_clear_display();
-    gotoxy(2, 6); printf("ABILITIES");
+    gotoxy(0, 0); printf(" ITEM STAT>SPEL MAP ");
+    gotoxy(2, 6); printf("SPELLS");
     gotoxy(2, 9); printf("(none yet)");
-    gotoxy(1, 12); printf("B back");
+    gotoxy(1, 12); printf("START resume");
 }
 
 BANKREF(state_ability_tick)
 void state_ability_tick(void) BANKED {
     uint8_t j = joypad();
     uint8_t e = (uint8_t)(j & (uint8_t)~ab_prev_j);
-    if (e & J_B) next_state = STATE_GAMEPLAY;
+    if (e & J_START)  next_state = STATE_GAMEPLAY;
+    if (e & J_SELECT) next_state = STATE_MAP;
     ab_prev_j = j;
     wait_vbl_done();
 }

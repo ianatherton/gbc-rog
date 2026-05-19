@@ -14,6 +14,8 @@ void state_inventory_enter(void) BANKED;
 void state_inventory_tick(void) BANKED;
 void state_ability_enter(void) BANKED;
 void state_ability_tick(void) BANKED;
+void state_map_enter(void) BANKED;
+void state_map_tick(void) BANKED;
 void state_pickup_enter(void) BANKED;
 void state_pickup_tick(void) BANKED;
 void state_transition_enter(void) BANKED;

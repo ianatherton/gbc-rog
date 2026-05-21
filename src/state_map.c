@@ -20,7 +20,13 @@ void state_map_enter(void) BANKED {
     window_ui_hide();
     wait_vbl_done();
     lcd_clear_display();
-    gotoxy(0, 0); printf(" ITEM STAT SPEL>MAP ");
+    {
+        uint8_t v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_ARROW_SE);
+        gotoxy(0, 0); printf(" ITEM STAT SPELL MAP");
+        set_bkg_tiles(16u, 0u, 1u, 1u, &v);
+        set_bkg_attribute_xy(16u, 0u, PAL_XP_UI);
+        VBK_REG = VBK_TILES;
+    }
     gotoxy(2, 6); printf("MAP");
     gotoxy(1, 12); printf("START resume");
 }

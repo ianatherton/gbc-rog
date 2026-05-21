@@ -10,15 +10,23 @@
 #define ITEM_KIND_KEY         2u  // BigHeal Potion in UI; enum KEY retained for saves
 #define ITEM_KIND_CANDLE      3u
 #define ITEM_KIND_SCROLL_ROOT 4u  // Root Scroll — roots all visible enemies for 12 turns
-#define ITEM_KIND_COUNT       5u
+#define ITEM_KIND_RUSTY_SWORD 5u  // Equipment — +4 player damage while equipped
+#define ITEM_KIND_COUNT       6u
 #define ITEM_KIND_NONE      255u
+
+#define ITEM_CAT_CONSUMABLE   0u  // used and removed from inventory
+#define ITEM_CAT_REUSABLE     1u  // used but kept in inventory; caller manages cooldown
+#define ITEM_CAT_EQUIPMENT    2u  // equip/unequip; affects player stats
 
 #define INVENTORY_MAX_SLOTS  30u // 5x6 grid in STATE_INVENTORY
 #define MAX_GROUND_ITEMS      8u // floor-scoped pickup pool
 
-uint8_t items_kind_tile(uint8_t kind) BANKED; // sheet offset; 0 if invalid
+uint8_t items_kind_tile(uint8_t kind) BANKED;      // sheet offset; 0 if invalid
+uint8_t items_kind_category(uint8_t kind) BANKED;  // ITEM_CAT_*
+void    items_equip_apply(uint8_t kind, uint8_t now_equipped) BANKED; // add/remove stat bonuses
 uint8_t items_kind_palette(uint8_t kind) BANKED; // CGB palette
 void    items_kind_name_copy(uint8_t kind, char *out, uint8_t cap) BANKED; // NUL-term, capped — copy required since strings live in bank 13
+void    items_kind_desc_copy(uint8_t kind, char *out, uint8_t cap) BANKED; // short description for inventory/pickup display
 
 uint8_t inventory_first_empty(void) BANKED; // 0..INVENTORY_MAX_SLOTS-1, else 255
 uint8_t inventory_count_used(void) BANKED;

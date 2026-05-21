@@ -49,6 +49,7 @@ uint8_t dead_enemy_pool_count;
 // inventory_clear_all() runs from level_init at fresh-run, and ground_items_clear() runs from level_generate_and_spawn each floor.
 // pending_pickup_slot is set to 255 explicitly in those same paths before any read.
 uint8_t inventory_kind[INVENTORY_MAX_SLOTS];
+uint8_t inventory_equipped[INVENTORY_MAX_SLOTS];
 uint8_t ground_item_kind[MAX_GROUND_ITEMS];
 uint8_t ground_item_x[MAX_GROUND_ITEMS];
 uint8_t ground_item_y[MAX_GROUND_ITEMS];

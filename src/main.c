@@ -84,6 +84,8 @@ int main(void) {
             tileset_tiles + (uint16_t)TILE_SHEET_M9 * 16u);
         set_sprite_data(TILE_ROOT_ICON_VRAM, 1u, // same tile for OAM (rooted enemy overlay)
             tileset_tiles + (uint16_t)TILE_SHEET_M9 * 16u);
+        set_sprite_data(TILE_EQUIP_MARK_VRAM, 1u, // M11 equipped indicator — borrows unused B8 VRAM slot (tile 113)
+            tileset_tiles + (uint16_t)TILE_EQUIP_MARK * 16u);
         {
             uint8_t buf[16];
             memcpy(buf, tileset_tiles + (uint16_t)TILE_PLAYER_AURA_ROM_A * 16u, 16u); // sheet uses idx0 as clear; 0→3 remaps made a solid 8×8

@@ -41,7 +41,8 @@ extern uint8_t dead_enemy_pool_count;
 /* Set by STATE_TRANSITION (pit floor); state_gameplay_enter skips full regen */
 extern uint8_t gameplay_soft_reenter;
 
-extern uint8_t inventory_kind[INVENTORY_MAX_SLOTS]; // ITEM_KIND_NONE = empty
+extern uint8_t inventory_kind[INVENTORY_MAX_SLOTS];     // ITEM_KIND_NONE = empty
+extern uint8_t inventory_equipped[INVENTORY_MAX_SLOTS]; // 1=equipped, 0=not; parallel to inventory_kind
 extern uint8_t ground_item_kind[MAX_GROUND_ITEMS];   // ITEM_KIND_NONE when slot free
 extern uint8_t ground_item_x[MAX_GROUND_ITEMS];
 extern uint8_t ground_item_y[MAX_GROUND_ITEMS];

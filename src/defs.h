@@ -302,8 +302,10 @@ typedef struct {
 #define TILE_ARROW_SW       44   /* M3  - down arrow / ladder marker       */
 #define TILE_ARROW_SE       60   /* M4  - bottom-right diagonal            */
 #define TILE_ARROW_LADDER   TILE_ARROW_SW
-#define TILE_SHEET_M12     188u  /* M12 - witch bolt art in source sheet   */
 #define TILE_POOF_CLOUD    108u  /* M7  - enemy death puff (sprite; OCP0 grey/white ramp) */
+#define TILE_EQUIP_MARK    172u  /* M11 - equipped indicator overlay; ROM past first 128 → TILE_EQUIP_MARK_VRAM */
+#define TILE_EQUIP_MARK_VRAM 241u /* borrows B8 VRAM slot (tile 113; not placed by any map code) */
+#define TILE_SHEET_M12     188u  /* M12 - witch bolt art in source sheet   */
 #define TILE_PLAYER_AURA_ROM_A 236u /* M15 — copied to TILE_PLAYER_AURA_VRAM_* for OBJ */
 #define TILE_PLAYER_AURA_ROM_B 252u /* M16 */
 #define TILE_SHEET_M9          140u   /* M9  - root indicator glyph; ROM index (9-1)*16+12; copied to VRAM at boot */

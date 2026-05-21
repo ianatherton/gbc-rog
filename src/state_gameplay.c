@@ -88,7 +88,10 @@ static uint8_t select_hold_ticks;
 
 static uint8_t belt_slot_nonempty(uint8_t slot) {
     if (slot < BELT_SLOT_COUNT) return belt_name_for(slot) != 0;
-    return inventory_kind[slot - BELT_SLOT_COUNT] != ITEM_KIND_NONE;
+    {
+        uint8_t kind = inventory_kind[slot - BELT_SLOT_COUNT];
+        return kind != ITEM_KIND_NONE;
+    }
 }
 
 static void belt_select_advance_skip_empty(void) {

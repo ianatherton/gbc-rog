@@ -21,7 +21,13 @@ void state_stats_enter(void) BANKED {
     wait_vbl_done();
     lcd_clear_display();
     BANK_DBG("ST_draw");
-    gotoxy(0, 0); printf(" ITEM>STAT SPEL MAP ");
+    {
+        uint8_t v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_ARROW_SE);
+        gotoxy(0, 0); printf(" ITEM STAT SPELL MAP");
+        set_bkg_tiles(5u, 0u, 1u, 1u, &v);
+        set_bkg_attribute_xy(5u, 0u, PAL_XP_UI);
+        VBK_REG = VBK_TILES;
+    }
     gotoxy(1, 2); printf("STATS");
     gotoxy(1, 4); printf("HP %u/%u", (unsigned)player_hp, (unsigned)player_hp_max);
     gotoxy(1, 5); printf("LV %u DMG %u", (unsigned)player_level, (unsigned)player_damage);

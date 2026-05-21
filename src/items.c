@@ -10,12 +10,22 @@
 BANKREF_EXTERN(scroll_blast_use)
 BANKREF_EXTERN(scroll_root_use)
 
+static const uint8_t kind_cat[ITEM_KIND_COUNT] = {
+    ITEM_CAT_CONSUMABLE, // POTION
+    ITEM_CAT_CONSUMABLE, // SCROLL (Death)
+    ITEM_CAT_CONSUMABLE, // KEY (BigHeal)
+    ITEM_CAT_CONSUMABLE, // CANDLE
+    ITEM_CAT_CONSUMABLE, // SCROLL_ROOT
+    ITEM_CAT_EQUIPMENT,  // RUSTY_SWORD
+};
+
 static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
     TILE_ITEM_3,          // POTION
     TILE_SCROLL_BELT_OFF, // SCROLL (Death) — I11 art at TILE_SCROLL_I11_VRAM
     TILE_BIGHEAL_BELT_OFF,// KEY — BigHeal; I12 at TILE_BIGHEAL_I12_VRAM
     TILE_LIGHT_6,         // CANDLE
     TILE_SCROLL_BELT_OFF, // SCROLL_ROOT — same scroll art as Death Scroll
+    TILE_ITEM_1,          // RUSTY_SWORD — I1
 };
 
 static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
@@ -24,11 +34,34 @@ static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
     PAL_LIFE_UI,      // KEY
     PAL_LADDER,       // CANDLE
     PAL_ENEMY_SNAKE,  // SCROLL_ROOT — green
+    PAL_WALL_BG,      // RUSTY_SWORD — warm brownish ramp
 };
 
 static const char *const kind_name[ITEM_KIND_COUNT] = {
     "Heal Potion", "Death Scroll", "BigHeal Potion", "Candle", "Root Scroll",
+    "Rusty Sword",
 };
+
+static const char *const kind_desc[ITEM_KIND_COUNT] = {
+    "Restores half of your max HP",
+    "Blasts all enemies in sight with magic",
+    "Fully restores all HP",
+    "Permanently expands your light radius",
+    "Roots all visible enemies for 12 turns",
+    "Equip to gain +4 attack damage",
+};
+
+uint8_t items_kind_category(uint8_t kind) BANKED {
+    if (kind >= ITEM_KIND_COUNT) return ITEM_CAT_CONSUMABLE;
+    return kind_cat[kind];
+}
+
+void items_equip_apply(uint8_t kind, uint8_t now_equipped) BANKED {
+    if (kind == ITEM_KIND_RUSTY_SWORD) {
+        if (now_equipped) player_damage = (uint8_t)(player_damage + 4u);
+        else              player_damage = (player_damage > 4u) ? (uint8_t)(player_damage - 4u) : 1u;
+    }
+}
 
 uint8_t items_kind_tile(uint8_t kind) BANKED {
     if (kind >= ITEM_KIND_COUNT) return 0u;
@@ -38,6 +71,14 @@ uint8_t items_kind_tile(uint8_t kind) BANKED {
 uint8_t items_kind_palette(uint8_t kind) BANKED {
     if (kind >= ITEM_KIND_COUNT) return PAL_UI;
     return kind_pal[kind];
+}
+
+void items_kind_desc_copy(uint8_t kind, char *out, uint8_t cap) BANKED {
+    const char *s = (kind < ITEM_KIND_COUNT) ? kind_desc[kind] : "";
+    uint8_t i = 0u;
+    if (cap == 0u) return;
+    while (s[i] && (uint8_t)(i + 1u) < cap) { out[i] = s[i]; i++; }
+    out[i] = 0;
 }
 
 void items_kind_name_copy(uint8_t kind, char *out, uint8_t cap) BANKED {
@@ -64,22 +105,66 @@ uint8_t inventory_count_used(void) BANKED {
 
 void inventory_clear_all(void) BANKED {
     uint8_t i;
-    for (i = 0u; i < INVENTORY_MAX_SLOTS; i++) inventory_kind[i] = ITEM_KIND_NONE;
+    for (i = 0u; i < INVENTORY_MAX_SLOTS; i++) {
+        inventory_kind[i]     = ITEM_KIND_NONE;
+        inventory_equipped[i] = 0u;
+    }
 }
 
 uint8_t inventory_add(uint8_t kind) BANKED {
-    uint8_t s = inventory_first_empty();
-    if (s == 255u) return 0u;
-    inventory_kind[s] = kind;
-    return 1u;
+    uint8_t s;
+    uint8_t start = (items_kind_category(kind) == ITEM_CAT_EQUIPMENT) ? BELT_ITEM_SLOT_COUNT : 0u;
+    for (s = start; s < INVENTORY_MAX_SLOTS; s++)
+        if (inventory_kind[s] == ITEM_KIND_NONE) { inventory_kind[s] = kind; return 1u; }
+    return 0u;
 }
 
 void inventory_remove(uint8_t slot) BANKED {
-    uint8_t i;
+    uint8_t i, j;
     if (slot >= INVENTORY_MAX_SLOTS) return;
-    for (i = slot; (uint8_t)(i + 1u) < INVENTORY_MAX_SLOTS; i++)
-        inventory_kind[i] = inventory_kind[(uint8_t)(i + 1u)];
-    inventory_kind[INVENTORY_MAX_SLOTS - 1u] = ITEM_KIND_NONE;
+    for (i = slot; (uint8_t)(i + 1u) < INVENTORY_MAX_SLOTS; i++) {
+        inventory_kind[i]     = inventory_kind[(uint8_t)(i + 1u)];
+        inventory_equipped[i] = inventory_equipped[(uint8_t)(i + 1u)];
+    }
+    inventory_kind[INVENTORY_MAX_SLOTS - 1u]     = ITEM_KIND_NONE;
+    inventory_equipped[INVENTORY_MAX_SLOTS - 1u] = 0u;
+
+    /* Removing a belt slot compacts everything left, which can pull equipment
+       from slot BELT_ITEM_SLOT_COUNT into the last belt slot.  Fix it. */
+    if (slot < BELT_ITEM_SLOT_COUNT) {
+        uint8_t lb = (uint8_t)(BELT_ITEM_SLOT_COUNT - 1u);
+        if (inventory_kind[lb] != ITEM_KIND_NONE &&
+            items_kind_category(inventory_kind[lb]) == ITEM_CAT_EQUIPMENT) {
+            /* swap with the first usable (non-equipment) item beyond the belt */
+            for (j = BELT_ITEM_SLOT_COUNT; j < INVENTORY_MAX_SLOTS; j++) {
+                if (inventory_kind[j] != ITEM_KIND_NONE &&
+                    items_kind_category(inventory_kind[j]) != ITEM_CAT_EQUIPMENT) {
+                    uint8_t tk = inventory_kind[j], te = inventory_equipped[j];
+                    inventory_kind[j]     = inventory_kind[lb];
+                    inventory_equipped[j] = inventory_equipped[lb];
+                    inventory_kind[lb]    = tk;
+                    inventory_equipped[lb]= te;
+                    break;
+                }
+            }
+            if (j >= INVENTORY_MAX_SLOTS) {
+                /* no usable items remain — push equipment to first empty non-belt slot */
+                for (j = BELT_ITEM_SLOT_COUNT; j < INVENTORY_MAX_SLOTS; j++) {
+                    if (inventory_kind[j] == ITEM_KIND_NONE) {
+                        inventory_kind[j]     = inventory_kind[lb];
+                        inventory_equipped[j] = inventory_equipped[lb];
+                        inventory_kind[lb]     = ITEM_KIND_NONE;
+                        inventory_equipped[lb] = 0u;
+                        break;
+                    }
+                }
+                if (j >= INVENTORY_MAX_SLOTS) {
+                    inventory_kind[lb]     = ITEM_KIND_NONE;
+                    inventory_equipped[lb] = 0u;
+                }
+            }
+        }
+    }
 }
 
 void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
@@ -116,6 +201,7 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
     } else if (kind == ITEM_KIND_SCROLL_ROOT) {
         scroll_root_use(out);
     }
-    inventory_remove(item_idx);
+    if (items_kind_category(kind) != ITEM_CAT_REUSABLE)
+        inventory_remove(item_idx);
     out->consumed_turn = 1u;
 }

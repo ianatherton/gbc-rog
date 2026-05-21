@@ -530,7 +530,12 @@ static void ui_draw_belt_placeholder_row(void) { // [SPELL] s0 s1 s2 s3 [ITEM] i
         }
         set_win_tile_xy(x, UI_BELT_WIN_Y, v);
         set_win_attribute_xy(x++, UI_BELT_WIN_Y, icon_pal);
-        win_put_space(x++, UI_BELT_WIN_Y); // count digit reserved; items currently 1-per-slot
+        {
+            uint8_t cnt = (kind != ITEM_KIND_NONE) ? inventory_count[s] : 0u;
+            if      (cnt <= 1u) win_put_space(x++, UI_BELT_WIN_Y);
+            else if (cnt <= 9u) win_putc_pal(x++, UI_BELT_WIN_Y, (char)('0' + cnt), PAL_UI);
+            else                win_putc_pal(x++, UI_BELT_WIN_Y, '*', PAL_UI);
+        }
     }
 }
 

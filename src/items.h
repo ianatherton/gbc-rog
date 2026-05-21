@@ -11,7 +11,11 @@
 #define ITEM_KIND_CANDLE      3u
 #define ITEM_KIND_SCROLL_ROOT 4u  // Root Scroll — roots all visible enemies for 12 turns
 #define ITEM_KIND_RUSTY_SWORD 5u  // Equipment — +4 player damage while equipped
-#define ITEM_KIND_COUNT       6u
+#define ITEM_KIND_BOOK_HEAL   6u  // Reusable — heals 25% max HP, not consumed
+#define ITEM_KIND_HELMET      7u  // Equipment — +5 max HP
+#define ITEM_KIND_TUNIC       8u  // Equipment — +10 max HP
+#define ITEM_KIND_BOOTS       9u  // Equipment — +2 light radius
+#define ITEM_KIND_COUNT      10u
 #define ITEM_KIND_NONE      255u
 
 #define ITEM_CAT_CONSUMABLE   0u  // used and removed from inventory

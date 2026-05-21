@@ -251,6 +251,9 @@ typedef struct {
 #define TILE_LADDER_DOWN    23   /* H2  */
 #define TILE_STAIRS_UP_2    39   /* H3  */
 #define TILE_PIT_TILE       55   /* H4  - visual for pit hazard             */
+#define TILE_H11           167u  /* H11 - book item; ROM row 11 → needs boot copy */
+#define TILE_BOOK_H11_VRAM 199u  /* borrows H5 VRAM slot (ROM tile 71, not placed by map) */
+#define TILE_BOOK_BELT_OFF ((uint8_t)(TILE_BOOK_H11_VRAM - TILESET_VRAM_OFFSET)) // items_kind_tile(BOOK_*)
 
 /* ── I col — items (10 slots) ───────────────────────────────────────────── */
 #define TILE_ITEM_1          8   /* I1  */

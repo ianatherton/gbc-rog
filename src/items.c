@@ -17,6 +17,10 @@ static const uint8_t kind_cat[ITEM_KIND_COUNT] = {
     ITEM_CAT_CONSUMABLE, // CANDLE
     ITEM_CAT_CONSUMABLE, // SCROLL_ROOT
     ITEM_CAT_EQUIPMENT,  // RUSTY_SWORD
+    ITEM_CAT_REUSABLE,   // BOOK_HEAL
+    ITEM_CAT_EQUIPMENT,  // HELMET
+    ITEM_CAT_EQUIPMENT,  // TUNIC
+    ITEM_CAT_EQUIPMENT,  // BOOTS
 };
 
 static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
@@ -26,6 +30,10 @@ static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
     TILE_LIGHT_6,         // CANDLE
     TILE_SCROLL_BELT_OFF, // SCROLL_ROOT — same scroll art as Death Scroll
     TILE_ITEM_1,          // RUSTY_SWORD — I1
+    TILE_BOOK_BELT_OFF,   // BOOK_HEAL — H11 art at TILE_BOOK_H11_VRAM
+    TILE_ITEM_5,          // HELMET — I5
+    TILE_ITEM_6,          // TUNIC — I6
+    TILE_ITEM_7,          // BOOTS — I7
 };
 
 static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
@@ -35,11 +43,15 @@ static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
     PAL_LADDER,       // CANDLE
     PAL_ENEMY_SNAKE,  // SCROLL_ROOT — green
     PAL_WALL_BG,      // RUSTY_SWORD — warm brownish ramp
+    PAL_XP_UI,        // BOOK_HEAL — blue
+    PAL_WALL_BG,      // HELMET — warm metal ramp
+    PAL_WALL_BG,      // TUNIC — warm metal ramp
+    PAL_LADDER,       // BOOTS — earthy/leather
 };
 
 static const char *const kind_name[ITEM_KIND_COUNT] = {
     "Heal Potion", "Death Scroll", "BigHeal Potion", "Candle", "Root Scroll",
-    "Rusty Sword",
+    "Rusty Sword", "Book: Heal", "Helmet", "Tunic", "Boots",
 };
 
 static const char *const kind_desc[ITEM_KIND_COUNT] = {
@@ -49,6 +61,10 @@ static const char *const kind_desc[ITEM_KIND_COUNT] = {
     "Permanently expands your light radius",
     "Roots all visible enemies for 12 turns",
     "Equip to gain +4 attack damage",
+    "Read to restore a quarter of your max HP",
+    "Iron helmet that grants +5 max HP",
+    "Chainmail tunic that grants +10 max HP",
+    "Leather boots that expand your light radius",
 };
 
 uint8_t items_kind_category(uint8_t kind) BANKED {
@@ -60,6 +76,18 @@ void items_equip_apply(uint8_t kind, uint8_t now_equipped) BANKED {
     if (kind == ITEM_KIND_RUSTY_SWORD) {
         if (now_equipped) player_damage = (uint8_t)(player_damage + 4u);
         else              player_damage = (player_damage > 4u) ? (uint8_t)(player_damage - 4u) : 1u;
+    } else if (kind == ITEM_KIND_HELMET) {
+        if (now_equipped) { player_hp_max = (uint8_t)(player_hp_max + 5u); }
+        else              { player_hp_max = (player_hp_max > 5u) ? (uint8_t)(player_hp_max - 5u) : 1u;
+                            if (player_hp > player_hp_max) player_hp = player_hp_max; }
+    } else if (kind == ITEM_KIND_TUNIC) {
+        if (now_equipped) { player_hp_max = (uint8_t)(player_hp_max + 10u); }
+        else              { player_hp_max = (player_hp_max > 10u) ? (uint8_t)(player_hp_max - 10u) : 1u;
+                            if (player_hp > player_hp_max) player_hp = player_hp_max; }
+    } else if (kind == ITEM_KIND_BOOTS) {
+        if (now_equipped) { uint16_t nb = (uint16_t)player_light_bonus + 2u;
+                            player_light_bonus = (nb > 255u) ? 255u : (uint8_t)nb; }
+        else              { player_light_bonus = (player_light_bonus > 2u) ? (uint8_t)(player_light_bonus - 2u) : 0u; }
     }
 }
 
@@ -108,26 +136,43 @@ void inventory_clear_all(void) BANKED {
     for (i = 0u; i < INVENTORY_MAX_SLOTS; i++) {
         inventory_kind[i]     = ITEM_KIND_NONE;
         inventory_equipped[i] = 0u;
+        inventory_count[i]    = 0u;
     }
 }
 
 uint8_t inventory_add(uint8_t kind) BANKED {
     uint8_t s;
     uint8_t start = (items_kind_category(kind) == ITEM_CAT_EQUIPMENT) ? BELT_ITEM_SLOT_COUNT : 0u;
-    for (s = start; s < INVENTORY_MAX_SLOTS; s++)
-        if (inventory_kind[s] == ITEM_KIND_NONE) { inventory_kind[s] = kind; return 1u; }
+    /* consumables stack — merge into existing slot of same kind first */
+    if (items_kind_category(kind) == ITEM_CAT_CONSUMABLE) {
+        for (s = 0u; s < INVENTORY_MAX_SLOTS; s++) {
+            if (inventory_kind[s] == kind) { inventory_count[s]++; return 1u; }
+        }
+    }
+    for (s = start; s < INVENTORY_MAX_SLOTS; s++) {
+        if (inventory_kind[s] == ITEM_KIND_NONE) {
+            inventory_kind[s]  = kind;
+            inventory_count[s] = 1u;
+            return 1u;
+        }
+    }
     return 0u;
 }
 
 void inventory_remove(uint8_t slot) BANKED {
     uint8_t i, j;
     if (slot >= INVENTORY_MAX_SLOTS) return;
+    /* stacked: just decrement, no slot free needed */
+    if (inventory_count[slot] > 1u) { inventory_count[slot]--; return; }
+
     for (i = slot; (uint8_t)(i + 1u) < INVENTORY_MAX_SLOTS; i++) {
         inventory_kind[i]     = inventory_kind[(uint8_t)(i + 1u)];
         inventory_equipped[i] = inventory_equipped[(uint8_t)(i + 1u)];
+        inventory_count[i]    = inventory_count[(uint8_t)(i + 1u)];
     }
     inventory_kind[INVENTORY_MAX_SLOTS - 1u]     = ITEM_KIND_NONE;
     inventory_equipped[INVENTORY_MAX_SLOTS - 1u] = 0u;
+    inventory_count[INVENTORY_MAX_SLOTS - 1u]    = 0u;
 
     /* Removing a belt slot compacts everything left, which can pull equipment
        from slot BELT_ITEM_SLOT_COUNT into the last belt slot.  Fix it. */
@@ -200,6 +245,10 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
         out->lighting_refresh = 1u;
     } else if (kind == ITEM_KIND_SCROLL_ROOT) {
         scroll_root_use(out);
+    } else if (kind == ITEM_KIND_BOOK_HEAL) {
+        uint16_t heal = (uint16_t)player_hp_max / 4u; // quarter max HP
+        if ((uint16_t)player_hp + heal >= (uint16_t)player_hp_max) player_hp = player_hp_max;
+        else player_hp = (uint8_t)((uint16_t)player_hp + heal);
     }
     if (items_kind_category(kind) != ITEM_CAT_REUSABLE)
         inventory_remove(item_idx);

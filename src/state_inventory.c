@@ -49,7 +49,8 @@ static void cell_origin(uint8_t slot, uint8_t *cx, uint8_t *cy) {
 
 static void draw_cell(uint8_t slot) {
     uint8_t cx, cy, v, pal;
-    uint8_t kind = inventory_kind[slot];
+    uint8_t kind  = inventory_kind[slot];
+    uint8_t count = inventory_count[slot];
     cell_origin(slot, &cx, &cy);
     if (kind == ITEM_KIND_NONE) {
         v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY);
@@ -60,6 +61,13 @@ static void draw_cell(uint8_t slot) {
     }
     set_bkg_tiles(cx, cy, 1, 1, &v);
     set_bkg_attribute_xy(cx, cy, pal);
+    VBK_REG = VBK_TILES;
+    /* quantity digit at cx+1 */
+    gotoxy((uint8_t)(cx + 1u), cy);
+    if (kind == ITEM_KIND_NONE || count <= 1u) setchar(' ');
+    else if (count <= 9u)                      setchar((char)('0' + count));
+    else                                       setchar('*');
+    set_bkg_attribute_xy((uint8_t)(cx + 1u), cy, PAL_UI);
     VBK_REG = VBK_TILES;
 }
 

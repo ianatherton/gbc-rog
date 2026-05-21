@@ -86,6 +86,16 @@ void state_pickup_tick(void) BANKED {
         if (e & J_A) {
             inventory_add(pu_kind);
             ground_item_kill(pending_pickup_slot);
+            {
+                char log[20];
+                char namebuf[16];
+                uint8_t i = 0u, k = 0u;
+                items_kind_name_copy(pu_kind, namebuf, sizeof namebuf);
+                log[i++] = 'G'; log[i++] = 'o'; log[i++] = 't'; log[i++] = ' ';
+                while (namebuf[k] && i < 19u) { log[i++] = namebuf[k++]; }
+                log[i] = 0;
+                ui_combat_log_push(log);
+            }
             pending_pickup_slot = 255u;
             next_state = STATE_GAMEPLAY;
         } else if (e & J_B) {

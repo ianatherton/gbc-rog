@@ -4,6 +4,7 @@
 #include "globals.h"
 #include "defs.h"
 #include "enemy.h"
+#include "items.h"
 #include "ui.h"
 #include "render.h"
 #include "entity_sprites.h"
@@ -20,6 +21,7 @@ BANKREF_EXTERN(entity_sprites_run_player_lunge)
 BANKREF_EXTERN(entity_sprites_run_enemy_lunges_batch)
 BANKREF_EXTERN(entity_sprites_player_hurt_flash)
 BANKREF_EXTERN(entity_sprites_run_projectile)
+BANKREF_EXTERN(enemy_try_drop_item)
 
 static void grant_xp_from_kill(uint8_t enemy_damage) {
     uint16_t next_level_xp;
@@ -58,12 +60,15 @@ uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage, uint8_t from_shield_burn
         ui_push_xp_gain_line(kill_xp);
         dx = enemy_x[ei];
         dy = enemy_y[ei];
-        if (num_corpses < MAX_CORPSES) {
-            corpse_x[num_corpses] = dx;
-            corpse_y[num_corpses] = dy;
-            corpse_tile[num_corpses] = corpse_deco_random();
-            corpse_place_slot(num_corpses, dx, dy);
-            num_corpses++;
+        {
+            uint8_t dropped = enemy_try_drop_item(dx, dy);
+            if (!dropped && num_corpses < MAX_CORPSES) {
+                corpse_x[num_corpses] = dx;
+                corpse_y[num_corpses] = dy;
+                corpse_tile[num_corpses] = corpse_deco_random();
+                corpse_place_slot(num_corpses, dx, dy);
+                num_corpses++;
+            }
         }
         enemy_clear_slot(dx, dy);
         enemy_alive[ei] = 0u;

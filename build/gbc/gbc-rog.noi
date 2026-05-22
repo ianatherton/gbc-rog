@@ -224,6 +224,7 @@ DEF b_biome_crypt_copy_defs 0xB
 DEF ___bank_biome_cavern_copy_defs 0xC
 DEF b_biome_cavern_copy_defs 0xC
 DEF l__GSINIT 0xC
+DEF b_enemy_try_drop_item 0xD
 DEF b_inventory_add 0xD
 DEF b_inventory_clear_all 0xD
 DEF b_inventory_count_used 0xD
@@ -257,7 +258,7 @@ DEF l__CODE_16 0x165
 DEF s__CODE 0x200
 DEF l__CODE_9 0x20E
 DEF l__CODE_8 0x269
-DEF l__CODE_13 0x805
+DEF l__CODE_13 0x862
 DEF l__CODE_4 0xB9B
 DEF l__HOME 0xBC9
 DEF l__CODE_14 0xEDC
@@ -275,7 +276,7 @@ DEF s__GSFINAL 0x2DD9
 DEF _rROMB1 0x3000
 DEF l__CODE_3 0x3463
 DEF l__CODE_5 0x39CA
-DEF l__CODE_2 0x3F57
+DEF l__CODE_2 0x3F6A
 DEF _rMBC7_SRAM_ENABLE_2 0x4000
 DEF _rRAMB 0x4000
 DEF __VRAM 0x8000
@@ -755,11 +756,11 @@ DEF _draw_gameplay_overlays_profiled 0x27A76
 DEF _draw_enemy_cells 0x27A93
 DEF ___func_combat_damage_enemy 0x27B27
 DEF _combat_damage_enemy 0x27B27
-DEF ___func_combat_player_attacks 0x27CAF
-DEF _combat_player_attacks 0x27CAF
-DEF ___func_resolve_enemy_hits_and_animate 0x27D12
-DEF _resolve_enemy_hits_and_animate 0x27D12
-DEF _wall_palette_table 0x27E17
+DEF ___func_combat_player_attacks 0x27CC2
+DEF _combat_player_attacks 0x27CC2
+DEF ___func_resolve_enemy_hits_and_animate 0x27D25
+DEF _resolve_enemy_hits_and_animate 0x27D25
+DEF _wall_palette_table 0x27E2A
 DEF ___func_entity_sprites_poof_clear_all 0x34384
 DEF _entity_sprites_poof_clear_all 0x34384
 DEF ___func_entity_sprites_enemy_poof_begin 0x343CD
@@ -906,6 +907,7 @@ DEF _inventory_clear_all 0xD43FC
 DEF _inventory_add 0xD441E
 DEF _inventory_remove 0xD4495
 DEF _items_use_belt 0xD45F9
+DEF _enemy_try_drop_item 0xD4805
 DEF ___func_story_ui_run_before_first_floor 0xE4000
 DEF _story_ui_run_before_first_floor 0xE4B99
 DEF _scroll_blast_use 0xF4000

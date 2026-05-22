@@ -254,3 +254,17 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
         inventory_remove(item_idx);
     out->consumed_turn = 1u;
 }
+
+uint8_t enemy_try_drop_item(uint8_t dx, uint8_t dy) BANKED {
+    uint8_t gi;
+    if ((rand() % 10u) >= 3u) return 0u;
+    for (gi = 0u; gi < MAX_GROUND_ITEMS; gi++) {
+        if (ground_item_kind[gi] == ITEM_KIND_NONE) {
+            ground_item_kind[gi] = (uint8_t)(rand() % ITEM_KIND_COUNT);
+            ground_item_x[gi] = dx;
+            ground_item_y[gi] = dy;
+            return 1u;
+        }
+    }
+    return 0u;
+}

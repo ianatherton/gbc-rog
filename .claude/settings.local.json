@@ -13,7 +13,10 @@
       "Read(//tmp/**)",
       "Bash(sort -t_ -k2 -n)",
       "Bash(grep -E '\\\\.\\(asm|s|inc|z80\\)$')",
-      "Bash(grep -v \"^make\\\\|lcc\\\\|\\\\.o$\")"
+      "Bash(grep -v \"^make\\\\|lcc\\\\|\\\\.o$\")",
+      "Bash(awk -F'[ \\\\t]' '{print $2, $3}')",
+      "Bash(sort -k2 -n)",
+      "Bash(awk '$2 >= 0xC000 && $2 <= 0xE000')"
     ]
   }
 }

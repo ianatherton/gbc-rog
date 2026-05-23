@@ -1,8 +1,9 @@
 #include "biome.h"
 #include "globals.h"
 
-EnemyDef enemy_defs[NUM_ENEMY_TYPES]; // HOME storage — biome_load_active fills this
-uint8_t  enemy_defs_count;
+EnemyDef enemy_defs[NUM_ENEMY_TYPES];        // HOME storage — biome_load_active fills this; indexed by type ID
+uint8_t  enemy_active_types[NUM_ENEMY_TYPES]; // type IDs present this floor
+uint8_t  enemy_active_count;
 
 BANKREF_EXTERN(biome_dungeon_copy_defs)
 BANKREF_EXTERN(biome_crypt_copy_defs)
@@ -11,9 +12,9 @@ BANKREF_EXTERN(biome_cavern_copy_defs)
 void biome_load_active(uint8_t biome_id) {
     floor_biome = biome_id; // sticky — UI/inspect can read which biome is loaded
     switch (biome_id) {
-        case BIOME_CRYPT:  biome_crypt_copy_defs(enemy_defs, &enemy_defs_count);  break;
-        case BIOME_CAVERN: biome_cavern_copy_defs(enemy_defs, &enemy_defs_count); break;
-        default:           biome_dungeon_copy_defs(enemy_defs, &enemy_defs_count); break;
+        case BIOME_CRYPT:  biome_crypt_copy_defs(enemy_defs, enemy_active_types, &enemy_active_count);  break;
+        case BIOME_CAVERN: biome_cavern_copy_defs(enemy_defs, enemy_active_types, &enemy_active_count); break;
+        default:           biome_dungeon_copy_defs(enemy_defs, enemy_active_types, &enemy_active_count); break;
     }
 }
 

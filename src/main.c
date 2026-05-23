@@ -88,6 +88,12 @@ int main(void) {
             tileset_tiles + (uint16_t)TILE_SHEET_M9 * 16u);
         set_sprite_data(TILE_EQUIP_MARK_VRAM, 1u, // M11 equipped indicator — borrows unused B8 VRAM slot (tile 113)
             tileset_tiles + (uint16_t)TILE_EQUIP_MARK * 16u);
+        set_sprite_data(TILE_SLIME_1_VRAM, 1u, // J11 slime frame 1 — borrows unused J6 slot
+            tileset_tiles + (uint16_t)TILE_SLIME_ROM_1 * 16u);
+        set_sprite_data(TILE_SLIME_2_VRAM, 1u, // K11 slime frame 2 — borrows unused K6 slot
+            tileset_tiles + (uint16_t)TILE_SLIME_ROM_2 * 16u);
+        set_sprite_data(TILE_RAT_VRAM, 1u,      // J16 rat — borrows unused P7 slot
+            tileset_tiles + (uint16_t)TILE_RAT_ROM * 16u);
         {
             uint8_t buf[16];
             memcpy(buf, tileset_tiles + (uint16_t)TILE_PLAYER_AURA_ROM_A * 16u, 16u); // sheet uses idx0 as clear; 0→3 remaps made a solid 8×8

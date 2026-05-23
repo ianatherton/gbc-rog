@@ -14,8 +14,9 @@ typedef struct {
     uint8_t param;        // per-style tunable (e.g. MOVE_BLINK Chebyshev jump cap); unused styles set 0
 } EnemyDef;
 
-extern EnemyDef enemy_defs[NUM_ENEMY_TYPES]; // HOME-resident; biome_load_active fills from bank 10/11/12
-extern uint8_t  enemy_defs_count;            // <= NUM_ENEMY_TYPES; spawn picks rand()%enemy_defs_count
+extern EnemyDef enemy_defs[NUM_ENEMY_TYPES];        // HOME-resident; biome_load_active fills from bank 10/11/12
+extern uint8_t  enemy_active_types[NUM_ENEMY_TYPES]; // type IDs available this floor (keyed by position, not value)
+extern uint8_t  enemy_active_count;                  // entries in enemy_active_types; spawn picks rand()%enemy_active_count
 
 /* ── Per-enemy instance state ────────────────────────────────────────────── */
 extern uint8_t enemy_x[MAX_ENEMIES]; // last tile column while slot used; undefined if !enemy_alive[i]

@@ -368,6 +368,8 @@ static void refresh_enemy_oam(uint8_t slot) {
                 if (((age0 >> 1) & 1u) == 0u) pal = 0u; // OCP0 grey ramp vs native enemy ramp
             }
             move_entity_oam(sp, ewx, ewy, tt, pal);
+            if (def->tile == def->tile_alt && enemy_anim_toggle)
+                set_sprite_prop(sp, (uint8_t)((pal & 7u) | S_FLIPX));
         }
     }
 }

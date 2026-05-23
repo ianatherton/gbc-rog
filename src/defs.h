@@ -128,12 +128,12 @@ typedef struct {
 #define ENEMY_WAKE_MANHATTAN  12u // offscreen enemies inside this player distance still simulate so near-edge threats stay responsive
 
 /* ── Enemy type IDs ──────────────────────────────────────────────────────── */
-#define ENEMY_SERPENT   0
-#define ENEMY_ADDER     1
+#define ENEMY_SNAKE     0
+#define ENEMY_SLIME     1
 #define ENEMY_RAT       2
 #define ENEMY_BAT       3
 #define ENEMY_SKELETON  4
-#define ENEMY_GOBLIN    5
+#define ENEMY_IMP       5
 #define NUM_ENEMY_TYPES 6
 
 /* ── Animation ───────────────────────────────────────────────────────────── */
@@ -275,17 +275,32 @@ typedef struct {
 #define TILE_BIGHEAL_BELT_OFF ((uint8_t)(TILE_BIGHEAL_I12_VRAM - TILESET_VRAM_OFFSET)) // items_kind_tile(KEY)
 
 /* ── J col — enemy sprites ───────────────────────────────────────────────── */
-#define TILE_SPIDER_1        9   /* J1  - spider frame 1                   */
+#define TILE_SPIDER_1        9   /* J1  - spider frame 1 (unused after snake remap) */
 #define TILE_BAT_1          25   /* J2  - bat frame 1 (only used by Bat archetype) */
-#define TILE_MONSTER_1      41   /* J3  */
-#define TILE_MONSTER_2      57   /* J4  */
-#define TILE_MONSTER_3      73   /* J5  */
+#define TILE_MONSTER_1      41   /* J3  - skeleton frame 1                 */
+#define TILE_MONSTER_2      57   /* J4  - skeleton frame 2 / imp (flip-anim) */
+#define TILE_MONSTER_3      73   /* J5  - (= TILE_SNAKE_1)                 */
+#define TILE_SNAKE_1        73   /* J5  - snake frame 1                    */
 #define TILE_LOADING_SKULL   105  /* J7  - skull / loading adorn (row7 col J) */
 #define TILE_FOX_J9          137u /* J9  - sheet/ROM index (past first VRAM pack); copied to TILE_FOX_J9_VRAM at boot */
 #define TILE_FOX_J9_VRAM     246u // OBJ + belt UI — same pattern as TILE_KNIGHT_SHIELD_VRAM for sheet tiles >127
 
 /* K col (offset 10) — K1 reserved unused on map; VRAM tile patched from M14 at boot (see main.c) */
 #define TILE_BAT_2          26   /* K2  - bat frame 2 (only used by Bat archetype) */
+#define TILE_SNAKE_2        74   /* K5  - snake frame 2                    */
+
+/* J11/K11 slime tiles — ROM row 11, past first VRAM pack; boot-patched to borrowed J6/K6 slots */
+#define TILE_SLIME_ROM_1   169u  /* J11 — slime frame 1, ROM source        */
+#define TILE_SLIME_ROM_2   170u  /* K11 — slime frame 2, ROM source        */
+#define TILE_SLIME_1_VRAM  217u  /* borrows unused J6 VRAM slot (sheet 89) */
+#define TILE_SLIME_2_VRAM  218u  /* borrows unused K6 VRAM slot (sheet 90) */
+#define TILE_SLIME_1_OFF    89u  /* = TILE_SLIME_1_VRAM - TILESET_VRAM_OFFSET; use in EnemyDef.tile */
+#define TILE_SLIME_2_OFF    90u  /* = TILE_SLIME_2_VRAM - TILESET_VRAM_OFFSET */
+
+/* J16 rat tile — ROM row 16, past first VRAM pack; boot-patched to borrowed P7 slot */
+#define TILE_RAT_ROM       249u  /* J16 — rat, ROM source                  */
+#define TILE_RAT_VRAM      239u  /* borrows unused P7 VRAM slot (sheet 111) */
+#define TILE_RAT_OFF       111u  /* = TILE_RAT_VRAM - TILESET_VRAM_OFFSET; use in EnemyDef.tile */
 
 /* ── L col — floor decorations ──────────────────────────────────────────── */
 #define TILE_FLOOR_DECO_1   11   /* L1  */

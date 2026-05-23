@@ -151,7 +151,7 @@ uint8_t enemy_force_active[MAX_ENEMIES];
 
 void enemy_type_short_name_copy(uint8_t t, char *out, uint8_t cap) BANKED {
     static const char *const n[NUM_ENEMY_TYPES] = {
-        "SERPENT", "SLIMESKULL", "RAT", "BAT", "SKELETON", "GOBLIN"
+        "SNAKE", "SLIME", "RAT", "BAT", "SKELETON", "IMP"
     };
     const char *s = (t < NUM_ENEMY_TYPES) ? n[t] : "?";
     uint8_t i = 0u;
@@ -241,7 +241,7 @@ void spawn_enemies(void) { // random placement with collision checks
                     && enemy_at(tx, ty) == ENEMY_DEAD) {
                 enemy_x[num_enemies]    = tx;
                 enemy_y[num_enemies]    = ty;
-                enemy_type[num_enemies] = (uint8_t)(rand() % (enemy_defs_count ? enemy_defs_count : 1u));
+                enemy_type[num_enemies] = enemy_active_types[rand() % (enemy_active_count ? enemy_active_count : 1u)];
                 enemy_hp[num_enemies]   = enemy_effective_max_hp(enemy_type[num_enemies]);
                 enemy_alive[num_enemies] = 1u;
                 enemy_force_active[num_enemies] = 0u;

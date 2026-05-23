@@ -108,8 +108,8 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000202A  l__CODE   |    0000222A  s__HOME   |    00002DF3  s__BASE  
      00002DF3  s__CODE_0 |    00002DF3  s__INITIA |    00002DF3  s__LIT   
      00002E0D  s__GSINIT |    00002E19  s__GSFINA |    00003000  _rROMB1  
-     0000366B  l__CODE_3 |    000039CA  l__CODE_5 |    00003F67  l__CODE_2
-     00004000  _rMBC7_SR |    00004000  _rRAMB    |    00008000  __VRAM   
+     0000366B  l__CODE_3 |    000039CA  l__CODE_5 |    00004000  _rMBC7_SR
+     00004000  _rRAMB    |    0000402E  l__CODE_2 |    00008000  __VRAM   
      00008000  __VRAM800 |    00008800  __VRAM880 |    00009000  __VRAM900
      00009800  __SCRN0   |    00009C00  __SCRN1   |    0000A000  __SRAM   
      0000A000  _rMBC7_LA |    0000A010  _rMBC7_LA |    0000A020  _rMBC7_AC
@@ -512,7 +512,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_2                00024000    00003F67 =       16231. bytes (REL,CON)
+_CODE_2                00024000    0000402E =       16430. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -523,22 +523,22 @@ _CODE_2                00024000    00003F67 =       16231. bytes (REL,CON)
      00024367  _is_walka |    000243AA  _tile_cha |    000243B8  _tile_vra
      000243CC  _tile_pal |    000243D9  _floor_gr |    000243F1  _floor_ti
      000248EC  _nearest_ |    0002498E  _nav_fill |    00024A75  _generate
-     00024F76  ___func_l |    00024F76  _level_ge |    0002539B  _enemy_gr
-     000253E7  _enemy_pl |    00025529  _enemy_cl |    000255D6  _corpse_p
-     000256E1  _corpse_c |    0002575C  _enemy_ty |    000257E3  _enemy_ef
-     0002582D  _enemy_ef |    00025878  _enemy_an |    00025886  _enemy_an
-     00025902  ___func_e |    00025902  _enemy_at |    0002597A  _corpse_s
-     000259F2  _corpse_a |    000259FE  _corpse_d |    00025A0D  _spawn_en
-     00025B3C  _enemy_se |    00025B54  _enemy_ge |    00025EBF  _enemy_re
-     00025FF2  _move_ene |    00026569  ___func_s |    00026569  _state_ga
-     000265CF  ___func_s |    000265CF  _state_ga |    00026DDB  ___func_c
-     00026DDB  _camera_i |    00027045  _camera_s |    0002751A  _camera_s
-     00027569  _apply_wa |    00027829  ___func_l |    00027829  _load_pal
-     0002790D  _draw_cel |    00027961  _draw_col |    0002799B  _draw_row
-     000279D2  _draw_ui_ |    000279DA  _draw_gam |    000279F4  _draw_scr
-     00027A73  _draw_gam |    00027A90  _draw_ene |    00027B24  ___func_c
-     00027B24  _combat_d |    00027CBF  ___func_c |    00027CBF  _combat_p
-     00027D22  ___func_r |    00027D22  _resolve_ |    00027E27  _wall_pal
+     00024F76  ___func_l |    00024F76  _level_ge |    00025462  _enemy_gr
+     000254AE  _enemy_pl |    000255F0  _enemy_cl |    0002569D  _corpse_p
+     000257A8  _corpse_c |    00025823  _enemy_ty |    000258AA  _enemy_ef
+     000258F4  _enemy_ef |    0002593F  _enemy_an |    0002594D  _enemy_an
+     000259C9  ___func_e |    000259C9  _enemy_at |    00025A41  _corpse_s
+     00025AB9  _corpse_a |    00025AC5  _corpse_d |    00025AD4  _spawn_en
+     00025C03  _enemy_se |    00025C1B  _enemy_ge |    00025F86  _enemy_re
+     000260B9  _move_ene |    00026630  ___func_s |    00026630  _state_ga
+     00026696  ___func_s |    00026696  _state_ga |    00026EA2  ___func_c
+     00026EA2  _camera_i |    0002710C  _camera_s |    000275E1  _camera_s
+     00027630  _apply_wa |    000278F0  ___func_l |    000278F0  _load_pal
+     000279D4  _draw_cel |    00027A28  _draw_col |    00027A62  _draw_row
+     00027A99  _draw_ui_ |    00027AA1  _draw_gam |    00027ABB  _draw_scr
+     00027B3A  _draw_gam |    00027B57  _draw_ene |    00027BEB  ___func_c
+     00027BEB  _combat_d |    00027D86  ___func_c |    00027D86  _combat_p
+     00027DE9  ___func_r |    00027DE9  _resolve_ |    00027EEE  _wall_pal
 ASxxxx Linker V03.00/V05.40 + sdld,  page 32.
 Hexadecimal  [32-Bits]
 

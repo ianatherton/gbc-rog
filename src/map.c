@@ -395,7 +395,16 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     }
     initrand(floor_seed);
     knight_shield_active = 0u; // floor-scoped buff — clear on every regen so it doesn't leak across stairs
-    player_light_bonus     = 0u;
+    player_light_bonus     = 0u; // candles consumed per-floor; re-apply durable equipment bonuses below
+    {
+        uint8_t _i;
+        for (_i = 0u; _i < INVENTORY_MAX_SLOTS; _i++) {
+            if (inventory_equipped[_i] && inventory_kind[_i] == ITEM_KIND_BOOTS) {
+                uint16_t nb = (uint16_t)player_light_bonus + 2u;
+                player_light_bonus = (nb > 255u) ? 255u : (uint8_t)nb;
+            }
+        }
+    }
     ally_clear_all();
     biome_load_active(biome_pick_for_floor(floor_num, run_seed)); // fills HOME enemy_defs[] from coral bank before spawn
     if (floor_biome == BIOME_CAVERN) wall_tileset_index = TILE_WALL_F;

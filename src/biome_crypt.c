@@ -7,7 +7,7 @@
 
 // Crypt roster — undead-leaning subset; expand with crypt-only enemy IDs in a follow-up.
 static const EnemyDef defs[] = {
-    /* ENEMY_SKELETON */ { TILE_MONSTER_1,  TILE_MONSTER_2,  3, 2, PAL_ENEMY_SKELETON, MOVE_CHASE,  0 }, // J3/J4
+    /* ENEMY_SKELETON */ { TILE_SKELETON_BODY, TILE_SKELETON_BODY, 3, 2, PAL_ENEMY_SKELETON, MOVE_CHASE, 0 }, // J8 body; head drawn separately at J7
     /* ENEMY_IMP      */ { TILE_MONSTER_2,  TILE_MONSTER_2,  2, 2, PAL_ENEMY_GOBLIN,   MOVE_CHASE,  0 }, // J4 flip-anim
     /* ENEMY_RAT      */ { TILE_RAT_OFF,    TILE_RAT_OFF,    1, 1, PAL_ENEMY_RAT,      MOVE_WANDER, 0 }, // J16 flip-anim
 };

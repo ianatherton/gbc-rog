@@ -104,15 +104,18 @@ typedef struct {
 #define NUM_PITS     1    // single descent tile per floor
 
 /* ── Enemy roster ────────────────────────────────────────────────────────── */
-#define MAX_ENEMIES    28 // one fewer live slots; OAM layout reserves aura + player before enemy run
-#define NUM_ENEMIES    28
+#define MAX_ENEMIES    24 // OAM layout: 24 body slots + 4 skeleton-head slots fit before ally base
+#define NUM_ENEMIES    24
 #define ENEMY_DEAD    255
 
 /* OAM draw order: lower index = in front (hardware). Aura must be < player or the 8×8 hero covers it completely.
-   Flight FX (witch bolt, shield fireball) borrow SP_PLAYER_AURA_OAM during entity_sprites_run_projectile so bolts sit above the hero. */
+   Flight FX (witch bolt, shield fireball) borrow SP_PLAYER_AURA_OAM during entity_sprites_run_projectile so bolts sit above the hero.
+   Skeleton heads use SP_SKEL_HEAD_BASE..+MAX_SKEL_HEADS-1 (27..30) — managed by entity_sprites, excluded from hide sweep. */
 #define SP_PLAYER_AURA_OAM    0u // M15/M16 gold flicker — slot also drives bolt/fireball FX (same index = above hero)
 #define SP_PLAYER             1u // hero body
-#define SP_ENEMY_BASE         3u // enemies use OAM [SP_ENEMY_BASE .. SP_ENEMY_BASE + num_enemies - 1]
+#define SP_ENEMY_BASE         3u // enemies use OAM [SP_ENEMY_BASE .. SP_ENEMY_BASE + MAX_ENEMIES - 1] = 3..26
+#define SP_SKEL_HEAD_BASE    27u // skeleton head overlays (up to MAX_SKEL_HEADS concurrent visible heads)
+#define MAX_SKEL_HEADS        4u // head slots 27..30; must fit before SP_ALLY_BASE (31)
 #define MAX_ALLIES            4u // parallel ally slots — OAM SP_ALLY_BASE .. SP_ALLY_BASE+MAX_ALLIES-1 (above enemy run)
 #define ALLY_TYPE_NONE        0u
 #define ALLY_TYPE_FOX         1u // Scoundrel Call Fox — further types share ally_* arrays + per-type tick/OAM in ally layer
@@ -282,6 +285,13 @@ typedef struct {
 #define TILE_MONSTER_3      73   /* J5  - (= TILE_SNAKE_1)                 */
 #define TILE_SNAKE_1        73   /* J5  - snake frame 1                    */
 #define TILE_LOADING_SKULL   105  /* J7  - skull / loading adorn (row7 col J) */
+#define TILE_SKELETON_HEAD   105u /* J7  - skeleton head overlay (= TILE_LOADING_SKULL) */
+
+/* J8 skeleton body — ROM slot 121 maps to VRAM 249 = TILE_PLAYER_AURA_VRAM_B (patched at boot),
+   so J8 is boot-patched to a borrowed VRAM slot instead (same pattern as slime/rat). */
+#define TILE_SKELETON_BODY_ROM  121u /* J8  — skeleton body, ROM source         */
+#define TILE_SKELETON_BODY_VRAM 234u /* borrows unused K7 VRAM slot (sheet 106) */
+#define TILE_SKELETON_BODY      106u /* = TILE_SKELETON_BODY_VRAM - TILESET_VRAM_OFFSET; use in EnemyDef.tile */
 #define TILE_FOX_J9          137u /* J9  - sheet/ROM index (past first VRAM pack); copied to TILE_FOX_J9_VRAM at boot */
 #define TILE_FOX_J9_VRAM     246u // OBJ + belt UI — same pattern as TILE_KNIGHT_SHIELD_VRAM for sheet tiles >127
 

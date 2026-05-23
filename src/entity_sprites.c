@@ -59,6 +59,7 @@ static int8_t en_ofs_x[MAX_ENEMIES], en_ofs_y[MAX_ENEMIES]; // per-slot lunge
 static int8_t ally_ofs_x[MAX_ALLIES], ally_ofs_y[MAX_ALLIES]; // walk glide offsets (stepped during camera scroll)
 static uint8_t enemy_poof_ttl[MAX_ENEMIES];          // dead slot: VBlanks left showing TILE_POOF_CLOUD (OCP0)
 static uint8_t en_hit_flash_age[MAX_ENEMIES];       // 0 off; 1..ENEMY_HIT_FLASH_VBL — grey hit pulses in refresh_enemy_oam
+static uint8_t skel_head_slot[MAX_ENEMIES];         // 255 = no head; 0..MAX_SKEL_HEADS-1 = index into SP_SKEL_HEAD_BASE pool
 static uint8_t enemy_effects_count;                 // enemies with an active poof or hit-flash; 0 = skip VBL loop entirely
 
 #define ENEMY_POOF_DURATION_VBL 22u // ~370ms @60Hz — overlaps corpse then clears
@@ -217,6 +218,7 @@ BANKREF(entity_sprites_init)
 void entity_sprites_init(void) BANKED {
     uint8_t i;
     entity_sprites_poof_clear_all();
+    memset(skel_head_slot, 255, sizeof skel_head_slot);
     memset(en_ofs_x, 0, sizeof en_ofs_x);
     memset(en_ofs_y, 0, sizeof en_ofs_y);
     pl_ofs_x = pl_ofs_y = 0;
@@ -328,8 +330,11 @@ static void refresh_player_oam_from_cache(void) { // player only — same math a
 
 static void refresh_enemy_oam(uint8_t slot) {
     uint8_t sp = (uint8_t)(SP_ENEMY_BASE + slot);
+    uint8_t hi = skel_head_slot[slot]; // 255 = no head assigned, else index into head pool
+    uint8_t hsp = (hi < MAX_SKEL_HEADS) ? (uint8_t)(SP_SKEL_HEAD_BASE + hi) : 255u;
     if (slot >= num_enemies) {
         oam_hide(sp);
+        if (hsp != 255u) oam_hide(hsp);
         return;
     }
     if (!enemy_alive[slot]) {
@@ -339,13 +344,16 @@ static void refresh_enemy_oam(uint8_t slot) {
                     || my < CAM_TY || my >= (uint8_t)(CAM_TY + GRID_H)
                     || !lighting_is_revealed(mx, my)) {
                 oam_hide(sp);
+                if (hsp != 255u) oam_hide(hsp);
                 return;
             }
             move_entity_oam(sp, (int16_t)mx * 8 + en_ofs_x[slot], (int16_t)my * 8 + en_ofs_y[slot],
                     (uint8_t)(TILESET_VRAM_OFFSET + TILE_POOF_CLOUD), 0u); // OCP0 = pal_default (light/white ramp)
+            if (hsp != 255u) oam_hide(hsp); // head gone when body poofs
             return;
         }
         oam_hide(sp);
+        if (hsp != 255u) oam_hide(hsp);
         return;
     }
     {
@@ -358,6 +366,7 @@ static void refresh_enemy_oam(uint8_t slot) {
                 || enemy_y[slot] < CAM_TY || enemy_y[slot] >= (uint8_t)(CAM_TY + GRID_H)
                 || !lighting_is_revealed(enemy_x[slot], enemy_y[slot])) {
             oam_hide(sp);
+            if (hsp != 255u) oam_hide(hsp);
             return;
         }
         {
@@ -370,6 +379,17 @@ static void refresh_enemy_oam(uint8_t slot) {
             move_entity_oam(sp, ewx, ewy, tt, pal);
             if (def->tile == def->tile_alt && enemy_anim_toggle)
                 set_sprite_prop(sp, (uint8_t)((pal & 7u) | S_FLIPX));
+            // skeleton head — one tile above body (J7); hidden if skeleton is at world row 0
+            if (hsp != 255u) {
+                if (enemy_y[slot] > 0u) {
+                    move_entity_oam(hsp, ewx, (int16_t)(ewy - 8),
+                                    (uint8_t)(TILESET_VRAM_OFFSET + TILE_SKELETON_HEAD), pal);
+                    if (enemy_anim_toggle)
+                        set_sprite_prop(hsp, (uint8_t)((pal & 7u) | S_FLIPX));
+                } else {
+                    oam_hide(hsp);
+                }
+            }
         }
     }
 }
@@ -490,9 +510,24 @@ BANKREF(entity_sprites_refresh_oam_only)
 void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) BANKED {
     uint8_t i;
     entity_sprites_refresh_player_only(px, py);
+    // Clear all head OAM slots first so stale heads from dead skeletons don't linger
+    {
+        uint8_t hi;
+        for (hi = 0; hi < MAX_SKEL_HEADS; hi++) oam_hide((uint8_t)(SP_SKEL_HEAD_BASE + hi));
+    }
+    // Assign head slots to alive skeletons before body refresh so refresh_enemy_oam can use them
+    {
+        uint8_t next_head = 0;
+        memset(skel_head_slot, 255, sizeof skel_head_slot);
+        for (i = 0; i < num_enemies; i++) {
+            if (enemy_alive[i] && enemy_type[i] == ENEMY_SKELETON && next_head < MAX_SKEL_HEADS)
+                skel_head_slot[i] = next_head++;
+        }
+    }
     for (i = 0; i < num_enemies; i++) refresh_enemy_oam(i);
     for (i = (uint8_t)(SP_ENEMY_BASE + num_enemies); i < 40u; i++)
         if (!(i >= SP_ALLY_BASE && i < (uint8_t)(SP_ALLY_BASE + MAX_ALLIES))
+                && !(i >= SP_SKEL_HEAD_BASE && i < (uint8_t)(SP_SKEL_HEAD_BASE + MAX_SKEL_HEADS))
                 && i != SP_BRAZIER_FIRE && i != SP_LADDER_ARROW && i != SP_BELT_SELECTOR && i != SP_PLAYER_AURA_OAM && i != SP_BUFF_ICON)
             oam_hide(i);
     if (!brazier_fire_active) oam_hide(SP_BRAZIER_FIRE); // keep slot hidden until first spawn

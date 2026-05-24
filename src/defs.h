@@ -110,12 +110,12 @@ typedef struct {
 
 /* OAM draw order: lower index = in front (hardware). Aura must be < player or the 8×8 hero covers it completely.
    Flight FX (witch bolt, shield fireball) borrow SP_PLAYER_AURA_OAM during entity_sprites_run_projectile so bolts sit above the hero.
-   Skeleton heads use SP_SKEL_HEAD_BASE..+MAX_SKEL_HEADS-1 (27..30) — managed by entity_sprites, excluded from hide sweep. */
+   Big Skell heads use SP_BIG_SKELL_HEAD_BASE..+MAX_BIG_SKELL_HEADS-1 (27..30) — managed by entity_sprites, excluded from hide sweep. */
 #define SP_PLAYER_AURA_OAM    0u // M15/M16 gold flicker — slot also drives bolt/fireball FX (same index = above hero)
 #define SP_PLAYER             1u // hero body
 #define SP_ENEMY_BASE         3u // enemies use OAM [SP_ENEMY_BASE .. SP_ENEMY_BASE + MAX_ENEMIES - 1] = 3..26
-#define SP_SKEL_HEAD_BASE    27u // skeleton head overlays (up to MAX_SKEL_HEADS concurrent visible heads)
-#define MAX_SKEL_HEADS        4u // head slots 27..30; must fit before SP_ALLY_BASE (31)
+#define SP_BIG_SKELL_HEAD_BASE 27u // big skell head overlays (up to MAX_BIG_SKELL_HEADS concurrent visible heads)
+#define MAX_BIG_SKELL_HEADS    4u // head slots 27..30; must fit before SP_ALLY_BASE (31)
 #define MAX_ALLIES            4u // parallel ally slots — OAM SP_ALLY_BASE .. SP_ALLY_BASE+MAX_ALLIES-1 (above enemy run)
 #define ALLY_TYPE_NONE        0u
 #define ALLY_TYPE_FOX         1u // Scoundrel Call Fox — further types share ally_* arrays + per-type tick/OAM in ally layer
@@ -135,9 +135,10 @@ typedef struct {
 #define ENEMY_SLIME     1
 #define ENEMY_RAT       2
 #define ENEMY_BAT       3
-#define ENEMY_SKELETON  4
+#define ENEMY_BIG_SKELL 4
 #define ENEMY_IMP       5
-#define NUM_ENEMY_TYPES 6
+#define ENEMY_SKELETON  6
+#define NUM_ENEMY_TYPES 7
 
 /* ── Animation ───────────────────────────────────────────────────────────── */
 // DIV_REG runs at 16384 Hz; 1638 ticks ≈ 0.10s between frame flips
@@ -285,13 +286,21 @@ typedef struct {
 #define TILE_MONSTER_3      73   /* J5  - (= TILE_SNAKE_1)                 */
 #define TILE_SNAKE_1        73   /* J5  - snake frame 1                    */
 #define TILE_LOADING_SKULL   105  /* J7  - skull / loading adorn (row7 col J) */
-#define TILE_SKELETON_HEAD   105u /* J7  - skeleton head overlay (= TILE_LOADING_SKULL) */
+#define TILE_BIG_SKELL_HEAD   105u /* J7  - big skell head overlay (= TILE_LOADING_SKULL) */
 
-/* J8 skeleton body — ROM slot 121 maps to VRAM 249 = TILE_PLAYER_AURA_VRAM_B (patched at boot),
+/* J8 big skell body — ROM slot 121 maps to VRAM 249 = TILE_PLAYER_AURA_VRAM_B (patched at boot),
    so J8 is boot-patched to a borrowed VRAM slot instead (same pattern as slime/rat). */
-#define TILE_SKELETON_BODY_ROM  121u /* J8  — skeleton body, ROM source         */
-#define TILE_SKELETON_BODY_VRAM 234u /* borrows unused K7 VRAM slot (sheet 106) */
-#define TILE_SKELETON_BODY      106u /* = TILE_SKELETON_BODY_VRAM - TILESET_VRAM_OFFSET; use in EnemyDef.tile */
+#define TILE_BIG_SKELL_BODY_ROM  121u /* J8  — big skell body, ROM source         */
+#define TILE_BIG_SKELL_BODY_VRAM 234u /* borrows unused K7 VRAM slot (sheet 106) */
+#define TILE_BIG_SKELL_BODY      106u /* = TILE_BIG_SKELL_BODY_VRAM - TILESET_VRAM_OFFSET; use in EnemyDef.tile */
+
+/* J10/K10 small skeleton — ROM past first VRAM pack; boot-patched to borrowed N7/O7 slots */
+#define TILE_SKEL_ROM_1   153u  /* J10 — small skel frame 1, ROM source        */
+#define TILE_SKEL_ROM_2   154u  /* K10 — small skel frame 2, ROM source        */
+#define TILE_SKEL_1_VRAM  237u  /* borrows unused N7 VRAM slot (sheet 109)     */
+#define TILE_SKEL_2_VRAM  238u  /* borrows unused O7 VRAM slot (sheet 110)     */
+#define TILE_SKEL_1_OFF   109u  /* = TILE_SKEL_1_VRAM - TILESET_VRAM_OFFSET; use in EnemyDef.tile */
+#define TILE_SKEL_2_OFF   110u  /* = TILE_SKEL_2_VRAM - TILESET_VRAM_OFFSET */
 #define TILE_FOX_J9          137u /* J9  - sheet/ROM index (past first VRAM pack); copied to TILE_FOX_J9_VRAM at boot */
 #define TILE_FOX_J9_VRAM     246u // OBJ + belt UI — same pattern as TILE_KNIGHT_SHIELD_VRAM for sheet tiles >127
 

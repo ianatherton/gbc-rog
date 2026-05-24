@@ -88,8 +88,12 @@ int main(void) {
             tileset_tiles + (uint16_t)TILE_SHEET_M9 * 16u);
         set_sprite_data(TILE_EQUIP_MARK_VRAM, 1u, // M11 equipped indicator — borrows unused B8 VRAM slot (tile 113)
             tileset_tiles + (uint16_t)TILE_EQUIP_MARK * 16u);
-        set_sprite_data(TILE_SKELETON_BODY_VRAM, 1u, // J8 skeleton body — borrows unused K7 slot (J8 ROM maps to aura VRAM 249)
-            tileset_tiles + (uint16_t)TILE_SKELETON_BODY_ROM * 16u);
+        set_sprite_data(TILE_BIG_SKELL_BODY_VRAM, 1u, // J8 big skell body — borrows unused K7 slot (J8 ROM maps to aura VRAM 249)
+            tileset_tiles + (uint16_t)TILE_BIG_SKELL_BODY_ROM * 16u);
+        set_sprite_data(TILE_SKEL_1_VRAM, 1u, // J10 small skel frame 1 — borrows unused N7 slot
+            tileset_tiles + (uint16_t)TILE_SKEL_ROM_1 * 16u);
+        set_sprite_data(TILE_SKEL_2_VRAM, 1u, // K10 small skel frame 2 — borrows unused O7 slot
+            tileset_tiles + (uint16_t)TILE_SKEL_ROM_2 * 16u);
         set_sprite_data(TILE_SLIME_1_VRAM, 1u, // J11 slime frame 1 — borrows unused J6 slot
             tileset_tiles + (uint16_t)TILE_SLIME_ROM_1 * 16u);
         set_sprite_data(TILE_SLIME_2_VRAM, 1u, // K11 slime frame 2 — borrows unused K6 slot

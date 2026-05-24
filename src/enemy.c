@@ -151,7 +151,7 @@ uint8_t enemy_force_active[MAX_ENEMIES];
 
 void enemy_type_short_name_copy(uint8_t t, char *out, uint8_t cap) BANKED {
     static const char *const n[NUM_ENEMY_TYPES] = {
-        "SNAKE", "SLIME", "RAT", "BAT", "SKELETON", "IMP"
+        "SNAKE", "SLIME", "RAT", "BAT", "BIG SKELL", "IMP", "SKELETON"
     };
     const char *s = (t < NUM_ENEMY_TYPES) ? n[t] : "?";
     uint8_t i = 0u;

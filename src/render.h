@@ -14,6 +14,7 @@ void draw_cell(uint8_t mx, uint8_t my); // single map cell if visible (terrain o
 void draw_col_strip(uint8_t mx); // one world column for horizontal scroll
 void draw_row_strip(uint8_t my); // one world row for vertical scroll
 void draw_enemy_cells(uint8_t px, uint8_t py); // idle enemy glyph flip: OAM only (no BG/WIN redraw)
+void draw_corpse_cells(void); // redraw BG tiles for corpses and dropped items after non-melee kills
 void draw_ui_rows(void); // window text panel + bottom HUD after camera moves (delegates to ui.c)
 
 #endif // RENDER_H

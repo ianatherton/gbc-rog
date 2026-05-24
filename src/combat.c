@@ -105,15 +105,17 @@ uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) BANKED {
     camera_shake();
     if (knight_shield_active && player_hp != 0u) { // reply: 1 dmg/level + fireball — only adjacent strikers reach here, so no range gate needed
         uint8_t reflect_dmg = player_level ? player_level : 1u;
+        uint8_t shield_killed = 0u;
         for (a = 0; a < enemy_attack_count; a++) {
             uint8_t ei = enemy_attack_slots[a];
             if (!enemy_alive[ei]) continue; // could've been killed earlier this frame
             entity_sprites_run_projectile(px, py, enemy_x[ei], enemy_y[ei],
                 (uint8_t)(TILE_WITCH_BOLT_VRAM - TILESET_VRAM_OFFSET), PAL_XP_UI);
-            (void)combat_damage_enemy(ei, reflect_dmg, 1u); // log + xp + corpse; "burned" line
+            if (combat_damage_enemy(ei, reflect_dmg, 1u)) shield_killed = 1u; // log + xp + corpse; "burned" line
         }
         wait_vbl_done();
         draw_gameplay_overlays_profiled(px, py);
+        if (shield_killed) draw_corpse_cells();
     }
     perf_record(PERF_HIT_RESOLVE, perf_stamp_elapsed(&perf_stamp));
     return (player_hp == 0) ? 2u : 1u;

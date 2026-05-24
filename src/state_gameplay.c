@@ -58,7 +58,7 @@ static void gameplay_allies_turn_and_glide(uint8_t px, uint8_t py) {
             break;
         }
     }
-    if (fk) { wait_vbl_done(); draw_enemy_cells(px, py); }
+    if (fk) { wait_vbl_done(); draw_enemy_cells(px, py); draw_corpse_cells(); }
     for (i = 0u; i < MAX_ALLIES; i++) {
         if (!ally_active[i] || !snap_a[i]) continue;
         if (snap_x[i] != ally_x[i] || snap_y[i] != ally_y[i]) {
@@ -244,7 +244,8 @@ void state_gameplay_tick(void) BANKED {
             items_use_belt((uint8_t)(selected_belt_slot - BELT_SLOT_COUNT), &ar);
         if (ar.did_kill) {
             wait_vbl_done();
-            draw_enemy_cells(g_player_x, g_player_y); // abilities can kill multiple enemies (e.g. Whirlwind); redraw full enemy/corpse pass
+            draw_enemy_cells(g_player_x, g_player_y);
+            draw_corpse_cells();
         }
 #if FEATURE_MAP_FOG
         if (ar.lighting_refresh) {
@@ -372,8 +373,9 @@ void state_gameplay_tick(void) BANKED {
                 if (player_hp < player_hp_max) player_hp++;
                 {
                     uint8_t ally_snap_x[MAX_ALLIES], ally_snap_y[MAX_ALLIES], ally_snap_a[MAX_ALLIES];
+                    uint8_t ally_fk;
                     // Fox AI before scroll; glide offset set so fox slides with the camera pan
-                    ally_walk_tick_and_snap(g_player_x, g_player_y, ally_snap_x, ally_snap_y, ally_snap_a);
+                    ally_fk = ally_walk_tick_and_snap(g_player_x, g_player_y, ally_snap_x, ally_snap_y, ally_snap_a);
                     entity_sprites_ally_glide_begin(ally_snap_x, ally_snap_y, ally_snap_a);
                     {
                         uint8_t target_cx = (g_player_x > GRID_W / 2) ? (uint8_t)(g_player_x - GRID_W / 2) : 0;
@@ -382,6 +384,7 @@ void state_gameplay_tick(void) BANKED {
                         if (target_cy > (uint8_t)(active_map_h - GRID_H)) target_cy = (uint8_t)(active_map_h - GRID_H);
                         camera_scroll_to(target_cx, target_cy, opx, opy, g_player_x, g_player_y);
                     }
+                    if (ally_fk) draw_corpse_cells();
                 }
                 {
                     uint8_t k;

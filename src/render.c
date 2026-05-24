@@ -204,3 +204,12 @@ void draw_gameplay_overlays_profiled(uint8_t px, uint8_t py) { // overlay-only p
 void draw_enemy_cells(uint8_t px, uint8_t py) { // idle glyph flip: OAM only — BG + WIN unchanged vs last draw_screen
     entity_sprites_refresh_oam_only(px, py);
 }
+
+void draw_corpse_cells(void) { // redraw BG tiles for all corpses and dropped items — call after any non-melee kill
+    uint8_t i;
+    for (i = 0u; i < num_corpses; i++)
+        draw_cell(corpse_x[i], corpse_y[i]);
+    for (i = 0u; i < MAX_GROUND_ITEMS; i++)
+        if (ground_item_kind[i] != ITEM_KIND_NONE)
+            draw_cell(ground_item_x[i], ground_item_y[i]);
+}

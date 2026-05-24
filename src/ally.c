@@ -41,9 +41,10 @@ uint8_t ally_has_type(uint8_t t) {
 
 // Walk-step helpers: split AI tick from glide so camera can start between them.
 // Lives in HOME so bank 2 (state_gameplay) doesn't pay for the loop code.
-void ally_walk_tick_and_snap(uint8_t px, uint8_t py,
-                              uint8_t *snap_x, uint8_t *snap_y, uint8_t *snap_a) {
+uint8_t ally_walk_tick_and_snap(uint8_t px, uint8_t py,
+                                uint8_t *snap_x, uint8_t *snap_y, uint8_t *snap_a) {
     uint8_t i;
+    uint8_t killed = 0u;
     for (i = 0u; i < MAX_ALLIES; i++) {
         snap_x[i] = ally_x[i];
         snap_y[i] = ally_y[i];
@@ -52,8 +53,9 @@ void ally_walk_tick_and_snap(uint8_t px, uint8_t py,
     for (i = 0u; i < MAX_ALLIES; i++) {
         if (!snap_a[i]) continue;
         if (ally_type[i] == ALLY_TYPE_FOX)
-            (void)ally_fox_turn_tick(i, px, py);
+            killed |= ally_fox_turn_tick(i, px, py);
     }
+    return killed;
 }
 
 

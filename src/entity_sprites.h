@@ -26,6 +26,7 @@ void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dir_x, int8_
 void entity_sprites_enemy_hit_flash_clear(uint8_t slot) BANKED; // stop hit ramp if enemy dies same turn
 void entity_sprites_run_enemy_lunge(uint8_t px, uint8_t py, uint8_t slot, uint8_t tgx, uint8_t tgy) BANKED;
 void entity_sprites_run_enemy_lunges_batch(uint8_t px, uint8_t py, const uint8_t *slots, uint8_t count) BANKED; // concurrent lunge for all attackers
+void entity_sprites_run_ally_lunge(uint8_t px, uint8_t py, uint8_t ally_slot, uint8_t tgx, uint8_t tgy, uint8_t hit_enemy_slot) BANKED;
 void entity_sprites_run_projectile(uint8_t sx, uint8_t sy, uint8_t tx, uint8_t ty, uint8_t tile_off, uint8_t pal) BANKED;
 
 void entity_sprites_inv_cursor_show(uint8_t cx, uint8_t cy) BANKED; // bouncing up-arrow below selected inventory cell

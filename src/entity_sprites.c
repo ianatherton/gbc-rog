@@ -713,6 +713,32 @@ void entity_sprites_run_enemy_lunges_batch(uint8_t px, uint8_t py,
     for (i = 0; i < count; i++) entity_sprites_refresh_enemy(slots[i]);
 }
 
+BANKREF(entity_sprites_run_ally_lunge)
+void entity_sprites_run_ally_lunge(uint8_t px, uint8_t py, uint8_t ally_slot, uint8_t tgx, uint8_t tgy, uint8_t hit_enemy_slot) BANKED {
+    uint8_t t;
+    uint8_t mid_t = (uint8_t)(ENTITY_LUNGE_FRAMES >> 1);
+    int8_t dx = (int8_t)tgx - (int8_t)ally_x[ally_slot];
+    int8_t dy = (int8_t)tgy - (int8_t)ally_y[ally_slot];
+    if (dx > 1) dx = 1; if (dx < -1) dx = -1;
+    if (dy > 1) dy = 1; if (dy < -1) dy = -1;
+    for (t = 0; t < ENTITY_LUNGE_FRAMES; t++) {
+        uint8_t a = lunge_amt_for_frame(t);
+        ally_ofs_x[ally_slot] = (int8_t)((int16_t)dx * (int16_t)a);
+        ally_ofs_y[ally_slot] = (int8_t)((int16_t)dy * (int16_t)a);
+        entity_sprites_refresh_player_only(px, py);
+        refresh_allies_oam();
+        if (hit_enemy_slot < MAX_ENEMIES && enemy_alive[hit_enemy_slot] && t == mid_t) {
+            if (!en_hit_flash_age[hit_enemy_slot]) enemy_effects_count++;
+            en_hit_flash_age[hit_enemy_slot] = 1u;
+            refresh_enemy_oam(hit_enemy_slot);
+        }
+        wait_vbl_done();
+    }
+    ally_ofs_x[ally_slot] = ally_ofs_y[ally_slot] = 0;
+    entity_sprites_refresh_player_only(px, py);
+    refresh_allies_oam();
+}
+
 BANKREF(entity_sprites_inv_cursor_show)
 void entity_sprites_inv_cursor_show(uint8_t cx, uint8_t cy) BANKED {
     inv_cursor_sx = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_X + (uint16_t)cx * 8u);

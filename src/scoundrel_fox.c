@@ -7,6 +7,7 @@
 #include "enemy.h"
 #include "combat.h"
 #include "lcd.h"
+#include "entity_sprites.h"
 #include <gb/gb.h>
 #include <gb/hardware.h>
 #include <gbdk/platform.h>
@@ -14,6 +15,7 @@
 
 BANKREF_EXTERN(ally_clear_slot)
 BANKREF_EXTERN(combat_damage_enemy)
+BANKREF_EXTERN(entity_sprites_run_ally_lunge)
 BANKREF_EXTERN(is_walkable)
 BANKREF_EXTERN(tile_at)
 BANKREF_EXTERN(enemy_at)
@@ -208,6 +210,7 @@ uint8_t ally_fox_turn_tick(uint8_t slot, uint8_t px, uint8_t py) BANKED {
         uint8_t ex = enemy_x[ei], ey = enemy_y[ei];
         if (cheb_dist(ally_x[slot], ally_y[slot], ex, ey) <= 1u) {
             dmg = player_damage ? player_damage : 1u;
+            entity_sprites_run_ally_lunge(px, py, slot, ex, ey, ei);
             return combat_damage_enemy(ei, dmg, 0u);
         }
         fox_blink_toward(ally_x[slot], ally_y[slot], ex, ey, FOX_BLINK_RANGE, &nx, &ny);

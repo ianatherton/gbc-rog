@@ -16,7 +16,8 @@
       "Bash(grep -v \"^make\\\\|lcc\\\\|\\\\.o$\")",
       "Bash(awk -F'[ \\\\t]' '{print $2, $3}')",
       "Bash(sort -k2 -n)",
-      "Bash(awk '$2 >= 0xC000 && $2 <= 0xE000')"
+      "Bash(awk '$2 >= 0xC000 && $2 <= 0xE000')",
+      "Bash(grep -E \"^/home/sparkydev/projects/gbc-rog/[^/]*\\\\.\\(py|js|ts|tsx\\)$|src/|game/\")"
     ]
   }
 }

@@ -388,7 +388,7 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
             uint8_t dx = (sx > px) ? (uint8_t)(sx - px) : (uint8_t)(px - sx);
             uint8_t dy = (sy > py) ? (uint8_t)(sy - py) : (uint8_t)(py - sy);
             uint8_t md = (uint8_t)(dx + dy);
-            if (md > ENEMY_WAKE_MANHATTAN && !lighting_is_revealed(sx, sy)) continue;
+            if (md > ENEMY_WAKE_MANHATTAN || !lighting_is_revealed(sx, sy)) continue;
         }
 #endif
 

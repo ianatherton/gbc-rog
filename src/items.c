@@ -55,16 +55,16 @@ static const char *const kind_name[ITEM_KIND_COUNT] = {
 };
 
 static const char *const kind_desc[ITEM_KIND_COUNT] = {
-    "Restores half of your max HP",
-    "Blasts all enemies in sight with magic",
-    "Fully restores all HP",
-    "Permanently expands your light radius",
-    "Roots all visible enemies for 12 turns",
-    "Equip to gain +4 attack damage",
-    "Read to restore a quarter of your max HP",
-    "Iron helmet that grants +5 max HP",
-    "Chainmail tunic that grants +10 max HP",
-    "Leather boots that expand your light radius",
+    "+50% HP. A small vial of crimson liquid.",
+    "Blasts all in sight. An arcane scroll.",
+    "Restores full HP. A rare golden elixir.",
+    "+3 light radius. A stubby wax candle.",
+    "Roots all enemies 12 turns. Mossy parchment.",
+    "+4 attack. A nicked blade, still sharp.",
+    "+25% HP. A dog-eared tome of healing.",
+    "+5 max HP. A battered iron helmet.",
+    "+10 max HP. Heavy rings of chainmail.",
+    "+2 light radius. Worn leather boots.",
 };
 
 uint8_t items_kind_category(uint8_t kind) BANKED {
@@ -255,12 +255,27 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
     out->consumed_turn = 1u;
 }
 
+/* Weighted drop table: consumables weight 5, equipment/reusables weight 4.
+   Total 45 entries → consumables 55.6%, non-consumables 44.4% of drops. */
+static const uint8_t drop_table[45] = {
+    ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,
+    ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,
+    ITEM_KIND_KEY,         ITEM_KIND_KEY,         ITEM_KIND_KEY,         ITEM_KIND_KEY,         ITEM_KIND_KEY,
+    ITEM_KIND_CANDLE,      ITEM_KIND_CANDLE,      ITEM_KIND_CANDLE,      ITEM_KIND_CANDLE,      ITEM_KIND_CANDLE,
+    ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT,
+    ITEM_KIND_RUSTY_SWORD, ITEM_KIND_RUSTY_SWORD, ITEM_KIND_RUSTY_SWORD, ITEM_KIND_RUSTY_SWORD,
+    ITEM_KIND_BOOK_HEAL,   ITEM_KIND_BOOK_HEAL,   ITEM_KIND_BOOK_HEAL,   ITEM_KIND_BOOK_HEAL,
+    ITEM_KIND_HELMET,      ITEM_KIND_HELMET,      ITEM_KIND_HELMET,      ITEM_KIND_HELMET,
+    ITEM_KIND_TUNIC,       ITEM_KIND_TUNIC,       ITEM_KIND_TUNIC,       ITEM_KIND_TUNIC,
+    ITEM_KIND_BOOTS,       ITEM_KIND_BOOTS,       ITEM_KIND_BOOTS,       ITEM_KIND_BOOTS,
+};
+
 uint8_t enemy_try_drop_item(uint8_t dx, uint8_t dy) BANKED {
     uint8_t gi;
-    if ((rand() % 10u) >= 3u) return 0u;
+    if ((rand() % 20u) >= 3u) return 0u;
     for (gi = 0u; gi < MAX_GROUND_ITEMS; gi++) {
         if (ground_item_kind[gi] == ITEM_KIND_NONE) {
-            ground_item_kind[gi] = (uint8_t)(rand() % ITEM_KIND_COUNT);
+            ground_item_kind[gi] = drop_table[rand() % 45u];
             ground_item_x[gi] = dx;
             ground_item_y[gi] = dy;
             return 1u;

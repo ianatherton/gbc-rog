@@ -103,13 +103,13 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00000060  l__HEADER |    0000007A  l__CODE_6 |    0000008A  l__CODE_1
      00000092  l__CODE_1 |    000000AB  l__HEADER |    00000150  l__CODE_1
      00000165  l__CODE_1 |    00000200  s__CODE   |    0000020E  l__CODE_9
-     00000269  l__CODE_8 |    00000862  l__CODE_1 |    00000B9B  l__CODE_4
+     00000269  l__CODE_8 |    000008BC  l__CODE_1 |    00000B9B  l__CODE_4
      00000BC9  l__HOME   |    00000EDC  l__CODE_1 |    00001108  l__CODE_1
      00001D75  l__DATA   |    00002000  _rROMB0   |    000021B4  l__CODE  
      000023B4  s__HOME   |    00002F7D  s__BASE   |    00002F7D  s__CODE_0
      00002F7D  s__INITIA |    00002F7D  s__LIT    |    00002F97  s__GSINIT
-     00002FA3  s__GSFINA |    00003000  _rROMB1   |    00003985  l__CODE_3
-     000039CA  l__CODE_5 |    00003F69  l__CODE_2 |    00004000  _rMBC7_SR
+     00002FA3  s__GSFINA |    00003000  _rROMB1   |    000039CA  l__CODE_5
+     00003AE6  l__CODE_3 |    00003F69  l__CODE_2 |    00004000  _rMBC7_SR
      00004000  _rRAMB    |    00008000  __VRAM    |    00008000  __VRAM800
      00008800  __VRAM880 |    00009000  __VRAM900 |    00009800  __SCRN0  
      00009C00  __SCRN1   |    0000A000  __SRAM    |    0000A000  _rMBC7_LA
@@ -545,7 +545,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_3                00034000    00003985 =       14725. bytes (REL,CON)
+_CODE_3                00034000    00003AE6 =       15078. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -567,17 +567,17 @@ _CODE_3                00034000    00003985 =       14725. bytes (REL,CON)
      00035AAE  _entity_s |    00035ADA  ___func_e |    00035ADA  _entity_s
      00035AE3  ___func_e |    00035AE3  _entity_s |    00035EF6  ___func_a
      00035EF6  _ally_fox |    0003606C  ___func_a |    0003606C  _ally_fox
-     0003623A  ___func_a |    0003623A  _ally_fox |    00036BA0  ___func_s
-     00036BA0  _state_in |    00036BBF  ___func_s |    00036BBF  _state_in
-     0003707E  ___func_s |    0003707E  _state_ch |    0003737B  ___func_s
-     0003737B  _state_pi |    000373C8  ___func_s |    000373C8  _state_pi
-     000374D4  ___func_s |    000374D4  _state_st |    000375C3  ___func_s
-     000375C3  _state_st |    000375E5  ___func_s |    000375E5  _state_ab
-     0003769C  ___func_s |    0003769C  _state_ab |    000376BE  ___func_s
-     000376BE  _state_ma |    00037757  ___func_s |    00037757  _state_ma
-     000377D5  ___func_c |    000377D5  _class_pa |    00037810  _class_pa
-     00037827  ___func_s |    00037827  _state_ga |    000378D3  ___func_s
-     000378D3  _state_tr |    00037932  ___func_s |    00037932  _state_ti
+     0003623A  ___func_a |    0003623A  _ally_fox |    00036C0B  ___func_s
+     00036C0B  _state_in |    00036C2A  ___func_s |    00036C2A  _state_in
+     000370E9  ___func_s |    000370E9  _state_ch |    000373E6  ___func_s
+     000373E6  _state_pi |    00037433  ___func_s |    00037433  _state_pi
+     0003753F  ___func_s |    0003753F  _state_st |    00037680  ___func_s
+     00037680  _state_st |    000376A2  ___func_s |    000376A2  _state_ab
+     000377AB  ___func_s |    000377AB  _state_ab |    000377CD  ___func_s
+     000377CD  _state_ma |    000378B8  ___func_s |    000378B8  _state_ma
+     00037936  ___func_c |    00037936  _class_pa |    00037971  _class_pa
+     00037988  ___func_s |    00037988  _state_ga |    00037A34  ___func_s
+     00037A34  _state_tr |    00037A93  ___func_s |    00037A93  _state_ti
 ASxxxx Linker V03.00/V05.40 + sdld,  page 33.
 Hexadecimal  [32-Bits]
 
@@ -684,15 +684,15 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_13               000D4000    00000862 =        2146. bytes (REL,CON)
+_CODE_13               000D4000    000008BC =        2236. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     000D4000  _items_ki |    000D4225  _items_eq |    000D42EA  _items_ki
-     000D4300  _items_ki |    000D4317  _items_ki |    000D436E  _items_ki
-     000D43C6  _inventor |    000D43E5  _inventor |    000D43FC  _inventor
-     000D441E  _inventor |    000D4495  _inventor |    000D45F9  _items_us
-     000D4805  _enemy_tr
+     000D4000  _items_ki |    000D4248  _items_eq |    000D430D  _items_ki
+     000D4323  _items_ki |    000D433A  _items_ki |    000D4391  _items_ki
+     000D43E9  _inventor |    000D4408  _inventor |    000D441F  _inventor
+     000D4441  _inventor |    000D44B8  _inventor |    000D461C  _items_us
+     000D4828  _enemy_tr
 ASxxxx Linker V03.00/V05.40 + sdld,  page 43.
 Hexadecimal  [32-Bits]
 

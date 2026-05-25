@@ -190,9 +190,13 @@ static void draw_cursor_and_name(void) {
 
 static void draw_menu_tabs_inv(void) {
     uint8_t v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_ARROW_SE);
+    uint8_t x;
     gotoxy(0, 0); printf(" ITEM STAT SPELL MAP");
     set_bkg_tiles(0u, 0u, 1u, 1u, &v);
     set_bkg_attribute_xy(0u, 0u, PAL_XP_UI);
+    for (x = 6u;  x <= 9u;  x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI); // STAT
+    for (x = 11u; x <= 15u; x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI); // SPELL
+    for (x = 17u; x <= 19u; x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI); // MAP
     VBK_REG = VBK_TILES;
 }
 
@@ -206,6 +210,9 @@ static void draw_grid_screen(void) {
     draw_cursor_and_name();
     gotoxy(1, 16); printf("A:equip  B:drop");
     gotoxy(1, 17); printf("START resume");
+    VBK_REG = VBK_ATTRIBUTES;
+    fill_bkg_rect(0u, INV_DESC_ROW, INV_DESC_DRAW_W, 1u, PAL_XP_UI);
+    VBK_REG = VBK_TILES;
 }
 
 static void draw_drop_confirm(void) {

@@ -22,9 +22,13 @@ void state_map_enter(void) BANKED {
     lcd_clear_display();
     {
         uint8_t v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_ARROW_SE);
+        uint8_t x;
         gotoxy(0, 0); printf(" ITEM STAT SPELL MAP");
         set_bkg_tiles(16u, 0u, 1u, 1u, &v);
         set_bkg_attribute_xy(16u, 0u, PAL_XP_UI);
+        for (x = 1u;  x <= 4u;  x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI);  // ITEM
+        for (x = 6u;  x <= 9u;  x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI);  // STAT
+        for (x = 11u; x <= 15u; x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI);  // SPELL
         VBK_REG = VBK_TILES;
     }
     gotoxy(2, 6); printf("MAP");

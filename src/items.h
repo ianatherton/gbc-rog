@@ -39,6 +39,6 @@ uint8_t inventory_add(uint8_t kind) BANKED; // 1=added, 0=full
 void    inventory_remove(uint8_t slot) BANKED; // compact upper slots down so belt slots 0..3 stay synced
 
 void    items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED; // belt slots 4..7 → inventory_kind[0..3]
-uint8_t enemy_try_drop_item(uint8_t dx, uint8_t dy) BANKED; // 30% chance to place a random item on ground; returns 1 if dropped
+uint8_t enemy_try_drop_item(uint8_t dx, uint8_t dy) BANKED; // 15% chance to place a weighted-random item on ground; returns 1 if dropped
 
 #endif

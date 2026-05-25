@@ -3,7 +3,7 @@
 #include "debug_bank.h"
 #include "entity_sprites.h"
 #include "game_state.h"
-#include "globals.h"
+#include "globals.h" // inv_desc_scx
 #include "items.h"
 #include "lcd.h"
 #include "ui.h"
@@ -24,8 +24,8 @@ BANKREF_EXTERN(entity_sprites_inv_cursor_hide)
 #define INV_NAME_ROW  14u
 #define INV_NAME_LEN  16u
 #define INV_DESC_ROW  15u
-#define INV_DESC_W    20u // full screen width
-#define DESC_RATE      8u // frames per scroll step
+#define INV_DESC_W    20u // visible character columns (screen width in tiles)
+#define INV_DESC_DRAW_W 21u // one extra tile to cover the sub-pixel peek on the right
 
 #define INV_MODE_GRID 0u
 #define INV_MODE_DROP 1u
@@ -42,8 +42,8 @@ static uint8_t inv_mode;
 static char    desc_buf[48];   // description text
 static uint8_t desc_base_len;  // strlen(desc_buf)
 static uint8_t desc_total_len; // desc_base_len + INV_DESC_W (virtual: [text][20 spaces])
-static uint8_t desc_off;       // current scroll position into virtual buffer
-static uint8_t desc_tick;      // frame counter for scroll rate
+static uint8_t desc_off;       // tile (character) scroll position into virtual buffer
+static uint8_t desc_pix;       // sub-tile pixel offset 0-7; drives inv_desc_scx for the ISR
 
 static void cell_origin(uint8_t slot, uint8_t *cx, uint8_t *cy) {
     *cx = (uint8_t)(INV_GRID_X + (slot % INV_GRID_COLS) * INV_CELL_DX);
@@ -146,7 +146,9 @@ static void draw_equipped_marks(void) {
 static void draw_desc_row(void) {
     uint8_t i;
     gotoxy(0, INV_DESC_ROW);
-    for (i = 0u; i < INV_DESC_W; i++) {
+    // Write INV_DESC_DRAW_W (21) chars: the extra tile at col 20 fills the pixel gap
+    // revealed by SCX_REG when desc_pix > 0.
+    for (i = 0u; i < INV_DESC_DRAW_W; i++) {
         uint8_t pos = (uint8_t)(desc_off + i);
         if (pos >= desc_total_len) pos = (uint8_t)(pos - desc_total_len);
         putchar((pos < desc_base_len) ? desc_buf[pos] : ' ');
@@ -164,7 +166,8 @@ static void reset_desc_ticker(uint8_t kind) {
     desc_base_len  = i;
     desc_total_len = (uint8_t)(i + INV_DESC_W); // [desc text][20 trailing spaces]
     desc_off  = i;   // start at first trailing space → viewport is all spaces (text off right)
-    desc_tick = 0u;
+    desc_pix  = 0u;
+    inv_desc_scx = 0u;
     draw_desc_row(); // immediately clears row to spaces
 }
 
@@ -239,12 +242,12 @@ void state_inventory_tick(void) BANKED {
     uint8_t e = (uint8_t)(j & (uint8_t)~inv_prev_j);
 
     if (inv_mode == INV_MODE_GRID && desc_base_len > 0u) {
-        desc_tick++;
-        if (desc_tick >= DESC_RATE) {
-            desc_tick = 0u;
+        if (++desc_pix >= 8u) {
+            desc_pix = 0u;
             if (++desc_off >= desc_total_len) desc_off = 0u;
             draw_desc_row();
         }
+        inv_desc_scx = desc_pix;
     }
 
     if (inv_mode == INV_MODE_DROP) {
@@ -261,8 +264,8 @@ void state_inventory_tick(void) BANKED {
         goto out;
     }
 
-    if (e & J_START)  { entity_sprites_inv_cursor_hide(); next_state = STATE_GAMEPLAY; goto out; }
-    if (e & J_SELECT) { entity_sprites_inv_cursor_hide(); next_state = STATE_STATS;    goto out; }
+    if (e & J_START)  { inv_desc_scx = 0u; entity_sprites_inv_cursor_hide(); next_state = STATE_GAMEPLAY; goto out; }
+    if (e & J_SELECT) { inv_desc_scx = 0u; entity_sprites_inv_cursor_hide(); next_state = STATE_STATS;    goto out; }
 
     if (e & J_A) {
         uint8_t kind = inventory_kind[inv_cursor];
@@ -286,6 +289,7 @@ void state_inventory_tick(void) BANKED {
     }
 
     if ((e & J_B) && inventory_kind[inv_cursor] != ITEM_KIND_NONE) {
+        inv_desc_scx = 0u;
         inv_mode = INV_MODE_DROP;
         wait_vbl_done();
         draw_drop_confirm();

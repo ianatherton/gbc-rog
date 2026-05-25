@@ -1,7 +1,14 @@
 #include "lcd.h"
 #include "defs.h" // camera_px, camera_py — pulls gb.h for fill_* / move_sprite / LCDC_REG
+#include "globals.h" // inv_desc_scx
 #include "ui.h"   // ui_loading_vblank — no cycle: ui.h does not include lcd.h
 #include "entity_sprites.h" // entity_sprites_vbl_tick
+
+// Inventory desc-row sub-pixel scroll: SCX is overridden only for these scanlines.
+// Fire one scanline EARLY so the ISR's SCX write lands after mode 3 of the
+// early scanline (already committed), taking clean effect for the target row.
+#define INV_DESC_SCAN_START 119u // one before tile row 15 (pixel row 120)
+#define INV_DESC_SCAN_END   127u // one before tile row 16 (pixel row 128)
 
 BANKREF_EXTERN(entity_sprites_vbl_tick)
 
@@ -50,12 +57,18 @@ static void lcd_stat_handler(void) { // gameplay: LYC = UI_WINDOW_Y_START → sh
         WY_REG = UI_WINDOW_Y_START;
         return;
     }
-    if (LY_REG < 16u) {
+    if (LY_REG < 16u) {                          // LY == 8 (VBL set LYC=8)
         SCX_REG = 0u;
         SCY_REG = 0u;
         LYC_REG = UI_WINDOW_Y_START;
-    } else {
+    } else if (LY_REG < INV_DESC_SCAN_START) {   // LY == UI_WINDOW_Y_START (104)
         WY_REG = UI_WINDOW_Y_START;
+        if (inv_desc_scx) LYC_REG = INV_DESC_SCAN_START; // extend chain for desc row
+    } else if (LY_REG < INV_DESC_SCAN_END) {     // LY == 120: start of desc tile row
+        SCX_REG = inv_desc_scx;
+        LYC_REG = INV_DESC_SCAN_END;
+    } else {                                      // LY == 128: end of desc tile row
+        SCX_REG = 0u;
     }
 }
 

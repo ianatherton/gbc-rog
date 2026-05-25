@@ -56,4 +56,7 @@ extern uint8_t pending_pickup_slot; // ground_item_* index queued for STATE_PICK
 
 uint8_t player_light_radius(void); // class base + player_light_bonus (HOME)
 
+/* Inventory desc-row smooth scroll: ISR reads this to set SCX on scanlines 120-127 only. */
+extern volatile uint8_t inv_desc_scx; // 0 = no override; 1-7 = sub-tile pixel shift
+
 #endif // GLOBALS_H

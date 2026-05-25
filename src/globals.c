@@ -55,3 +55,5 @@ uint8_t ground_item_kind[MAX_GROUND_ITEMS];
 uint8_t ground_item_x[MAX_GROUND_ITEMS];
 uint8_t ground_item_y[MAX_GROUND_ITEMS];
 uint8_t pending_pickup_slot;
+
+volatile uint8_t inv_desc_scx; // BSS 0 — see globals.h

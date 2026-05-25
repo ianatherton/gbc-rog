@@ -32,6 +32,9 @@ BANKREF_EXTERN(entity_sprites_inv_cursor_hide)
 
 #define MAX_EQUIP_MARKS 8u // OAM slots SP_ENEMY_BASE .. SP_ENEMY_BASE+7; swept by entity_sprites on gameplay re-entry
 
+#define EQUIP_PANEL_X  10u
+#define EQUIP_PANEL_Y   1u
+
 static uint8_t inv_prev_j;
 static uint8_t inv_cursor; // 0..29
 static uint8_t inv_mode;
@@ -74,6 +77,53 @@ static void draw_cell(uint8_t slot) {
 static void draw_grid(void) {
     uint8_t i;
     for (i = 0u; i < INVENTORY_MAX_SLOTS; i++) draw_cell(i);
+}
+
+static uint8_t is_kind_equipped(uint8_t kind) {
+    uint8_t i;
+    for (i = 0u; i < INVENTORY_MAX_SLOTS; i++) {
+        if (inventory_kind[i] == kind && inventory_equipped[i]) return 1u;
+    }
+    return 0u;
+}
+
+static void draw_equip_slot_tile(uint8_t x, uint8_t y, uint8_t kind) {
+    uint8_t v, pal;
+    if (kind != ITEM_KIND_NONE && is_kind_equipped(kind)) {
+        v   = (uint8_t)(TILESET_VRAM_OFFSET + items_kind_tile(kind));
+        pal = items_kind_palette(kind);
+    } else {
+        v   = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY);
+        pal = PAL_UI;
+    }
+    set_bkg_tiles(x, y, 1u, 1u, &v);
+    set_bkg_attribute_xy(x, y, pal);
+    VBK_REG = VBK_TILES;
+}
+
+static void draw_equip_panel(void) {
+    /* Row 1: Head | Body */
+    gotoxy(EQUIP_PANEL_X, EQUIP_PANEL_Y);
+    printf("Head");
+    draw_equip_slot_tile(14u, EQUIP_PANEL_Y, ITEM_KIND_HELMET);
+    gotoxy(15u, EQUIP_PANEL_Y);
+    printf("Body");
+    draw_equip_slot_tile(19u, EQUIP_PANEL_Y, ITEM_KIND_TUNIC);
+    /* Row 3: Feet | Ring */
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(EQUIP_PANEL_Y + 2u));
+    printf("Feet");
+    draw_equip_slot_tile(14u, (uint8_t)(EQUIP_PANEL_Y + 2u), ITEM_KIND_BOOTS);
+    gotoxy(15u, (uint8_t)(EQUIP_PANEL_Y + 2u));
+    printf("Ring");
+    draw_equip_slot_tile(19u, (uint8_t)(EQUIP_PANEL_Y + 2u), ITEM_KIND_NONE);
+    /* Row 5: Primary */
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(EQUIP_PANEL_Y + 4u));
+    printf("Primary__");
+    draw_equip_slot_tile(19u, (uint8_t)(EQUIP_PANEL_Y + 4u), ITEM_KIND_RUSTY_SWORD);
+    /* Row 7: Secondary */
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(EQUIP_PANEL_Y + 6u));
+    printf("Secondary");
+    draw_equip_slot_tile(19u, (uint8_t)(EQUIP_PANEL_Y + 6u), ITEM_KIND_NONE);
 }
 
 static void draw_equipped_marks(void) {
@@ -149,6 +199,7 @@ static void draw_grid_screen(void) {
     draw_menu_tabs_inv();
     draw_grid();
     draw_equipped_marks();
+    draw_equip_panel();
     draw_cursor_and_name();
     gotoxy(1, 16); printf("A:equip  B:drop");
     gotoxy(1, 17); printf("START resume");
@@ -216,10 +267,20 @@ void state_inventory_tick(void) BANKED {
     if (e & J_A) {
         uint8_t kind = inventory_kind[inv_cursor];
         if (kind != ITEM_KIND_NONE && items_kind_category(kind) == ITEM_CAT_EQUIPMENT) {
+            if (!inventory_equipped[inv_cursor]) {
+                uint8_t i;
+                for (i = 0u; i < INVENTORY_MAX_SLOTS; i++) {
+                    if (i != inv_cursor && inventory_kind[i] == kind && inventory_equipped[i]) {
+                        inventory_equipped[i] = 0u;
+                        items_equip_apply(kind, 0u);
+                    }
+                }
+            }
             inventory_equipped[inv_cursor] ^= 1u;
             items_equip_apply(kind, inventory_equipped[inv_cursor]);
             wait_vbl_done();
             draw_equipped_marks();
+            draw_equip_panel();
         }
         goto out;
     }

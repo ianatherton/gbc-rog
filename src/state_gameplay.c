@@ -138,7 +138,7 @@ void state_gameplay_enter(void) BANKED {
     load_palettes(); // restore BGP slots (PAL_UI etc.) after char create / loading — avoids blank or flat-white WIN
     story_ui_run_before_first_floor(); // bank 14 — intro crawl before descending loading screen
     level_init_display(0); // sets floor_num = 1 before BGM pick
-    music_begin_floor_bgm();
+    // music_begin_floor_bgm(); // TEMP: music only on story screen
     BANK_DBG("GP_gen");
     level_generate_and_spawn(&g_player_x, &g_player_y);
     selected_belt_slot = 0u;

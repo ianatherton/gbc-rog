@@ -4,6 +4,7 @@
 #include "debug_bank.h"
 #include "globals.h"
 #include "lcd.h"
+#include "music.h"
 #include "render.h"
 #include "map.h"
 #include "defs.h"
@@ -278,6 +279,8 @@ void story_ui_run_before_first_floor(void) BANKED {
     strcat(cont, csuf[si]);
     strcat(cont, csuf2[s2]);
 
+    // music_play_title();
+
     BANK_DBG("story");
     memset(explored_bits, 0, (size_t)ST_SCRATCH_END);
     build_text(cont, cls);
@@ -358,6 +361,7 @@ void story_ui_run_before_first_floor(void) BANKED {
     }
 
     // ── Cleanup ───────────────────────────────────────────────────────────
+    music_stop();
     fire_clear();
     SCY_REG = 0u;
     wait_vbl_done();

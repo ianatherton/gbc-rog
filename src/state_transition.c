@@ -25,7 +25,7 @@ void state_transition_enter(void) BANKED {
         lcd_clear_display();
         load_palettes(); // BGP after floor wipe — same pitfall as gameplay enter
         level_init_display(1); // increments floor_num before BGM pick
-        music_begin_floor_bgm();
+        // music_begin_floor_bgm(); // TEMP: music only on story screen
         level_generate_and_spawn(&g_player_x, &g_player_y);
         gameplay_soft_reenter = 1u;
         current_state = STATE_NONE; // bounce so next frame next!=current; gameplay enter always runs

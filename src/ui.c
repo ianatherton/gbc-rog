@@ -746,7 +746,7 @@ void ui_loading_screen_begin(void) BANKED {
     uint8_t tt = (uint8_t)(TILESET_VRAM_OFFSET + TILE_LOADING_SKULL);
     ui_load_phase = 0;
     ui_loading_active = 1u;
-    music_loading_screen_set(1u);
+    // music_loading_screen_set(1u); // TEMP: music only on story screen
     gotoxy(5, 8);
     printf("Descending");
     set_sprite_tile(UI_LOAD_SKULL_OAM_L, tt);
@@ -759,7 +759,7 @@ void ui_loading_screen_begin(void) BANKED {
 }
 
 void ui_loading_screen_end(void) BANKED {
-    music_loading_screen_set(0u);
+    // music_loading_screen_set(0u); // TEMP: music only on story screen
     ui_loading_active = 0u;
     move_sprite(UI_LOAD_SKULL_OAM_L, 0u, 0u);
     move_sprite(UI_LOAD_SKULL_OAM_R, 0u, 0u);

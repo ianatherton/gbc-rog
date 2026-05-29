@@ -13,7 +13,7 @@ BANKREF(state_title_enter)
 void state_title_enter(void) BANKED {
     BANK_DBG("TI_enter");
     g_run_entropy += 1u + (uint16_t)DIV_REG;
-    music_play_title();
+    // music_play_title(); // TEMP: music only on story screen
     {
         uint16_t seed = title_screen(g_run_entropy);
         if (!seed) seed = (uint16_t)(g_run_entropy ^ 0xACE1u);

@@ -429,6 +429,15 @@ void music_loading_screen_set(uint8_t on) {
     resume_bgm_hw();
 }
 
+void music_stop(void) { // silence all BGM; VBL becomes no-op (loading_step_i past footfall sequence)
+    silence_bgm_channels();
+    loading_audio              = 1u;
+    loading_step_i             = 6u;
+    loading_vbl_gap            = 0u;
+    whirlwind_burst_remaining  = 0u;
+    whirlwind_burst_gap        = 0u;
+}
+
 void music_play_levelup_jingle(void) {
     if (jingle_active || mode_title || loading_audio) {
         return;

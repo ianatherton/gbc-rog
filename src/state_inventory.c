@@ -102,28 +102,27 @@ static void draw_equip_slot_tile(uint8_t x, uint8_t y, uint8_t kind) {
 }
 
 static void draw_equip_panel(void) {
-    /* Row 1: Head | Body */
+    /* Row 0: Head | Hand (primary) */
     gotoxy(EQUIP_PANEL_X, EQUIP_PANEL_Y);
     printf("Head");
     draw_equip_slot_tile(14u, EQUIP_PANEL_Y, ITEM_KIND_HELMET);
     gotoxy(15u, EQUIP_PANEL_Y);
+    printf("Hand");
+    draw_equip_slot_tile(19u, EQUIP_PANEL_Y, ITEM_KIND_RUSTY_SWORD);
+    /* Row 1: Body | Hand (off-hand) */
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(EQUIP_PANEL_Y + 1u));
     printf("Body");
-    draw_equip_slot_tile(19u, EQUIP_PANEL_Y, ITEM_KIND_TUNIC);
-    /* Row 3: Feet | Ring */
+    draw_equip_slot_tile(14u, (uint8_t)(EQUIP_PANEL_Y + 1u), ITEM_KIND_TUNIC);
+    gotoxy(15u, (uint8_t)(EQUIP_PANEL_Y + 1u));
+    printf("Hand");
+    draw_equip_slot_tile(19u, (uint8_t)(EQUIP_PANEL_Y + 1u), ITEM_KIND_NONE);
+    /* Row 2: Feet | Ring */
     gotoxy(EQUIP_PANEL_X, (uint8_t)(EQUIP_PANEL_Y + 2u));
     printf("Feet");
     draw_equip_slot_tile(14u, (uint8_t)(EQUIP_PANEL_Y + 2u), ITEM_KIND_BOOTS);
     gotoxy(15u, (uint8_t)(EQUIP_PANEL_Y + 2u));
     printf("Ring");
     draw_equip_slot_tile(19u, (uint8_t)(EQUIP_PANEL_Y + 2u), ITEM_KIND_NONE);
-    /* Row 5: Primary */
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(EQUIP_PANEL_Y + 4u));
-    printf("Primary__");
-    draw_equip_slot_tile(19u, (uint8_t)(EQUIP_PANEL_Y + 4u), ITEM_KIND_RUSTY_SWORD);
-    /* Row 7: Secondary */
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(EQUIP_PANEL_Y + 6u));
-    printf("Secondary");
-    draw_equip_slot_tile(19u, (uint8_t)(EQUIP_PANEL_Y + 6u), ITEM_KIND_NONE);
 }
 
 static void draw_equipped_marks(void) {

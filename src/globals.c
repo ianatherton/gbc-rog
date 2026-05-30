@@ -32,6 +32,7 @@ uint8_t  selected_belt_slot;                 // BSS 0 = slot 0 — gameplay_ente
 uint8_t  belt_slot_charges[BELT_SLOT_COUNT];   // BSS zeroed — digits hidden until wired
 uint8_t  witch_shot_cooldown_turns;
 uint8_t  zerker_whirlwind_cooldown_turns;
+uint8_t  book_heal_cooldown_turns;
 uint8_t  knight_shield_active;
 uint8_t  player_light_bonus;
 uint8_t  ally_active[MAX_ALLIES];

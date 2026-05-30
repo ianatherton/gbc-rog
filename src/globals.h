@@ -24,6 +24,7 @@ extern uint8_t  selected_belt_slot; // gameplay belt: 0..BELT_SLOT_COUNT-1
 extern uint8_t  belt_slot_charges[BELT_SLOT_COUNT]; // uses remaining per slot (0 = hide digit until wired)
 extern uint8_t  witch_shot_cooldown_turns;
 extern uint8_t  zerker_whirlwind_cooldown_turns;
+extern uint8_t  book_heal_cooldown_turns;
 extern uint8_t  knight_shield_active; // holy fire shield buff — set by ability_knight_cast_belt, cleared on floor gen
 extern uint8_t  player_light_bonus;     // candle stack — cleared on floor gen; added to class base light radius
 extern uint8_t  ally_active[MAX_ALLIES];

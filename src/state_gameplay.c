@@ -37,6 +37,7 @@ static uint8_t turn_snap_ex[MAX_ENEMIES], turn_snap_ey[MAX_ENEMIES], turn_snap_e
 static void tick_turn_cooldowns(void) {
     if (witch_shot_cooldown_turns > 0u) witch_shot_cooldown_turns--;
     if (zerker_whirlwind_cooldown_turns > 0u) zerker_whirlwind_cooldown_turns--;
+    if (book_heal_cooldown_turns > 0u) book_heal_cooldown_turns--;
 }
 
 static void gameplay_allies_turn_and_glide(uint8_t px, uint8_t py) {
@@ -144,6 +145,7 @@ void state_gameplay_enter(void) BANKED {
     selected_belt_slot = 0u;
     witch_shot_cooldown_turns = 0u;
     zerker_whirlwind_cooldown_turns = 0u;
+    book_heal_cooldown_turns = 0u;
     BANK_DBG("GP_done");
 }
 

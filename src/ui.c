@@ -515,8 +515,14 @@ static void ui_draw_belt_placeholder_row(void) { // [SPELL] s0 s1 s2 s3 [ITEM] i
         ui_belt_spell_slot(s, &v, &icon_pal);
         set_win_tile_xy(x, UI_BELT_WIN_Y, v);
         set_win_attribute_xy(x++, UI_BELT_WIN_Y, icon_pal);
-        if (belt_slot_charges[s] == 0u) win_put_space(x++, UI_BELT_WIN_Y);
-        else win_putc_pal(x++, UI_BELT_WIN_Y, (char)('0' + (belt_slot_charges[s] > 9u ? 9u : belt_slot_charges[s])), PAL_UI);
+        if (icon_pal == PAL_CORPSE) {
+            set_win_tile_xy(x, UI_BELT_WIN_Y, (uint8_t)(TILESET_VRAM_OFFSET + TILE_HOURGLASS_BELT_OFF));
+            set_win_attribute_xy(x++, UI_BELT_WIN_Y, PAL_UI);
+        } else if (belt_slot_charges[s] == 0u) {
+            win_put_space(x++, UI_BELT_WIN_Y);
+        } else {
+            win_putc_pal(x++, UI_BELT_WIN_Y, (char)('0' + (belt_slot_charges[s] > 9u ? 9u : belt_slot_charges[s])), PAL_UI);
+        }
     }
     ui_belt_put_label_pair(&x, TILE_UI_ITEM_L, TILE_UI_ITEM_R);
     for (s = 0u; s < BELT_ITEM_SLOT_COUNT; s++) {
@@ -530,7 +536,10 @@ static void ui_draw_belt_placeholder_row(void) { // [SPELL] s0 s1 s2 s3 [ITEM] i
         }
         set_win_tile_xy(x, UI_BELT_WIN_Y, v);
         set_win_attribute_xy(x++, UI_BELT_WIN_Y, icon_pal);
-        {
+        if (kind == ITEM_KIND_BOOK_HEAL && book_heal_cooldown_turns > 0u) {
+            set_win_tile_xy(x, UI_BELT_WIN_Y, (uint8_t)(TILESET_VRAM_OFFSET + TILE_HOURGLASS_BELT_OFF));
+            set_win_attribute_xy(x++, UI_BELT_WIN_Y, PAL_UI);
+        } else {
             uint8_t cnt = (kind != ITEM_KIND_NONE) ? inventory_count[s] : 0u;
             if      (cnt <= 1u) win_put_space(x++, UI_BELT_WIN_Y);
             else if (cnt <= 9u) win_putc_pal(x++, UI_BELT_WIN_Y, (char)('0' + cnt), PAL_UI);

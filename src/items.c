@@ -249,6 +249,7 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
         uint16_t heal = (uint16_t)player_hp_max / 4u; // quarter max HP
         if ((uint16_t)player_hp + heal >= (uint16_t)player_hp_max) player_hp = player_hp_max;
         else player_hp = (uint8_t)((uint16_t)player_hp + heal);
+        book_heal_cooldown_turns = 5u;
     }
     if (items_kind_category(kind) != ITEM_CAT_REUSABLE)
         inventory_remove(item_idx);

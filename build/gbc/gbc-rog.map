@@ -109,7 +109,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      000023CD  s__HOME   |    00002F96  s__BASE   |    00002F96  s__CODE_0
      00002F96  s__INITIA |    00002F96  s__LIT    |    00002FB0  s__GSINIT
      00002FBC  s__GSFINA |    00003000  _rROMB1   |    00003A06  l__CODE_5
-     00003BF8  l__CODE_3 |    00003F71  l__CODE_2 |    00004000  _rMBC7_SR
+     00003C7C  l__CODE_3 |    00003F71  l__CODE_2 |    00004000  _rMBC7_SR
      00004000  _rRAMB    |    00008000  __VRAM    |    00008000  __VRAM800
      00008800  __VRAM880 |    00009000  __VRAM900 |    00009800  __SCRN0  
      00009C00  __SCRN1   |    0000A000  __SRAM    |    0000A000  _rMBC7_LA
@@ -547,7 +547,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_3                00034000    00003BF8 =       15352. bytes (REL,CON)
+_CODE_3                00034000    00003C7C =       15484. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -571,15 +571,15 @@ _CODE_3                00034000    00003BF8 =       15352. bytes (REL,CON)
      00035EF6  _ally_fox |    0003606C  ___func_a |    0003606C  _ally_fox
      0003623A  ___func_a |    0003623A  _ally_fox |    00036BFC  ___func_s
      00036BFC  _state_in |    00036C1B  ___func_s |    00036C1B  _state_in
-     000370DA  ___func_s |    000370DA  _state_ch |    00037503  ___func_s
-     00037503  _state_pi |    00037550  ___func_s |    00037550  _state_pi
-     0003765C  ___func_s |    0003765C  _state_st |    0003779D  ___func_s
-     0003779D  _state_st |    000377BF  ___func_s |    000377BF  _state_ab
-     000378C8  ___func_s |    000378C8  _state_ab |    000378EA  ___func_s
-     000378EA  _state_ma |    000379D5  ___func_s |    000379D5  _state_ma
-     00037A53  ___func_c |    00037A53  _class_pa |    00037A8E  _class_pa
-     00037AA5  ___func_s |    00037AA5  _state_ga |    00037B51  ___func_s
-     00037B51  _state_tr |    00037BAD  ___func_s |    00037BAD  _state_ti
+     00037106  ___func_s |    00037106  _state_ch |    00037587  ___func_s
+     00037587  _state_pi |    000375D4  ___func_s |    000375D4  _state_pi
+     000376E0  ___func_s |    000376E0  _state_st |    00037821  ___func_s
+     00037821  _state_st |    00037843  ___func_s |    00037843  _state_ab
+     0003794C  ___func_s |    0003794C  _state_ab |    0003796E  ___func_s
+     0003796E  _state_ma |    00037A59  ___func_s |    00037A59  _state_ma
+     00037AD7  ___func_c |    00037AD7  _class_pa |    00037B12  _class_pa
+     00037B29  ___func_s |    00037B29  _state_ga |    00037BD5  ___func_s
+     00037BD5  _state_tr |    00037C31  ___func_s |    00037C31  _state_ti
 ASxxxx Linker V03.00/V05.40 + sdld,  page 33.
 Hexadecimal  [32-Bits]
 

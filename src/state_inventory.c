@@ -304,10 +304,22 @@ void state_inventory_tick(void) BANKED {
 
     {
         uint8_t old = inv_cursor;
-        if ((e & J_LEFT)  && (inv_cursor % INV_GRID_COLS) > 0u) inv_cursor--;
-        if ((e & J_RIGHT) && (inv_cursor % INV_GRID_COLS) < (uint8_t)(INV_GRID_COLS - 1u)) inv_cursor++;
-        if ((e & J_UP)    && inv_cursor >= INV_GRID_COLS) inv_cursor = (uint8_t)(inv_cursor - INV_GRID_COLS);
-        if ((e & J_DOWN)  && (uint8_t)(inv_cursor + INV_GRID_COLS) < INVENTORY_MAX_SLOTS) inv_cursor = (uint8_t)(inv_cursor + INV_GRID_COLS);
+        if (e & J_LEFT) {
+            if ((inv_cursor % INV_GRID_COLS) > 0u) inv_cursor--;
+            else inv_cursor = (uint8_t)(inv_cursor + (INV_GRID_COLS - 1u));
+        }
+        if (e & J_RIGHT) {
+            if ((inv_cursor % INV_GRID_COLS) < (uint8_t)(INV_GRID_COLS - 1u)) inv_cursor++;
+            else inv_cursor = (uint8_t)(inv_cursor - (INV_GRID_COLS - 1u));
+        }
+        if (e & J_UP) {
+            if (inv_cursor >= INV_GRID_COLS) inv_cursor = (uint8_t)(inv_cursor - INV_GRID_COLS);
+            else inv_cursor = (uint8_t)(inv_cursor + (uint8_t)((INV_GRID_ROWS - 1u) * INV_GRID_COLS));
+        }
+        if (e & J_DOWN) {
+            if ((uint8_t)(inv_cursor + INV_GRID_COLS) < INVENTORY_MAX_SLOTS) inv_cursor = (uint8_t)(inv_cursor + INV_GRID_COLS);
+            else inv_cursor = (uint8_t)(inv_cursor % INV_GRID_COLS);
+        }
         if (inv_cursor != old) {
             wait_vbl_done();
             draw_cursor_and_name();

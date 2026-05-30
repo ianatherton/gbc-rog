@@ -67,8 +67,15 @@ static void draw_phase(void) {
     gotoxy(2, 4); printf("Found:");
     draw_icon(3, 6);
     gotoxy(5, 6); printf("%s", namebuf);
-    if (items_kind_category(pu_kind) == ITEM_CAT_EQUIPMENT)
+    if (items_kind_category(pu_kind) == ITEM_CAT_EQUIPMENT) {
         draw_equip_slot_info();
+    } else if (items_kind_category(pu_kind) == ITEM_CAT_CONSUMABLE) {
+        uint8_t existing = 0u, i;
+        for (i = 0u; i < INVENTORY_MAX_SLOTS; i++) {
+            if (inventory_kind[i] == pu_kind) { existing = inventory_count[i]; break; }
+        }
+        gotoxy(2u, 7u); printf("You have %d", (int)existing);
+    }
     if (pu_phase == PU_PHASE_FULL) {
         gotoxy(2, 9); printf("No room!");
         gotoxy(2, 11); printf("A or B back");

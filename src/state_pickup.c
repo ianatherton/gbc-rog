@@ -28,21 +28,52 @@ static void draw_icon(uint8_t x, uint8_t y) {
     VBK_REG = VBK_TILES;
 }
 
+static void draw_equip_slot_info(void) {
+    const char *label;
+    uint8_t slot_kind, cur_kind, i, slot_v, slot_pal;
+    char cur_name[14];
+    switch (pu_kind) {
+        case ITEM_KIND_HELMET:      label = "Head"; slot_kind = ITEM_KIND_HELMET;      break;
+        case ITEM_KIND_TUNIC:       label = "Body"; slot_kind = ITEM_KIND_TUNIC;       break;
+        case ITEM_KIND_BOOTS:       label = "Feet"; slot_kind = ITEM_KIND_BOOTS;       break;
+        case ITEM_KIND_RUSTY_SWORD: label = "Hand"; slot_kind = ITEM_KIND_RUSTY_SWORD; break;
+        default: return;
+    }
+    cur_kind = ITEM_KIND_NONE;
+    for (i = 0u; i < INVENTORY_MAX_SLOTS; i++) {
+        if (inventory_kind[i] == slot_kind && inventory_equipped[i]) { cur_kind = slot_kind; break; }
+    }
+    if (cur_kind != ITEM_KIND_NONE) {
+        slot_v   = (uint8_t)(TILESET_VRAM_OFFSET + items_kind_tile(cur_kind));
+        slot_pal = items_kind_palette(cur_kind);
+        items_kind_name_copy(cur_kind, cur_name, sizeof cur_name);
+    } else {
+        slot_v   = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY);
+        slot_pal = PAL_UI;
+    }
+    gotoxy(2u, 7u); printf("%s", label);
+    set_bkg_tiles(6u, 7u, 1u, 1u, &slot_v);
+    set_bkg_attribute_xy(6u, 7u, slot_pal);
+    VBK_REG = VBK_TILES;
+    gotoxy(8u, 7u);
+    if (cur_kind != ITEM_KIND_NONE) printf("%s", cur_name);
+    else printf("(empty)");
+}
+
 static void draw_phase(void) {
     char namebuf[18];
     items_kind_name_copy(pu_kind, namebuf, sizeof namebuf);
     lcd_clear_display();
+    gotoxy(2, 4); printf("Found:");
+    draw_icon(3, 6);
+    gotoxy(5, 6); printf("%s", namebuf);
+    if (items_kind_category(pu_kind) == ITEM_CAT_EQUIPMENT)
+        draw_equip_slot_info();
     if (pu_phase == PU_PHASE_FULL) {
-        gotoxy(2, 4); printf("Found:");
-        draw_icon(3, 6);
-        gotoxy(5, 6); printf("%s", namebuf);
         gotoxy(2, 9); printf("No room!");
         gotoxy(2, 11); printf("A or B back");
         return;
     }
-    gotoxy(2, 4); printf("Found:");
-    draw_icon(3, 6);
-    gotoxy(5, 6); printf("%s", namebuf);
     if (pu_phase == PU_PHASE_GET) {
         gotoxy(2, 9); printf("Get?");
     } else {

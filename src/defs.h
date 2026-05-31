@@ -347,6 +347,7 @@ typedef struct {
 #define TILE_PLAYER_AURA_ROM_A 236u /* M15 — copied to TILE_PLAYER_AURA_VRAM_* for OBJ */
 #define TILE_PLAYER_AURA_ROM_B 252u /* M16 */
 #define TILE_SHEET_M9          140u   /* M9  - root indicator glyph; ROM index (9-1)*16+12; copied to VRAM at boot */
+#define TILE_SHEET_L11         171u   /* L11 - root indicator glyph; ROM index (11-1)*16+11 */
 #define TILE_ROOT_ICON_VRAM    242u   /* borrows unused C8 VRAM slot (ROM tile 114, not placed by any map code) */
 #define TILE_ZERKER_WHIRLWIND_VRAM 247u // copied from TILE_ITEM_10 (I10) at boot for Zerker Whirlwind belt icon
 #define TILE_PLAYER_AURA_VRAM_A 248u // below CLASS_EMBLEM_VRAM_START 252 — gameplay aura only

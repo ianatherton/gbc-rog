@@ -470,7 +470,7 @@ void entity_sprites_vbl_tick(void) BANKED {
         {
             uint8_t rex, rey;
             if (root_icon_next(&rex, &rey))
-                move_entity_oam(SP_ROOT_ICON, (int16_t)rex * 8, (int16_t)rey * 8, TILE_ROOT_ICON_VRAM, PAL_LIFE_UI);
+                move_entity_oam(SP_ROOT_ICON, (int16_t)rex * 8, (int16_t)rey * 8, TILE_ROOT_ICON_VRAM, PAL_XP_UI);
             else
                 oam_hide(SP_ROOT_ICON);
         }

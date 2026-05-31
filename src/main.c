@@ -82,10 +82,10 @@ int main(void) {
             tileset_tiles + (uint16_t)TILE_FOX_J9 * 16u);
         set_sprite_data(TILE_FOX_J9_VRAM, 1u,
             tileset_tiles + (uint16_t)TILE_FOX_J9 * 16u);
-        set_bkg_data(TILE_ROOT_ICON_VRAM, 1u, // M9 root indicator — borrows unused C8 VRAM slot (BKG for belt UI)
-            tileset_tiles + (uint16_t)TILE_SHEET_M9 * 16u);
+        set_bkg_data(TILE_ROOT_ICON_VRAM, 1u, // L11 root indicator — borrows unused C8 VRAM slot (BKG for belt UI)
+            tileset_tiles + (uint16_t)TILE_SHEET_L11 * 16u);
         set_sprite_data(TILE_ROOT_ICON_VRAM, 1u, // same tile for OAM (rooted enemy overlay)
-            tileset_tiles + (uint16_t)TILE_SHEET_M9 * 16u);
+            tileset_tiles + (uint16_t)TILE_SHEET_L11 * 16u);
         set_sprite_data(TILE_EQUIP_MARK_VRAM, 1u, // M11 equipped indicator — borrows unused B8 VRAM slot (tile 113)
             tileset_tiles + (uint16_t)TILE_EQUIP_MARK * 16u);
         set_sprite_data(TILE_BIG_SKELL_BODY_VRAM, 1u, // J8 big skell body — borrows unused K7 slot (J8 ROM maps to aura VRAM 249)

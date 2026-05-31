@@ -378,9 +378,19 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
     enemy_attack_count = 0;
     for (i = 0; i < num_enemies; i++) {
         if (!enemy_alive[i]) continue;
-        if (enemy_status[i] > 0u) { enemy_status[i]--; continue; }
 
         uint8_t sx = enemy_x[i], sy = enemy_y[i];
+
+        if (enemy_status[i] > 0u) {
+            enemy_status[i]--;
+            // rooted: can't move but still melee if player is king-adjacent
+            { uint8_t apx = (px > sx) ? (uint8_t)(px - sx) : (uint8_t)(sx - px);
+              uint8_t apy = (py > sy) ? (uint8_t)(py - sy) : (uint8_t)(sy - py);
+              uint8_t cheb = (apx > apy) ? apx : apy;
+              if (cheb == 1u && enemy_attack_count < MAX_ENEMIES)
+                  enemy_attack_slots[enemy_attack_count++] = i; }
+            continue;
+        }
         uint8_t nx = sx,         ny = sy; // default no move
         const EnemyDef *def = &enemy_defs[enemy_type[i]];
 #if ENEMY_SLEEP_OFFSCREEN

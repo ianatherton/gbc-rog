@@ -22,7 +22,6 @@ BANKREF_EXTERN(map_pit_position)
 #define SP_BRAZIER_FIRE 37u
 #define SP_BELT_SELECTOR 35u // fixed screen-space OAM; excluded from post-enemy hide sweep
 #define SP_ROOT_ICON     2u  // root indicator — below SP_ENEMY_BASE (3) so it draws on top of enemies
-#define SP_INV_CURSOR   38u  // inventory grid cursor — Y-flipped M3 arrow; hidden outside inventory
 #define BRAZIER_FIRE_TTL_VBL 12u
 
 static uint8_t brazier_fire_active;

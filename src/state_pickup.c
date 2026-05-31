@@ -7,19 +7,36 @@
 #include "lcd.h"
 #include "ui.h"
 #include "map.h"
+#include "entity_sprites.h"
 BANKREF_EXTERN(ground_item_kill)
+BANKREF_EXTERN(entity_sprites_inv_cursor_show)
+BANKREF_EXTERN(entity_sprites_inv_cursor_hide)
 #include <gb/gb.h>
 #include <gbdk/console.h>
 #include <stdio.h>
 #include <stdint.h>
 
-#define PU_PHASE_GET     0u
-#define PU_PHASE_DISCARD 1u
-#define PU_PHASE_FULL    2u // inventory had no room when prompt opened — A/B both exit
+#define PU_SEL_TAKE    0u
+#define PU_SEL_LEAVE   1u
+#define PU_SEL_DISCARD 2u
+#define PU_OPT_COUNT   3u
+
+// inv_cursor cy for options at bg rows 15, 16, 17 (cy = row - 1 due to +1 in cursor_show)
+#define PU_ARROW_CX    2u  // sprite at screen x=16, directly left of text at col 3 (screen x=24)
+#define PU_TAKE_CY    14u
+#define PU_LEAVE_CY   15u
+#define PU_DISCARD_CY 16u
 
 static uint8_t pu_prev_j;
-static uint8_t pu_phase;
+static uint8_t pu_sel;
+static uint8_t pu_inv_full;
 static uint8_t pu_kind; // cached so we still know what was offered after ground slot is killed
+
+static void pu_cursor_update(void) {
+    entity_sprites_inv_cursor_show(PU_ARROW_CX, (uint8_t)(PU_TAKE_CY + pu_sel));
+    set_sprite_tile(SP_INV_CURSOR, (uint8_t)(TILESET_VRAM_OFFSET + TILE_ARROW_SE));
+    set_sprite_prop(SP_INV_CURSOR, (uint8_t)(PAL_XP_UI & 7u));
+}
 
 static void draw_icon(uint8_t x, uint8_t y) {
     uint8_t v = (uint8_t)(TILESET_VRAM_OFFSET + items_kind_tile(pu_kind));
@@ -76,17 +93,14 @@ static void draw_phase(void) {
         }
         gotoxy(2u, 7u); printf("You have %d", (int)existing);
     }
-    if (pu_phase == PU_PHASE_FULL) {
-        gotoxy(2, 9); printf("No room!");
-        gotoxy(2, 11); printf("A or B back");
-        return;
+    if (pu_inv_full) {
+        gotoxy(2u, 9u); printf("(no room)");
     }
-    if (pu_phase == PU_PHASE_GET) {
-        gotoxy(2, 9); printf("Get?");
-    } else {
-        gotoxy(2, 9); printf("Discard?");
-    }
-    gotoxy(2, 11); printf("A:Yes  B:No");
+    // bottom 3 rows: options (arrow cursor is a sprite, not text)
+    gotoxy(3u, 15u); printf("Take");
+    gotoxy(3u, 16u); printf("Leave");
+    gotoxy(3u, 17u); printf("Discard");
+    pu_cursor_update();
 }
 
 BANKREF(state_pickup_enter)
@@ -103,7 +117,8 @@ void state_pickup_enter(void) BANKED {
         return;
     }
     pu_kind = ground_item_kind[pending_pickup_slot];
-    pu_phase = (inventory_first_empty() == 255u) ? PU_PHASE_FULL : PU_PHASE_GET;
+    pu_inv_full = (inventory_first_empty() == 255u) ? 1u : 0u;
+    pu_sel = PU_SEL_TAKE;
     draw_phase();
 }
 
@@ -112,16 +127,15 @@ void state_pickup_tick(void) BANKED {
     uint8_t j = joypad();
     uint8_t e = (uint8_t)(j & (uint8_t)~pu_prev_j);
     pu_prev_j = j;
-    if (pu_phase == PU_PHASE_FULL) {
-        if (e & (J_A | J_B)) {
-            pending_pickup_slot = 255u;
-            next_state = STATE_GAMEPLAY;
-        }
-        wait_vbl_done();
-        return;
-    }
-    if (pu_phase == PU_PHASE_GET) {
-        if (e & J_A) {
+
+    if (e & J_UP) {
+        pu_sel = (pu_sel == 0u) ? (PU_OPT_COUNT - 1u) : (uint8_t)(pu_sel - 1u);
+        pu_cursor_update();
+    } else if (e & J_DOWN) {
+        pu_sel = (uint8_t)((pu_sel + 1u) % PU_OPT_COUNT);
+        pu_cursor_update();
+    } else if (e & (J_A | J_B)) {
+        if ((e & J_A) && pu_sel == PU_SEL_TAKE && !pu_inv_full) {
             inventory_add(pu_kind);
             ground_item_kill(pending_pickup_slot);
             {
@@ -134,22 +148,14 @@ void state_pickup_tick(void) BANKED {
                 log[i] = 0;
                 ui_combat_log_push(log);
             }
-            pending_pickup_slot = 255u;
-            next_state = STATE_GAMEPLAY;
-        } else if (e & J_B) {
-            pu_phase = PU_PHASE_DISCARD;
-            wait_vbl_done();
-            draw_phase();
-        }
-    } else { // PU_PHASE_DISCARD
-        if (e & J_A) {
+        } else if ((e & J_A) && pu_sel == PU_SEL_DISCARD) {
             ground_item_kill(pending_pickup_slot);
-            pending_pickup_slot = 255u;
-            next_state = STATE_GAMEPLAY;
-        } else if (e & J_B) {
-            pending_pickup_slot = 255u;
-            next_state = STATE_GAMEPLAY;
         }
+        // Leave, full Take, and B all exit without action
+        entity_sprites_inv_cursor_hide();
+        pending_pickup_slot = 255u;
+        next_state = STATE_GAMEPLAY;
     }
+
     wait_vbl_done();
 }

@@ -105,7 +105,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00000165  l__CODE_1 |    00000200  s__CODE   |    0000020E  l__CODE_9
      00000269  l__CODE_8 |    000008C2  l__CODE_1 |    00000B9B  l__CODE_4
      00000BC9  l__HOME   |    00000EDF  l__CODE_1 |    00001108  l__CODE_1
-     00001D77  l__DATA   |    00002000  _rROMB0   |    000021CD  l__CODE  
+     00001D78  l__DATA   |    00002000  _rROMB0   |    000021CD  l__CODE  
      000023CD  s__HOME   |    00002F96  s__BASE   |    00002F96  s__CODE_0
      00002F96  s__INITIA |    00002F96  s__LIT    |    00002FB0  s__GSINIT
      00002FBC  s__GSFINA |    00003000  _rROMB1   |    00003A65  l__CODE_5
@@ -116,7 +116,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000A010  _rMBC7_LA |    0000A020  _rMBC7_AC |    0000A030  _rMBC7_AC
      0000A040  _rMBC7_AC |    0000A050  _rMBC7_AC |    0000C000  __RAM    
      0000C000  _shadow_O |    0000C0A0  s__DATA   |    0000D000  __RAMBANK
-     0000DE17  s__BSS    |    0000DE17  s__INITIA |    0000DE31  s__HEAP  
+     0000DE18  s__BSS    |    0000DE18  s__INITIA |    0000DE32  s__HEAP  
 ASxxxx Linker V03.00/V05.40 + sdld,  page 3.
 Hexadecimal  [32-Bits]
 
@@ -126,7 +126,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     0000DE31  s__HEAP_E |    0000E000  .STACK    |    0000FE00  __OAMRAM 
+     0000DE32  s__HEAP_E |    0000E000  .STACK    |    0000FE00  __OAMRAM 
      0000FF00  _P1_REG   |    0000FF00  __IO      |    0000FF01  _SB_REG  
      0000FF02  _SC_REG   |    0000FF04  _DIV_REG  |    0000FF05  _TIMA_REG
      0000FF06  _TMA_REG  |    0000FF07  _TAC_REG  |    0000FF0F  _IF_REG  
@@ -439,7 +439,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_DATA                  0000C0A0    00001D77 =        7543. bytes (REL,CON)
+_DATA                  0000C0A0    00001D78 =        7544. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -471,23 +471,23 @@ _DATA                  0000C0A0    00001D77 =        7543. bytes (REL,CON)
      0000D5F3  _corpse_t |    0000D60B  _num_corp |    0000D60C  _enemy_oc
      0000DC0C  _enemy_an |    0000DC0D  _enemy_at |    0000DC25  _enemy_at
      0000DC26  _enemy_fo |    0000DC8C  _camera_p |    0000DC8E  _camera_p
-     0000DDF7  ___rand_s |    0000DDF9  font_curr |    0000DDFC  font_firs
-     0000DDFD  font_tabl |    0000DE0F  .int_0x48
+     0000DDF8  ___rand_s |    0000DDFA  font_curr |    0000DDFD  font_firs
+     0000DDFE  font_tabl |    0000DE10  .int_0x48
 ASxxxx Linker V03.00/V05.40 + sdld,  page 28.
 Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_INITIALIZED           0000DE17    0000001A =          26. bytes (REL,CON)
+_INITIALIZED           0000DE18    0000001A =          26. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     0000DE17  _current_ |    0000DE18  _next_sta |    0000DE19  _player_h
-     0000DE1A  _player_h |    0000DE1B  _player_l |    0000DE1C  _player_d
-     0000DE1D  _floor_nu |    0000DE1E  _run_seed |    0000DE2A  _ui_panel
-     0000DE2B  .curx     |    0000DE2C  .cury     |    0000DE2D  .fg_colou
-     0000DE2D  __current |    0000DE2E  .bg_colou |    0000DE2F  .draw_mod
-     0000DE30  __map_til
+     0000DE18  _current_ |    0000DE19  _next_sta |    0000DE1A  _player_h
+     0000DE1B  _player_h |    0000DE1C  _player_l |    0000DE1D  _player_d
+     0000DE1E  _floor_nu |    0000DE1F  _run_seed |    0000DE2B  _ui_panel
+     0000DE2C  .curx     |    0000DE2D  .cury     |    0000DE2E  .fg_colou
+     0000DE2E  __current |    0000DE2F  .bg_colou |    0000DE30  .draw_mod
+     0000DE31  __map_til
 ASxxxx Linker V03.00/V05.40 + sdld,  page 29.
 Hexadecimal  [32-Bits]
 
@@ -571,8 +571,8 @@ _CODE_3                00034000    00003C7C =       15484. bytes (REL,CON)
      00035EF6  _ally_fox |    0003606C  ___func_a |    0003606C  _ally_fox
      0003623A  ___func_a |    0003623A  _ally_fox |    00036BFC  ___func_s
      00036BFC  _state_in |    00036C1B  ___func_s |    00036C1B  _state_in
-     00037106  ___func_s |    00037106  _state_ch |    00037587  ___func_s
-     00037587  _state_pi |    000375D4  ___func_s |    000375D4  _state_pi
+     00037106  ___func_s |    00037106  _state_ch |    00037578  ___func_s
+     00037578  _state_pi |    000375C9  ___func_s |    000375C9  _state_pi
      000376E0  ___func_s |    000376E0  _state_st |    00037821  ___func_s
      00037821  _state_st |    00037843  ___func_s |    00037843  _state_ab
      0003794C  ___func_s |    0003794C  _state_ab |    0003796E  ___func_s

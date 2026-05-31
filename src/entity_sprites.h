@@ -29,6 +29,8 @@ void entity_sprites_run_enemy_lunges_batch(uint8_t px, uint8_t py, const uint8_t
 void entity_sprites_run_ally_lunge(uint8_t px, uint8_t py, uint8_t ally_slot, uint8_t tgx, uint8_t tgy, uint8_t hit_enemy_slot) BANKED;
 void entity_sprites_run_projectile(uint8_t sx, uint8_t sy, uint8_t tx, uint8_t ty, uint8_t tile_off, uint8_t pal) BANKED;
 
+#define SP_INV_CURSOR 38u // OAM slot for the bouncing menu/inventory cursor sprite
+
 void entity_sprites_inv_cursor_show(uint8_t cx, uint8_t cy) BANKED; // bouncing up-arrow below selected inventory cell
 void entity_sprites_inv_cursor_hide(void) BANKED;
 

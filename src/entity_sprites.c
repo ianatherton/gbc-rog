@@ -435,8 +435,8 @@ void entity_sprites_vbl_tick(void) BANKED {
         }
         bob = inv_cursor_phase;
         move_sprite(SP_INV_CURSOR,
-                    inv_cursor_sx,
-                    (uint8_t)((int16_t)inv_cursor_sy - (int16_t)ladder_arrow_bob12[bob]));
+                    (uint8_t)((int16_t)inv_cursor_sx + (int16_t)ladder_arrow_bob12[bob]),
+                    inv_cursor_sy);
     }
     if (player_hurt_flash_ttl > 0u) {
         refresh_player_oam_from_cache(); // palette + OAM before ttl tick so all 60 frames flash

@@ -22,6 +22,7 @@ extern uint16_t g_run_entropy;
 extern uint8_t  look_cx, look_cy;
 extern uint8_t  selected_belt_slot; // gameplay belt: 0..BELT_SLOT_COUNT-1
 extern uint8_t  belt_slot_charges[BELT_SLOT_COUNT]; // uses remaining per slot (0 = hide digit until wired)
+extern uint8_t  player_hp_prev;       // HP snapshot before last enemy-hit phase; drives ghost hearts in HUD
 extern uint8_t  witch_shot_cooldown_turns;
 extern uint8_t  zerker_whirlwind_cooldown_turns;
 extern uint8_t  book_heal_cooldown_turns;

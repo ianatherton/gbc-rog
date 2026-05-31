@@ -143,6 +143,7 @@ void state_gameplay_enter(void) BANKED {
     BANK_DBG("GP_gen");
     level_generate_and_spawn(&g_player_x, &g_player_y);
     selected_belt_slot = 0u;
+    player_hp_prev = player_hp;
     witch_shot_cooldown_turns = 0u;
     zerker_whirlwind_cooldown_turns = 0u;
     book_heal_cooldown_turns = 0u;

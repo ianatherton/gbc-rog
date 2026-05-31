@@ -30,6 +30,7 @@ uint16_t g_run_entropy;
 uint8_t  look_cx, look_cy;
 uint8_t  selected_belt_slot;                 // BSS 0 = slot 0 — gameplay_enter clears belt vars
 uint8_t  belt_slot_charges[BELT_SLOT_COUNT];   // BSS zeroed — digits hidden until wired
+uint8_t  player_hp_prev;
 uint8_t  witch_shot_cooldown_turns;
 uint8_t  zerker_whirlwind_cooldown_turns;
 uint8_t  book_heal_cooldown_turns;

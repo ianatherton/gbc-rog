@@ -95,6 +95,7 @@ uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) BANKED {
     uint8_t perf_stamp = perf_stamp_now();
     uint8_t a;
     if (!enemy_attack_count) return 0;
+    player_hp_prev = player_hp;
     for (a = 0; a < enemy_attack_count; a++)
         enemy_resolve_hit(enemy_attack_slots[a]);
     wait_vbl_done();

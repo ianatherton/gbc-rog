@@ -551,6 +551,7 @@ static void ui_draw_belt_placeholder_row(void) { // [SPELL] s0 s1 s2 s3 [ITEM] i
 static void ui_draw_top_hud(void) { // bottom window row: L:♥×5 HP% XP% FLOORdd
     uint8_t hy = UI_HUD_WIN_Y, tx = 0;
     uint8_t k, pct = (uint8_t)((uint16_t)player_hp * 100u / player_hp_max);
+    uint8_t prev_pct = (uint8_t)((uint16_t)player_hp_prev * 100u / player_hp_max);
     uint8_t pct8 = pct, xp_pct;
     uint8_t vram;
 
@@ -565,6 +566,14 @@ static void ui_draw_top_hud(void) { // bottom window row: L:♥×5 HP% XP% FLOOR
             vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_HEART_HALF);
             set_win_tile_xy(tx, hy, vram);
             set_win_attribute_xy(tx, hy, PAL_LIFE_UI);
+        } else if (prev_pct >= (uint8_t)(20u * (k + 1u))) {
+            vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_HEART_FULL);
+            set_win_tile_xy(tx, hy, vram);
+            set_win_attribute_xy(tx, hy, PAL_CORPSE);
+        } else if (prev_pct >= (uint8_t)(20u * k + 10u)) {
+            vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_HEART_HALF);
+            set_win_tile_xy(tx, hy, vram);
+            set_win_attribute_xy(tx, hy, PAL_CORPSE);
         } else {
             win_putc_pal(tx, hy, '_', PAL_UI);
         }

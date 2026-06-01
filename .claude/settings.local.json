@@ -19,7 +19,9 @@
       "Bash(awk '$2 >= 0xC000 && $2 <= 0xE000')",
       "Bash(grep -E \"^/home/sparkydev/projects/gbc-rog/[^/]*\\\\.\\(py|js|ts|tsx\\)$|src/|game/\")",
       "Bash(grep -E \"\\\\.c$|\\\\.h$\")",
-      "Bash(wait)"
+      "Bash(wait)",
+      "Bash(nm obj/gbc/enemy.o)",
+      "Bash(size obj/gbc/enemy.o)"
     ]
   }
 }

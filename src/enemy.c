@@ -149,15 +149,11 @@ uint8_t enemy_attack_slots[MAX_ENEMIES];
 uint8_t enemy_attack_count;
 uint8_t enemy_force_active[MAX_ENEMIES];
 
-void enemy_type_short_name_copy(uint8_t t, char *out, uint8_t cap) BANKED {
-    static const char *const n[NUM_ENEMY_TYPES] = {
-        "SNAKE", "SLIME", "RAT", "BAT", "BIG SKELL", "IMP", "SKELETON"
-    };
-    const char *s = (t < NUM_ENEMY_TYPES) ? n[t] : "?";
-    uint8_t i = 0u;
-    if (cap == 0u) return;
-    while (s[i] && (uint8_t)(i + 1u) < cap) { out[i] = s[i]; i++; } // bytes copy while bank 2 is mapped — safe across the bcall return
-    out[i] = 0;
+/* enemy_type_short_name_copy moved to enemy_extras.c (auto-banked) to free bank 2 space */
+
+BANKREF(enemy_place_slot_far)
+void enemy_place_slot_far(uint8_t slot, uint8_t x, uint8_t y) BANKED {
+    enemy_place_slot(slot, x, y);
 }
 
 uint8_t enemy_effective_max_hp(uint8_t type) BANKED {
@@ -225,6 +221,8 @@ uint8_t corpse_sheet_at(uint8_t x, uint8_t y) { // O(1) when no corpse (common c
 uint8_t corpse_at(uint8_t x, uint8_t y) { return corpse_sheet_at(x, y) != 255; }
 
 uint8_t corpse_deco_random(void) BANKED { return CORPSE_DECO_OFF[rand() & 1u]; } // L2/L3
+
+/* enemy_slime_split moved to enemy_extras.c (auto-banked) */
 
 void spawn_enemies(void) { // random placement with collision checks
     uint8_t i;

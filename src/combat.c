@@ -22,6 +22,7 @@ BANKREF_EXTERN(entity_sprites_run_enemy_lunges_batch)
 BANKREF_EXTERN(entity_sprites_player_hurt_flash)
 BANKREF_EXTERN(entity_sprites_run_projectile)
 BANKREF_EXTERN(enemy_try_drop_item)
+BANKREF_EXTERN(enemy_slime_split)
 
 static void grant_xp_from_kill(uint8_t enemy_damage) {
     uint16_t next_level_xp;
@@ -87,7 +88,11 @@ uint8_t combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, ui
     int8_t ady = (ny > py) ? 1 : (ny < py ? -1 : 0);
     entity_sprites_run_player_lunge(px, py, adx, ady, ei);
     sfx_lunge_hit();
-    return combat_damage_enemy(ei, player_damage, 0u);
+    {
+        uint8_t killed = combat_damage_enemy(ei, player_damage, 0u);
+        if (killed) enemy_slime_split(enemy_type[ei], enemy_x[ei], enemy_y[ei], px, py);
+        return killed;
+    }
 }
 
 BANKREF(resolve_enemy_hits_and_animate)

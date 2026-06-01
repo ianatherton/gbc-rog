@@ -289,10 +289,9 @@ void state_gameplay_tick(void) BANKED {
                 return;
             }
             tick_turn_cooldowns();
-            if (ui_combat_log_tick_quiet_turn()) {
-                wait_vbl_done();
-                draw_gameplay_overlays_profiled(g_player_x, g_player_y);
-            }
+            ui_combat_log_tick_quiet_turn();
+            wait_vbl_done();
+            draw_gameplay_overlays_profiled(g_player_x, g_player_y);
         }
         g_prev_j = j;
         wait_vbl_done();
@@ -400,6 +399,8 @@ void state_gameplay_tick(void) BANKED {
                     entity_sprites_run_enemy_glide(g_player_x, g_player_y, turn_snap_ex, turn_snap_ey, turn_snap_ea);
                 }
                 result = resolve_enemy_hits_and_animate(g_player_x, g_player_y);
+                tick_turn_cooldowns();
+                consumed_turn = 0u; // ticked here; skip shared block below
                 wait_vbl_done();
 #if FEATURE_MAP_FOG
                 if (lighting_dirty_overflow())
@@ -429,12 +430,11 @@ void state_gameplay_tick(void) BANKED {
 #endif
             }
         }
-        if (consumed_turn && ui_combat_log_tick_quiet_turn()) {
+        if (consumed_turn) {
             tick_turn_cooldowns();
+            ui_combat_log_tick_quiet_turn();
             wait_vbl_done();
-            draw_gameplay_overlays_profiled(g_player_x, g_player_y); // reclaim panel text only
-        } else if (consumed_turn) {
-            tick_turn_cooldowns();
+            draw_gameplay_overlays_profiled(g_player_x, g_player_y);
         }
     }
 

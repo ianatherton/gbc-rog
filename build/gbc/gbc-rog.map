@@ -109,7 +109,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      000023CD  s__HOME   |    00002F96  s__BASE   |    00002F96  s__CODE_0
      00002F96  s__INITIA |    00002F96  s__LIT    |    00002FB0  s__GSINIT
      00002FBC  s__GSFINA |    00003000  _rROMB1   |    00003A65  l__CODE_5
-     00003C7C  l__CODE_3 |    00003FBE  l__CODE_2 |    00004000  _rMBC7_SR
+     00003C7C  l__CODE_3 |    00003FFD  l__CODE_2 |    00004000  _rMBC7_SR
      00004000  _rRAMB    |    00008000  __VRAM    |    00008000  __VRAM800
      00008800  __VRAM880 |    00009000  __VRAM900 |    00009800  __SCRN0  
      00009C00  __SCRN1   |    0000A000  __SRAM    |    0000A000  _rMBC7_LA
@@ -515,7 +515,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_2                00024000    00003FBE =       16318. bytes (REL,CON)
+_CODE_2                00024000    00003FFD =       16381. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -534,14 +534,14 @@ _CODE_2                00024000    00003FBE =       16318. bytes (REL,CON)
      00025AC5  _corpse_a |    00025AD1  _corpse_d |    00025AE0  _spawn_en
      00025C0F  _enemy_se |    00025C27  _enemy_ge |    00025F92  _enemy_re
      000260C5  _move_ene |    00026688  ___func_s |    00026688  _state_ga
-     000266F5  ___func_s |    000266F5  _state_ga |    00026F10  ___func_c
-     00026F10  _camera_i |    0002717A  _camera_s |    0002764F  _camera_s
-     0002769E  _apply_wa |    0002795E  ___func_l |    0002795E  _load_pal
-     00027A42  _draw_cel |    00027A96  _draw_col |    00027AD0  _draw_row
-     00027B07  _draw_ui_ |    00027B0F  _draw_gam |    00027B29  _draw_scr
-     00027BA8  _draw_gam |    00027BC5  _draw_ene |    00027BD4  _draw_cor
-     00027C9E  ___func_c |    00027C9E  _combat_d |    00027E39  ___func_c
-     00027E39  _combat_p |    00027E9C  ___func_r |    00027E9C  _resolve_
+     000266F5  ___func_s |    000266F5  _state_ga |    00026F4F  ___func_c
+     00026F4F  _camera_i |    000271B9  _camera_s |    0002768E  _camera_s
+     000276DD  _apply_wa |    0002799D  ___func_l |    0002799D  _load_pal
+     00027A81  _draw_cel |    00027AD5  _draw_col |    00027B0F  _draw_row
+     00027B46  _draw_ui_ |    00027B4E  _draw_gam |    00027B68  _draw_scr
+     00027BE7  _draw_gam |    00027C04  _draw_ene |    00027C13  _draw_cor
+     00027CDD  ___func_c |    00027CDD  _combat_d |    00027E78  ___func_c
+     00027E78  _combat_p |    00027EDB  ___func_r |    00027EDB  _resolve_
 ASxxxx Linker V03.00/V05.40 + sdld,  page 32.
 Hexadecimal  [32-Bits]
 

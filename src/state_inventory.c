@@ -125,6 +125,40 @@ static void draw_equip_panel(void) {
     draw_equip_slot_tile(19u, (uint8_t)(EQUIP_PANEL_Y + 2u), ITEM_KIND_NONE);
 }
 
+static void draw_stats_panel(void) {
+    uint8_t v;
+    uint8_t y = (uint8_t)(EQUIP_PANEL_Y + 4u); /* blank line at EQUIP_PANEL_Y+3; stats start at +4 */
+
+    /* HP row: heart tile + :cur/max */
+    v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_HEART_FULL);
+    set_bkg_tiles(EQUIP_PANEL_X, y, 1u, 1u, &v);
+    set_bkg_attribute_xy(EQUIP_PANEL_X, y, PAL_LIFE_UI);
+    VBK_REG = VBK_TILES;
+    gotoxy((uint8_t)(EQUIP_PANEL_X + 1u), y);
+    printf(":%3u/%3u", (unsigned)player_hp, (unsigned)player_hp_max);
+
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 1u));
+    printf("MelDmg:%3u", (unsigned)player_damage);
+
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 2u));
+    printf("MagDmg:%3u", (unsigned)0u);
+
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 3u));
+    printf("RngDmg:%3u", (unsigned)0u);
+
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 4u));
+    printf("Dodge%%:%2u%%", (unsigned)0u);
+
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 5u));
+    printf("ResPhys:%2u", (unsigned)0u);
+
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 6u));
+    printf("ResMag:%2u%%", (unsigned)0u);
+
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 7u));
+    printf("Light :%3u", (unsigned)player_light_radius());
+}
+
 static void draw_equipped_marks(void) {
     uint8_t slot, cx, cy;
     uint8_t sp = (uint8_t)SP_ENEMY_BASE;
@@ -206,6 +240,7 @@ static void draw_grid_screen(void) {
     draw_grid();
     draw_equipped_marks();
     draw_equip_panel();
+    draw_stats_panel();
     draw_cursor_and_name();
     gotoxy(1, 16); printf("A:equip  B:drop");
     gotoxy(1, 17); printf("START resume");
@@ -290,6 +325,7 @@ void state_inventory_tick(void) BANKED {
             wait_vbl_done();
             draw_equipped_marks();
             draw_equip_panel();
+            draw_stats_panel();
         }
         goto out;
     }

@@ -28,6 +28,7 @@ BANKREF_EXTERN(ally_fox_turn_tick)
 BANKREF_EXTERN(story_ui_run_before_first_floor)
 BANKREF_EXTERN(ally_fox_run_glide)
 BANKREF_EXTERN(entity_sprites_run_enemy_glide)
+BANKREF_EXTERN(entity_sprites_run_enemy_glide_finish)
 BANKREF_EXTERN(entity_sprites_enemy_glide_begin)
 BANKREF_EXTERN(entity_sprites_ally_glide_begin)
 BANKREF_EXTERN(entity_sprites_set_player_facing)
@@ -376,7 +377,16 @@ void state_gameplay_tick(void) BANKED {
                 {
                     uint8_t ally_snap_x[MAX_ALLIES], ally_snap_y[MAX_ALLIES], ally_snap_a[MAX_ALLIES];
                     uint8_t ally_fk;
-                    // Fox AI before scroll; glide offset set so fox slides with the camera pan
+                    uint8_t k;
+                    // Enemy AI runs before scroll so glide offsets animate concurrently with the camera pan
+                    for (k = 0; k < num_enemies; k++) {
+                        turn_snap_ex[k] = enemy_x[k];
+                        turn_snap_ey[k] = enemy_y[k];
+                        turn_snap_ea[k] = enemy_alive[k];
+                    }
+                    move_enemies(g_player_x, g_player_y);
+                    entity_sprites_enemy_glide_begin(turn_snap_ex, turn_snap_ey, turn_snap_ea);
+                    // Fox AI; glide offsets loaded so both fox and enemies slide during the camera pan
                     ally_fk = ally_walk_tick_and_snap(g_player_x, g_player_y, ally_snap_x, ally_snap_y, ally_snap_a);
                     entity_sprites_ally_glide_begin(ally_snap_x, ally_snap_y, ally_snap_a);
                     {
@@ -387,16 +397,8 @@ void state_gameplay_tick(void) BANKED {
                         camera_scroll_to(target_cx, target_cy, opx, opy, g_player_x, g_player_y);
                     }
                     if (ally_fk) draw_corpse_cells();
-                }
-                {
-                    uint8_t k;
-                    for (k = 0; k < num_enemies; k++) {
-                        turn_snap_ex[k] = enemy_x[k];
-                        turn_snap_ey[k] = enemy_y[k];
-                        turn_snap_ea[k] = enemy_alive[k];
-                    }
-                    move_enemies(g_player_x, g_player_y);
-                    entity_sprites_run_enemy_glide(g_player_x, g_player_y, turn_snap_ex, turn_snap_ey, turn_snap_ea);
+                    // Finish any glide not yet resolved during scroll (blink teleports, deaths, etc.)
+                    entity_sprites_run_enemy_glide_finish(turn_snap_ea);
                 }
                 result = resolve_enemy_hits_and_animate(g_player_x, g_player_y);
                 tick_turn_cooldowns();

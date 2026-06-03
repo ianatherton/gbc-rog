@@ -61,6 +61,9 @@ static uint8_t en_hit_flash_age[MAX_ENEMIES];       // 0 off; 1..ENEMY_HIT_FLASH
 static uint8_t skel_head_slot[MAX_ENEMIES];         // 255 = no head; 0..MAX_BIG_SKELL_HEADS-1 = index into SP_BIG_SKELL_HEAD_BASE pool
 static uint8_t enemy_effects_count;                 // enemies with an active poof or hit-flash; 0 = skip VBL loop entirely
 
+static uint8_t g_cam_tx, g_cam_ty, g_cam_tx_end, g_cam_ty_end; // cached tile bounds — set once per refresh pass, used in refresh_enemy_oam/allies/light
+static uint8_t oam_enemy_hide_mark;                 // SP_ENEMY_BASE + num_enemies at last hide sweep; 255 = needs initial run
+
 #define ENEMY_POOF_DURATION_VBL 22u // ~370ms @60Hz — overlaps corpse then clears
 #define ENEMY_HIT_FLASH_VBL     8u // two 2-VBL pulses OCP0 vs native — ages 1..8 then clear
 #define PLAYER_AURA_TOGGLE_VBL  15u // ~0.25s @ ~60Hz — M15 ↔ M16 (was every VBL; too fast to read)
@@ -121,8 +124,8 @@ static uint8_t pick_next_visible_light_source(uint8_t *mx, uint8_t *my) {
     for (i = 0u; i < brazier_count; i++) {
         uint8_t idx = (uint8_t)((brazier_fire_source_cursor + i) % brazier_count);
         uint8_t x = brazier_x[idx], y = brazier_y[idx];
-        if (x < CAM_TX || x >= (uint8_t)(CAM_TX + GRID_W)) continue;
-        if (y < CAM_TY || y >= (uint8_t)(CAM_TY + GRID_H)) continue;
+        if (x < g_cam_tx || x >= g_cam_tx_end) continue;
+        if (y < g_cam_ty || y >= g_cam_ty_end) continue;
         *mx = x;
         *my = y;
         brazier_fire_source_cursor = (uint8_t)((idx + 1u) % brazier_count);
@@ -180,8 +183,8 @@ static void refresh_allies_oam(void) {
             }
             fx = ally_x[i];
             fy = ally_y[i];
-            if (fx < CAM_TX || fx >= (uint8_t)(CAM_TX + GRID_W)
-                    || fy < CAM_TY || fy >= (uint8_t)(CAM_TY + GRID_H)
+            if (fx < g_cam_tx || fx >= g_cam_tx_end
+                    || fy < g_cam_ty || fy >= g_cam_ty_end
                     || !lighting_is_revealed(fx, fy)) {
                 oam_hide((uint8_t)(SP_ALLY_BASE + i));
                 continue;
@@ -228,6 +231,7 @@ void entity_sprites_init(void) BANKED {
     player_flip_x = 0u;
     player_hurt_flash_ttl = 0u;
     player_hurt_flash_restore_needed = 0u;
+    oam_enemy_hide_mark = 255u;
     brazier_fire_active = 0u;
     brazier_fire_ttl = 0u;
     brazier_fire_source_cursor = 0u;
@@ -339,8 +343,8 @@ static void refresh_enemy_oam(uint8_t slot) {
     if (!enemy_alive[slot]) {
         if (enemy_poof_ttl[slot] > 0u) {
             uint8_t mx = enemy_x[slot], my = enemy_y[slot];
-            if (mx < CAM_TX || mx >= (uint8_t)(CAM_TX + GRID_W)
-                    || my < CAM_TY || my >= (uint8_t)(CAM_TY + GRID_H)
+            if (mx < g_cam_tx || mx >= g_cam_tx_end
+                    || my < g_cam_ty || my >= g_cam_ty_end
                     || !lighting_is_revealed(mx, my)) {
                 oam_hide(sp);
                 if (hsp != 255u) oam_hide(hsp);
@@ -361,8 +365,8 @@ static void refresh_enemy_oam(uint8_t slot) {
         uint8_t tt = (uint8_t)(TILESET_VRAM_OFFSET + off);
         int16_t ewx = (int16_t)enemy_x[slot] * 8 + en_ofs_x[slot];
         int16_t ewy = (int16_t)enemy_y[slot] * 8 + en_ofs_y[slot];
-        if (enemy_x[slot] < CAM_TX || enemy_x[slot] >= (uint8_t)(CAM_TX + GRID_W)
-                || enemy_y[slot] < CAM_TY || enemy_y[slot] >= (uint8_t)(CAM_TY + GRID_H)
+        if (enemy_x[slot] < g_cam_tx || enemy_x[slot] >= g_cam_tx_end
+                || enemy_y[slot] < g_cam_ty || enemy_y[slot] >= g_cam_ty_end
                 || !lighting_is_revealed(enemy_x[slot], enemy_y[slot])) {
             oam_hide(sp);
             if (hsp != 255u) oam_hide(hsp);
@@ -451,6 +455,10 @@ void entity_sprites_vbl_tick(void) BANKED {
         }
         refresh_player_aura_oam_vbl();
         if (enemy_effects_count) {
+            g_cam_tx     = (uint8_t)(camera_px >> 3);
+            g_cam_ty     = (uint8_t)(camera_py >> 3);
+            g_cam_tx_end = (uint8_t)(g_cam_tx + GRID_W);
+            g_cam_ty_end = (uint8_t)(g_cam_ty + GRID_H);
             for (pi = 0u; pi < num_enemies; pi++) {
                 if (enemy_poof_ttl[pi] > 0u) {
                     enemy_poof_ttl[pi]--;
@@ -502,33 +510,45 @@ void entity_sprites_refresh_player_only(uint8_t px, uint8_t py) BANKED {
 
 BANKREF(entity_sprites_refresh_enemy)
 void entity_sprites_refresh_enemy(uint8_t slot) BANKED {
+    g_cam_tx     = (uint8_t)(camera_px >> 3);
+    g_cam_ty     = (uint8_t)(camera_py >> 3);
+    g_cam_tx_end = (uint8_t)(g_cam_tx + GRID_W);
+    g_cam_ty_end = (uint8_t)(g_cam_ty + GRID_H);
     refresh_enemy_oam(slot);
 }
 
 BANKREF(entity_sprites_refresh_oam_only)
 void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) BANKED {
     uint8_t i;
+    // Cache camera tile bounds once — used by refresh_enemy_oam and refresh_allies_oam
+    g_cam_tx     = (uint8_t)(camera_px >> 3);
+    g_cam_ty     = (uint8_t)(camera_py >> 3);
+    g_cam_tx_end = (uint8_t)(g_cam_tx + GRID_W);
+    g_cam_ty_end = (uint8_t)(g_cam_ty + GRID_H);
     entity_sprites_refresh_player_only(px, py);
-    // Clear all head OAM slots first so stale heads from dead skeletons don't linger
+    // Clear all head OAM slots so stale heads from dead skeletons don't linger
     {
         uint8_t hi;
         for (hi = 0; hi < MAX_BIG_SKELL_HEADS; hi++) oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + hi));
     }
-    // Assign head slots to alive big skells before body refresh so refresh_enemy_oam can use them
+    // Single pass: assign head slots to alive big skells AND refresh every enemy OAM slot
     {
         uint8_t next_head = 0;
         memset(skel_head_slot, 255, sizeof skel_head_slot);
         for (i = 0; i < num_enemies; i++) {
             if (enemy_alive[i] && enemy_type[i] == ENEMY_BIG_SKELL && next_head < MAX_BIG_SKELL_HEADS)
                 skel_head_slot[i] = next_head++;
+            refresh_enemy_oam(i);
         }
     }
-    for (i = 0; i < num_enemies; i++) refresh_enemy_oam(i);
-    for (i = (uint8_t)(SP_ENEMY_BASE + num_enemies); i < 40u; i++)
-        if (!(i >= SP_ALLY_BASE && i < (uint8_t)(SP_ALLY_BASE + MAX_ALLIES))
-                && !(i >= SP_BIG_SKELL_HEAD_BASE && i < (uint8_t)(SP_BIG_SKELL_HEAD_BASE + MAX_BIG_SKELL_HEADS))
-                && i != SP_BRAZIER_FIRE && i != SP_LADDER_ARROW && i != SP_BELT_SELECTOR && i != SP_PLAYER_AURA_OAM && i != SP_BUFF_ICON)
-            oam_hide(i);
+    // Hide unused enemy body slots — guarded so this only runs when num_enemies changes (once per floor)
+    {
+        uint8_t new_mark = (uint8_t)(SP_ENEMY_BASE + num_enemies);
+        if (oam_enemy_hide_mark != new_mark) {
+            for (i = new_mark; i < SP_BIG_SKELL_HEAD_BASE; i++) oam_hide(i);
+            oam_enemy_hide_mark = new_mark;
+        }
+    }
     if (!brazier_fire_active) oam_hide(SP_BRAZIER_FIRE); // keep slot hidden until first spawn
     refresh_belt_selector_oam();
     refresh_buff_icon_oam();
@@ -641,6 +661,37 @@ void entity_sprites_run_enemy_glide(uint8_t px, uint8_t py,
         if (en_ofs_x[i] || en_ofs_y[i]) any = 1;
     }
     if (!any) return;
+    while (1) {
+        any = 0;
+        for (i = 0; i < dirty_count; i++) {
+            uint8_t s = dirty_slots[i];
+            if (en_ofs_x[s] > 0) en_ofs_x[s] = (en_ofs_x[s] > (int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_x[s] - ENEMY_GLIDE_SPEED) : 0;
+            else if (en_ofs_x[s] < 0) en_ofs_x[s] = (en_ofs_x[s] < -(int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_x[s] + ENEMY_GLIDE_SPEED) : 0;
+            if (en_ofs_y[s] > 0) en_ofs_y[s] = (en_ofs_y[s] > (int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_y[s] - ENEMY_GLIDE_SPEED) : 0;
+            else if (en_ofs_y[s] < 0) en_ofs_y[s] = (en_ofs_y[s] < -(int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_y[s] + ENEMY_GLIDE_SPEED) : 0;
+            if (en_ofs_x[s] || en_ofs_y[s]) any = 1;
+        }
+        for (i = 0; i < dirty_count; i++) refresh_enemy_oam(dirty_slots[i]);
+        wait_vbl_done();
+        if (!any) break;
+    }
+}
+
+BANKREF(entity_sprites_run_enemy_glide_finish)
+void entity_sprites_run_enemy_glide_finish(const uint8_t *old_alive) BANKED {
+    // Drains any glide offsets left after enemy_glide_begin + camera scroll have already stepped them.
+    // Also handles enemies that died during the AI turn (offset=0, alive state changed).
+    uint8_t i, any = 0, dirty_count = 0;
+    uint8_t dirty_slots[MAX_ENEMIES];
+    for (i = 0; i < num_enemies; i++) {
+        if (en_ofs_x[i] || en_ofs_y[i]) {
+            dirty_slots[dirty_count++] = i;
+            any = 1;
+        } else if (enemy_alive[i] != old_alive[i]) {
+            dirty_slots[dirty_count++] = i; // just died — refresh once to show poof/corpse
+        }
+    }
+    if (!any && dirty_count == 0) return;
     while (1) {
         any = 0;
         for (i = 0; i < dirty_count; i++) {

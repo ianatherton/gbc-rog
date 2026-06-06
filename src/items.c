@@ -5,16 +5,10 @@
 #include "ui.h"
 #include "scroll_blast.h"
 #include "scroll_root.h"
-#include "targeting.h"
-#include "entity_sprites.h"
-#include "combat.h"
-#include "music.h"
 #include <string.h>
 
 BANKREF_EXTERN(scroll_blast_use)
 BANKREF_EXTERN(scroll_root_use)
-BANKREF_EXTERN(combat_damage_enemy)
-BANKREF_EXTERN(entity_sprites_run_projectile)
 
 static const uint8_t kind_cat[ITEM_KIND_COUNT] = {
     ITEM_CAT_CONSUMABLE, // POTION
@@ -27,7 +21,6 @@ static const uint8_t kind_cat[ITEM_KIND_COUNT] = {
     ITEM_CAT_EQUIPMENT,  // HELMET
     ITEM_CAT_EQUIPMENT,  // TUNIC
     ITEM_CAT_EQUIPMENT,  // BOOTS
-    ITEM_CAT_REUSABLE,   // BOW
 };
 
 static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
@@ -41,7 +34,6 @@ static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
     TILE_ITEM_5,          // HELMET — I5
     TILE_ITEM_6,          // TUNIC — I6
     TILE_ITEM_7,          // BOOTS — I7
-    TILE_BOW_BELT_OFF,    // BOW — I15 art at TILE_BOW_I15_VRAM
 };
 
 static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
@@ -55,12 +47,11 @@ static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
     PAL_WALL_BG,      // HELMET — warm metal ramp
     PAL_WALL_BG,      // TUNIC — warm metal ramp
     PAL_LADDER,       // BOOTS — earthy/leather
-    PAL_LADDER,       // BOW — torch palette (warm orange)
 };
 
 static const char *const kind_name[ITEM_KIND_COUNT] = {
     "Heal Potion", "Death Scroll", "BigHeal Potion", "Candle", "Root Scroll",
-    "Rusty Sword", "Book: Heal", "Helmet", "Tunic", "Boots", "Bow",
+    "Rusty Sword", "Book: Heal", "Helmet", "Tunic", "Boots",
 };
 
 static const char *const kind_desc[ITEM_KIND_COUNT] = {
@@ -74,7 +65,6 @@ static const char *const kind_desc[ITEM_KIND_COUNT] = {
     "+5 max HP. A battered iron helmet.",
     "+10 max HP. Heavy rings of chainmail.",
     "+2 light radius. Worn leather boots.",
-    "Shoots nearest foe. A carved shortbow.",
 };
 
 uint8_t items_kind_category(uint8_t kind) BANKED {
@@ -259,30 +249,7 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
         uint16_t heal = (uint16_t)player_hp_max / 4u; // quarter max HP
         if ((uint16_t)player_hp + heal >= (uint16_t)player_hp_max) player_hp = player_hp_max;
         else player_hp = (uint8_t)((uint16_t)player_hp + heal);
-        book_heal_cooldown_turns = 4u;
-    } else if (kind == ITEM_KIND_BOW) {
-#define BOW_RANGE_TILES 5u
-        uint8_t ei, tx, ty, too_far;
-        if (!targeting_find_nearest_visible(g_player_x, g_player_y, BOW_RANGE_TILES,
-                                            &ei, &tx, &ty, &too_far)) {
-            static const char msg_too_far[] = "too far";
-            static const char msg_no_target[] = "no target";
-            const char *src = too_far ? msg_too_far : msg_no_target;
-            char mbuf[10];
-            uint8_t mi = 0u;
-            while (src[mi] && mi < 9u) { mbuf[mi] = src[mi]; mi++; }
-            mbuf[mi] = 0;
-            ui_combat_log_push(mbuf);
-            return;
-        }
-        sfx_spell_zap();
-        entity_sprites_run_projectile(g_player_x, g_player_y, tx, ty,
-            TILE_BOW_ARROW_OFF, PAL_LADDER);
-        sfx_lunge_hit();
-        {
-            uint8_t killed = combat_damage_enemy(ei, player_damage, 0u);
-            if (killed) { out->did_kill = 1u; out->kill_x = tx; out->kill_y = ty; }
-        }
+        book_heal_cooldown_turns = 5u;
     }
     if (items_kind_category(kind) != ITEM_CAT_REUSABLE)
         inventory_remove(item_idx);
@@ -290,8 +257,8 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
 }
 
 /* Weighted drop table: consumables weight 5, equipment/reusables weight 4.
-   Total 49 entries → consumables 51%, non-consumables 49% of drops. */
-static const uint8_t drop_table[49] = {
+   Total 45 entries → consumables 55.6%, non-consumables 44.4% of drops. */
+static const uint8_t drop_table[45] = {
     ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,
     ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,
     ITEM_KIND_KEY,         ITEM_KIND_KEY,         ITEM_KIND_KEY,         ITEM_KIND_KEY,         ITEM_KIND_KEY,
@@ -302,7 +269,6 @@ static const uint8_t drop_table[49] = {
     ITEM_KIND_HELMET,      ITEM_KIND_HELMET,      ITEM_KIND_HELMET,      ITEM_KIND_HELMET,
     ITEM_KIND_TUNIC,       ITEM_KIND_TUNIC,       ITEM_KIND_TUNIC,       ITEM_KIND_TUNIC,
     ITEM_KIND_BOOTS,       ITEM_KIND_BOOTS,       ITEM_KIND_BOOTS,       ITEM_KIND_BOOTS,
-    ITEM_KIND_BOW,         ITEM_KIND_BOW,         ITEM_KIND_BOW,         ITEM_KIND_BOW,
 };
 
 uint8_t enemy_try_drop_item(uint8_t dx, uint8_t dy) BANKED {
@@ -310,7 +276,7 @@ uint8_t enemy_try_drop_item(uint8_t dx, uint8_t dy) BANKED {
     if ((rand() % 20u) >= 3u) return 0u;
     for (gi = 0u; gi < MAX_GROUND_ITEMS; gi++) {
         if (ground_item_kind[gi] == ITEM_KIND_NONE) {
-            ground_item_kind[gi] = drop_table[rand() % 49u];
+            ground_item_kind[gi] = drop_table[rand() % 45u];
             ground_item_x[gi] = dx;
             ground_item_y[gi] = dy;
             return 1u;

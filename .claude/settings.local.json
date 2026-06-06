@@ -21,11 +21,7 @@
       "Bash(grep -E \"\\\\.c$|\\\\.h$\")",
       "Bash(wait)",
       "Bash(nm obj/gbc/enemy.o)",
-      "Bash(size obj/gbc/enemy.o)",
-      "Bash(make clean *)",
-      "Bash(make build-target *)",
-      "Bash(make EXT=gbc)",
-      "Bash(make gbc-clean *)"
+      "Bash(size obj/gbc/enemy.o)"
     ]
   }
 }

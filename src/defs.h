@@ -127,20 +127,18 @@ typedef struct {
 #define MOVE_RANDOM  1   // random walkable neighbour each turn
 #define MOVE_WANDER  2   // 50% chase, 50% random
 #define MOVE_BLINK   3   // teleport to a tile adjacent to player; def->param caps Chebyshev jump range (0 = default 3)
-#define MOVE_ARCHER  4   // ranged: shoot arrow at player when Chebyshev 2–param(5); retreat when adjacent; chase when out of range; 1-turn shot cooldown
 #define ENEMY_SLEEP_OFFSCREEN 1u // 1: skip AI updates for distant unrevealed enemies to stabilize crowded-floor turn cost
 #define ENEMY_WAKE_MANHATTAN  12u // offscreen enemies inside this player distance still simulate so near-edge threats stay responsive
 
 /* ── Enemy type IDs ──────────────────────────────────────────────────────── */
-#define ENEMY_SNAKE       0
-#define ENEMY_SLIME       1
-#define ENEMY_RAT         2
-#define ENEMY_BAT         3
-#define ENEMY_BIG_SKELL   4
-#define ENEMY_IMP         5
-#define ENEMY_SKELETON    6
-#define ENEMY_SKEL_ARCHER 7
-#define NUM_ENEMY_TYPES   8
+#define ENEMY_SNAKE     0
+#define ENEMY_SLIME     1
+#define ENEMY_RAT       2
+#define ENEMY_BAT       3
+#define ENEMY_BIG_SKELL 4
+#define ENEMY_IMP       5
+#define ENEMY_SKELETON  6
+#define NUM_ENEMY_TYPES 7
 
 /* ── Animation ───────────────────────────────────────────────────────────── */
 // DIV_REG runs at 16384 Hz; 1638 ticks ≈ 0.10s between frame flips
@@ -404,15 +402,6 @@ extern uint16_t camera_py;    // pixel y of viewport top-left (defined in camera
 #define CAM_TX (camera_px >> 3)
 #define CAM_TY (camera_py >> 3)
 #define RING_BKG_VY_WORLD(my) ((uint8_t)((my) & 31u)) // ring Y for world row my — SCY applies from line 0 in gameplay
-
-/* ── Bow item tiles (ROM past first VRAM pack → boot-copied) ─────────────── */
-#define TILE_ITEM_15         232u  /* I15 — bow art; ROM past first VRAM pack */
-#define TILE_BOW_I15_VRAM    213u  // belt/pickup UI — borrows unused F6 BKG VRAM slot (ROM 85)
-#define TILE_BOW_BELT_OFF  ((uint8_t)(TILE_BOW_I15_VRAM - TILESET_VRAM_OFFSET))
-
-#define TILE_H12             183u  /* H12 — arrow pointing up; ROM past first VRAM pack */
-#define TILE_BOW_ARROW_VRAM  214u  // projectile sprite — borrows unused G6 VRAM slot (ROM 86)
-#define TILE_BOW_ARROW_OFF  ((uint8_t)(TILE_BOW_ARROW_VRAM - TILESET_VRAM_OFFSET))
 
 /* ── Tileset pixel data ──────────────────────────────────────────────────── */
 extern const uint8_t tileset_tiles[];

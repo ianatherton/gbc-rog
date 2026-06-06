@@ -15,8 +15,7 @@
 #define ITEM_KIND_HELMET      7u  // Equipment — +5 max HP
 #define ITEM_KIND_TUNIC       8u  // Equipment — +10 max HP
 #define ITEM_KIND_BOOTS       9u  // Equipment — +2 light radius
-#define ITEM_KIND_BOW        10u  // Reusable — ranged attack on nearest visible enemy; 0-turn cooldown
-#define ITEM_KIND_COUNT      11u
+#define ITEM_KIND_COUNT      10u
 #define ITEM_KIND_NONE      255u
 
 #define ITEM_CAT_CONSUMABLE   0u  // used and removed from inventory

@@ -25,9 +25,6 @@ extern uint8_t enemy_type[MAX_ENEMIES];
 extern uint8_t enemy_hp[MAX_ENEMIES];
 // root_turns: turns remaining where enemy skips movement (0 = free); set by scroll effects; cleared each floor by spawn_enemies
 extern uint8_t enemy_status[MAX_ENEMIES];
-extern uint8_t enemy_archer_cooldown[MAX_ENEMIES]; // turns until archer can shoot again (0 = ready); cleared each floor by spawn_enemies
-extern uint8_t enemy_ranged_slots[MAX_ENEMIES];    // archer slots with pending ranged attack this turn
-extern uint8_t enemy_ranged_count;                 // count of pending ranged attacks this turn
 extern uint8_t num_enemies;
 
 /* ── Spatial occupancy ────────────────────────────────────────────────────── */

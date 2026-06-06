@@ -382,12 +382,9 @@ static void refresh_enemy_oam(uint8_t slot) {
             move_entity_oam(sp, ewx, ewy, tt, pal);
             if (def->tile == def->tile_alt && enemy_anim_toggle)
                 set_sprite_prop(sp, (uint8_t)((pal & 7u) | S_FLIPX));
-            // overlay sprite: big skell gets head one tile above; archer gets bow at same position
+            // skeleton head — one tile above body (J7); hidden if skeleton is at world row 0
             if (hsp != 255u) {
-                if (enemy_type[slot] == ENEMY_SKEL_ARCHER) {
-                    move_entity_oam(hsp, ewx, ewy,
-                                    (uint8_t)(TILESET_VRAM_OFFSET + TILE_BOW_BELT_OFF), 0u);
-                } else if (enemy_y[slot] > 0u) {
+                if (enemy_y[slot] > 0u) {
                     move_entity_oam(hsp, ewx, (int16_t)(ewy - 8),
                                     (uint8_t)(TILESET_VRAM_OFFSET + TILE_BIG_SKELL_HEAD), pal);
                     if (enemy_anim_toggle)
@@ -534,13 +531,12 @@ void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) BANKED {
         uint8_t hi;
         for (hi = 0; hi < MAX_BIG_SKELL_HEADS; hi++) oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + hi));
     }
-    // Single pass: assign head/bow pool slots to alive big skells and archers, refresh every enemy OAM slot
+    // Single pass: assign head slots to alive big skells AND refresh every enemy OAM slot
     {
         uint8_t next_head = 0;
         memset(skel_head_slot, 255, sizeof skel_head_slot);
         for (i = 0; i < num_enemies; i++) {
-            if (enemy_alive[i] && next_head < MAX_BIG_SKELL_HEADS
-                    && (enemy_type[i] == ENEMY_BIG_SKELL || enemy_type[i] == ENEMY_SKEL_ARCHER))
+            if (enemy_alive[i] && enemy_type[i] == ENEMY_BIG_SKELL && next_head < MAX_BIG_SKELL_HEADS)
                 skel_head_slot[i] = next_head++;
             refresh_enemy_oam(i);
         }

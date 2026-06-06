@@ -27,6 +27,7 @@ void level_init_display(uint8_t from_pit) BANKED {
         player_xp = 0;
         player_hp = player_hp_max;
         inventory_clear_all(); // fresh run wipes any items from a previous attempt
+        if (player_class == 1u) inventory_add(ITEM_KIND_BOW); // scoundrel starts with bow
         wait_vbl_done();
         ui_loading_screen_begin();
     }

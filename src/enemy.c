@@ -10,6 +10,7 @@
 #include <string.h>
 
 BANKREF_EXTERN(entity_sprites_enemy_poof_begin)
+BANKREF_EXTERN(enemy_clear_slot)
 
 // enemy_defs[] is defined in biome.c (HOME) — populated from bank 10/11/12 by biome_load_active
 
@@ -26,18 +27,21 @@ uint8_t corpse_tile[MAX_CORPSES]; // L1–L5 floor deco (random at kill)
 uint8_t num_corpses;
 
 uint8_t enemy_occ[BITSET_BYTES];
+uint8_t enemy_archer_cooldown[MAX_ENEMIES];
+uint8_t enemy_ranged_slots[MAX_ENEMIES];
+uint8_t enemy_ranged_count;
 
 #define ENEMY_SLOT_HASH_SIZE 64u
 #define ENEMY_SLOT_EMPTY 0xFFFFu
 #define ENEMY_SLOT_TOMBSTONE 0xFFFEu
-static uint16_t enemy_slot_keys[ENEMY_SLOT_HASH_SIZE];
-static uint8_t enemy_slot_vals[ENEMY_SLOT_HASH_SIZE];
+uint16_t enemy_slot_keys[ENEMY_SLOT_HASH_SIZE];
+uint8_t enemy_slot_vals[ENEMY_SLOT_HASH_SIZE];
 
 #define CORPSE_SLOT_HASH_SIZE 64u
 #define CORPSE_SLOT_EMPTY 0xFFFFu
 #define CORPSE_SLOT_TOMBSTONE 0xFFFEu
-static uint16_t corpse_slot_keys[CORPSE_SLOT_HASH_SIZE];
-static uint8_t corpse_slot_vals[CORPSE_SLOT_HASH_SIZE];
+uint16_t corpse_slot_keys[CORPSE_SLOT_HASH_SIZE];
+uint8_t corpse_slot_vals[CORPSE_SLOT_HASH_SIZE];
 
 static uint8_t enemy_slot_hash_idx(uint16_t tile_idx) {
     return (uint8_t)(tile_idx & (ENEMY_SLOT_HASH_SIZE - 1u)); // size is power-of-two
@@ -83,47 +87,7 @@ void enemy_place_slot(uint8_t slot, uint8_t x, uint8_t y) {
     }
 }
 
-void enemy_clear_slot(uint8_t x, uint8_t y) BANKED {
-    uint16_t idx = TILE_IDX(x, y);
-    uint8_t h = enemy_slot_hash_idx(idx);
-    uint8_t probe;
-    BIT_CLR(enemy_occ, idx);
-    for (probe = 0; probe < ENEMY_SLOT_HASH_SIZE; probe++) {
-        uint8_t p = (uint8_t)((h + probe) & (ENEMY_SLOT_HASH_SIZE - 1u));
-        if (enemy_slot_keys[p] == ENEMY_SLOT_EMPTY) return;
-        if (enemy_slot_keys[p] == idx) {
-            enemy_slot_keys[p] = ENEMY_SLOT_TOMBSTONE;
-            enemy_slot_vals[p] = ENEMY_DEAD;
-            return;
-        }
-    }
-}
-
-void corpse_place_slot(uint8_t slot, uint8_t x, uint8_t y) BANKED {
-    uint16_t idx = TILE_IDX(x, y);
-    uint8_t h = (uint8_t)(idx & (CORPSE_SLOT_HASH_SIZE - 1u));
-    uint8_t probe;
-    uint8_t first_tombstone = ENEMY_DEAD;
-    for (probe = 0; probe < CORPSE_SLOT_HASH_SIZE; probe++) {
-        uint8_t p = (uint8_t)((h + probe) & (CORPSE_SLOT_HASH_SIZE - 1u));
-        if (corpse_slot_keys[p] == idx) {
-            corpse_slot_vals[p] = slot;
-            return;
-        }
-        if (corpse_slot_keys[p] == CORPSE_SLOT_TOMBSTONE && first_tombstone == ENEMY_DEAD)
-            first_tombstone = p;
-        if (corpse_slot_keys[p] == CORPSE_SLOT_EMPTY) {
-            uint8_t w = (first_tombstone != ENEMY_DEAD) ? first_tombstone : p;
-            corpse_slot_keys[w] = idx;
-            corpse_slot_vals[w] = slot;
-            return;
-        }
-    }
-    if (first_tombstone != ENEMY_DEAD) {
-        corpse_slot_keys[first_tombstone] = idx;
-        corpse_slot_vals[first_tombstone] = slot;
-    }
-}
+/* enemy_clear_slot, corpse_place_slot moved to enemy_extras.c (auto-banked) to free bank 2 space */
 
 void corpse_clear_slot(uint8_t x, uint8_t y) {
     uint16_t idx = TILE_IDX(x, y);
@@ -227,7 +191,7 @@ uint8_t corpse_deco_random(void) BANKED { return CORPSE_DECO_OFF[rand() & 1u]; }
 void spawn_enemies(void) { // random placement with collision checks
     uint8_t i;
     num_enemies = 0;
-    for (i = 0; i < MAX_ENEMIES; i++) { enemy_force_active[i] = 0u; enemy_status[i] = 0u; }
+    for (i = 0; i < MAX_ENEMIES; i++) { enemy_force_active[i] = 0u; enemy_status[i] = 0u; enemy_archer_cooldown[i] = 0u; }
     if (floor_num == 1u) return; // entry floor is a safe 20x20 no-monster zone
     for (i = 0; i < NUM_ENEMIES; i++) {
         uint8_t attempts;
@@ -347,25 +311,7 @@ static void step_blink(uint8_t sx, uint8_t sy,
     step_random(sx, sy, nx, ny); // no viable landing — shuffle in place
 }
 
-void enemy_resolve_hit(uint8_t slot) BANKED { // one strike: log line + subtract HP
-    uint8_t hit = enemy_effective_damage(enemy_type[slot]);
-    uint8_t hp_before = player_hp;
-    char logbuf[20];
-    uint8_t p = 0, d = hit; // d consumed while formatting digits
-    logbuf[p++] = 'Y'; logbuf[p++] = 'O'; logbuf[p++] = 'U'; logbuf[p++] = ' '; logbuf[p++] = '-';
-    if (d >= 100u) { logbuf[p++] = (char)('0' + d / 100u); d %= 100u; logbuf[p++] = (char)('0' + d / 10u); d %= 10u; }
-    else if (d >= 10u) { logbuf[p++] = (char)('0' + d / 10u); d %= 10u; }
-    logbuf[p++] = (char)('0' + d);
-    logbuf[p] = 0;
-    ui_combat_log_push_pal(logbuf, PAL_LIFE_UI);
-    if (player_hp > hit) player_hp -= hit;
-    else                 player_hp  = 0;
-    if (player_hp_max > 0u) {
-        uint8_t pct_b = (uint8_t)(((uint16_t)hp_before * 100u) / (uint16_t)player_hp_max);
-        uint8_t pct_a = (uint8_t)(((uint16_t)player_hp * 100u) / (uint16_t)player_hp_max);
-        if (pct_b > 30u && pct_a <= 30u) lcd_hp_panic_flash_trigger();
-    }
-}
+/* enemy_resolve_hit moved to enemy_extras.c (auto-banked) to free bank 2 space */
 
 uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes — HP applied later in enemy_resolve_hit per hit
     uint8_t perf_stamp = perf_stamp_now();
@@ -374,6 +320,7 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
     uint8_t next_hop_cache[MAX_NAV_NODES]; // hop_out[n] = next node from n toward player_node
     nav_fill_hops_from(player_node, next_hop_cache);
     enemy_attack_count = 0;
+    enemy_ranged_count = 0;
     for (i = 0; i < num_enemies; i++) {
         if (!enemy_alive[i]) continue;
 
@@ -381,12 +328,14 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
 
         if (enemy_status[i] > 0u) {
             enemy_status[i]--;
-            // rooted: can't move but still melee if player is king-adjacent
-            { uint8_t apx = (px > sx) ? (uint8_t)(px - sx) : (uint8_t)(sx - px);
-              uint8_t apy = (py > sy) ? (uint8_t)(py - sy) : (uint8_t)(sy - py);
-              uint8_t cheb = (apx > apy) ? apx : apy;
-              if (cheb == 1u && enemy_attack_count < MAX_ENEMIES)
-                  enemy_attack_slots[enemy_attack_count++] = i; }
+            // rooted: can't move but still melee if player is king-adjacent (archers never melee)
+            if (enemy_type[i] != ENEMY_SKEL_ARCHER) {
+                uint8_t apx = (px > sx) ? (uint8_t)(px - sx) : (uint8_t)(sx - px);
+                uint8_t apy = (py > sy) ? (uint8_t)(py - sy) : (uint8_t)(sy - py);
+                uint8_t cheb = (apx > apy) ? apx : apy;
+                if (cheb == 1u && enemy_attack_count < MAX_ENEMIES)
+                    enemy_attack_slots[enemy_attack_count++] = i;
+            }
             continue;
         }
         uint8_t nx = sx,         ny = sy; // default no move
@@ -416,14 +365,37 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
                 step_blink(sx, sy, px, py, r, &nx, &ny);
                 break;
             }
+            case MOVE_ARCHER: {
+                uint8_t range = def->param ? def->param : 5u;
+                uint8_t apx = (px > sx) ? (uint8_t)(px - sx) : (uint8_t)(sx - px);
+                uint8_t apy = (py > sy) ? (uint8_t)(py - sy) : (uint8_t)(sy - py);
+                uint8_t cheb = (apx > apy) ? apx : apy;
+                if (enemy_archer_cooldown[i] > 0u) enemy_archer_cooldown[i]--;
+                if (cheb >= 2u && cheb <= range && enemy_archer_cooldown[i] == 0u) {
+                    if (enemy_ranged_count < MAX_ENEMIES)
+                        enemy_ranged_slots[enemy_ranged_count++] = i;
+                    enemy_archer_cooldown[i] = 2u; // ready again in 1 turn
+                } else if (cheb > range) {
+                    step_nav_chase(sx, sy, px, py, player_node, next_hop_cache, &nx, &ny);
+                } else if (cheb <= 1u) {
+                    // retreat directly away from player
+                    if      (px > sx && sx > 0u)            nx = (uint8_t)(sx - 1u);
+                    else if (px < sx && sx < MAP_W - 1u)    nx = (uint8_t)(sx + 1u);
+                    else if (py > sy && sy > 0u)             ny = (uint8_t)(sy - 1u);
+                    else if (py < sy && sy < MAP_H - 1u)    ny = (uint8_t)(sy + 1u);
+                }
+                break;
+            }
         }
 
         if (nx == sx && ny == sy)              continue; // AI chose stay
         if (enemy_at(nx, ny) != ENEMY_DEAD)    continue; // don't stack enemies
 
-        if (nx == px && ny == py) { // combat on player's tile — every adjacent step-in can connect same turn
-            if (enemy_attack_count < MAX_ENEMIES) enemy_attack_slots[enemy_attack_count++] = i;
-            continue; // do not move onto player tile; main applies HP + UI per hit before lunge
+        if (nx == px && ny == py) { // combat on player's tile (archers never melee)
+            if (def->move_style != MOVE_ARCHER) {
+                if (enemy_attack_count < MAX_ENEMIES) enemy_attack_slots[enemy_attack_count++] = i;
+            }
+            continue;
         }
 
         if (!is_walkable(nx, ny)) continue; // wall blocked proposed step

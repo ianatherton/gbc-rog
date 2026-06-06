@@ -66,6 +66,12 @@ int main(void) {
             tileset_tiles + (uint16_t)TILE_ITEM_12 * 16u);
         set_bkg_data(TILE_BOOK_H11_VRAM, 1u, // H11 book — ROM past first VRAM pack; borrows H5 slot
             tileset_tiles + (uint16_t)TILE_H11 * 16u);
+        set_bkg_data(TILE_BOW_I15_VRAM, 1u, // I15 bow icon — ROM past first VRAM pack; borrows F6 slot
+            tileset_tiles + (uint16_t)TILE_ITEM_15 * 16u);
+        set_sprite_data(TILE_BOW_I15_VRAM, 1u, // bow also needed as OBJ tile for archer overlay sprite
+            tileset_tiles + (uint16_t)TILE_ITEM_15 * 16u);
+        set_sprite_data(TILE_BOW_ARROW_VRAM, 1u, // H12 arrow — ROM past first VRAM pack; borrows G6 slot
+            tileset_tiles + (uint16_t)TILE_H12 * 16u);
         set_bkg_data(TILE_WITCH_BOLT_VRAM, 1u, // dedicated VRAM tile for witch icon/projectile (M12 source is outside first 128)
             tileset_tiles + (uint16_t)TILE_SHEET_M12 * 16u);
         set_sprite_data(TILE_WITCH_BOLT_VRAM, 1u,

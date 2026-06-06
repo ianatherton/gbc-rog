@@ -4,15 +4,28 @@
 #include "globals.h"
 #include "map.h"
 #include "ui.h"
+#include "lcd.h"
 
 BANKREF_EXTERN(enemy_place_slot_far)
 BANKREF_EXTERN(enemy_effective_max_hp)
+BANKREF_EXTERN(enemy_effective_damage)
+
+#define ENEMY_SLOT_HASH_SIZE  64u
+#define ENEMY_SLOT_EMPTY      0xFFFFu
+#define ENEMY_SLOT_TOMBSTONE  0xFFFEu
+#define CORPSE_SLOT_HASH_SIZE 64u
+#define CORPSE_SLOT_EMPTY     0xFFFFu
+#define CORPSE_SLOT_TOMBSTONE 0xFFFEu
+extern uint16_t enemy_slot_keys[ENEMY_SLOT_HASH_SIZE];
+extern uint8_t  enemy_slot_vals[ENEMY_SLOT_HASH_SIZE];
+extern uint16_t corpse_slot_keys[CORPSE_SLOT_HASH_SIZE];
+extern uint8_t  corpse_slot_vals[CORPSE_SLOT_HASH_SIZE];
 
 /* Moved out of bank 2 to free space; callers use BANKED mechanism unchanged. */
 BANKREF(enemy_type_short_name_copy)
 void enemy_type_short_name_copy(uint8_t t, char *out, uint8_t cap) BANKED {
     static const char *const n[NUM_ENEMY_TYPES] = {
-        "SNAKE", "SLIME", "RAT", "BAT", "BIG SKELL", "IMP", "SKELETON"
+        "SNAKE", "SLIME", "RAT", "BAT", "BIG SKELL", "IMP", "SKELETON", "SKEL ARCHR"
     };
     const char *s = (t < NUM_ENEMY_TYPES) ? n[t] : "?";
     uint8_t i = 0u;
@@ -56,4 +69,70 @@ void enemy_slime_split(uint8_t type, uint8_t dx, uint8_t dy, uint8_t px, uint8_t
         spawned++;
     }
     if (spawned > 0u) ui_combat_log_push("SLIME SPLITS!");
+}
+
+/* Moved from enemy.c (bank 2) to free space. */
+BANKREF(enemy_clear_slot)
+void enemy_clear_slot(uint8_t x, uint8_t y) BANKED {
+    uint16_t idx = TILE_IDX(x, y);
+    uint8_t h = (uint8_t)(idx & (ENEMY_SLOT_HASH_SIZE - 1u));
+    uint8_t probe;
+    BIT_CLR(enemy_occ, idx);
+    for (probe = 0; probe < ENEMY_SLOT_HASH_SIZE; probe++) {
+        uint8_t p = (uint8_t)((h + probe) & (ENEMY_SLOT_HASH_SIZE - 1u));
+        if (enemy_slot_keys[p] == ENEMY_SLOT_EMPTY) return;
+        if (enemy_slot_keys[p] == idx) {
+            enemy_slot_keys[p] = ENEMY_SLOT_TOMBSTONE;
+            enemy_slot_vals[p] = ENEMY_DEAD;
+            return;
+        }
+    }
+}
+
+BANKREF(corpse_place_slot)
+void corpse_place_slot(uint8_t slot, uint8_t x, uint8_t y) BANKED {
+    uint16_t idx = TILE_IDX(x, y);
+    uint8_t h = (uint8_t)(idx & (CORPSE_SLOT_HASH_SIZE - 1u));
+    uint8_t probe;
+    uint8_t first_tombstone = ENEMY_DEAD;
+    for (probe = 0; probe < CORPSE_SLOT_HASH_SIZE; probe++) {
+        uint8_t p = (uint8_t)((h + probe) & (CORPSE_SLOT_HASH_SIZE - 1u));
+        if (corpse_slot_keys[p] == idx) {
+            corpse_slot_vals[p] = slot;
+            return;
+        }
+        if (corpse_slot_keys[p] == CORPSE_SLOT_TOMBSTONE && first_tombstone == ENEMY_DEAD)
+            first_tombstone = p;
+        if (corpse_slot_keys[p] == CORPSE_SLOT_EMPTY) {
+            uint8_t w = (first_tombstone != ENEMY_DEAD) ? first_tombstone : p;
+            corpse_slot_keys[w] = idx;
+            corpse_slot_vals[w] = slot;
+            return;
+        }
+    }
+    if (first_tombstone != ENEMY_DEAD) {
+        corpse_slot_keys[first_tombstone] = idx;
+        corpse_slot_vals[first_tombstone] = slot;
+    }
+}
+
+BANKREF(enemy_resolve_hit)
+void enemy_resolve_hit(uint8_t slot) BANKED {
+    uint8_t hit = enemy_effective_damage(enemy_type[slot]);
+    uint8_t hp_before = player_hp;
+    char logbuf[20];
+    uint8_t p = 0, d = hit;
+    logbuf[p++] = 'Y'; logbuf[p++] = 'O'; logbuf[p++] = 'U'; logbuf[p++] = ' '; logbuf[p++] = '-';
+    if (d >= 100u) { logbuf[p++] = (char)('0' + d / 100u); d %= 100u; logbuf[p++] = (char)('0' + d / 10u); d %= 10u; }
+    else if (d >= 10u) { logbuf[p++] = (char)('0' + d / 10u); d %= 10u; }
+    logbuf[p++] = (char)('0' + d);
+    logbuf[p] = 0;
+    ui_combat_log_push_pal(logbuf, PAL_LIFE_UI);
+    if (player_hp > hit) player_hp -= hit;
+    else                 player_hp  = 0;
+    if (player_hp_max > 0u) {
+        uint8_t pct_b = (uint8_t)(((uint16_t)hp_before * 100u) / (uint16_t)player_hp_max);
+        uint8_t pct_a = (uint8_t)(((uint16_t)player_hp * 100u) / (uint16_t)player_hp_max);
+        if (pct_b > 30u && pct_a <= 30u) lcd_hp_panic_flash_trigger();
+    }
 }

@@ -1,4 +1,4 @@
-#pragma bank 3
+#pragma bank 17
 
 #include "ally.h"
 #include "globals.h"

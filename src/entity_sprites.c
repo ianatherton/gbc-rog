@@ -1,4 +1,4 @@
-#pragma bank 3
+#pragma bank 17
 
 #include "entity_sprites.h"
 #include "render.h"

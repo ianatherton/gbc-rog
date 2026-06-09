@@ -21,7 +21,11 @@
       "Bash(grep -E \"\\\\.c$|\\\\.h$\")",
       "Bash(wait)",
       "Bash(nm obj/gbc/enemy.o)",
-      "Bash(size obj/gbc/enemy.o)"
+      "Bash(size obj/gbc/enemy.o)",
+      "Bash(git stash *)",
+      "Bash(./gbdk/bin/lcc -Wf--opt-code-speed -msm83:gb -c -o /tmp/map_old.o src/map.c)",
+      "Bash(objdump -h obj/gbc/map.o)",
+      "Bash(nm --size-sort obj/gbc/map.o)"
     ]
   }
 }

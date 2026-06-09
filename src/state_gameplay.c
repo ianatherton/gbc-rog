@@ -1,4 +1,4 @@
-#pragma bank 2 // with map/render/generate/draw — level_init moved to bank 10 so _CODE_2 stays ≤16K
+#pragma bank 2 // with map/render/draw — level_init and map_gen (generate_level) moved to bank 10
 
 #include "debug_bank.h"
 #include "state_gameplay.h"

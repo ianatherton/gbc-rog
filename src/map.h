@@ -25,15 +25,13 @@ extern uint8_t brazier_y[MAX_BRAZIERS];
 extern uint8_t brazier_type[MAX_BRAZIERS]; // 0=brazier C3/C4, 1=torch C1/C2
 
 uint8_t tile_at(uint8_t x, uint8_t y) BANKED; // TILE_WALL / TILE_FLOOR / TILE_PIT from bitsets
-void    set_floor(uint8_t x, uint8_t y); // carve floor-only
-void    set_pit(uint8_t x, uint8_t y); // carve pit (sets both bits)
 uint8_t is_walkable(uint8_t x, uint8_t y) BANKED; // floor_bits only — BANKED: callers outside bank 2 (e.g. scoundrel_fox)
 
 char    tile_char(uint8_t t); // ASCII when not using custom tile
 uint8_t tile_vram_index(uint8_t t); // non-0 → set_bkg_tiles index
 uint8_t tile_palette(uint8_t t); // CGB palette for terrain
 
-void generate_level(uint16_t floor_seed); // drunkard from spawn + pits + build_nav_graph
+void generate_level(uint16_t floor_seed) BANKED; // drunkard from spawn + pits + build_nav_graph; bank 10
 
 void level_init_display(uint8_t from_pit) BANKED; // bank 2 with gameplay; far-call from other banks
 void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED; // bank 2; far-call from state_transition (bank 1)

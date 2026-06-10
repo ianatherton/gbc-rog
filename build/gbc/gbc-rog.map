@@ -106,7 +106,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000007A  l__CODE_6 |    00000084  l__CODE_1 |    00000084  l__CODE_1
      0000009D  l__CODE_1 |    000000AB  l__HEADER |    00000200  s__CODE  
      0000020E  l__CODE_9 |    0000024B  l__CODE_1 |    00000269  l__CODE_8
-     0000040D  l__CODE_1 |    0000095F  l__CODE_1 |    00000B3F  l__CODE_1
+     0000040D  l__CODE_1 |    000009C6  l__CODE_1 |    00000B3F  l__CODE_1
      00000B9B  l__CODE_4 |    00000BC9  l__HOME   |    00000EDF  l__CODE_1
      00001108  l__CODE_1 |    00001554  l__CODE_1 |    000017BD  l__CODE_3
      000018FD  l__DATA   |    00002000  _rROMB0   |    00002416  l__CODE  
@@ -672,15 +672,15 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_13               000D4000    0000095F =        2399. bytes (REL,CON)
+_CODE_13               000D4000    000009C6 =        2502. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
      000D4000  _items_ki |    000D427F  _items_eq |    000D4344  _items_ki
      000D435A  _items_ki |    000D4371  _items_ki |    000D43C8  _items_ki
      000D4420  _inventor |    000D443F  _inventor |    000D4456  _inventor
-     000D4478  _inventor |    000D4520  _inventor |    000D4684  _items_us
-     000D48C7  _enemy_tr
+     000D4478  _inventor |    000D4520  _inventor |    000D46EB  _items_us
+     000D492E  _enemy_tr
 ASxxxx Linker V03.00/V05.40 + sdld,  page 43.
 Hexadecimal  [32-Bits]
 

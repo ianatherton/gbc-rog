@@ -196,11 +196,13 @@ void inventory_remove(uint8_t slot) BANKED {
             for (j = BELT_ITEM_SLOT_COUNT; j < INVENTORY_MAX_SLOTS; j++) {
                 if (inventory_kind[j] != ITEM_KIND_NONE &&
                     items_kind_category(inventory_kind[j]) != ITEM_CAT_EQUIPMENT) {
-                    uint8_t tk = inventory_kind[j], te = inventory_equipped[j];
+                    uint8_t tk = inventory_kind[j], te = inventory_equipped[j], tc = inventory_count[j];
                     inventory_kind[j]     = inventory_kind[lb];
                     inventory_equipped[j] = inventory_equipped[lb];
+                    inventory_count[j]    = inventory_count[lb];
                     inventory_kind[lb]    = tk;
                     inventory_equipped[lb]= te;
+                    inventory_count[lb]   = tc;
                     break;
                 }
             }
@@ -210,14 +212,17 @@ void inventory_remove(uint8_t slot) BANKED {
                     if (inventory_kind[j] == ITEM_KIND_NONE) {
                         inventory_kind[j]     = inventory_kind[lb];
                         inventory_equipped[j] = inventory_equipped[lb];
+                        inventory_count[j]    = inventory_count[lb];
                         inventory_kind[lb]     = ITEM_KIND_NONE;
                         inventory_equipped[lb] = 0u;
+                        inventory_count[lb]    = 0u;
                         break;
                     }
                 }
                 if (j >= INVENTORY_MAX_SLOTS) {
                     inventory_kind[lb]     = ITEM_KIND_NONE;
                     inventory_equipped[lb] = 0u;
+                    inventory_count[lb]    = 0u;
                 }
             }
         }

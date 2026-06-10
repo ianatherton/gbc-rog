@@ -269,7 +269,7 @@ DEF l__CODE_9 0x20E
 DEF l__CODE_16 0x24B
 DEF l__CODE_8 0x269
 DEF l__CODE_19 0x40D
-DEF l__CODE_13 0x95F
+DEF l__CODE_13 0x9C6
 DEF l__CODE_10 0xB3F
 DEF l__CODE_4 0xB9B
 DEF l__HOME 0xBC9
@@ -873,8 +873,8 @@ DEF _inventory_count_used 0xD443F
 DEF _inventory_clear_all 0xD4456
 DEF _inventory_add 0xD4478
 DEF _inventory_remove 0xD4520
-DEF _items_use_belt 0xD4684
-DEF _enemy_try_drop_item 0xD48C7
+DEF _items_use_belt 0xD46EB
+DEF _enemy_try_drop_item 0xD492E
 DEF ___func_story_ui_run_before_first_floor 0xE4000
 DEF _story_ui_run_before_first_floor 0xE4B99
 DEF _scroll_blast_use 0xF4000

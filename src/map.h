@@ -6,7 +6,8 @@
 
 extern uint8_t floor_bits[BITSET_BYTES]; // 1 = carved open (floor or pit)
 extern uint8_t pit_bits[BITSET_BYTES];   // 1 = pit (subset of floor_bits)
-extern uint8_t explored_bits[BITSET_BYTES]; // 1 = tile was revealed to player (fog-of-war scaffold)
+// explored (fog) bits: CGB WRAM bank 2, 0xD000..0xD47F — no C-visible array; use lighting_is_revealed()
+// / lighting_reveal_radius() / lighting_reset() only (SVBK-safe accessors live in lighting.c)
 
 extern NavNode  nav_nodes[MAX_NAV_NODES]; // junction graph for chase AI
 extern uint8_t  num_nav_nodes;            // populated after generate_level

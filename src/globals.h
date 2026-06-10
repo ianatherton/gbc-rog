@@ -51,7 +51,7 @@ extern uint8_t ground_item_x[MAX_GROUND_ITEMS];
 extern uint8_t ground_item_y[MAX_GROUND_ITEMS];
 extern uint8_t pending_pickup_slot; // ground_item_* index queued for STATE_PICKUP; 255 = none
 
-/* story_ui layout constants — scratch overlays explored_bits[] before first lighting_reset (see story_ui.c) */
+/* story_ui layout constants — scratch overlays floor_bits[] before first generate_level (see story_ui.c) */
 #define G_STORY_BIGBUF_CAP   400u
 #define G_STORY_MAX_LINES    40u // wrap + blank lines can exceed 28; tail was dropped from story_line_off[]
 #define G_STORY_FIRE_COUNT   18u

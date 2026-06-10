@@ -201,6 +201,10 @@ void draw_gameplay_overlays_profiled(uint8_t px, uint8_t py) { // overlay-only p
     perf_record(PERF_DRAW_OVERLAY, perf_stamp_elapsed(&perf_stamp));
 }
 
+void draw_gameplay_overlays_profiled_far(uint8_t px, uint8_t py) BANKED { // cross-bank entry for combat.c (bank 19)
+    draw_gameplay_overlays_profiled(px, py);
+}
+
 void draw_enemy_cells(uint8_t px, uint8_t py) { // idle glyph flip: OAM only — BG + WIN unchanged vs last draw_screen
     entity_sprites_refresh_oam_only(px, py);
 }
@@ -212,4 +216,8 @@ void draw_corpse_cells(void) { // redraw BG tiles for all corpses and dropped it
     for (i = 0u; i < MAX_GROUND_ITEMS; i++)
         if (ground_item_kind[i] != ITEM_KIND_NONE)
             draw_cell(ground_item_x[i], ground_item_y[i]);
+}
+
+void draw_corpse_cells_far(void) BANKED { // cross-bank entry for combat.c (bank 19)
+    draw_corpse_cells();
 }

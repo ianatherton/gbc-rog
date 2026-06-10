@@ -2,6 +2,107 @@
 
 #define LIGHTING_DIRTY_MAX 80u // knight r=4 diamond ≤77; 80 covers full unexplored room entry
 
+#if FEATURE_MAP_FOG
+// ── explored bits live in CGB WRAM bank 2 (SVBK), 0xD000..0xD47F ──────────
+// Frees 1,152 B of fixed WRAM for stack headroom (docs/BANKS.md). CGB-only: cart is -Wm-yC.
+// Accessors are __naked asm so nothing touches the stack while SVBK != 1 — the stack lives at
+// 0xDFxx, which is itself banked memory; a push while switched would land in the wrong bank.
+// di/ei guard each switch so an ISR can't push onto the wrong bank either. Calling convention
+// (__sdcccall(1), verified): 16-bit first arg in DE, 8-bit return in A.
+
+static uint8_t exp2_test(uint16_t tile_idx) __naked { // returns 0/1 — BIT_GET equivalent
+    tile_idx;
+__asm
+    ld   a, e
+    and  #0x07
+    ld   b, a          ; b = bit index
+    srl  d
+    rr   e
+    srl  d
+    rr   e
+    srl  d
+    rr   e             ; de = byte offset
+    di
+    ld   a, #0x02
+    ldh  (_SVBK_REG + 0), a
+    ld   hl, #0xD000
+    add  hl, de
+    ld   a, (hl)
+    ld   e, a          ; stash byte before restoring the bank
+    ld   a, #0x01
+    ldh  (_SVBK_REG + 0), a
+    ei
+    ld   a, e
+    inc  b
+10$:
+    dec  b
+    jr   Z, 11$
+    srl  a
+    jr   10$
+11$:
+    and  #0x01
+    ret
+__endasm;
+}
+
+static void exp2_set(uint16_t tile_idx) __naked { // BIT_SET equivalent (read-modify-write in one critical section)
+    tile_idx;
+__asm
+    ld   a, e
+    and  #0x07
+    ld   b, a
+    ld   a, #0x01
+    inc  b
+20$:
+    dec  b
+    jr   Z, 21$
+    rlca
+    jr   20$
+21$:
+    ld   c, a          ; c = bit mask
+    srl  d
+    rr   e
+    srl  d
+    rr   e
+    srl  d
+    rr   e
+    ld   hl, #0xD000
+    add  hl, de
+    di
+    ld   a, #0x02
+    ldh  (_SVBK_REG + 0), a
+    ld   a, (hl)
+    or   c
+    ld   (hl), a
+    ld   a, #0x01
+    ldh  (_SVBK_REG + 0), a
+    ei
+    ret
+__endasm;
+}
+
+static void exp2_clear_all(void) __naked { // zero all 1,152 bytes; ~5 ms with di held — only called during floor gen
+__asm
+    di
+    ld   a, #0x02
+    ldh  (_SVBK_REG + 0), a
+    ld   hl, #0xD000
+    ld   bc, #1152
+30$:
+    xor  a
+    ld   (hl+), a
+    dec  bc
+    ld   a, b
+    or   c
+    jr   NZ, 30$
+    ld   a, #0x01
+    ldh  (_SVBK_REG + 0), a
+    ei
+    ret
+__endasm;
+}
+#endif // FEATURE_MAP_FOG
+
 static uint8_t lighting_dirty_x[LIGHTING_DIRTY_MAX];
 static uint8_t lighting_dirty_y[LIGHTING_DIRTY_MAX];
 static uint8_t lighting_dirty_n;
@@ -27,12 +128,9 @@ void lighting_dirty_tile(uint8_t i, uint8_t *x, uint8_t *y) {
 uint8_t lighting_dirty_overflow(void) { return lighting_dirty_ovf; }
 
 void lighting_reset(void) {
-    uint16_t i;
     lighting_dirty_clear();
 #if FEATURE_MAP_FOG
-    for (i = 0u; i < BITSET_BYTES; i++) explored_bits[i] = 0u;
-#else
-    i = 0u; // quiet -Wunused-but-set-variable when fog is disabled
+    exp2_clear_all();
 #endif
 }
 
@@ -64,8 +162,8 @@ void lighting_reveal_radius(uint8_t cx, uint8_t cy, uint8_t radius) {
             if (x_start > x_end) continue;
             for (x = x_start; x <= x_end; x++) {
                 uint16_t idx = row_base + (uint16_t)x;
-                if (!BIT_GET(explored_bits, idx)) { // skip SET + dirty tracking for already-revealed tiles
-                    BIT_SET(explored_bits, idx);
+                if (!exp2_test(idx)) { // skip SET + dirty tracking for already-revealed tiles
+                    exp2_set(idx);
                     if (lighting_dirty_n < LIGHTING_DIRTY_MAX) {
                         lighting_dirty_x[lighting_dirty_n] = (uint8_t)x;
                         lighting_dirty_y[lighting_dirty_n] = (uint8_t)y;
@@ -84,7 +182,7 @@ void lighting_reveal_radius(uint8_t cx, uint8_t cy, uint8_t radius) {
 
 uint8_t lighting_is_revealed(uint8_t x, uint8_t y) {
 #if FEATURE_MAP_FOG
-    return BIT_GET(explored_bits, TILE_IDX(x, y));
+    return exp2_test(TILE_IDX(x, y));
 #else
     x = x; y = y; // keep renderer branch-free when fog is disabled
     return 1u;

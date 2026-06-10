@@ -10,11 +10,13 @@ void apply_wall_palette(void); // PAL_WALL_BG + PAL_PILLAR_BG from wall_palette_
 void draw_screen(uint8_t px, uint8_t py); // full BG redraw + sprite refresh
 void draw_gameplay_overlays(uint8_t px, uint8_t py); // WIN/HUD + sprites only — skip BKG dungeon ring when unchanged
 void draw_gameplay_overlays_profiled(uint8_t px, uint8_t py); // overlay-only metric path; excludes draw_screen()
+void draw_gameplay_overlays_profiled_far(uint8_t px, uint8_t py) BANKED; // cross-bank shim (combat.c); bank-2 callers use the near version
 void draw_cell(uint8_t mx, uint8_t my); // single map cell if visible (terrain only)
 void draw_col_strip(uint8_t mx); // one world column for horizontal scroll
 void draw_row_strip(uint8_t my); // one world row for vertical scroll
 void draw_enemy_cells(uint8_t px, uint8_t py); // idle enemy glyph flip: OAM only (no BG/WIN redraw)
 void draw_corpse_cells(void); // redraw BG tiles for corpses and dropped items after non-melee kills
+void draw_corpse_cells_far(void) BANKED; // cross-bank shim (combat.c)
 void draw_ui_rows(void); // window text panel + bottom HUD after camera moves (delegates to ui.c)
 
 #endif // RENDER_H

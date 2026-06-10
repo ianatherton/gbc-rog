@@ -17,8 +17,10 @@
 
 BANKREF(story_ui_run_before_first_floor)
 
-// ── Scratch buffer: reuse explored_bits[] before lighting_reset ───────────
-// Saves ~511 B WRAM vs dedicated globals. Zeroed on entry, zeroed again on exit.
+// ── Scratch buffer: reuse floor_bits[] before generate_level ──────────────
+// Saves ~511 B WRAM vs dedicated globals. Zeroed on entry, zeroed again on exit;
+// generate_level rebuilds floor_bits from scratch right after the crawl, so nothing leaks.
+// (Was explored_bits until that array moved to CGB WRAM bank 2 — see lighting.c.)
 #define ST_OFF_LINES   (G_STORY_BIGBUF_CAP)
 #define ST_OFF_NLINES  (ST_OFF_LINES  + G_STORY_MAX_LINES * 2u)
 #define ST_OFF_TTL     (ST_OFF_NLINES + 1u)
@@ -26,14 +28,14 @@ BANKREF(story_ui_run_before_first_floor)
 #define ST_OFF_Y       (ST_OFF_X      + G_STORY_FIRE_COUNT)
 #define ST_SCRATCH_END (ST_OFF_Y      + G_STORY_FIRE_COUNT)
 #if ST_SCRATCH_END > BITSET_BYTES
-#error story scratch exceeds explored_bits
+#error story scratch exceeds floor_bits
 #endif
-#define story_bigbuf   ((char *)(explored_bits))
-#define story_line_off ((uint16_t *)(explored_bits + ST_OFF_LINES))
-#define story_nlines   (explored_bits[ST_OFF_NLINES])
-#define fire_ttl       (explored_bits + ST_OFF_TTL)
-#define fire_ox        (explored_bits + ST_OFF_X)
-#define fire_oy        (explored_bits + ST_OFF_Y)
+#define story_bigbuf   ((char *)(floor_bits))
+#define story_line_off ((uint16_t *)(floor_bits + ST_OFF_LINES))
+#define story_nlines   (floor_bits[ST_OFF_NLINES])
+#define fire_ttl       (floor_bits + ST_OFF_TTL)
+#define fire_ox        (floor_bits + ST_OFF_X)
+#define fire_oy        (floor_bits + ST_OFF_Y)
 
 // ── Layout ────────────────────────────────────────────────────────────────
 #define CRAWL_ROWS    18u   // BKG rows used for scrolling text (0 = top, 17 = bottom)
@@ -282,7 +284,7 @@ void story_ui_run_before_first_floor(void) BANKED {
     // music_play_title();
 
     BANK_DBG("story");
-    memset(explored_bits, 0, (size_t)ST_SCRATCH_END);
+    memset(floor_bits, 0, (size_t)ST_SCRATCH_END);
     build_text(cont, cls);
     word_wrap();
     build_lines();
@@ -370,6 +372,6 @@ void story_ui_run_before_first_floor(void) BANKED {
     font_color(3u, 0u);
     lcd_resume();
     g_prev_j = 0u;
-    memset(explored_bits, 0, BITSET_BYTES);
+    memset(floor_bits, 0, BITSET_BYTES);
     BANK_DBG("story_x");
 }

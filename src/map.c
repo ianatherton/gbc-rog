@@ -21,7 +21,7 @@ BANKREF_EXTERN(generate_level)
 
 uint8_t floor_bits[BITSET_BYTES]; // 1 = open tile (floor or pit); 0 = wall
 uint8_t pit_bits[BITSET_BYTES];   // subset of floor: 1 = pit hazard
-uint8_t explored_bits[BITSET_BYTES]; // fog scaffold: 1 = tile was revealed to player
+// explored (fog) bits live in CGB WRAM bank 2 — access only through lighting.c (exp2_* helpers)
 NavNode nav_nodes[MAX_NAV_NODES]; // junction graph for enemy pathing
 uint8_t num_nav_nodes;            // how many nodes after build_nav_graph
 uint8_t wall_tileset_index; // level_generate_and_spawn assigns TILE_* before any tile decode

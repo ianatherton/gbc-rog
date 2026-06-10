@@ -11,7 +11,7 @@ TARGETS = gbc
 
 # Platform-specific LCC flags: -Wm-yc = GB + GBC, -Wm-yC = GBC-only
 LCCFLAGS_gb  =
-LCCFLAGS_gbc = -Wm-yc -Wl-yt0x1B -Wl-yo32 -autobank -Wm-yoA -Wb-ext=.rel
+LCCFLAGS_gbc = -Wm-yC -Wl-yt0x1B -Wl-yo32 -autobank -Wm-yoA -Wb-ext=.rel # -yC: CGB-only — explored bits use SVBK WRAM banking (lighting.c)
 
 LCCFLAGS += $(LCCFLAGS_$(EXT))
 LCCFLAGS += -Wl-j

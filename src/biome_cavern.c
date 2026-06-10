@@ -14,7 +14,7 @@ static const EnemyDef defs[] = {
 };
 
 BANKREF(biome_cavern_copy_defs)
-void biome_cavern_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count) BANKED {
+void biome_cavern_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count) { // plain: biome.c maps this bank before calling
     out[ENEMY_BAT]   = defs[0];
     out[ENEMY_SNAKE] = defs[1];
     out[ENEMY_RAT]   = defs[2];

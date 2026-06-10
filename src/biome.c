@@ -9,13 +9,24 @@ BANKREF_EXTERN(biome_dungeon_copy_defs)
 BANKREF_EXTERN(biome_crypt_copy_defs)
 BANKREF_EXTERN(biome_cavern_copy_defs)
 
+// Dispatch table indexed by biome ID — adding a biome is one new bank file plus one row here
+// (and BIOME_*/BIOME_COUNT in biome.h). Rows hold plain fn pointers; we map the bank ourselves.
+typedef struct { uint8_t bank; BiomeCopyDefsFn copy_defs; } BiomeEntry;
+static const BiomeEntry biome_table[BIOME_COUNT] = {
+    /* BIOME_DUNGEON */ { BANK(biome_dungeon_copy_defs), biome_dungeon_copy_defs },
+    /* BIOME_CRYPT   */ { BANK(biome_crypt_copy_defs),   biome_crypt_copy_defs },
+    /* BIOME_CAVERN  */ { BANK(biome_cavern_copy_defs),  biome_cavern_copy_defs },
+};
+
 void biome_load_active(uint8_t biome_id) {
+    const BiomeEntry *e;
+    uint8_t sb = CURRENT_BANK; // callers can be banked (level_init, bank 10) — restore their bank
+    if (biome_id >= BIOME_COUNT) biome_id = BIOME_DUNGEON;
     floor_biome = biome_id; // sticky — UI/inspect can read which biome is loaded
-    switch (biome_id) {
-        case BIOME_CRYPT:  biome_crypt_copy_defs(enemy_defs, enemy_active_types, &enemy_active_count);  break;
-        case BIOME_CAVERN: biome_cavern_copy_defs(enemy_defs, enemy_active_types, &enemy_active_count); break;
-        default:           biome_dungeon_copy_defs(enemy_defs, enemy_active_types, &enemy_active_count); break;
-    }
+    e = &biome_table[biome_id];
+    SWITCH_ROM(e->bank);
+    e->copy_defs(enemy_defs, enemy_active_types, &enemy_active_count);
+    SWITCH_ROM(sb);
 }
 
 // Floor 1: always dungeon (safe entry + matches no-spawn floor). Floor 2+: pseudo-random biome per floor

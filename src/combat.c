@@ -1,4 +1,4 @@
-#pragma bank 2
+#pragma bank 19 // was bank 2 — combat is per-turn, not per-frame; freed ~2.5 KB for the gameplay kernel (docs/BANKS.md)
 
 #include "combat.h"
 #include "globals.h"
@@ -104,7 +104,7 @@ uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) BANKED {
     for (a = 0; a < enemy_attack_count; a++)
         enemy_resolve_hit(enemy_attack_slots[a]);
     wait_vbl_done();
-    draw_gameplay_overlays_profiled(px, py); // HP/log in WIN; lunges are sprites — BKG unchanged here
+    draw_gameplay_overlays_profiled_far(px, py); // HP/log in WIN; lunges are sprites — BKG unchanged here
     sfx_lunge_hit();
     entity_sprites_run_enemy_lunges_batch(px, py, enemy_attack_slots, enemy_attack_count);
     entity_sprites_player_hurt_flash();
@@ -120,8 +120,8 @@ uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) BANKED {
             if (combat_damage_enemy(ei, reflect_dmg, 1u)) shield_killed = 1u; // log + xp + corpse; "burned" line
         }
         wait_vbl_done();
-        draw_gameplay_overlays_profiled(px, py);
-        if (shield_killed) draw_corpse_cells();
+        draw_gameplay_overlays_profiled_far(px, py);
+        if (shield_killed) draw_corpse_cells_far();
     }
     perf_record(PERF_HIT_RESOLVE, perf_stamp_elapsed(&perf_stamp));
     return (player_hp == 0) ? 2u : 1u;

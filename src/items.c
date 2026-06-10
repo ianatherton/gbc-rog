@@ -5,10 +5,12 @@
 #include "ui.h"
 #include "scroll_blast.h"
 #include "scroll_root.h"
+#include "bow_shoot.h"
 #include <string.h>
 
 BANKREF_EXTERN(scroll_blast_use)
 BANKREF_EXTERN(scroll_root_use)
+BANKREF_EXTERN(bow_shoot_use)
 
 static const uint8_t kind_cat[ITEM_KIND_COUNT] = {
     ITEM_CAT_CONSUMABLE, // POTION
@@ -21,6 +23,7 @@ static const uint8_t kind_cat[ITEM_KIND_COUNT] = {
     ITEM_CAT_EQUIPMENT,  // HELMET
     ITEM_CAT_EQUIPMENT,  // TUNIC
     ITEM_CAT_EQUIPMENT,  // BOOTS
+    ITEM_CAT_CONSUMABLE, // BOW — stack item, one arrow spent per shot
 };
 
 static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
@@ -34,6 +37,7 @@ static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
     TILE_ITEM_5,          // HELMET — I5
     TILE_ITEM_6,          // TUNIC — I6
     TILE_ITEM_7,          // BOOTS — I7
+    TILE_BOW_BELT_OFF,    // BOW — I15 art at TILE_BOW_VRAM
 };
 
 static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
@@ -47,11 +51,12 @@ static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
     PAL_WALL_BG,      // HELMET — warm metal ramp
     PAL_WALL_BG,      // TUNIC — warm metal ramp
     PAL_LADDER,       // BOOTS — earthy/leather
+    PAL_LADDER,       // BOW — torch ramp
 };
 
 static const char *const kind_name[ITEM_KIND_COUNT] = {
     "Heal Potion", "Death Scroll", "BigHeal Potion", "Candle", "Root Scroll",
-    "Rusty Sword", "Book: Heal", "Helmet", "Tunic", "Boots",
+    "Rusty Sword", "Book: Heal", "Helmet", "Tunic", "Boots", "Bow & Arrow",
 };
 
 static const char *const kind_desc[ITEM_KIND_COUNT] = {
@@ -65,6 +70,7 @@ static const char *const kind_desc[ITEM_KIND_COUNT] = {
     "+5 max HP. A battered iron helmet.",
     "+10 max HP. Heavy rings of chainmail.",
     "+2 light radius. Worn leather boots.",
+    "Looses an arrow at the nearest foe.",
 };
 
 uint8_t items_kind_category(uint8_t kind) BANKED {
@@ -143,16 +149,22 @@ void inventory_clear_all(void) BANKED {
 uint8_t inventory_add(uint8_t kind) BANKED {
     uint8_t s;
     uint8_t start = (items_kind_category(kind) == ITEM_CAT_EQUIPMENT) ? BELT_ITEM_SLOT_COUNT : 0u;
+    /* bow picks up a full quiver; everything else is a single unit */
+    uint8_t qty = (kind == ITEM_KIND_BOW) ? ITEM_BOW_STACK_QTY : 1u;
     /* consumables stack — merge into existing slot of same kind first */
     if (items_kind_category(kind) == ITEM_CAT_CONSUMABLE) {
         for (s = 0u; s < INVENTORY_MAX_SLOTS; s++) {
-            if (inventory_kind[s] == kind) { inventory_count[s]++; return 1u; }
+            if (inventory_kind[s] == kind) {
+                uint16_t nc = (uint16_t)inventory_count[s] + qty;
+                inventory_count[s] = (nc > 255u) ? 255u : (uint8_t)nc;
+                return 1u;
+            }
         }
     }
     for (s = start; s < INVENTORY_MAX_SLOTS; s++) {
         if (inventory_kind[s] == ITEM_KIND_NONE) {
             inventory_kind[s]  = kind;
-            inventory_count[s] = 1u;
+            inventory_count[s] = qty;
             return 1u;
         }
     }
@@ -220,6 +232,12 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
     if (item_idx >= BELT_ITEM_SLOT_COUNT) return;
     kind = inventory_kind[item_idx];
     if (kind == ITEM_KIND_NONE) return;
+    if (kind == ITEM_KIND_BOW) {
+        /* fires its own projectile + logs its own result; only spend an arrow on a real shot */
+        bow_shoot_use(out);
+        if (out->consumed_turn) inventory_remove(item_idx);
+        return;
+    }
     {
         char log[20];
         const char *prefix = "Used ";
@@ -256,9 +274,9 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
     out->consumed_turn = 1u;
 }
 
-/* Weighted drop table: consumables weight 5, equipment/reusables weight 4.
-   Total 45 entries → consumables 55.6%, non-consumables 44.4% of drops. */
-static const uint8_t drop_table[45] = {
+/* Weighted drop table: consumables weight 5, equipment/reusables weight 4, bow weight 4.
+   Total 49 entries. The bow lands as a full quiver (ITEM_BOW_STACK_QTY) at pickup. */
+static const uint8_t drop_table[49] = {
     ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,
     ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,
     ITEM_KIND_KEY,         ITEM_KIND_KEY,         ITEM_KIND_KEY,         ITEM_KIND_KEY,         ITEM_KIND_KEY,
@@ -269,6 +287,7 @@ static const uint8_t drop_table[45] = {
     ITEM_KIND_HELMET,      ITEM_KIND_HELMET,      ITEM_KIND_HELMET,      ITEM_KIND_HELMET,
     ITEM_KIND_TUNIC,       ITEM_KIND_TUNIC,       ITEM_KIND_TUNIC,       ITEM_KIND_TUNIC,
     ITEM_KIND_BOOTS,       ITEM_KIND_BOOTS,       ITEM_KIND_BOOTS,       ITEM_KIND_BOOTS,
+    ITEM_KIND_BOW,         ITEM_KIND_BOW,         ITEM_KIND_BOW,         ITEM_KIND_BOW,
 };
 
 uint8_t enemy_try_drop_item(uint8_t dx, uint8_t dy) BANKED {
@@ -276,7 +295,7 @@ uint8_t enemy_try_drop_item(uint8_t dx, uint8_t dy) BANKED {
     if ((rand() % 20u) >= 3u) return 0u;
     for (gi = 0u; gi < MAX_GROUND_ITEMS; gi++) {
         if (ground_item_kind[gi] == ITEM_KIND_NONE) {
-            ground_item_kind[gi] = drop_table[rand() % 45u];
+            ground_item_kind[gi] = drop_table[rand() % 49u];
             ground_item_x[gi] = dx;
             ground_item_y[gi] = dy;
             return 1u;

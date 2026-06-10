@@ -25,7 +25,11 @@
       "Bash(git stash *)",
       "Bash(./gbdk/bin/lcc -Wf--opt-code-speed -msm83:gb -c -o /tmp/map_old.o src/map.c)",
       "Bash(objdump -h obj/gbc/map.o)",
-      "Bash(nm --size-sort obj/gbc/map.o)"
+      "Bash(nm --size-sort obj/gbc/map.o)",
+      "Bash(sort -t' ' -k2 -n)",
+      "Bash(sed -n '/title_logo_bkg_vram_slot\\\\[48\\\\]/,/};/p' title_logo.c)",
+      "Bash(sed -n '/title_logo_bkg_vram_restore/,/^}/p' title_logo.c)",
+      "Bash(python3 -c \"from PIL import Image; Image.open\\('build/gbc/gbc-rog.bmp'\\).save\\('/tmp/rog.png'\\)\")"
     ]
   }
 }

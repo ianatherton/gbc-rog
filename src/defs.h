@@ -258,6 +258,8 @@ typedef struct {
 #define TILE_H11           167u  /* H11 - book item; ROM row 11 → needs boot copy */
 #define TILE_BOOK_H11_VRAM 199u  /* borrows H5 VRAM slot (ROM tile 71, not placed by map) */
 #define TILE_BOOK_BELT_OFF ((uint8_t)(TILE_BOOK_H11_VRAM - TILESET_VRAM_OFFSET)) // items_kind_tile(BOOK_*)
+#define TILE_SHEET_H12     183u  /* H12 - arrow projectile art; ROM (12-1)*16+7, sheet >127 → boot copy */
+#define TILE_ARROW_VRAM    219u  /* arrow projectile sprite — borrows unused L6 (FLOOR_DECO_6) VRAM slot */
 
 /* ── I col — items (10 slots) ───────────────────────────────────────────── */
 #define TILE_ITEM_1          8   /* I1  */
@@ -277,6 +279,9 @@ typedef struct {
 #define TILE_SCROLL_BELT_OFF ((uint8_t)(TILE_SCROLL_I11_VRAM - TILESET_VRAM_OFFSET)) // items_kind_tile(SCROLL)
 #define TILE_BIGHEAL_I12_VRAM    243u // belt/pickup UI — copied from TILE_ITEM_12 at boot
 #define TILE_BIGHEAL_BELT_OFF ((uint8_t)(TILE_BIGHEAL_I12_VRAM - TILESET_VRAM_OFFSET)) // items_kind_tile(KEY)
+#define TILE_SHEET_I15           232u // I15 — bow & arrow item art; ROM (15-1)*16+8, sheet >127 → boot copy
+#define TILE_BOW_VRAM            235u // belt/pickup UI — copied from TILE_SHEET_I15 at boot; borrows unused L7 (FLOOR_DECO_7) slot
+#define TILE_BOW_BELT_OFF ((uint8_t)(TILE_BOW_VRAM - TILESET_VRAM_OFFSET)) // items_kind_tile(BOW)
 
 /* ── J col — enemy sprites ───────────────────────────────────────────────── */
 #define TILE_SPIDER_1        9   /* J1  - spider frame 1 (unused after snake remap) */

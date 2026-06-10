@@ -117,7 +117,19 @@ static void push_selected_belt_description(void) {
         uint8_t kind = inventory_kind[selected_belt_slot - BELT_SLOT_COUNT];
         if (kind == ITEM_KIND_NONE) return;
         items_kind_name_copy(kind, buf, sizeof buf);
-        ui_combat_log_push(buf);
+        if (items_kind_category(kind) == ITEM_CAT_CONSUMABLE) {
+            uint8_t p = 0u, split, cnt = inventory_count[selected_belt_slot - BELT_SLOT_COUNT];
+            while (buf[p]) p++;
+            split = (uint8_t)(p + 1u); // "x" starts after the space
+            buf[p++] = ' '; buf[p++] = 'x';
+            if (cnt >= 100u) { buf[p++] = (char)('0' + cnt / 100u); cnt = (uint8_t)(cnt % 100u); }
+            if (cnt >= 10u)  { buf[p++] = (char)('0' + cnt / 10u);  cnt = (uint8_t)(cnt % 10u);  }
+            buf[p++] = (char)('0' + cnt);
+            buf[p] = 0;
+            ui_combat_log_push_gold_suffix(buf, split);
+        } else {
+            ui_combat_log_push(buf);
+        }
     }
 }
 

@@ -205,20 +205,29 @@ static void reset_desc_ticker(uint8_t kind) {
 }
 
 static void draw_cursor_and_name(void) {
-    uint8_t cx, cy;
+    uint8_t cx, cy, nlen, xi;
     char name[INV_NAME_LEN + 1u];
+    uint8_t inv_kind = inventory_kind[inv_cursor];
     cell_origin(inv_cursor, &cx, &cy);
     entity_sprites_inv_cursor_show(cx, cy);
-    // fill with spaces then overwrite — printf advances cursor, clearing leftovers
+    for (xi = 2u; xi < 20u; xi++) set_bkg_attribute_xy(xi, INV_NAME_ROW, PAL_UI);
     gotoxy(2, INV_NAME_ROW);
-    printf("                "); // INV_NAME_LEN spaces
-    if (inventory_kind[inv_cursor] != ITEM_KIND_NONE) {
-        items_kind_name_copy(inventory_kind[inv_cursor], name, (uint8_t)sizeof name);
+    printf("                  "); // 18 spaces to clear name+count area
+    if (inv_kind != ITEM_KIND_NONE) {
+        items_kind_name_copy(inv_kind, name, (uint8_t)sizeof name);
+        nlen = 0u; while (name[nlen]) nlen++;
         gotoxy(2, INV_NAME_ROW); printf("%s", name);
+        if (items_kind_category(inv_kind) == ITEM_CAT_CONSUMABLE) {
+            uint8_t cnt = inventory_count[inv_cursor];
+            uint8_t digs = (cnt >= 100u) ? 3u : (cnt >= 10u) ? 2u : 1u;
+            printf(" x%u", (unsigned int)cnt);
+            for (xi = (uint8_t)(2u + nlen + 1u); xi < (uint8_t)(2u + nlen + 1u + 1u + digs); xi++)
+                set_bkg_attribute_xy(xi, INV_NAME_ROW, PAL_XP_UI);
+        }
     } else {
         gotoxy(2, INV_NAME_ROW); printf("(empty)");
     }
-    reset_desc_ticker(inventory_kind[inv_cursor]);
+    reset_desc_ticker(inv_kind);
 }
 
 static void draw_menu_tabs_inv(void) {

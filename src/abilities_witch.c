@@ -6,6 +6,7 @@
 #include "combat.h"
 #include "globals.h"
 #include "enemy.h"
+#include "items.h"
 #include "defs.h"
 #include "ui.h"
 #include "entity_sprites.h"
@@ -77,6 +78,12 @@ static void cast_swamp_root(AbilityResult *out) {
     witch_shot_cooldown_turns = SWAMP_ROOT_COOLDOWN;
     push_short("Swamp Root!");
     out->consumed_turn = 1u;
+}
+
+BANKREF(abilities_witch_new_run_init)
+void abilities_witch_new_run_init(void) BANKED {
+    inventory_add(ITEM_KIND_KEY);
+    inventory_add(ITEM_KIND_KEY); // 2× BigHeal Potion
 }
 
 BANKREF(ability_witch_cast_belt)

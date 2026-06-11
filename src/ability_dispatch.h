@@ -22,6 +22,10 @@ void ability_dispatch_cast_belt(uint8_t belt_slot, uint8_t px, uint8_t py, Abili
 // have an ability ready to fire? (e.g. cooldown clear). HOME-only; no bank switch.
 uint8_t ability_dispatch_belt_ready(uint8_t belt_slot);
 
+// Called once on a fresh run (after inventory_clear_all) to give each class its starting items.
+// Switches into the class's bank and calls abilities_<class>_new_run_init().
+void ability_dispatch_new_run_init(void);
+
 // HOME-resident spell name strings — safe to return from any bank since HOME is always mapped.
 extern const char ability_name_holy_fire_shield[];
 extern const char ability_name_call_fox[];

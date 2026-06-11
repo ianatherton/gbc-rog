@@ -1,5 +1,6 @@
 #pragma bank 10 // was bank 2 — swapped with state_gameplay so gameplay kernel stays one ROM bank
 
+#include "ability_dispatch.h"
 #include "defs.h"
 #include "globals.h"
 #include "items.h"
@@ -27,6 +28,7 @@ void level_init_display(uint8_t from_pit) BANKED {
         player_xp = 0;
         player_hp = player_hp_max;
         inventory_clear_all(); // fresh run wipes any items from a previous attempt
+        ability_dispatch_new_run_init();
         wait_vbl_done();
         ui_loading_screen_begin();
     }

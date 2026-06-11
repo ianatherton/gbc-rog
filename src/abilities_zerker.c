@@ -4,6 +4,7 @@
 #include "ability_dispatch.h"
 #include "combat.h"
 #include "enemy.h"
+#include "items.h"
 #include "globals.h"
 #include "ui.h"
 #include "music.h"
@@ -64,6 +65,11 @@ static void cast_whirlwind(uint8_t px, uint8_t py, AbilityResult *out) {
     out->consumed_turn = 1u;
     if (hits) push_short("Whirlwind");
     else      push_short("Whirlwind Miss");
+}
+
+BANKREF(abilities_zerker_new_run_init)
+void abilities_zerker_new_run_init(void) BANKED {
+    inventory_add(ITEM_KIND_AXE);
 }
 
 BANKREF(ability_zerker_cast_belt)

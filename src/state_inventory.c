@@ -4,6 +4,7 @@
 #include "entity_sprites.h"
 #include "game_state.h"
 #include "globals.h" // inv_desc_scx
+#include "equipment.h"
 #include "items.h"
 #include "lcd.h"
 #include "ui.h"
@@ -108,14 +109,14 @@ static void draw_equip_panel(void) {
     draw_equip_slot_tile(14u, EQUIP_PANEL_Y, ITEM_KIND_HELMET);
     gotoxy(15u, EQUIP_PANEL_Y);
     printf("Hand");
-    draw_equip_slot_tile(19u, EQUIP_PANEL_Y, ITEM_KIND_RUSTY_SWORD);
+    draw_equip_slot_tile(19u, EQUIP_PANEL_Y, equipped_kind_in_slot(EQUIP_SLOT_WEAPON));
     /* Row 1: Body | Hand (off-hand) */
     gotoxy(EQUIP_PANEL_X, (uint8_t)(EQUIP_PANEL_Y + 1u));
     printf("Body");
     draw_equip_slot_tile(14u, (uint8_t)(EQUIP_PANEL_Y + 1u), ITEM_KIND_TUNIC);
     gotoxy(15u, (uint8_t)(EQUIP_PANEL_Y + 1u));
     printf("Hand");
-    draw_equip_slot_tile(19u, (uint8_t)(EQUIP_PANEL_Y + 1u), ITEM_KIND_NONE);
+    draw_equip_slot_tile(19u, (uint8_t)(EQUIP_PANEL_Y + 1u), ITEM_KIND_SHIELD);
     /* Row 2: Feet | Ring */
     gotoxy(EQUIP_PANEL_X, (uint8_t)(EQUIP_PANEL_Y + 2u));
     printf("Feet");
@@ -324,11 +325,16 @@ void state_inventory_tick(void) BANKED {
         uint8_t kind = inventory_kind[inv_cursor];
         if (kind != ITEM_KIND_NONE && items_kind_category(kind) == ITEM_CAT_EQUIPMENT) {
             if (!inventory_equipped[inv_cursor]) {
-                uint8_t i;
-                for (i = 0u; i < INVENTORY_MAX_SLOTS; i++) {
-                    if (i != inv_cursor && inventory_kind[i] == kind && inventory_equipped[i]) {
-                        inventory_equipped[i] = 0u;
-                        items_equip_apply(kind, 0u);
+                uint8_t i, my_slot, ek;
+                my_slot = items_equip_slot(kind);
+                if (my_slot != EQUIP_SLOT_NONE) {
+                    for (i = 0u; i < INVENTORY_MAX_SLOTS; i++) {
+                        ek = inventory_kind[i];
+                        if (i != inv_cursor && inventory_equipped[i] &&
+                                items_equip_slot(ek) == my_slot) {
+                            inventory_equipped[i] = 0u;
+                            items_equip_apply(ek, 0u);
+                        }
                     }
                 }
             }

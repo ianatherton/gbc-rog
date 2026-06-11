@@ -3,6 +3,7 @@
 #include "debug_bank.h"
 #include "game_state.h"
 #include "globals.h"
+#include "equipment.h"
 #include "items.h"
 #include "lcd.h"
 #include "ui.h"
@@ -47,19 +48,18 @@ static void draw_icon(uint8_t x, uint8_t y) {
 
 static void draw_equip_slot_info(void) {
     const char *label;
-    uint8_t slot_kind, cur_kind, i, slot_v, slot_pal;
+    uint8_t slot, cur_kind, slot_v, slot_pal;
     char cur_name[14];
-    switch (pu_kind) {
-        case ITEM_KIND_HELMET:      label = "Head"; slot_kind = ITEM_KIND_HELMET;      break;
-        case ITEM_KIND_TUNIC:       label = "Body"; slot_kind = ITEM_KIND_TUNIC;       break;
-        case ITEM_KIND_BOOTS:       label = "Feet"; slot_kind = ITEM_KIND_BOOTS;       break;
-        case ITEM_KIND_RUSTY_SWORD: label = "Hand"; slot_kind = ITEM_KIND_RUSTY_SWORD; break;
+    slot = items_equip_slot(pu_kind);
+    switch (slot) {
+        case EQUIP_SLOT_HEAD:    label = "Head"; break;
+        case EQUIP_SLOT_BODY:    label = "Body"; break;
+        case EQUIP_SLOT_FEET:    label = "Feet"; break;
+        case EQUIP_SLOT_WEAPON:  label = "Hand"; break;
+        case EQUIP_SLOT_OFFHAND: label = "Hand"; break;
         default: return;
     }
-    cur_kind = ITEM_KIND_NONE;
-    for (i = 0u; i < INVENTORY_MAX_SLOTS; i++) {
-        if (inventory_kind[i] == slot_kind && inventory_equipped[i]) { cur_kind = slot_kind; break; }
-    }
+    cur_kind = equipped_kind_in_slot(slot);
     if (cur_kind != ITEM_KIND_NONE) {
         slot_v   = (uint8_t)(TILESET_VRAM_OFFSET + items_kind_tile(cur_kind));
         slot_pal = items_kind_palette(cur_kind);

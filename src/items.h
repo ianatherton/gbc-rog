@@ -16,7 +16,9 @@
 #define ITEM_KIND_TUNIC       8u  // Equipment — +10 max HP
 #define ITEM_KIND_BOOTS       9u  // Equipment — +2 light radius
 #define ITEM_KIND_BOW        10u  // Bow & Arrow — usable; fires one arrow, depletes stack by 1; drops in stacks of 20
-#define ITEM_KIND_COUNT      11u
+#define ITEM_KIND_AXE        11u  // Axe — equipment; cleave hits up to 2 adjacent enemies on melee attack
+#define ITEM_KIND_SHIELD     12u  // Shield — equipment; +10 max HP while equipped
+#define ITEM_KIND_COUNT      13u
 #define ITEM_KIND_NONE      255u
 
 #define ITEM_BOW_STACK_QTY   20u  // arrows granted per bow pickup
@@ -30,7 +32,6 @@
 
 uint8_t items_kind_tile(uint8_t kind) BANKED;      // sheet offset; 0 if invalid
 uint8_t items_kind_category(uint8_t kind) BANKED;  // ITEM_CAT_*
-void    items_equip_apply(uint8_t kind, uint8_t now_equipped) BANKED; // add/remove stat bonuses
 uint8_t items_kind_palette(uint8_t kind) BANKED; // CGB palette
 void    items_kind_name_copy(uint8_t kind, char *out, uint8_t cap) BANKED; // NUL-term, capped — copy required since strings live in bank 13
 void    items_kind_desc_copy(uint8_t kind, char *out, uint8_t cap) BANKED; // short description for inventory/pickup display

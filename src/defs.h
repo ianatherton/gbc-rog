@@ -282,6 +282,8 @@ typedef struct {
 #define TILE_SHEET_I15           232u // I15 — bow & arrow item art; ROM (15-1)*16+8, sheet >127 → boot copy
 #define TILE_BOW_VRAM            235u // belt/pickup UI — copied from TILE_SHEET_I15 at boot; borrows unused L7 (FLOOR_DECO_7) slot
 #define TILE_BOW_BELT_OFF ((uint8_t)(TILE_BOW_VRAM - TILESET_VRAM_OFFSET)) // items_kind_tile(BOW)
+#define TILE_AXE_BELT_OFF    ((uint8_t)(TILE_ZERKER_WHIRLWIND_VRAM - TILESET_VRAM_OFFSET)) // items_kind_tile(AXE)   — shares VRAM slot with whirlwind icon
+#define TILE_SHIELD_BELT_OFF ((uint8_t)(TILE_KNIGHT_SHIELD_VRAM    - TILESET_VRAM_OFFSET)) // items_kind_tile(SHIELD) — shares VRAM slot with knight shield icon
 
 /* ── J col — enemy sprites ───────────────────────────────────────────────── */
 #define TILE_SPIDER_1        9   /* J1  - spider frame 1 (unused after snake remap) */

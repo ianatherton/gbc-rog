@@ -15,6 +15,11 @@ BANKREF_EXTERN(ability_scoundrel_cast_belt)
 BANKREF_EXTERN(ability_witch_cast_belt)
 BANKREF_EXTERN(ability_zerker_cast_belt)
 
+BANKREF_EXTERN(abilities_knight_new_run_init)
+BANKREF_EXTERN(abilities_scoundrel_new_run_init)
+BANKREF_EXTERN(abilities_witch_new_run_init)
+BANKREF_EXTERN(abilities_zerker_new_run_init)
+
 void ability_dispatch_cast_belt(uint8_t belt_slot, uint8_t px, uint8_t py, AbilityResult *out) {
     memset(out, 0, sizeof *out);
     switch (player_class) {
@@ -22,6 +27,16 @@ void ability_dispatch_cast_belt(uint8_t belt_slot, uint8_t px, uint8_t py, Abili
         case 1u: ability_scoundrel_cast_belt(belt_slot, px, py, out); break;
         case 2u: ability_witch_cast_belt(belt_slot, px, py, out);     break;
         case 3u: ability_zerker_cast_belt(belt_slot, px, py, out);    break;
+        default: break;
+    }
+}
+
+void ability_dispatch_new_run_init(void) {
+    switch (player_class) {
+        case 0u: abilities_knight_new_run_init();   break;
+        case 1u: abilities_scoundrel_new_run_init(); break;
+        case 2u: abilities_witch_new_run_init();    break;
+        case 3u: abilities_zerker_new_run_init();   break;
         default: break;
     }
 }

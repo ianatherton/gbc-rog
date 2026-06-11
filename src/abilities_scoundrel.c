@@ -4,6 +4,7 @@
 #include "ability_dispatch.h"
 #include "globals.h"
 #include "ally.h"
+#include "items.h"
 #include "ui.h"
 #include <gbdk/platform.h>
 
@@ -15,6 +16,12 @@ static void push_short(const char *s) {
     while (s[i] && i < 19u) { buf[i] = s[i]; i++; }
     buf[i] = 0;
     ui_combat_log_push(buf);
+}
+
+BANKREF(abilities_scoundrel_new_run_init)
+void abilities_scoundrel_new_run_init(void) BANKED {
+    inventory_add(ITEM_KIND_BOW);
+    inventory_add(ITEM_KIND_BOW); // stacks → 40 arrows total
 }
 
 BANKREF(ability_scoundrel_cast_belt)

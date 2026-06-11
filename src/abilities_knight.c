@@ -3,6 +3,7 @@
 #include "abilities_class.h"
 #include "ability_dispatch.h"
 #include "globals.h"
+#include "items.h"
 #include "ui.h"
 #include "music.h"
 #include <gbdk/platform.h>
@@ -13,6 +14,11 @@ static void push_short(const char *s) {
     while (s[i] && i < 19u) { buf[i] = s[i]; i++; }
     buf[i] = 0;
     ui_combat_log_push(buf);
+}
+
+BANKREF(abilities_knight_new_run_init)
+void abilities_knight_new_run_init(void) BANKED {
+    inventory_add(ITEM_KIND_SHIELD);
 }
 
 BANKREF(ability_knight_cast_belt)

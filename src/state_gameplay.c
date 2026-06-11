@@ -333,6 +333,28 @@ void state_gameplay_tick(void) BANKED {
             consumed_turn = 1u;
             {
                 uint8_t killed = combat_player_attacks(ei, g_player_x, g_player_y, nx, ny);
+                /* Axe cleave: if axe equipped, hit up to 2 more adjacent enemies */
+                {
+                    uint8_t ck;
+                    for (ck = 0u; ck < INVENTORY_MAX_SLOTS; ck++) {
+                        if (inventory_kind[ck] == ITEM_KIND_AXE && inventory_equipped[ck]) {
+                            uint8_t ci, hits = 0u;
+                            for (ci = 0u; ci < num_enemies && hits < 2u; ci++) {
+                                uint8_t dx, dy;
+                                if (!enemy_alive[ci] || ci == ei) continue;
+                                dx = (enemy_x[ci] > g_player_x) ? (uint8_t)(enemy_x[ci] - g_player_x) : (uint8_t)(g_player_x - enemy_x[ci]);
+                                dy = (enemy_y[ci] > g_player_y) ? (uint8_t)(enemy_y[ci] - g_player_y) : (uint8_t)(g_player_y - enemy_y[ci]);
+                                if (dx > 1u || dy > 1u) continue;
+                                if (combat_damage_enemy(ci, player_damage, 0u)) {
+                                    enemy_try_drop_item(enemy_x[ci], enemy_y[ci]);
+                                    killed = 1u;
+                                }
+                                hits++;
+                            }
+                            break;
+                        }
+                    }
+                }
                 wait_vbl_done();
                 if (killed) draw_cell(nx, ny); // corpse BG only; non-kill leaves terrain unchanged (enemy is sprite)
                 draw_gameplay_overlays_profiled(g_player_x, g_player_y);

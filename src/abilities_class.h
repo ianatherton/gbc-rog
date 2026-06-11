@@ -13,4 +13,9 @@ void ability_scoundrel_cast_belt(uint8_t belt_slot, uint8_t px, uint8_t py, Abil
 void ability_witch_cast_belt(uint8_t belt_slot, uint8_t px, uint8_t py, AbilityResult *out) BANKED;
 void ability_zerker_cast_belt(uint8_t belt_slot, uint8_t px, uint8_t py, AbilityResult *out) BANKED;
 
+void abilities_knight_new_run_init(void) BANKED;
+void abilities_scoundrel_new_run_init(void) BANKED;
+void abilities_witch_new_run_init(void) BANKED;
+void abilities_zerker_new_run_init(void) BANKED;
+
 #endif

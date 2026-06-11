@@ -177,15 +177,18 @@ static void draw_equipped_marks(void) {
 }
 
 static void draw_desc_row(void) {
-    uint8_t i;
+    uint8_t i, pos, tile_val;
     gotoxy(0, INV_DESC_ROW);
-    // Write INV_DESC_DRAW_W (21) chars: the extra tile at col 20 fills the pixel gap
-    // revealed by SCX_REG when desc_pix > 0.
-    for (i = 0u; i < INV_DESC_DRAW_W; i++) {
-        uint8_t pos = (uint8_t)(desc_off + i);
+    for (i = 0u; i < INV_DESC_W; i++) {
+        pos = (uint8_t)(desc_off + i);
         if (pos >= desc_total_len) pos = (uint8_t)(pos - desc_total_len);
         putchar((pos < desc_base_len) ? desc_buf[pos] : ' ');
     }
+    /* Write col 20 directly — putchar wraps at col 20 to (0, row+1) */
+    pos = (uint8_t)(desc_off + INV_DESC_W);
+    if (pos >= desc_total_len) pos = (uint8_t)(pos - desc_total_len);
+    tile_val = (uint8_t)((pos < desc_base_len) ? desc_buf[pos] : ' ');
+    set_bkg_tiles(INV_DESC_W, INV_DESC_ROW, 1u, 1u, &tile_val);
 }
 
 static void reset_desc_ticker(uint8_t kind) {

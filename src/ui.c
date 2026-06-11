@@ -512,7 +512,7 @@ static void ui_belt_spell_slot(uint8_t s, uint8_t *icon_v, uint8_t *icon_pal) {
         *icon_pal = knight_shield_active ? PAL_LIFE_UI : PAL_WALL_BG;
     } else if (s == 0u && player_class == 1u && player_level >= 1u) { // scoundrel — Call Fox (J9 patched)
         *icon_v = TILE_FOX_J9_VRAM;
-        *icon_pal = ally_has_type(ALLY_TYPE_FOX) ? PAL_XP_UI : PAL_WALL_BG;
+        *icon_pal = ally_has_type(ALLY_TYPE_FOX) ? PAL_WALL_BG : PAL_XP_UI;
     } else if (s == 1u && player_class == 2u && player_level >= 3u) { // witch — Swamp Root (L11, unlocks lv3)
         *icon_v = TILE_ROOT_ICON_VRAM;
         *icon_pal = (witch_shot_cooldown_turns == 0u) ? PAL_XP_UI : PAL_CORPSE;

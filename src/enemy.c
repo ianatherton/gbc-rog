@@ -240,6 +240,8 @@ void spawn_enemies(void) { // random placement with collision checks
             uint8_t ty = (uint8_t)(rand() % (uint8_t)(active_map_h - 5u) + 3u); // row >= 3 so 3-high sprite stays in bounds
             if (BIT_GET(floor_bits, TILE_IDX(tx, ty))
                     && !BIT_GET(pit_bits, TILE_IDX(tx, ty))
+                    && BIT_GET(floor_bits, TILE_IDX((uint8_t)(tx+1u), ty))
+                    && !BIT_GET(pit_bits, TILE_IDX((uint8_t)(tx+1u), ty))
                     && !(tx == player_spawn_x && ty == player_spawn_y)) {
                 gx = tx; gy = ty; break;
             }
@@ -251,6 +253,7 @@ void spawn_enemies(void) { // random placement with collision checks
         enemy_status[0]      = 0u;
         enemy_force_active[0] = 1u; // always-active boss hook
         enemy_place_slot(0, gx, gy);
+        enemy_place_slot(0, (uint8_t)(gx+1u), gy);
         num_enemies = 1u;
         return;
     }
@@ -444,7 +447,14 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
         }
 
         if (nx == sx && ny == sy)              continue; // AI chose stay
-        if (enemy_at(nx, ny) != ENEMY_DEAD)    continue; // don't stack enemies
+        {
+            uint8_t occ = enemy_at(nx, ny);
+            if (occ != ENEMY_DEAD && occ != (uint8_t)i) continue; // don't stack enemies
+        }
+        if (enemy_type[i] == ENEMY_GORGON) { // right tile must also be free
+            uint8_t rocc = enemy_at((uint8_t)(nx+1u), ny);
+            if (rocc != ENEMY_DEAD && rocc != (uint8_t)i) continue;
+        }
 
         if (nx == px && ny == py) { // combat on player's tile — every adjacent step-in can connect same turn
             if (enemy_attack_count < MAX_ENEMIES) enemy_attack_slots[enemy_attack_count++] = i;
@@ -452,8 +462,10 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
         }
 
         if (!is_walkable(nx, ny)) continue; // wall blocked proposed step
+        if (enemy_type[i] == ENEMY_GORGON && !is_walkable((uint8_t)(nx+1u), ny)) continue;
 
         enemy_clear_slot(sx, sy);
+        if (enemy_type[i] == ENEMY_GORGON) enemy_clear_slot((uint8_t)(sx+1u), sy);
         enemy_x[i] = nx;
         enemy_y[i] = ny;
         if (tile_at(nx, ny) == TILE_PIT) {
@@ -463,6 +475,7 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
                 dead_enemy_pool[dead_enemy_pool_count++] = i;
         } else {
             enemy_place_slot(i, nx, ny);
+            if (enemy_type[i] == ENEMY_GORGON) enemy_place_slot(i, (uint8_t)(nx+1u), ny);
         }
     }
     perf_record(PERF_ENEMY_MOVE, perf_stamp_elapsed(&perf_stamp));

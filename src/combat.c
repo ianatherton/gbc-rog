@@ -74,6 +74,7 @@ uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage, uint8_t from_shield_burn
             }
         }
         enemy_clear_slot(dx, dy);
+        if (enemy_type[ei] == ENEMY_GORGON) enemy_clear_slot((uint8_t)(dx+1u), dy);
         enemy_alive[ei] = 0u;
         entity_sprites_enemy_hit_flash_clear(ei);
         entity_sprites_enemy_poof_begin(ei);

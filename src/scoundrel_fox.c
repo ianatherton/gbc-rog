@@ -209,7 +209,7 @@ uint8_t ally_fox_turn_tick(uint8_t slot, uint8_t px, uint8_t py) BANKED {
     if (ei != ENEMY_DEAD && ei < num_enemies && enemy_alive[ei]) {
         uint8_t ex = enemy_x[ei], ey = enemy_y[ei];
         if (cheb_dist(ally_x[slot], ally_y[slot], ex, ey) <= 1u) {
-            dmg = player_damage ? player_damage : 1u;
+            dmg = player_level ? player_level : 1u;
             entity_sprites_run_ally_lunge(px, py, slot, ex, ey, ei);
             return combat_damage_enemy(ei, dmg, 0u);
         }

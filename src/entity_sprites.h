@@ -33,6 +33,7 @@ void entity_sprites_run_projectile(uint8_t sx, uint8_t sy, uint8_t tx, uint8_t t
 
 void entity_sprites_inv_cursor_show(uint8_t cx, uint8_t cy) BANKED; // bouncing up-arrow below selected inventory cell
 void entity_sprites_inv_cursor_hide(void) BANKED;
+void entity_sprites_equip_marks_hide(void) BANKED; // hide OAM slots used by draw_equipped_marks; call on inventory exit
 
 void entity_sprites_run_enemy_glide(uint8_t px, uint8_t py,
                                      const uint8_t *old_ex, const uint8_t *old_ey,

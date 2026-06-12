@@ -7,10 +7,10 @@
 
 // Cavern roster — bats + snakes + slimes + rats.
 static const EnemyDef defs[] = {
-    /* ENEMY_BAT   */ { TILE_BAT_1,      TILE_BAT_2,      1, 1, PAL_ENEMY_BAT,   MOVE_BLINK,  3 }, // J2/K2 — blink up to 3 squares
-    /* ENEMY_SNAKE */ { TILE_SNAKE_1,    TILE_SNAKE_2,    2, 1, PAL_ENEMY_SNAKE, MOVE_CHASE,  0 }, // J5/K5
-    /* ENEMY_RAT   */ { TILE_RAT_OFF,    TILE_RAT_OFF,    1, 1, PAL_ENEMY_RAT,   MOVE_WANDER, 0 }, // J16 flip-anim
-    /* ENEMY_SLIME */ { TILE_SLIME_1_OFF, TILE_SLIME_2_OFF, 1, 1, PAL_ENEMY_SNAKE, MOVE_CHASE, 0 }, // J11/K11
+    /* ENEMY_BAT   */ { TILE_BAT_1,      TILE_BAT_2,        2, 3, PAL_ENEMY_BAT,   MOVE_BLINK,  3 }, // J2/K2 — blink up to 3 squares
+    /* ENEMY_SNAKE */ { TILE_SNAKE_1,    TILE_SNAKE_2,      4, 3, PAL_ENEMY_SNAKE, MOVE_CHASE,  0 }, // J5/K5
+    /* ENEMY_RAT   */ { TILE_RAT_OFF,    TILE_RAT_OFF,      2, 3, PAL_ENEMY_RAT,   MOVE_WANDER, 0 }, // J16 flip-anim
+    /* ENEMY_SLIME */ { TILE_SLIME_1_OFF, TILE_SLIME_2_OFF, 2, 3, PAL_ENEMY_SNAKE, MOVE_CHASE,  0 }, // J11/K11
 };
 
 BANKREF(biome_cavern_copy_defs)

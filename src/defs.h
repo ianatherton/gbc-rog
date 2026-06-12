@@ -375,7 +375,7 @@ typedef struct {
 #define TILE_UI_SLOT_EMPTY  10u  /* K1 VRAM index; bitmap replaced with TILE_SHEET_M14 at boot */
 
 /* ── Player stats ────────────────────────────────────────────────────────── */
-#define PLAYER_HP_BASE_MAX 10
+#define PLAYER_HP_BASE_MAX 20
 #define PLAYER_LEVEL_XP_BASE 15u
 #define PLAYER_LEVEL_XP_STEP 5u
 #define LIFE_BAR_LEN   5

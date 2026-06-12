@@ -807,6 +807,13 @@ void entity_sprites_inv_cursor_hide(void) BANKED {
     oam_hide(SP_INV_CURSOR);
 }
 
+BANKREF(entity_sprites_equip_marks_hide)
+void entity_sprites_equip_marks_hide(void) BANKED {
+    uint8_t i;
+    for (i = SP_ENEMY_BASE; i < (uint8_t)(SP_ENEMY_BASE + 8u); i++) oam_hide(i);
+    oam_enemy_hide_mark = 255u;
+}
+
 BANKREF(entity_sprites_run_projectile)
 void entity_sprites_run_projectile(uint8_t sx, uint8_t sy, uint8_t tx, uint8_t ty, uint8_t tile_off, uint8_t pal) BANKED {
     uint8_t frame;

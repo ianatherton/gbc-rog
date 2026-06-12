@@ -36,6 +36,16 @@ BANKREF_EXTERN(entity_sprites_inv_cursor_hide)
 #define EQUIP_PANEL_X  10u
 #define EQUIP_PANEL_Y   1u
 
+static void put_stat_uint(uint8_t x, uint8_t y, uint8_t v, uint8_t width) {
+    uint8_t i = 0u, pad;
+    char dig[3];
+    if (!v) { dig[i++] = '0'; }
+    else { while (v) { dig[i++] = (char)('0' + v % 10u); v /= 10u; } }
+    gotoxy(x, y);
+    for (pad = i; pad < width; pad++) putchar(' ');
+    while (i) putchar(dig[--i]);
+}
+
 static uint8_t inv_prev_j;
 static uint8_t inv_cursor; // 0..29
 static uint8_t inv_mode;
@@ -135,29 +145,33 @@ static void draw_stats_panel(void) {
     set_bkg_tiles(EQUIP_PANEL_X, y, 1u, 1u, &v);
     set_bkg_attribute_xy(EQUIP_PANEL_X, y, PAL_LIFE_UI);
     VBK_REG = VBK_TILES;
-    gotoxy((uint8_t)(EQUIP_PANEL_X + 1u), y);
-    printf(":%3u/%3u", (unsigned)player_hp, (unsigned)player_hp_max);
+    gotoxy((uint8_t)(EQUIP_PANEL_X + 1u), y); putchar(':');
+    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 2u), y, player_hp, 3u);
+    gotoxy((uint8_t)(EQUIP_PANEL_X + 5u), y); putchar('/');
+    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 6u), y, player_hp_max, 3u);
 
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 1u));
-    printf("MelDmg:%3u", (unsigned)player_damage);
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 1u)); printf("MelDmg:");
+    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 1u), player_damage, 3u);
 
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 2u));
-    printf("MagDmg:%3u", (unsigned)0u);
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 2u)); printf("MagDmg:");
+    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 2u), 0u, 3u);
 
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 3u));
-    printf("RngDmg:%3u", (unsigned)0u);
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 3u)); printf("RngDmg:");
+    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 3u), 0u, 3u);
 
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 4u));
-    printf("Dodge%%:%2u%%", (unsigned)0u);
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 4u)); printf("Dodge%%:");
+    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 4u), 0u, 2u);
+    gotoxy((uint8_t)(EQUIP_PANEL_X + 9u), (uint8_t)(y + 4u)); putchar('%');
 
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 5u));
-    printf("ResPhys:%2u", (unsigned)0u);
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 5u)); printf("ResPhys:");
+    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 8u), (uint8_t)(y + 5u), 0u, 2u);
 
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 6u));
-    printf("ResMag:%2u%%", (unsigned)0u);
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 6u)); printf("ResMag:");
+    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 6u), 0u, 2u);
+    gotoxy((uint8_t)(EQUIP_PANEL_X + 9u), (uint8_t)(y + 6u)); putchar('%');
 
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 7u));
-    printf("Light :%3u", (unsigned)player_light_radius());
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 7u)); printf("Light :");
+    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 7u), player_light_radius(), 3u);
 }
 
 static void draw_equipped_marks(void) {
@@ -318,8 +332,8 @@ void state_inventory_tick(void) BANKED {
         goto out;
     }
 
-    if (e & J_START)  { inv_desc_scx = 0u; entity_sprites_inv_cursor_hide(); next_state = STATE_GAMEPLAY; goto out; }
-    if (e & J_SELECT) { inv_desc_scx = 0u; entity_sprites_inv_cursor_hide(); next_state = STATE_STATS;    goto out; }
+    if (e & J_START)  { inv_desc_scx = 0u; entity_sprites_inv_cursor_hide(); entity_sprites_equip_marks_hide(); next_state = STATE_GAMEPLAY; goto out; }
+    if (e & J_SELECT) { inv_desc_scx = 0u; entity_sprites_inv_cursor_hide(); entity_sprites_equip_marks_hide(); next_state = STATE_STATS;    goto out; }
 
     if (e & J_A) {
         uint8_t kind = inventory_kind[inv_cursor];

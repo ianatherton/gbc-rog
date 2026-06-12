@@ -60,9 +60,14 @@ void enemy_slime_split(uint8_t type, uint8_t dx, uint8_t dy, uint8_t px, uint8_t
 
 BANKREF(enemy_gorgon_summon)
 void enemy_gorgon_summon(uint8_t slot) BANKED {
-    uint8_t d, ni, tx, ty, spawned = 0u;
+    uint8_t d, ni, tx, ty, spawned = 0u, snake_count = 0u, snake_cap;
     if (!enemy_alive[slot] || enemy_type[slot] != ENEMY_GORGON) return;
-    for (d = 0u; d < 4u && spawned < 2u; d++) {
+    for (ni = 0u; ni < num_enemies; ni++)
+        if (enemy_alive[ni] && enemy_type[ni] == ENEMY_SNAKE) snake_count++;
+    if (snake_count >= 5u) return;
+    snake_cap = (uint8_t)(5u - snake_count);
+    if (snake_cap > 2u) snake_cap = 2u;
+    for (d = 0u; d < 4u && spawned < snake_cap; d++) {
         tx = (uint8_t)(enemy_x[slot] + slime_ox[d]);
         ty = (uint8_t)(enemy_y[slot] + slime_oy[d]);
         if (tx >= MAP_W || ty >= MAP_H) continue;

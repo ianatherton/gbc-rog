@@ -33,4 +33,7 @@ void biome_crypt_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_coun
 void biome_cavern_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 void biome_boss_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 
+typedef void (*BiomeLoadPalettesFn)(void);
+void biome_boss_load_palettes(void); // overrides OCP4 with green+tan ramp for gorgon body/feet
+
 #endif

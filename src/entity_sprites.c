@@ -385,34 +385,34 @@ static void refresh_enemy_oam(uint8_t slot) {
             return;
         }
         {
-            const EnemyDef *def = &enemy_defs[ENEMY_GORGON];
-            uint8_t pal = def->palette;
+            uint8_t pal_head = PAL_ENEMY_SNAKE;
+            uint8_t pal_body = PAL_GORGON_BODY;
             uint8_t h = en_hit_flash_age[slot];
             if (h > 0u && h <= ENEMY_HIT_FLASH_VBL) {
                 uint8_t age0 = (uint8_t)(h - 1u);
-                if (((age0 >> 1) & 1u) == 0u) pal = 0u;
+                if (((age0 >> 1) & 1u) == 0u) { pal_head = 0u; pal_body = 0u; }
             }
             // feet row: primary slot = feet-left, slot 27 = feet-right
             move_entity_oam(sp, ewx, ewy,
-                (uint8_t)(TILESET_VRAM_OFFSET + TILE_GORGON_FEET_L_OFF), pal);
+                (uint8_t)(TILESET_VRAM_OFFSET + TILE_GORGON_FEET_L_OFF), pal_body);
             move_entity_oam((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 0u),
                 ewx + 8, ewy,
-                (uint8_t)(TILESET_VRAM_OFFSET + TILE_GORGON_FEET_R_OFF), pal);
+                (uint8_t)(TILESET_VRAM_OFFSET + TILE_GORGON_FEET_R_OFF), pal_body);
             // body row: slot 28 = body-left, slot 29 = body-right
             if (enemy_y[slot] > 0u) {
                 move_entity_oam((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 1u),
                     ewx, (int16_t)(ewy - 8),
-                    (uint8_t)(TILESET_VRAM_OFFSET + TILE_GORGON_BODY_L_OFF), pal);
+                    (uint8_t)(TILESET_VRAM_OFFSET + TILE_GORGON_BODY_L_OFF), pal_body);
                 move_entity_oam((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 2u),
                     ewx + 8, (int16_t)(ewy - 8),
-                    (uint8_t)(TILESET_VRAM_OFFSET + TILE_GORGON_BODY_R_OFF), pal);
+                    (uint8_t)(TILESET_VRAM_OFFSET + TILE_GORGON_BODY_R_OFF), pal_body);
             } else {
                 oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 1u));
                 oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 2u));
             }
             // head row: slot 30 = head-left, slot 31 = head-right; flip both on anim_toggle
             if (enemy_y[slot] > 1u) {
-                uint8_t head_prop = (uint8_t)(pal & 7u);
+                uint8_t head_prop = (uint8_t)(pal_head & 7u);
                 uint8_t head_l_tile, head_r_tile;
                 if (enemy_anim_toggle) {
                     head_prop  |= S_FLIPX;
@@ -423,10 +423,10 @@ static void refresh_enemy_oam(uint8_t slot) {
                     head_r_tile = (uint8_t)(TILESET_VRAM_OFFSET + TILE_GORGON_HEAD_R_OFF);
                 }
                 move_entity_oam((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 3u),
-                    ewx, (int16_t)(ewy - 16), head_l_tile, pal);
+                    ewx, (int16_t)(ewy - 16), head_l_tile, pal_head);
                 set_sprite_prop((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 3u), head_prop);
                 move_entity_oam((uint8_t)(SP_ALLY_BASE + 0u),
-                    ewx + 8, (int16_t)(ewy - 16), head_r_tile, pal);
+                    ewx + 8, (int16_t)(ewy - 16), head_r_tile, pal_head);
                 set_sprite_prop((uint8_t)(SP_ALLY_BASE + 0u), head_prop);
             } else {
                 oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 3u));

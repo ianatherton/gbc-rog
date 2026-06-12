@@ -420,6 +420,7 @@ typedef struct {
 #define PAL_LADDER  4   // BKG pit/ladder only (blinked in render.c); OCP4 = skeleton (violet)
 #define PAL_ENEMY_SNAKE     1 // serpent + adder — green on BKG+sprites
 #define PAL_ENEMY_SKELETON  4 // violet bone; same index as PAL_LADDER, sprite CRAM only
+#define PAL_GORGON_BODY     4u // boss floor: reuses skeleton slot (no skeletons on floor 3)
 #define PAL_ENEMY_RAT       5 // red–rose; BKG5 = life bar
 #define PAL_ENEMY_GOBLIN    6 // magenta–pink; BKG6 = window HUD text
 #define PAL_ENEMY_BAT       7 // aqua–turquoise; BKG7 = XP HUD

@@ -9,15 +9,16 @@ BANKREF_EXTERN(biome_dungeon_copy_defs)
 BANKREF_EXTERN(biome_crypt_copy_defs)
 BANKREF_EXTERN(biome_cavern_copy_defs)
 BANKREF_EXTERN(biome_boss_copy_defs)
+BANKREF_EXTERN(biome_boss_load_palettes)
 
 // Dispatch table indexed by biome ID — adding a biome is one new bank file plus one row here
 // (and BIOME_*/BIOME_COUNT in biome.h). Rows hold plain fn pointers; we map the bank ourselves.
-typedef struct { uint8_t bank; BiomeCopyDefsFn copy_defs; } BiomeEntry;
+typedef struct { uint8_t bank; BiomeCopyDefsFn copy_defs; BiomeLoadPalettesFn load_palettes; } BiomeEntry;
 static const BiomeEntry biome_table[BIOME_COUNT] = {
-    /* BIOME_DUNGEON */ { BANK(biome_dungeon_copy_defs), biome_dungeon_copy_defs },
-    /* BIOME_CRYPT   */ { BANK(biome_crypt_copy_defs),   biome_crypt_copy_defs },
-    /* BIOME_CAVERN  */ { BANK(biome_cavern_copy_defs),  biome_cavern_copy_defs },
-    /* BIOME_BOSS    */ { BANK(biome_boss_copy_defs),    biome_boss_copy_defs },
+    /* BIOME_DUNGEON */ { BANK(biome_dungeon_copy_defs), biome_dungeon_copy_defs, NULL },
+    /* BIOME_CRYPT   */ { BANK(biome_crypt_copy_defs),   biome_crypt_copy_defs,   NULL },
+    /* BIOME_CAVERN  */ { BANK(biome_cavern_copy_defs),  biome_cavern_copy_defs,  NULL },
+    /* BIOME_BOSS    */ { BANK(biome_boss_copy_defs),    biome_boss_copy_defs,    biome_boss_load_palettes },
 };
 
 void biome_load_active(uint8_t biome_id) {
@@ -28,6 +29,7 @@ void biome_load_active(uint8_t biome_id) {
     e = &biome_table[biome_id];
     SWITCH_ROM(e->bank);
     e->copy_defs(enemy_defs, enemy_active_types, &enemy_active_count);
+    if (e->load_palettes) e->load_palettes(); // still in e->bank; HOME-bank GBDK fns always reachable
     SWITCH_ROM(sb);
 }
 

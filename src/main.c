@@ -104,6 +104,18 @@ int main(void) {
             tileset_tiles + (uint16_t)TILE_SLIME_ROM_2 * 16u);
         set_sprite_data(TILE_RAT_VRAM, 1u,      // J16 rat — borrows unused P7 slot
             tileset_tiles + (uint16_t)TILE_RAT_ROM * 16u);
+        set_sprite_data(TILE_GORGON_HEAD_L_VRAM, 1u, // N10 gorgon head-left
+            tileset_tiles + (uint16_t)TILE_GORGON_HEAD_L_ROM * 16u);
+        set_sprite_data(TILE_GORGON_HEAD_R_VRAM, 1u, // O10 gorgon head-right
+            tileset_tiles + (uint16_t)TILE_GORGON_HEAD_R_ROM * 16u);
+        set_sprite_data(TILE_GORGON_BODY_L_VRAM, 1u, // N11 gorgon body-left
+            tileset_tiles + (uint16_t)TILE_GORGON_BODY_L_ROM * 16u);
+        set_sprite_data(TILE_GORGON_BODY_R_VRAM, 1u, // O11 gorgon body-right
+            tileset_tiles + (uint16_t)TILE_GORGON_BODY_R_ROM * 16u);
+        set_sprite_data(TILE_GORGON_FEET_L_VRAM, 1u, // N12 gorgon feet-left
+            tileset_tiles + (uint16_t)TILE_GORGON_FEET_L_ROM * 16u);
+        set_sprite_data(TILE_GORGON_FEET_R_VRAM, 1u, // O12 gorgon feet-right
+            tileset_tiles + (uint16_t)TILE_GORGON_FEET_R_ROM * 16u);
         {
             uint8_t buf[16];
             memcpy(buf, tileset_tiles + (uint16_t)TILE_PLAYER_AURA_ROM_A * 16u, 16u); // sheet uses idx0 as clear; 0→3 remaps made a solid 8×8

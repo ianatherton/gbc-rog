@@ -5,11 +5,13 @@
 #include "enemy.h"
 #include <gbdk/platform.h>
 
-// Coral banks 10/11/12 — only HOME (biome.c) ever SWITCH_ROMs into them.
+// Coral banks 10/11/12/21 — only HOME (biome.c) ever SWITCH_ROMs into them.
 #define BIOME_DUNGEON 0u
 #define BIOME_CRYPT   1u
 #define BIOME_CAVERN  2u
-#define BIOME_COUNT   3u
+#define BIOME_BOSS    3u
+#define BIOME_COUNT   4u
+#define BIOME_RANDOM_COUNT 3u // random floors pick from dungeon/crypt/cavern only (excludes BIOME_BOSS)
 
 // HOME-resident roster cache; populated by biome_load_active() at floor-gen time.
 // enemy.c / entity_sprites.c read this directly without bank switching.
@@ -29,5 +31,6 @@ typedef void (*BiomeCopyDefsFn)(EnemyDef *out, uint8_t *out_active, uint8_t *out
 void biome_dungeon_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 void biome_crypt_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 void biome_cavern_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
+void biome_boss_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 
 #endif

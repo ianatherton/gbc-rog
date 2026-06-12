@@ -2,6 +2,7 @@
 
 #include "enemy.h"
 #include "globals.h"
+#include "biome.h"
 #include "map.h"
 #include "ui.h"
 #include "entity_sprites.h"
@@ -26,6 +27,7 @@ uint8_t corpse_tile[MAX_CORPSES]; // L1–L5 floor deco (random at kill)
 uint8_t num_corpses;
 
 uint8_t enemy_occ[BITSET_BYTES];
+uint8_t boss_alive = 0u;
 
 #define ENEMY_SLOT_HASH_SIZE 64u
 #define ENEMY_SLOT_EMPTY 0xFFFFu
@@ -227,8 +229,31 @@ uint8_t corpse_deco_random(void) BANKED { return CORPSE_DECO_OFF[rand() & 1u]; }
 void spawn_enemies(void) { // random placement with collision checks
     uint8_t i;
     num_enemies = 0;
+    boss_alive = 0u;
     for (i = 0; i < MAX_ENEMIES; i++) { enemy_force_active[i] = 0u; enemy_status[i] = 0u; }
     if (floor_num == 1u) return; // entry floor is a safe 20x20 no-monster zone
+    if (floor_biome == BIOME_BOSS) {
+        uint8_t attempts, gx = 1u, gy = 3u; // fallback position
+        boss_alive = 1u;
+        for (attempts = 0u; attempts < 100u; attempts++) {
+            uint8_t tx = (uint8_t)(rand() % (uint8_t)(active_map_w - 2u) + 1u);
+            uint8_t ty = (uint8_t)(rand() % (uint8_t)(active_map_h - 5u) + 3u); // row >= 3 so 3-high sprite stays in bounds
+            if (BIT_GET(floor_bits, TILE_IDX(tx, ty))
+                    && !BIT_GET(pit_bits, TILE_IDX(tx, ty))
+                    && !(tx == player_spawn_x && ty == player_spawn_y)) {
+                gx = tx; gy = ty; break;
+            }
+        }
+        enemy_x[0] = gx; enemy_y[0] = gy;
+        enemy_type[0]        = ENEMY_GORGON;
+        enemy_hp[0]          = enemy_effective_max_hp(ENEMY_GORGON);
+        enemy_alive[0]       = 1u;
+        enemy_status[0]      = 0u;
+        enemy_force_active[0] = 1u; // always-active boss hook
+        enemy_place_slot(0, gx, gy);
+        num_enemies = 1u;
+        return;
+    }
     for (i = 0; i < NUM_ENEMIES; i++) {
         uint8_t attempts;
         for (attempts = 0; attempts < 100; attempts++) {

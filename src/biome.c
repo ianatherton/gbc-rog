@@ -8,6 +8,7 @@ uint8_t  enemy_active_count;
 BANKREF_EXTERN(biome_dungeon_copy_defs)
 BANKREF_EXTERN(biome_crypt_copy_defs)
 BANKREF_EXTERN(biome_cavern_copy_defs)
+BANKREF_EXTERN(biome_boss_copy_defs)
 
 // Dispatch table indexed by biome ID — adding a biome is one new bank file plus one row here
 // (and BIOME_*/BIOME_COUNT in biome.h). Rows hold plain fn pointers; we map the bank ourselves.
@@ -16,6 +17,7 @@ static const BiomeEntry biome_table[BIOME_COUNT] = {
     /* BIOME_DUNGEON */ { BANK(biome_dungeon_copy_defs), biome_dungeon_copy_defs },
     /* BIOME_CRYPT   */ { BANK(biome_crypt_copy_defs),   biome_crypt_copy_defs },
     /* BIOME_CAVERN  */ { BANK(biome_cavern_copy_defs),  biome_cavern_copy_defs },
+    /* BIOME_BOSS    */ { BANK(biome_boss_copy_defs),    biome_boss_copy_defs },
 };
 
 void biome_load_active(uint8_t biome_id) {
@@ -29,14 +31,15 @@ void biome_load_active(uint8_t biome_id) {
     SWITCH_ROM(sb);
 }
 
-// Floor 1: always dungeon (safe entry + matches no-spawn floor). Floor 2+: pseudo-random biome per floor
+// Floor 1: always dungeon. Floor 3: always boss. Other floors: pseudo-random dungeon/crypt/cavern
 // from run_seed so the same seed still reproduces the same sequence without storing prior floors in WRAM.
 uint8_t biome_pick_for_floor(uint8_t floor_n, uint16_t seed) {
     uint16_t h;
-    if (floor_n <= 1u) return BIOME_DUNGEON;
+    if (floor_n <= 1u)             return BIOME_DUNGEON;
+    if (floor_n == BOSS_FLOOR_NUM) return BIOME_BOSS;
     h = (uint16_t)(seed ^ (uint16_t)((uint16_t)floor_n * 2053u));
     h ^= (uint16_t)(h >> 8);
     h ^= (uint16_t)((uint16_t)floor_n * 6361u);
     h ^= (uint16_t)(h >> 7);
-    return (uint8_t)(h % BIOME_COUNT);
+    return (uint8_t)(h % BIOME_RANDOM_COUNT); // excludes BIOME_BOSS from random selection
 }

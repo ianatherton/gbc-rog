@@ -111,7 +111,10 @@ char tile_char(uint8_t t) { // ASCII fallback when not using custom tile in VRAM
 
 uint8_t tile_vram_index(uint8_t t) { // non-zero → set_bkg_tiles uses ROM tile data
     if (t == TILE_WALL) return (uint8_t)(TILESET_VRAM_OFFSET + wall_tileset_index);
-    if (t == TILE_PIT)  return (uint8_t)(TILESET_VRAM_OFFSET + TILE_LADDER_DOWN);
+    if (t == TILE_PIT) {
+        if (floor_biome == BIOME_BOSS && boss_alive) return 0u; // hidden until boss dies
+        return (uint8_t)(TILESET_VRAM_OFFSET + TILE_LADDER_DOWN);
+    }
     if (t == TILE_FLOOR) return 0; // 0 = use setchar(tile_char(t)) for plain floor
     return 0;
 }
@@ -130,7 +133,9 @@ void floor_ground_init(uint16_t floor_seed) { // deterministic floor visuals fro
 
 uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; else random E3/E4 on black field
     if (x == player_spawn_x && y == player_spawn_y) {
-        return TILE_STAIRS_UP_1;
+        if (floor_biome != BIOME_BOSS || !boss_alive)
+            return TILE_STAIRS_UP_1;
+        // boss alive: stairs hidden — fall through to normal floor rendering
     }
     {
         uint8_t bi = brazier_index_at(x, y);

@@ -17,6 +17,7 @@ void draw_row_strip(uint8_t my); // one world row for vertical scroll
 void draw_enemy_cells(uint8_t px, uint8_t py); // idle enemy glyph flip: OAM only (no BG/WIN redraw)
 void draw_corpse_cells(void); // redraw BG tiles for corpses and dropped items after non-melee kills
 void draw_corpse_cells_far(void) BANKED; // cross-bank shim (combat.c)
+void draw_boss_reveal_cells_far(void) BANKED; // reveal stairs + pit on Gorgon kill (combat.c)
 void draw_ui_rows(void); // window text panel + bottom HUD after camera moves (delegates to ui.c)
 
 #endif // RENDER_H

@@ -102,6 +102,7 @@ typedef struct {
 /* ── Level generation ────────────────────────────────────────────────────── */
 #define WALK_STEPS 4000   // scaled up from 350 to match the larger 64×64 map
 #define NUM_PITS     1    // single descent tile per floor
+#define BOSS_FLOOR_NUM 3u // floor 3 always generates the boss biome
 
 /* ── Enemy roster ────────────────────────────────────────────────────────── */
 #define MAX_ENEMIES    24 // OAM layout: 24 body slots + 4 skeleton-head slots fit before ally base
@@ -138,7 +139,8 @@ typedef struct {
 #define ENEMY_BIG_SKELL 4
 #define ENEMY_IMP       5
 #define ENEMY_SKELETON  6
-#define NUM_ENEMY_TYPES 7
+#define ENEMY_GORGON    7
+#define NUM_ENEMY_TYPES 8
 
 /* ── Animation ───────────────────────────────────────────────────────────── */
 // DIV_REG runs at 16384 Hz; 1638 ticks ≈ 0.10s between frame flips
@@ -327,6 +329,29 @@ typedef struct {
 #define TILE_RAT_ROM       249u  /* J16 — rat, ROM source                  */
 #define TILE_RAT_VRAM      239u  /* borrows unused P7 VRAM slot (sheet 111) */
 #define TILE_RAT_OFF       111u  /* = TILE_RAT_VRAM - TILESET_VRAM_OFFSET; use in EnemyDef.tile */
+
+/* N/O rows 10-12 — Gorgon boss sprite (2×3 tiles). ROM indices past first VRAM pack.
+   Boot-patched to borrowed row-7 slots (B7/C7/E7/F7/G7/H7) whose original ROM content
+   is never placed as a BG tile. Head row (N10/O10) flips horizontally for animation.
+   Until tile art exists, EnemyDef uses BIG_SKELL placeholder tiles. */
+#define TILE_GORGON_HEAD_L_ROM  157u  /* N10 — head left                    */
+#define TILE_GORGON_HEAD_R_ROM  158u  /* O10 — head right                   */
+#define TILE_GORGON_BODY_L_ROM  173u  /* N11 — body left                    */
+#define TILE_GORGON_BODY_R_ROM  174u  /* O11 — body right                   */
+#define TILE_GORGON_FEET_L_ROM  189u  /* N12 — feet left (collision tile)   */
+#define TILE_GORGON_FEET_R_ROM  190u  /* O12 — feet right                   */
+#define TILE_GORGON_HEAD_L_VRAM 225u  /* borrows B7=ROM97  (unused)         */
+#define TILE_GORGON_HEAD_R_VRAM 226u  /* borrows C7=ROM98  (unused)         */
+#define TILE_GORGON_BODY_L_VRAM 228u  /* borrows E7=ROM100 (unused)         */
+#define TILE_GORGON_BODY_R_VRAM 229u  /* borrows F7=ROM101 (unused)         */
+#define TILE_GORGON_FEET_L_VRAM 230u  /* borrows G7=ROM102 (unused)         */
+#define TILE_GORGON_FEET_R_VRAM 231u  /* borrows H7=ROM103 (unused)         */
+#define TILE_GORGON_HEAD_L_OFF   97u  /* = VRAM - TILESET_VRAM_OFFSET       */
+#define TILE_GORGON_HEAD_R_OFF   98u
+#define TILE_GORGON_BODY_L_OFF  100u
+#define TILE_GORGON_BODY_R_OFF  101u
+#define TILE_GORGON_FEET_L_OFF  102u
+#define TILE_GORGON_FEET_R_OFF  103u
 
 /* ── L col — floor decorations ──────────────────────────────────────────── */
 #define TILE_FLOOR_DECO_1   11   /* L1  */

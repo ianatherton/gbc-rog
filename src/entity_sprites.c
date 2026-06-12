@@ -341,6 +341,14 @@ static void refresh_enemy_oam(uint8_t slot) {
         return;
     }
     if (!enemy_alive[slot]) {
+        if (enemy_type[slot] == ENEMY_GORGON) {
+            // hide all extra Gorgon body slots on death/poof so only primary slot shows poof
+            oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 0u));
+            oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 1u));
+            oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 2u));
+            oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 3u));
+            oam_hide((uint8_t)(SP_ALLY_BASE + 0u));
+        }
         if (enemy_poof_ttl[slot] > 0u) {
             uint8_t mx = enemy_x[slot], my = enemy_y[slot];
             if (mx < g_cam_tx || mx >= g_cam_tx_end
@@ -357,6 +365,74 @@ static void refresh_enemy_oam(uint8_t slot) {
         }
         oam_hide(sp);
         if (hsp != 255u) oam_hide(hsp);
+        return;
+    }
+    // Custom 2×3 OAM render for ENEMY_GORGON (boss floor only).
+    // Borrows SP_BIG_SKELL_HEAD_BASE+0..3 (slots 27-30) and SP_ALLY_BASE+0 (slot 31)
+    // for the 5 extra body tiles — safe because no BIG_SKELL or allies spawn on floor 3.
+    if (enemy_type[slot] == ENEMY_GORGON) {
+        int16_t ewx = (int16_t)enemy_x[slot] * 8 + en_ofs_x[slot];
+        int16_t ewy = (int16_t)enemy_y[slot] * 8 + en_ofs_y[slot];
+        if (enemy_x[slot] < g_cam_tx || enemy_x[slot] >= g_cam_tx_end
+                || enemy_y[slot] < g_cam_ty || enemy_y[slot] >= g_cam_ty_end
+                || !lighting_is_revealed(enemy_x[slot], enemy_y[slot])) {
+            oam_hide(sp);
+            oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 0u));
+            oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 1u));
+            oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 2u));
+            oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 3u));
+            oam_hide((uint8_t)(SP_ALLY_BASE + 0u));
+            return;
+        }
+        {
+            const EnemyDef *def = &enemy_defs[ENEMY_GORGON];
+            uint8_t pal = def->palette;
+            uint8_t h = en_hit_flash_age[slot];
+            if (h > 0u && h <= ENEMY_HIT_FLASH_VBL) {
+                uint8_t age0 = (uint8_t)(h - 1u);
+                if (((age0 >> 1) & 1u) == 0u) pal = 0u;
+            }
+            // feet row: primary slot = feet-left, slot 27 = feet-right
+            move_entity_oam(sp, ewx, ewy,
+                (uint8_t)(TILESET_VRAM_OFFSET + TILE_GORGON_FEET_L_OFF), pal);
+            move_entity_oam((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 0u),
+                ewx + 8, ewy,
+                (uint8_t)(TILESET_VRAM_OFFSET + TILE_GORGON_FEET_R_OFF), pal);
+            // body row: slot 28 = body-left, slot 29 = body-right
+            if (enemy_y[slot] > 0u) {
+                move_entity_oam((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 1u),
+                    ewx, (int16_t)(ewy - 8),
+                    (uint8_t)(TILESET_VRAM_OFFSET + TILE_GORGON_BODY_L_OFF), pal);
+                move_entity_oam((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 2u),
+                    ewx + 8, (int16_t)(ewy - 8),
+                    (uint8_t)(TILESET_VRAM_OFFSET + TILE_GORGON_BODY_R_OFF), pal);
+            } else {
+                oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 1u));
+                oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 2u));
+            }
+            // head row: slot 30 = head-left, slot 31 = head-right; flip both on anim_toggle
+            if (enemy_y[slot] > 1u) {
+                uint8_t head_prop = (uint8_t)(pal & 7u);
+                uint8_t head_l_tile, head_r_tile;
+                if (enemy_anim_toggle) {
+                    head_prop  |= S_FLIPX;
+                    head_l_tile = (uint8_t)(TILESET_VRAM_OFFSET + TILE_GORGON_HEAD_R_OFF);
+                    head_r_tile = (uint8_t)(TILESET_VRAM_OFFSET + TILE_GORGON_HEAD_L_OFF);
+                } else {
+                    head_l_tile = (uint8_t)(TILESET_VRAM_OFFSET + TILE_GORGON_HEAD_L_OFF);
+                    head_r_tile = (uint8_t)(TILESET_VRAM_OFFSET + TILE_GORGON_HEAD_R_OFF);
+                }
+                move_entity_oam((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 3u),
+                    ewx, (int16_t)(ewy - 16), head_l_tile, pal);
+                set_sprite_prop((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 3u), head_prop);
+                move_entity_oam((uint8_t)(SP_ALLY_BASE + 0u),
+                    ewx + 8, (int16_t)(ewy - 16), head_r_tile, pal);
+                set_sprite_prop((uint8_t)(SP_ALLY_BASE + 0u), head_prop);
+            } else {
+                oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 3u));
+                oam_hide((uint8_t)(SP_ALLY_BASE + 0u));
+            }
+        }
         return;
     }
     {
@@ -526,6 +602,10 @@ void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) BANKED {
     g_cam_tx_end = (uint8_t)(g_cam_tx + GRID_W);
     g_cam_ty_end = (uint8_t)(g_cam_ty + GRID_H);
     entity_sprites_refresh_player_only(px, py);
+    // Allies and belt UI cleared before enemy pass so gorgon can borrow SP_ALLY_BASE+0 for its head tile
+    refresh_allies_oam();
+    refresh_belt_selector_oam();
+    refresh_buff_icon_oam();
     // Clear all head OAM slots so stale heads from dead skeletons don't linger
     {
         uint8_t hi;
@@ -550,9 +630,6 @@ void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) BANKED {
         }
     }
     if (!brazier_fire_active) oam_hide(SP_BRAZIER_FIRE); // keep slot hidden until first spawn
-    refresh_belt_selector_oam();
-    refresh_buff_icon_oam();
-    refresh_allies_oam();
 }
 
 BANKREF(entity_sprites_refresh_all)

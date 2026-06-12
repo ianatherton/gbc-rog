@@ -106,7 +106,7 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
     uint32_t mix = (uint32_t)floor_seed * 2654435761u ^ (uint32_t)floor_seed << 13;
     mix ^= mix >> 17;
     mix *= 2246523629u;
-    if (floor_num == 1u) {
+    if (floor_num == 1u || floor_num == BOSS_FLOOR_NUM) {
         active_map_w = 20u;
         active_map_h = 20u;
     } else {
@@ -168,6 +168,7 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
         uint8_t target_count;
         uint16_t attempts = 0u;
         if (floor_num == 1u) target_count = 4u;
+        else if (floor_num == BOSS_FLOOR_NUM) target_count = 0u; // unlit boss arena
         else {
             uint8_t base = (uint8_t)(10u + (uint8_t)(rand() % 11u)); // 10..20
             target_count = (floor_num >= base) ? 0u : (uint8_t)(base - floor_num);

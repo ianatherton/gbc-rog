@@ -15,6 +15,7 @@ extern uint8_t  floor_num;
 extern uint16_t run_seed;
 extern uint8_t  player_class; // 0=KNIGHT 1=SCOUNDREL 2=WITCH 3=ZERKER (char create)
 extern uint8_t  floor_biome;  // BIOME_* — set by level_init before spawn; selects bank 10/11/12 enemy roster
+extern uint8_t  boss_alive;   // 1 while Gorgon lives on BIOME_BOSS floor; suppresses stairs/pit until cleared
 
 extern uint8_t  g_player_x, g_player_y, g_prev_j;
 extern uint16_t g_run_entropy;

@@ -23,6 +23,8 @@ BANKREF_EXTERN(entity_sprites_player_hurt_flash)
 BANKREF_EXTERN(entity_sprites_run_projectile)
 BANKREF_EXTERN(enemy_try_drop_item)
 BANKREF_EXTERN(enemy_slime_split)
+BANKREF_EXTERN(enemy_gorgon_summon)
+BANKREF_EXTERN(draw_boss_reveal_cells_far)
 
 static void grant_xp_from_kill(uint8_t enemy_damage) {
     uint16_t next_level_xp;
@@ -77,6 +79,10 @@ uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage, uint8_t from_shield_burn
         entity_sprites_enemy_poof_begin(ei);
         if (dead_enemy_pool_count < MAX_ENEMIES)
             dead_enemy_pool[dead_enemy_pool_count++] = ei;
+        if (enemy_type[ei] == ENEMY_GORGON) {
+            boss_alive = 0u;
+            draw_boss_reveal_cells_far(); // reveal stairs + pit now that boss is dead
+        }
         grant_xp_from_kill(kill_xp);
         return 1u;
     }
@@ -101,8 +107,10 @@ uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) BANKED {
     uint8_t a;
     if (!enemy_attack_count) return 0;
     player_hp_prev = player_hp;
-    for (a = 0; a < enemy_attack_count; a++)
+    for (a = 0; a < enemy_attack_count; a++) {
         enemy_resolve_hit(enemy_attack_slots[a]);
+        enemy_gorgon_summon(enemy_attack_slots[a]); // no-op for non-Gorgon slots
+    }
     wait_vbl_done();
     draw_gameplay_overlays_profiled_far(px, py); // HP/log in WIN; lunges are sprites — BKG unchanged here
     sfx_lunge_hit();

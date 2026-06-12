@@ -386,7 +386,7 @@ void state_gameplay_tick(void) BANKED {
         } else {
             uint8_t t = tile_at(nx, ny);
             if (t == TILE_WALL) {
-            } else if (t == TILE_PIT) {
+            } else if (t == TILE_PIT && !(boss_alive)) {
                 if (player_hp < player_hp_max) player_hp++;
                 wait_vbl_done();
                 draw_cell(g_player_x, g_player_y);

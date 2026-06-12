@@ -221,3 +221,9 @@ void draw_corpse_cells(void) { // redraw BG tiles for all corpses and dropped it
 void draw_corpse_cells_far(void) BANKED { // cross-bank entry for combat.c (bank 19)
     draw_corpse_cells();
 }
+
+void draw_boss_reveal_cells_far(void) BANKED { // called from combat.c on Gorgon kill to reveal stairs + ladder
+    uint8_t px, py;
+    draw_cell(player_spawn_x, player_spawn_y);
+    if (map_pit_position(&px, &py)) draw_cell(px, py);
+}

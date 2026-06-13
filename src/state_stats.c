@@ -33,9 +33,19 @@ void state_stats_enter(void) BANKED {
         VBK_REG = VBK_TILES;
     }
     gotoxy(1, 2); printf("STATS");
-    gotoxy(1, 4); printf("HP %u/%u", (unsigned)player_hp, (unsigned)player_hp_max);
-    gotoxy(1, 5); printf("LV %u DMG %u", (unsigned)player_level, (unsigned)player_damage);
-    gotoxy(1, 10); printf("START resume");
+    {
+        uint16_t next_xp = (uint16_t)PLAYER_LEVEL_XP_BASE
+                         + (uint16_t)(player_level - 1u) * (uint16_t)PLAYER_LEVEL_XP_STEP;
+        uint16_t xp_rem  = (player_xp < next_xp) ? (uint16_t)(next_xp - player_xp) : 0u;
+        gotoxy(1, 4);  printf("HP   %u/%u",  (unsigned)player_hp, (unsigned)player_hp_max);
+        gotoxy(1, 5);  printf("DMG  %u",     (unsigned)player_damage);
+        gotoxy(1, 6);  printf("CRIT %u%%",   (unsigned)player_crit_chance);
+        gotoxy(1, 7);  printf("LV   %u",     (unsigned)player_level);
+        gotoxy(1, 8);  printf("EXP  %u",     (unsigned)player_xp);
+        gotoxy(1, 9);  printf("NXT  %u",     (unsigned)xp_rem);
+        gotoxy(1, 10); printf("LIGHT %u",    (unsigned)player_light_radius());
+    }
+    gotoxy(1, 12); printf("START resume");
 }
 
 BANKREF(state_stats_tick)

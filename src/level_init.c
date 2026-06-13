@@ -26,6 +26,10 @@ void level_init_display(uint8_t from_pit) BANKED {
         player_level = 1;
         player_damage = 1;
         player_xp = 0;
+        if      (player_class == 1u) player_crit_chance = 15u; // SCOUNDREL
+        else if (player_class == 2u) player_crit_chance = 10u; // WITCH
+        else if (player_class == 3u) player_crit_chance = 20u; // ZERKER
+        else                         player_crit_chance = 10u; // KNIGHT (0)
         player_hp = player_hp_max;
         inventory_clear_all(); // fresh run wipes any items from a previous attempt
         ability_dispatch_new_run_init();

@@ -401,8 +401,8 @@ typedef struct {
 
 /* ── Player stats ────────────────────────────────────────────────────────── */
 #define PLAYER_HP_BASE_MAX 20
-#define PLAYER_LEVEL_XP_BASE 15u
-#define PLAYER_LEVEL_XP_STEP 5u
+#define PLAYER_LEVEL_XP_BASE 45u
+#define PLAYER_LEVEL_XP_STEP 15u
 #define LIFE_BAR_LEN   5
 
 /* Sheet-relative tile for hero — see entity_sprites player_tile_offset_for_class */

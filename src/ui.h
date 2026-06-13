@@ -27,7 +27,7 @@ void     ui_combat_log_push_pal(const char *line, uint8_t pal) BANKED; // CGB BG
 void     ui_combat_log_push_gold_suffix(const char *line, uint8_t gold_from) BANKED; // PAL_UI up to gold_from, then PAL_XP_UI
 
 // combat-side text formatters — live in bank 5 (UI) to keep HOME small; BANKED so combat.c (HOME) can far-call them
-void     ui_push_combat_log(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_pct) BANKED;
+void     ui_push_combat_log(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_pct, uint8_t is_crit) BANKED;
 void     ui_push_combat_log_shield_burn(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_pct) BANKED; // "NAME burned -N" (+ optional %); lethal hit uses dmg only
 void     ui_push_xp_gain_line(uint8_t amt) BANKED;
 void     ui_push_level_up_line(uint8_t new_level) BANKED;

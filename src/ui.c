@@ -306,7 +306,7 @@ void ui_combat_log_push_gold_suffix(const char *line, uint8_t gold_from) BANKED 
 
 #define UI_MSG_LINE 20u // matches ui combat log row cap
 
-void ui_push_combat_log(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_pct) BANKED {
+void ui_push_combat_log(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_pct, uint8_t is_crit) BANKED {
     char logbuf[UI_MSG_LINE];
     char namebuf[12]; // SLIMESKULL + NUL is the longest current name; copy here to stay valid after bcall returns to bank 5
     uint8_t p = 0, d = dmg, mhp, pct, ni;
@@ -318,13 +318,20 @@ void ui_push_combat_log(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_
         if (d >= 100u) { logbuf[p++] = (char)('0' + d / 100u); d %= 100u; }
         if (d >= 10u)  { logbuf[p++] = (char)('0' + d / 10u);  d %= 10u; }
         logbuf[p++] = (char)('0' + d);
-        mhp = enemy_effective_max_hp(type_idx);
-        pct = mhp ? (uint8_t)(((uint16_t)hp_remaining_for_pct * 100u) / (uint16_t)mhp) : 0u;
-        if (pct > 99u) pct = 99u;
-        logbuf[p++] = ' ';
-        if (pct >= 10u) { logbuf[p++] = (char)('0' + pct / 10u); logbuf[p++] = (char)('0' + pct % 10u); }
-        else            { logbuf[p++] = (char)('0' + pct); }
-        logbuf[p++] = '%';
+        if (hp_remaining_for_pct) {
+            if (is_crit) logbuf[p++] = '!';
+            mhp = enemy_effective_max_hp(type_idx);
+            pct = mhp ? (uint8_t)(((uint16_t)hp_remaining_for_pct * 100u) / (uint16_t)mhp) : 0u;
+            if (pct > 99u) pct = 99u;
+            logbuf[p++] = ' ';
+            if (pct >= 10u) { logbuf[p++] = (char)('0' + pct / 10u); logbuf[p++] = (char)('0' + pct % 10u); }
+            else            { logbuf[p++] = (char)('0' + pct); }
+            logbuf[p++] = '%';
+        } else {
+            // lethal: '!' replaces the space before DIES on crits to stay within 20-char budget
+            logbuf[p++] = is_crit ? '!' : ' ';
+            logbuf[p++] = 'D'; logbuf[p++] = 'I'; logbuf[p++] = 'E'; logbuf[p++] = 'S';
+        }
     } else {
         logbuf[p++] = 'D'; logbuf[p++] = 'I'; logbuf[p++] = 'E'; logbuf[p++] = 'S';
     }

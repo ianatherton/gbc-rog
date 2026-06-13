@@ -4,19 +4,19 @@
 #include "globals.h"
 
 const EquipStatDef equip_stat_defs[ITEM_KIND_COUNT] = {
-    /* ITEM_KIND_POTION      */ { EQUIP_SLOT_NONE,    0,  0, 0 },
-    /* ITEM_KIND_SCROLL      */ { EQUIP_SLOT_NONE,    0,  0, 0 },
-    /* ITEM_KIND_KEY         */ { EQUIP_SLOT_NONE,    0,  0, 0 },
-    /* ITEM_KIND_CANDLE      */ { EQUIP_SLOT_NONE,    0,  0, 0 },
-    /* ITEM_KIND_SCROLL_ROOT */ { EQUIP_SLOT_NONE,    0,  0, 0 },
-    /* ITEM_KIND_RUSTY_SWORD */ { EQUIP_SLOT_WEAPON,  0,  4, 0 },
-    /* ITEM_KIND_BOOK_HEAL   */ { EQUIP_SLOT_NONE,    0,  0, 0 },
-    /* ITEM_KIND_HELMET      */ { EQUIP_SLOT_HEAD,    5,  0, 0 },
-    /* ITEM_KIND_TUNIC       */ { EQUIP_SLOT_BODY,   10,  0, 0 },
-    /* ITEM_KIND_BOOTS       */ { EQUIP_SLOT_FEET,    0,  0, 2 },
-    /* ITEM_KIND_BOW         */ { EQUIP_SLOT_NONE,    0,  0, 0 },
-    /* ITEM_KIND_AXE         */ { EQUIP_SLOT_WEAPON,  0,  6, 0 },
-    /* ITEM_KIND_SHIELD      */ { EQUIP_SLOT_OFFHAND,10,  0, 0 },
+    /* ITEM_KIND_POTION      */ { EQUIP_SLOT_NONE,    0,  0, 0,  0 },
+    /* ITEM_KIND_SCROLL      */ { EQUIP_SLOT_NONE,    0,  0, 0,  0 },
+    /* ITEM_KIND_KEY         */ { EQUIP_SLOT_NONE,    0,  0, 0,  0 },
+    /* ITEM_KIND_CANDLE      */ { EQUIP_SLOT_NONE,    0,  0, 0,  0 },
+    /* ITEM_KIND_SCROLL_ROOT */ { EQUIP_SLOT_NONE,    0,  0, 0,  0 },
+    /* ITEM_KIND_RUSTY_SWORD */ { EQUIP_SLOT_WEAPON,  0,  4, 0, 10 },
+    /* ITEM_KIND_BOOK_HEAL   */ { EQUIP_SLOT_NONE,    0,  0, 0,  0 },
+    /* ITEM_KIND_HELMET      */ { EQUIP_SLOT_HEAD,    5,  0, 0,  0 },
+    /* ITEM_KIND_TUNIC       */ { EQUIP_SLOT_BODY,   10,  0, 0,  0 },
+    /* ITEM_KIND_BOOTS       */ { EQUIP_SLOT_FEET,    0,  0, 2,  0 },
+    /* ITEM_KIND_BOW         */ { EQUIP_SLOT_NONE,    0,  0, 0,  0 },
+    /* ITEM_KIND_AXE         */ { EQUIP_SLOT_WEAPON,  0,  6, 0,  0 },
+    /* ITEM_KIND_SHIELD      */ { EQUIP_SLOT_OFFHAND,10,  0, 0,  0 },
 };
 
 void items_equip_apply(uint8_t kind, uint8_t now_equipped) BANKED {
@@ -39,6 +39,11 @@ void items_equip_apply(uint8_t kind, uint8_t now_equipped) BANKED {
         if (now_equipped) { uint16_t nb = (uint16_t)player_light_bonus + d->light_bonus;
                             player_light_bonus = (nb > 255u) ? 255u : (uint8_t)nb; }
         else              { player_light_bonus = (player_light_bonus > d->light_bonus) ? (uint8_t)(player_light_bonus - d->light_bonus) : 0u; }
+    }
+    if (d->crit_chance) {
+        if (now_equipped) { uint16_t nc = (uint16_t)player_crit_chance + d->crit_chance;
+                            player_crit_chance = (nc > 100u) ? 100u : (uint8_t)nc; }
+        else              { player_crit_chance = (player_crit_chance > d->crit_chance) ? (uint8_t)(player_crit_chance - d->crit_chance) : 0u; }
     }
 }
 

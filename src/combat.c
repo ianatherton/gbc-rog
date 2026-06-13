@@ -46,19 +46,21 @@ static void grant_xp_from_kill(uint8_t enemy_damage) {
     if (did_level) music_play_levelup_jingle();
 }
 
+static uint8_t s_last_was_crit = 0u;
+
 BANKREF(combat_damage_enemy)
 uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage, uint8_t from_shield_burn) BANKED {
     if (enemy_hp[ei] > damage) {
         enemy_hp[ei] = (uint8_t)(enemy_hp[ei] - damage);
         if (from_shield_burn) ui_push_combat_log_shield_burn(enemy_type[ei], damage, enemy_hp[ei]);
-        else                  ui_push_combat_log(enemy_type[ei], damage, enemy_hp[ei]);
+        else                  ui_push_combat_log(enemy_type[ei], damage, enemy_hp[ei], s_last_was_crit);
         return 0u;
     } else {
         uint8_t kill_xp;
         uint8_t dx;
         uint8_t dy;
         if (from_shield_burn) ui_push_combat_log_shield_burn(enemy_type[ei], damage, 0); // killing burn — no separate DIES line
-        else                  ui_push_combat_log(enemy_type[ei], 0, 0);
+        else                  ui_push_combat_log(enemy_type[ei], damage, 0, s_last_was_crit);
         kill_xp = enemy_effective_damage(enemy_type[ei]);
         ui_push_xp_gain_line(kill_xp);
         dx = enemy_x[ei];
@@ -89,6 +91,16 @@ uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage, uint8_t from_shield_burn
     }
 }
 
+BANKREF(combat_crit_roll)
+uint8_t combat_crit_roll(uint8_t base_damage) BANKED {
+    if (player_crit_chance && (uint8_t)(DIV_REG % 100u) < player_crit_chance) {
+        s_last_was_crit = 1u;
+        return (base_damage > 127u) ? 255u : (uint8_t)(base_damage << 1u);
+    }
+    s_last_was_crit = 0u;
+    return base_damage;
+}
+
 BANKREF(combat_player_attacks)
 uint8_t combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, uint8_t ny) BANKED {
     int8_t adx = (nx > px) ? 1 : (nx < px ? -1 : 0);
@@ -96,7 +108,7 @@ uint8_t combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, ui
     entity_sprites_run_player_lunge(px, py, adx, ady, ei);
     sfx_lunge_hit();
     {
-        uint8_t killed = combat_damage_enemy(ei, player_damage, 0u);
+        uint8_t killed = combat_damage_enemy(ei, combat_crit_roll(player_damage), 0u);
         if (killed) enemy_slime_split(enemy_type[ei], enemy_x[ei], enemy_y[ei], px, py);
         return killed;
     }

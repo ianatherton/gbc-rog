@@ -14,11 +14,12 @@
 #include <gbdk/platform.h>
 
 BANKREF_EXTERN(combat_damage_enemy)
+BANKREF_EXTERN(combat_crit_roll)
 BANKREF_EXTERN(entity_sprites_run_projectile)
 
 #define WITCH_BOLT_RANGE_TILES 4u
 #define WITCH_BOLT_BURSTS      3u
-#define WITCH_BOLT_COOLDOWN    2u
+#define WITCH_BOLT_COOLDOWN    0u
 #define SWAMP_ROOT_COOLDOWN    8u
 #define SWAMP_ROOT_TURNS      12u
 
@@ -42,7 +43,8 @@ static void cast_bolt(uint8_t px, uint8_t py, AbilityResult *out) {
             (uint8_t)(TILE_WITCH_BOLT_VRAM - TILESET_VRAM_OFFSET), PAL_XP_UI);
     }
     sfx_lunge_hit();
-    dmg = (uint8_t)((player_damage + 1u) >> 1); // half damage, rounded up
+    dmg = (uint8_t)(((player_damage + 1u) >> 1) + 1u); // half damage, rounded up, +1 base
+    dmg = combat_crit_roll(dmg);
     killed = combat_damage_enemy(ei, dmg, 0u);
     witch_shot_cooldown_turns = WITCH_BOLT_COOLDOWN;
     out->consumed_turn = 1u;

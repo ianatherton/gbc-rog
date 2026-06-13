@@ -11,6 +11,7 @@ extern uint8_t  player_hp_max;
 extern uint8_t  player_level;
 extern uint8_t  player_damage;
 extern uint16_t player_xp;
+extern uint8_t  player_crit_chance; // 0-100 percent; accumulated from equipment
 extern uint8_t  floor_num;
 extern uint16_t run_seed;
 extern uint8_t  player_class; // 0=KNIGHT 1=SCOUNDREL 2=WITCH 3=ZERKER (char create)

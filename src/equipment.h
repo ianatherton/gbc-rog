@@ -17,7 +17,7 @@ typedef struct {
     uint8_t hp_max;      /* delta to player_hp_max     */
     uint8_t damage;      /* delta to player_damage      */
     uint8_t light_bonus; /* delta to player_light_bonus */
-    /* add one uint8_t field here per new stat — zero = no effect */
+    uint8_t crit_chance; /* delta to player_crit_chance (0-100 pct) */
 } EquipStatDef;
 
 extern const EquipStatDef equip_stat_defs[ITEM_KIND_COUNT];

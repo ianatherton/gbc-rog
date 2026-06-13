@@ -11,6 +11,7 @@
 #include <gbdk/platform.h>
 
 BANKREF_EXTERN(combat_damage_enemy)
+BANKREF_EXTERN(combat_crit_roll)
 
 #define ZERKER_WHIRLWIND_COOLDOWN 6u
 
@@ -37,7 +38,7 @@ static void push_recharge(uint8_t turns) {
 static void cast_whirlwind(uint8_t px, uint8_t py, AbilityResult *out) {
     uint8_t ei;
     uint8_t hits = 0u;
-    uint8_t dmg = (player_damage > 127u) ? 255u : (uint8_t)(player_damage << 1); // clamp 2x damage into uint8
+    uint8_t dmg = combat_crit_roll((player_damage > 127u) ? 255u : (uint8_t)(player_damage << 1)); // 2x base; crit doubles again
 
     for (ei = 0u; ei < num_enemies; ei++) {
         uint8_t ex;

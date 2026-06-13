@@ -11,6 +11,7 @@
 #include "music.h"
 
 BANKREF_EXTERN(combat_damage_enemy)
+BANKREF_EXTERN(combat_crit_roll)
 BANKREF_EXTERN(entity_sprites_run_projectile)
 
 #define BOW_RANGE_TILES 4u // same reach as the witch bolt
@@ -35,6 +36,7 @@ void bow_shoot_use(AbilityResult *out) BANKED {
         (uint8_t)(TILE_ARROW_VRAM - TILESET_VRAM_OFFSET), PAL_ENEMY_BAT); // H12 arrow, bat ramp
     sfx_lunge_hit();
     dmg = (uint8_t)((player_damage + 1u) >> 1); // half damage, rounded up — mirrors the witch bolt
+    dmg = combat_crit_roll(dmg);
     killed = combat_damage_enemy(ei, dmg, 0u);
     out->consumed_turn = 1u;
     if (killed) {

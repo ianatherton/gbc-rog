@@ -42,8 +42,15 @@ extern uint8_t enemy_alive[MAX_ENEMIES];
 extern uint8_t dead_enemy_pool[MAX_ENEMIES];
 extern uint8_t dead_enemy_pool_count;
 
+extern uint8_t floor_items_picked[MAX_FLOORS];     // bitmask: bit K = floor-spawned slot K picked up
+extern uint8_t floor_enemy_dead[MAX_FLOORS * 3u];  // bitmask: 24 bits per floor, bit K = enemy slot K dead
+
 /* Set by STATE_TRANSITION (pit floor); state_gameplay_enter skips full regen */
 extern uint8_t gameplay_soft_reenter;
+/* Set before level_generate_and_spawn when entering a previously-visited floor (either direction); triggers permanence restoration */
+extern uint8_t level_is_revisit;
+extern uint8_t deepest_floor;       // deepest floor_num reached this run; floor_num <= deepest_floor => revisit
+extern uint8_t entered_from_below;  // 1 = arrived via stairs-up (ascend) => spawn at pit; 0 = descend/fresh => spawn at stairs-up
 
 extern uint8_t inventory_kind[INVENTORY_MAX_SLOTS];     // ITEM_KIND_NONE = empty
 extern uint8_t inventory_equipped[INVENTORY_MAX_SLOTS]; // 1=equipped, 0=not; parallel to inventory_kind

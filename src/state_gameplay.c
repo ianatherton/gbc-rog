@@ -18,6 +18,7 @@
 #include "combat.h"
 #include "perf.h"
 #include "ability_dispatch.h"
+#include "biome.h"
 #include "ally.h"
 #include "items.h"
 #include "story_ui.h"
@@ -387,10 +388,26 @@ void state_gameplay_tick(void) BANKED {
             uint8_t t = tile_at(nx, ny);
             if (t == TILE_WALL) {
             } else if (t == TILE_PIT && !(boss_alive)) {
+                if (floor_num >= MAX_FLOORS) {
+                    pending_transition = TRANS_TO_GAME_OVER;
+                    next_state = STATE_TRANSITION;
+                    wait_vbl_done();
+                    return;
+                }
                 if (player_hp < player_hp_max) player_hp++;
                 wait_vbl_done();
                 draw_cell(g_player_x, g_player_y);
                 pending_transition = TRANS_FLOOR_PIT;
+                next_state         = STATE_TRANSITION;
+                g_prev_j           = j;
+                wait_vbl_done();
+                return;
+            } else if (nx == player_spawn_x && ny == player_spawn_y
+                       && floor_num > 1u
+                       && !(floor_biome == BIOME_BOSS && boss_alive)) {
+                wait_vbl_done();
+                draw_cell(g_player_x, g_player_y);
+                pending_transition = TRANS_FLOOR_UP;
                 next_state         = STATE_TRANSITION;
                 g_prev_j           = j;
                 wait_vbl_done();

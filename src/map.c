@@ -90,7 +90,10 @@ uint8_t ground_item_index_at(uint8_t x, uint8_t y) BANKED { // linear scan; pool
 
 BANKREF(ground_item_kill)
 void ground_item_kill(uint8_t slot) BANKED {
-    if (slot < MAX_GROUND_ITEMS) ground_item_kind[slot] = ITEM_KIND_NONE;
+    if (slot < MAX_GROUND_ITEMS) {
+        ground_item_kind[slot] = ITEM_KIND_NONE;
+        floor_items_picked[floor_num - 1u] |= (uint8_t)(1u << slot);
+    }
 }
 
 static void ground_items_clear(void) {
@@ -133,9 +136,9 @@ void floor_ground_init(uint16_t floor_seed) { // deterministic floor visuals fro
 
 uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; else random E3/E4 on black field
     if (x == player_spawn_x && y == player_spawn_y) {
-        if (floor_biome != BIOME_BOSS || !boss_alive)
+        if (floor_num > 1u && (floor_biome != BIOME_BOSS || !boss_alive))
             return TILE_STAIRS_UP_1;
-        // boss alive: stairs hidden — fall through to normal floor rendering
+        // floor 1 (no floor above) or boss alive: fall through to normal floor rendering
     }
     {
         uint8_t bi = brazier_index_at(x, y);
@@ -272,11 +275,44 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
             ground_item_kind[placed] = (uint8_t)(rand() % ITEM_KIND_COUNT);
             placed++;
         }
+        if (!level_is_revisit) {
+            floor_items_picked[floor_num - 1u] = 0u;
+        } else {
+            uint8_t _gi;
+            for (_gi = 0u; _gi < placed; _gi++) {
+                if (floor_items_picked[floor_num - 1u] & (uint8_t)(1u << _gi))
+                    ground_item_kind[_gi] = ITEM_KIND_NONE;
+            }
+        }
+    }
+    if (level_is_revisit) {
+        uint8_t _ei;
+        for (_ei = 0u; _ei < num_enemies; _ei++) {
+            if (floor_enemy_dead[(floor_num - 1u) * 3u + (_ei >> 3u)]
+                    & (uint8_t)(1u << (_ei & 7u))) {
+                enemy_alive[_ei] = 0u;
+                enemy_clear_slot(enemy_x[_ei], enemy_y[_ei]);
+                if (enemy_type[_ei] == ENEMY_GORGON)
+                    enemy_clear_slot((uint8_t)(enemy_x[_ei] + 1u), enemy_y[_ei]);
+                if (num_corpses < MAX_CORPSES
+                        && ground_item_index_at(enemy_x[_ei], enemy_y[_ei]) == 255u) {
+                    corpse_x[num_corpses] = enemy_x[_ei];
+                    corpse_y[num_corpses] = enemy_y[_ei];
+                    corpse_tile[num_corpses] = corpse_deco_random();
+                    corpse_place_slot(num_corpses, enemy_x[_ei], enemy_y[_ei]);
+                    num_corpses++;
+                }
+            }
+        }
     }
     pending_pickup_slot = 255u; // fresh floor — no carryover prompt
-    *px = player_spawn_x;
-    *py = player_spawn_y;
-    lighting_reveal_radius(*px, *py, LIGHT_RADIUS_STAIRS_UP);
+    if (entered_from_below && map_pit_position(px, py)) {
+        lighting_reveal_radius(*px, *py, LIGHT_RADIUS_LADDER_DOWN);
+    } else {
+        *px = player_spawn_x;
+        *py = player_spawn_y;
+        lighting_reveal_radius(*px, *py, LIGHT_RADIUS_STAIRS_UP);
+    }
     lighting_reveal_radius(*px, *py, player_light_radius());
     {
         int16_t cx = (int16_t)*px - GRID_W / 2;

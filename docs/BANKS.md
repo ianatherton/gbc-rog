@@ -74,8 +74,8 @@ Flow: `Boot → TITLE → CHAR_CREATE → GAMEPLAY ⇄ modals(STATS↔ABILITY, I
 
 ## WRAM budget
 
-Fixed WRAM (0xC000–0xDFFF): `_DATA` = 6,397 B + `_INITIALIZED` 26 B, ends at **0xD9B7**.
-Stack runs down from 0xDFFF → **~1,600 B headroom** (was ~456 B before the fog bits moved out).
+Fixed WRAM (0xC000–0xDFFF): `_DATA` ≈ 6,647 B (+ 250 B for per-floor tracking) + `_INITIALIZED` 26 B.
+Stack runs down from 0xDFFF → **~1,350 B headroom**.
 
 Top consumers:
 - 3 × 1,152 B map bitsets (`floor_bits`, `pit_bits`, `enemy_occ`) = 3,456 B

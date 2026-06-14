@@ -41,6 +41,7 @@ extern uint8_t enemy_anim_toggle;
 extern uint8_t enemy_attack_slots[MAX_ENEMIES]; // slots that struck player this phase (prefix of length enemy_attack_count)
 extern uint8_t enemy_attack_count;
 extern uint8_t enemy_force_active[MAX_ENEMIES]; // 1 = AI runs even when unrevealed/offscreen (boss hook)
+extern uint8_t enemy_persistent[MAX_ENEMIES];   // 1 = from deterministic initial spawn (persists across revisits); 0 = transient summon/split
 
 // Copies the short name into caller-supplied buffer (NUL-terminated, capped at cap-1 chars).
 // Use the copy variant from ANY non-bank-2 caller — a returned pointer would land in a

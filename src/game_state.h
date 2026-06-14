@@ -20,6 +20,7 @@ typedef enum {
 typedef enum {
     TRANS_NONE = 0,
     TRANS_FLOOR_PIT,    // next floor via pit; runs level_init_display(1)+generate
+    TRANS_FLOOR_UP,     // previous floor via stairs up; runs level_init_display(2)+generate with revisit flag
     TRANS_TO_GAME_OVER, // defer to STATE_GAME_OVER enter (reliable far-call path)
 } TransitionKind;
 

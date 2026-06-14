@@ -51,6 +51,7 @@ void enemy_slime_split(uint8_t type, uint8_t dx, uint8_t dy, uint8_t px, uint8_t
         enemy_type[ni] = ENEMY_SLIME;
         enemy_hp[ni] = enemy_effective_max_hp(ENEMY_SLIME);
         enemy_status[ni] = 0u; enemy_force_active[ni] = 0u; enemy_alive[ni] = 1u;
+        enemy_persistent[ni] = 0u; // transient: vanishes on revisit, no gravestone
         enemy_place_slot_far(ni, tx, ty);
         if (ni >= num_enemies) num_enemies = (uint8_t)(ni + 1u);
         spawned++;
@@ -86,6 +87,7 @@ void enemy_gorgon_summon(uint8_t slot) BANKED {
         enemy_type[ni]   = ENEMY_SNAKE;
         enemy_hp[ni]     = enemy_effective_max_hp(ENEMY_SNAKE);
         enemy_status[ni] = 0u; enemy_force_active[ni] = 0u; enemy_alive[ni] = 1u;
+        enemy_persistent[ni] = 0u; // transient: vanishes on revisit, no gravestone
         enemy_place_slot_far(ni, tx, ty);
         if (ni >= num_enemies) num_enemies = (uint8_t)(ni + 1u);
         spawned++;

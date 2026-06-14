@@ -13,6 +13,9 @@ volatile GameState       current_state        = STATE_NONE;
 volatile GameState       next_state           = STATE_TITLE; // must not rely on BSS — random WRAM skips title enter
 volatile TransitionKind  pending_transition; // 0 = TRANS_NONE — omit ROM slot so .data stays below 0x4000 (BankPack overlap fix)
 uint8_t                  gameplay_soft_reenter; // 0 — set by transition only
+uint8_t                  level_is_revisit;      // 0 — set in level_init_display from deepest_floor (direction-independent)
+uint8_t                  deepest_floor;         // deepest floor reached this run; reset to 1 on new run
+uint8_t                  entered_from_below;    // 1 = ascended via stairs-up (spawn at pit); 0 = descend/fresh (spawn at stairs-up)
 
 uint8_t  player_hp  = PLAYER_HP_BASE_MAX;
 uint8_t  player_hp_max = PLAYER_HP_BASE_MAX;
@@ -47,6 +50,9 @@ uint8_t  ally_flip_x[MAX_ALLIES];
 uint8_t enemy_alive[MAX_ENEMIES];
 uint8_t dead_enemy_pool[MAX_ENEMIES];
 uint8_t dead_enemy_pool_count;
+
+uint8_t floor_items_picked[MAX_FLOORS];
+uint8_t floor_enemy_dead[MAX_FLOORS * 3u];
 
 // Arrays left uninitialized to keep GSINIT table small (avoid bank 0/1 boundary overflow).
 // inventory_clear_all() runs from level_init at fresh-run, and ground_items_clear() runs from level_generate_and_spawn each floor.

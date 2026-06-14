@@ -785,13 +785,13 @@ void window_ui_hide(void) BANKED {
 extern volatile uint8_t ui_loading_active;
 extern volatile uint8_t ui_load_phase;
 
-void ui_loading_screen_begin(void) BANKED {
+void ui_loading_screen_begin(uint8_t ascending) BANKED {
     uint8_t tt = (uint8_t)(TILESET_VRAM_OFFSET + TILE_LOADING_SKULL);
     ui_load_phase = 0;
     ui_loading_active = 1u;
     // music_loading_screen_set(1u); // TEMP: music only on story screen
     gotoxy(5, 8);
-    printf("Descending");
+    printf(ascending ? "Ascending " : "Descending");
     set_sprite_tile(UI_LOAD_SKULL_OAM_L, tt);
     set_sprite_tile(UI_LOAD_SKULL_OAM_R, tt);
     set_sprite_prop(UI_LOAD_SKULL_OAM_L, (uint8_t)(PAL_CORPSE & 7u)); // grey ramp slot 0 — keep PAL_UI (6) for non-enemy text only

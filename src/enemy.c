@@ -150,6 +150,7 @@ uint8_t enemy_anim_toggle; // flips each ENEMY_ANIM_DIV_TICKS of DIV accumulatio
 uint8_t enemy_attack_slots[MAX_ENEMIES];
 uint8_t enemy_attack_count;
 uint8_t enemy_force_active[MAX_ENEMIES];
+uint8_t enemy_persistent[MAX_ENEMIES]; // 1 = deterministic initial spawn (permanence-tracked); 0 = transient summon/split
 
 /* enemy_type_short_name_copy moved to enemy_extras.c (auto-banked) to free bank 2 space */
 
@@ -230,7 +231,7 @@ void spawn_enemies(void) { // random placement with collision checks
     uint8_t i;
     num_enemies = 0;
     boss_alive = 0u;
-    for (i = 0; i < MAX_ENEMIES; i++) { enemy_force_active[i] = 0u; enemy_status[i] = 0u; }
+    for (i = 0; i < MAX_ENEMIES; i++) { enemy_force_active[i] = 0u; enemy_status[i] = 0u; enemy_persistent[i] = 0u; }
     if (floor_num == 1u) return; // entry floor is a safe 20x20 no-monster zone
     if (floor_biome == BIOME_BOSS) {
         uint8_t attempts, gx = 1u, gy = 3u; // fallback position
@@ -251,6 +252,7 @@ void spawn_enemies(void) { // random placement with collision checks
         enemy_hp[0]          = enemy_effective_max_hp(ENEMY_GORGON);
         enemy_alive[0]       = 1u;
         enemy_status[0]      = 0u;
+        enemy_persistent[0]  = 1u; // boss is part of the deterministic spawn — stays dead on revisit
         enemy_force_active[0] = 1u; // always-active boss hook
         enemy_place_slot(0, gx, gy);
         enemy_place_slot(0, (uint8_t)(gx+1u), gy);
@@ -271,6 +273,7 @@ void spawn_enemies(void) { // random placement with collision checks
                 enemy_hp[num_enemies]   = enemy_effective_max_hp(enemy_type[num_enemies]);
                 enemy_alive[num_enemies] = 1u;
                 enemy_force_active[num_enemies] = 0u;
+                enemy_persistent[num_enemies] = 1u; // initial spawn — permanence-tracked
                 enemy_place_slot(num_enemies, tx, ty);
                 num_enemies++;
                 break;
@@ -470,6 +473,8 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
         enemy_y[i] = ny;
         if (tile_at(nx, ny) == TILE_PIT) {
             enemy_alive[i] = 0u;
+            if (enemy_persistent[i]) // transient summons/splits don't leave permanent gravestones
+                floor_enemy_dead[(floor_num - 1u) * 3u + (i >> 3u)] |= (uint8_t)(1u << (i & 7u));
             entity_sprites_enemy_poof_begin(i);
             if (dead_enemy_pool_count < MAX_ENEMIES)
                 dead_enemy_pool[dead_enemy_pool_count++] = i;

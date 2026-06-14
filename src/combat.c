@@ -78,6 +78,8 @@ uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage, uint8_t from_shield_burn
         enemy_clear_slot(dx, dy);
         if (enemy_type[ei] == ENEMY_GORGON) enemy_clear_slot((uint8_t)(dx+1u), dy);
         enemy_alive[ei] = 0u;
+        if (enemy_persistent[ei]) // transient summons/splits don't leave permanent gravestones
+            floor_enemy_dead[(floor_num - 1u) * 3u + (ei >> 3u)] |= (uint8_t)(1u << (ei & 7u));
         entity_sprites_enemy_hit_flash_clear(ei);
         entity_sprites_enemy_poof_begin(ei);
         if (dead_enemy_pool_count < MAX_ENEMIES)
@@ -87,6 +89,23 @@ uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage, uint8_t from_shield_burn
             draw_boss_reveal_cells_far(); // reveal stairs + pit now that boss is dead
         }
         grant_xp_from_kill(kill_xp);
+#if GBC_ROG_DEBUG
+        {
+            uint8_t _rem = 0, _ei;
+            for (_ei = 0u; _ei < num_enemies; _ei++)
+                if (enemy_alive[_ei]) _rem++;
+            {
+                char _buf[UI_MSG_LINE];
+                uint8_t _p = 0;
+                const char *_s = "Foes left: ";
+                while (*_s) _buf[_p++] = *_s++;
+                if (_rem >= 10u) _buf[_p++] = (char)('0' + _rem / 10u);
+                _buf[_p++] = (char)('0' + _rem % 10u);
+                _buf[_p] = 0;
+                ui_combat_log_push_pal(_buf, PAL_UI);
+            }
+        }
+#endif
         return 1u;
     }
 }

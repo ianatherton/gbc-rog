@@ -103,6 +103,7 @@ typedef struct {
 #define WALK_STEPS 4000   // scaled up from 350 to match the larger 64×64 map
 #define NUM_PITS     1    // single descent tile per floor
 #define BOSS_FLOOR_NUM 3u // floor 3 always generates the boss biome
+#define MAX_FLOORS     50u // hard cap; floor MAX_FLOORS pit ends the run
 
 /* ── Enemy roster ────────────────────────────────────────────────────────── */
 #define MAX_ENEMIES    24 // OAM layout: 24 body slots + 4 skeleton-head slots fit before ally base

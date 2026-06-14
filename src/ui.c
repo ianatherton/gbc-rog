@@ -647,6 +647,20 @@ static void ui_draw_class_level_line(uint8_t win_y) { // idle panel top row
     win_puts_row_pad_cols(win_y, buf, PAL_UI, UI_PANEL_COLS);
 }
 
+static void ui_draw_floor_counts(uint8_t win_y) { // " mons: xx item: xx" from current (permanence-applied) floor state
+    char buf[COMBAT_LOG_LEN];
+    uint8_t i, mons = 0u, items = 0u;
+    for (i = 0u; i < num_enemies; i++) if (enemy_alive[i]) mons++;
+    for (i = 0u; i < MAX_GROUND_ITEMS; i++) if (ground_item_kind[i] != ITEM_KIND_NONE) items++;
+    i = 0u;
+    buf[i++] = ' '; buf[i++] = 'm'; buf[i++] = 'o'; buf[i++] = 'n'; buf[i++] = 's'; buf[i++] = ':'; buf[i++] = ' ';
+    buf[i++] = (char)('0' + mons / 10u); buf[i++] = (char)('0' + mons % 10u);
+    buf[i++] = ' '; buf[i++] = 'i'; buf[i++] = 't'; buf[i++] = 'e'; buf[i++] = 'm'; buf[i++] = ':'; buf[i++] = ' ';
+    buf[i++] = (char)('0' + items / 10u); buf[i++] = (char)('0' + items % 10u);
+    buf[i] = '\0';
+    win_puts_row_pad_cols(win_y, buf, PAL_UI, UI_PANEL_COLS);
+}
+
 static void ui_draw_reclaim_idle_panel(void) { // after 8 quiet turns: one line only, no seed/zone
     char buf[COMBAT_LOG_LEN];
     format_class_level_buf(buf);
@@ -661,7 +675,8 @@ static void ui_draw_combat_panel(void) {
         if (chat_reclaim_done_until_push) ui_draw_reclaim_idle_panel();
         else {
             ui_draw_class_level_line(UI_PANEL_WIN_Y0);
-            ui_draw_seed_words(run_seed, UI_PANEL_WIN_Y1, UI_PANEL_WIN_Y2);
+            ui_draw_seed_words(run_seed, UI_PANEL_WIN_Y1);
+            ui_draw_floor_counts(UI_PANEL_WIN_Y2);
         }
     } else {
         for (i = 0; i < COMBAT_LOG_LINES; i++) {
@@ -820,14 +835,15 @@ void ui_draw_bottom_rows(void) BANKED {
     ui_draw_top_hud();
 }
 
-void ui_draw_seed_words(uint16_t seed, uint8_t win_y_desc_noun, uint8_t win_y_place) BANKED {
+void ui_draw_seed_words(uint16_t seed, uint8_t win_y) BANKED { // desc + noun + place on one row
     uint8_t x, d, n, p;
     run_seed_to_triple(seed, &d, &n, &p);
-    put_word5_win(0u, win_y_desc_noun, seed_words_desc[d]);
-    put_word5_win(6u, win_y_desc_noun, seed_words_noun[n]);
-    for (x = 11; x < UI_PANEL_COLS; x++) win_put_space(x, win_y_desc_noun);
-    put_word5_win(0u, win_y_place, seed_words_place[p]);
-    for (x = 5; x < UI_PANEL_COLS; x++) win_put_space(x, win_y_place);
+    put_word5_win(0u,  win_y, seed_words_desc[d]);
+    put_word5_win(6u,  win_y, seed_words_noun[n]);
+    put_word5_win(12u, win_y, seed_words_place[p]);
+    win_put_space(5u, win_y);  // separators between the fixed 5-char words
+    win_put_space(11u, win_y);
+    for (x = 17; x < UI_PANEL_COLS; x++) win_put_space(x, win_y);
 }
 
 void ui_panel_show_combat(void) BANKED { ui_panel_mode = UI_PANEL_COMBAT; }

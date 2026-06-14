@@ -18,7 +18,7 @@ void     run_seed_to_triple(uint16_t seed, uint8_t *d, uint8_t *n, uint8_t *p) B
 
 uint16_t title_screen(uint16_t entropy_hint) BANKED;
 void     ui_draw_bottom_rows(void) BANKED;
-void     ui_draw_seed_words(uint16_t seed, uint8_t win_y_desc_noun, uint8_t win_y_place) BANKED;
+void     ui_draw_seed_words(uint16_t seed, uint8_t win_y) BANKED;
 void     window_ui_show(void) BANKED;
 void     window_ui_hide(void) BANKED;
 void     ui_combat_log_clear(void) BANKED;

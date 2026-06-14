@@ -292,8 +292,10 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
                     & (uint8_t)(1u << (_ei & 7u))) {
                 enemy_alive[_ei] = 0u;
                 enemy_clear_slot(enemy_x[_ei], enemy_y[_ei]);
-                if (enemy_type[_ei] == ENEMY_GORGON)
+                if (enemy_type[_ei] == ENEMY_GORGON) {
                     enemy_clear_slot((uint8_t)(enemy_x[_ei] + 1u), enemy_y[_ei]);
+                    boss_alive = 0u;
+                }
                 if (num_corpses < MAX_CORPSES
                         && ground_item_index_at(enemy_x[_ei], enemy_y[_ei]) == 255u) {
                     corpse_x[num_corpses] = enemy_x[_ei];

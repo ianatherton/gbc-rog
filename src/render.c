@@ -75,6 +75,19 @@ void apply_wall_palette(void) { // PAL_WALL_BG bulk walls + PAL_PILLAR_BG column
     // PAL_WALL_BG sprite slot is reserved for gameplay fire particle tint; keep wall colors BG-only.
 }
 
+void apply_field_palette(void) { // slot 0 (blank field) + floor-deco, per biome — restores after a menu blanks slot 0
+    if (floor_biome == BIOME_OVERWORLD) {
+        // keep identical to biome_overworld.c pal_overworld_field / pal_overworld_floor_deco
+        palette_color_t f[4]  = { RGB(10, 22, 8), RGB(8, 8, 8), RGB(16, 16, 16), RGB(31, 31, 31) };
+        palette_color_t fd[4] = { RGB(10, 22, 8), RGB(5, 5, 5), RGB(11, 11, 11), RGB(17, 17, 17) };
+        set_bkg_palette(0, 1, f);
+        set_bkg_palette(PAL_FLOOR_BG, 1, fd);
+    } else {
+        set_bkg_palette(0, 1, pal_default);
+        set_bkg_palette(PAL_FLOOR_BG, 1, pal_floor_deco);
+    }
+}
+
 static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t my) { // floor/wall/pit/corpse; no actors on BG
     if (!lighting_is_revealed(mx, my)) {
         gotoxy(sx, sy);

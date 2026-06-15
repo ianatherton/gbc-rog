@@ -180,6 +180,7 @@ void state_gameplay_tick(void) BANKED {
     if (!lcd_gameplay_active) {
         lcd_gameplay_active = 1u;
         window_ui_show();
+        apply_field_palette(); // restore slot 0 field color (a menu may have blanked it to black)
         wait_vbl_done();
         draw_screen(g_player_x, g_player_y);
     }

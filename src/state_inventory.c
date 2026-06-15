@@ -294,12 +294,14 @@ static void draw_drop_confirm(void) {
 
 BANKREF(state_inventory_enter)
 void state_inventory_enter(void) BANKED {
+    static const palette_color_t inv_bkg0_black[4] = { RGB(0,0,0), RGB(8,8,8), RGB(16,16,16), RGB(31,31,31) };
     BANK_DBG("IV_enter");
     inv_prev_j = joypad();
     inv_cursor = 0u;
     inv_mode   = INV_MODE_GRID;
     lcd_gameplay_active = 0u;
     window_ui_hide();
+    set_bkg_palette(0u, 1u, inv_bkg0_black); // menu is black-backed even on the overworld (green field slot 0)
     wait_vbl_done();
     draw_grid_screen();
 }

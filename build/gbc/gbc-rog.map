@@ -126,11 +126,11 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     000019EC  l__DATA   |    00001AB1  l__CODE_3 |    00002000  _rROMB0  
+     000019EC  l__DATA   |    00001AC5  l__CODE_3 |    00002000  _rROMB0  
      00002731  l__CODE   |    0000285C  l__CODE_5 |    00002931  s__HOME  
      00002A7D  l__CODE_1 |    00003000  _rROMB1   |    000034FA  s__BASE  
      000034FA  s__CODE_0 |    000034FA  s__INITIA |    000034FA  s__LIT   
-     00003517  s__GSINIT |    00003523  s__GSFINA |    00003ABF  l__CODE_2
+     00003517  s__GSINIT |    00003523  s__GSFINA |    00003B35  l__CODE_2
      00004000  _rMBC7_SR |    00004000  _rRAMB    |    00008000  __VRAM   
      00008000  __VRAM800 |    00008800  __VRAM880 |    00009000  __VRAM900
      00009800  __SCRN0   |    00009C00  __SCRN1   |    0000A000  __SRAM   
@@ -534,7 +534,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_2                00024000    00003ABF =       15039. bytes (REL,CON)
+_CODE_2                00024000    00003B35 =       15157. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -546,40 +546,40 @@ _CODE_2                00024000    00003ABF =       15039. bytes (REL,CON)
      000245EE  _corpse_d |    000245FD  _spawn_en |    000248C4  _enemy_se
      000248DC  _enemy_ge |    00024C47  _enemy_re |    00024D7A  _move_ene
      0002554C  ___func_s |    0002554C  _state_ga |    000255B9  ___func_s
-     000255B9  _state_ga |    00025FCD  _wall_ort |    00026182  ___func_t
-     00026182  _tile_at  |    00026210  ___func_m |    00026210  _map_pit_
-     00026229  ___func_g |    00026229  _ground_i |    0002625C  ___func_g
-     0002625C  _ground_i |    0002629A  ___func_i |    0002629A  _is_walka
-     000262DD  _tile_cha |    000262EB  _tile_vra |    0002630E  _tile_pal
-     0002631B  _floor_gr |    00026333  _floor_ti |    0002644B  _nearest_
-     000264ED  _nav_fill |    000265D4  ___func_l |    000265D4  _level_ge
-     00026C68  ___func_c |    00026C68  _camera_i |    00026ED2  _camera_s
-     000273A7  _camera_s |    000273F6  _apply_wa |    000277CB  ___func_l
-     000277CB  _load_pal |    000278AF  _draw_cel |    00027903  _draw_col
-     0002793D  _draw_row |    00027974  _draw_ui_ |    0002797C  _draw_gam
-     00027996  _draw_scr |    00027A15  _draw_gam |    00027A32  _draw_gam
-     00027A3A  _draw_ene |    00027A49  _draw_cor |    00027A8E  _draw_cor
-     00027A91  _draw_bos
+     000255B9  _state_ga |    00025FD0  _wall_ort |    00026185  ___func_t
+     00026185  _tile_at  |    00026213  ___func_m |    00026213  _map_pit_
+     0002622C  ___func_g |    0002622C  _ground_i |    0002625F  ___func_g
+     0002625F  _ground_i |    0002629D  ___func_i |    0002629D  _is_walka
+     000262E0  _tile_cha |    000262EE  _tile_vra |    00026311  _tile_pal
+     0002631E  _floor_gr |    00026336  _floor_ti |    0002644E  _nearest_
+     000264F0  _nav_fill |    000265D7  ___func_l |    000265D7  _level_ge
+     00026C6B  ___func_c |    00026C6B  _camera_i |    00026ED5  _camera_s
+     000273AA  _camera_s |    000273F9  _apply_wa |    00027570  _apply_fi
+     00027841  ___func_l |    00027841  _load_pal |    00027925  _draw_cel
+     00027979  _draw_col |    000279B3  _draw_row |    000279EA  _draw_ui_
+     000279F2  _draw_gam |    00027A0C  _draw_scr |    00027A8B  _draw_gam
+     00027AA8  _draw_gam |    00027AB0  _draw_ene |    00027ABF  _draw_cor
+     00027B04  _draw_cor |    00027B07  _draw_bos
 ASxxxx Linker V03.00/V05.40 + sdld,  page 32.
 Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_3                00034000    00001AB1 =        6833. bytes (REL,CON)
+_CODE_3                00034000    00001AC5 =        6853. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     000348FD  ___func_s |    000348FD  _state_in |    0003491C  ___func_s
-     0003491C  _state_in |    00034E3F  ___func_s |    00034E3F  _state_ch
-     0003529E  ___func_s |    0003529E  _state_pi |    000352EF  ___func_s
-     000352EF  _state_pi |    00035406  ___func_s |    00035406  _state_st
-     00035613  ___func_s |    00035613  _state_st |    00035635  ___func_s
-     00035635  _state_ab |    0003573E  ___func_s |    0003573E  _state_ab
-     00035760  ___func_s |    00035760  _state_ma |    0003584B  ___func_s
-     0003584B  _state_ma |    000358C9  ___func_c |    000358C9  _class_pa
-     00035904  _class_pa |    0003591B  ___func_s |    0003591B  _state_ga
-     000359C7  ___func_s |    000359C7  _state_tr |    00035A66  ___func_s
-     00035A66  _state_ti
+     000348FD  ___func_s |    000348FD  _state_in |    00034930  ___func_s
+     00034930  _state_in |    00034E53  ___func_s |    00034E53  _state_ch
+     000352B2  ___func_s |    000352B2  _state_pi |    00035303  ___func_s
+     00035303  _state_pi |    0003541A  ___func_s |    0003541A  _state_st
+     00035627  ___func_s |    00035627  _state_st |    00035649  ___func_s
+     00035649  _state_ab |    00035752  ___func_s |    00035752  _state_ab
+     00035774  ___func_s |    00035774  _state_ma |    0003585F  ___func_s
+     0003585F  _state_ma |    000358DD  ___func_c |    000358DD  _class_pa
+     00035918  _class_pa |    0003592F  ___func_s |    0003592F  _state_ga
+     000359DB  ___func_s |    000359DB  _state_tr |    00035A7A  ___func_s
+     00035A7A  _state_ti
 ASxxxx Linker V03.00/V05.40 + sdld,  page 33.
 Hexadecimal  [32-Bits]
 

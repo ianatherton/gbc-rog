@@ -1,6 +1,7 @@
 #pragma bank 17
 
 #include "ally.h"
+#include "music.h"
 #include "globals.h"
 #include "defs.h"
 #include "map.h"
@@ -211,6 +212,7 @@ uint8_t ally_fox_turn_tick(uint8_t slot, uint8_t px, uint8_t py) BANKED {
         if (cheb_dist(ally_x[slot], ally_y[slot], ex, ey) <= 1u) {
             dmg = player_level ? player_level : 1u;
             entity_sprites_run_ally_lunge(px, py, slot, ex, ey, ei);
+            sfx_fox_yip();
             return combat_damage_enemy(ei, dmg, 0u);
         }
         fox_blink_toward(ally_x[slot], ally_y[slot], ex, ey, FOX_BLINK_RANGE, &nx, &ny);

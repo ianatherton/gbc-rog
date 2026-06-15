@@ -14,5 +14,6 @@ void sfx_lunge_hit(void);   // CH4 noise — player or enemy strike (one-shot)
 void sfx_spell_zap(void);   // CH2 short zap for witch bolt cast
 void sfx_whirlwind_cast(void); // CH4 burst for zerker Whirlwind cast
 void sfx_shield_sparkle(void); // CH2 sparkle for knight shield cast
+void sfx_fox_yip(void);        // CH2 high-pitch blip — fox ally attack
 
 #endif // GAME_MUSIC_H

@@ -367,6 +367,13 @@ void sfx_shield_sparkle(void) {
     NR24_REG = 0x87u; // trigger + high bits
 }
 
+void sfx_fox_yip(void) {
+    NR21_REG = 0x80u; // 50% duty — clean square punch
+    NR22_REG = 0xF1u; // max volume, fastest decay (period=1)
+    NR23_REG = 0xE0u; // pitch low byte
+    NR24_REG = 0x87u; // trigger + high bits → freq_reg=0x7E0 (~4096 Hz)
+}
+
 void music_play_title(void) {
     mode_title = 1u;
     mel_i = bas_i = 0;

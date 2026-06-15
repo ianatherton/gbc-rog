@@ -52,7 +52,7 @@ void apply_wall_palette(void) { // PAL_WALL_BG bulk walls + PAL_PILLAR_BG column
         // PAL_WALL_BG = green pine ramp for interior c10 trees (idx0 bg / idx1 foliage / idx2 trunk);
         // idx0 matches the open-field color so trees sit seamlessly on the field.
         palette_color_t tree_pal[4] = {
-            RGB(13, 26, 6), RGB(6, 18, 4), RGB(10, 7, 2), RGB(12, 26, 6), // idx0 == pal_overworld_field[0]
+            RGB(12, 23, 5), RGB(6, 18, 4), RGB(10, 7, 2), RGB(12, 26, 6), // idx0 == pal_overworld_field[0]
         };
         // PAL_PILLAR_BG = blue water ramp for the border F10 tile (idx3 bulk / idx2 wave specks).
         palette_color_t water_pal[4] = {
@@ -78,8 +78,8 @@ void apply_wall_palette(void) { // PAL_WALL_BG bulk walls + PAL_PILLAR_BG column
 void apply_field_palette(void) { // slot 0 (blank field) + floor-deco, per biome — restores after a menu blanks slot 0
     if (floor_biome == BIOME_OVERWORLD) {
         // keep identical to biome_overworld.c pal_overworld_field / pal_overworld_floor_deco
-        palette_color_t f[4]  = { RGB(13, 26, 6), RGB(8, 8, 8), RGB(16, 16, 16), RGB(31, 31, 31) };
-        palette_color_t fd[4] = { RGB(13, 26, 6), RGB(5, 5, 5), RGB(11, 11, 11), RGB(17, 17, 17) };
+        palette_color_t f[4]  = { RGB(12, 23, 5), RGB(8, 8, 8), RGB(16, 16, 16), RGB(31, 31, 31) };
+        palette_color_t fd[4] = { RGB(12, 23, 5), RGB(5, 5, 5), RGB(11, 11, 11), RGB(17, 17, 17) };
         set_bkg_palette(0, 1, f);
         set_bkg_palette(PAL_FLOOR_BG, 1, fd);
     } else {

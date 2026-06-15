@@ -127,9 +127,38 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
     pit_present = 0u;
 
     set_floor(x, y); // ensure spawn is open
-    {
-        uint16_t steps = (floor_num == 0u) ? 12000u : WALK_STEPS;
-        for (i = 0; i < steps; i++) {
+    if (floor_num == 0u) {
+        // Hub overworld: open walkable field ringed by a solid border (rendered as blue water),
+        // dotted with scattered c10 tree walls. No drunkard carve — we fill, then stamp trees back.
+        uint8_t lo  = OVERWORLD_BORDER_BAND;
+        uint8_t hix = (uint8_t)(active_map_w - OVERWORLD_BORDER_BAND); // exclusive interior bound
+        uint8_t hiy = (uint8_t)(active_map_h - OVERWORLD_BORDER_BAND);
+        uint8_t bx, by;
+        // keep the player off the water: pull spawn into the open interior
+        if (player_spawn_x < lo)  player_spawn_x = lo;
+        if (player_spawn_x >= hix) player_spawn_x = (uint8_t)(hix - 1u);
+        if (player_spawn_y < lo)  player_spawn_y = lo;
+        if (player_spawn_y >= hiy) player_spawn_y = (uint8_t)(hiy - 1u);
+        for (by = lo; by < hiy; by++)
+            for (bx = lo; bx < hix; bx++)
+                set_floor(bx, by); // flood interior to floor
+        {
+            uint16_t t; // scatter tree clumps (carve floor back to wall); ~11% coverage on 96×96
+            uint8_t span_ix = (uint8_t)(hix - lo), span_iy = (uint8_t)(hiy - lo);
+            for (t = 0u; t < 600u; t++) {
+                uint8_t tx = (uint8_t)(lo + (uint8_t)(rand() % span_ix));
+                uint8_t ty = (uint8_t)(lo + (uint8_t)(rand() % span_iy));
+                uint8_t adx = (tx > player_spawn_x) ? (uint8_t)(tx - player_spawn_x) : (uint8_t)(player_spawn_x - tx);
+                uint8_t ady = (ty > player_spawn_y) ? (uint8_t)(ty - player_spawn_y) : (uint8_t)(player_spawn_y - ty);
+                if (adx <= 2u && ady <= 2u) continue; // leave a clearing around spawn
+                BIT_CLR(floor_bits, TILE_IDX(tx, ty));
+                if ((rand() & 0x40u) && (uint8_t)(tx + 1u) < hix) // ~50% grow into a 2-tile clump
+                    BIT_CLR(floor_bits, TILE_IDX((uint8_t)(tx + 1u), ty));
+            }
+        }
+        set_floor(player_spawn_x, player_spawn_y); // guarantee spawn open after scatter
+    } else {
+        for (i = 0; i < WALK_STEPS; i++) {
         uint8_t d  = rand() >> 6; // use top bits of rand(); low bits are weak on this LCG
         uint8_t nx = x, ny = y;
         if      (d == 0) ny = y > 1           ? y - 1 : y; // stay one tile inside border

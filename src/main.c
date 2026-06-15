@@ -58,8 +58,10 @@ int main(void) {
         set_bkg_data(TILESET_VRAM_OFFSET, TILESET_NTILES_VRAM, tileset_tiles);
         set_bkg_data((uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY), 1u, // K1 VRAM ← M14 empty-slot art (ROM past first 128)
             tileset_tiles + (uint16_t)TILE_SHEET_M14 * 16u);
-        set_bkg_data(TILE_OVERWORLD_WALL_VRAM, 1u, // overworld wall/pillar ← c10 art (ROM past first 128; borrows unused F4 slot)
+        set_bkg_data(TILE_OVERWORLD_WALL_VRAM, 1u, // overworld tree wall ← c10 art (title-safe F6 slot 213)
             tileset_tiles + (uint16_t)TILE_C10 * 16u);
+        set_bkg_data(TILE_OVERWORLD_WATER_VRAM, 1u, // overworld water border ← f10 art (title-safe G6 slot 214)
+            tileset_tiles + (uint16_t)TILE_F10 * 16u);
         set_sprite_data(TILE_LEVELUP_SMILE_VRAM, 1u, // L10 smile — level-up aura (sheet past first 128)
             tileset_tiles + (uint16_t)TILE_SMILE_L10 * 16u);
         set_bkg_data(TILE_SCROLL_I11_VRAM, 1u, // I11 scroll — ROM past first VRAM pack

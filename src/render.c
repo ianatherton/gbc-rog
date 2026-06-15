@@ -49,11 +49,17 @@ void apply_wall_palette(void) { // PAL_WALL_BG bulk walls + PAL_PILLAR_BG column
     wall_palette_hw_ip = ip;
     wall_palette_hw_biome = floor_biome;
     if (floor_biome == BIOME_OVERWORLD) {
-        palette_color_t tp[4] = {
-            RGB(1, 6, 2), RGB(12, 6, 2), RGB(5, 15, 4), RGB(12, 26, 6),
+        // PAL_WALL_BG = green pine ramp for interior c10 trees (idx0 bg / idx1 foliage / idx2 trunk);
+        // idx0 matches the open-field color so trees sit seamlessly on the field.
+        palette_color_t tree_pal[4] = {
+            RGB(10, 22, 8), RGB(6, 18, 4), RGB(10, 7, 2), RGB(12, 26, 6), // idx0 == pal_overworld_field[0]
         };
-        set_bkg_palette(PAL_WALL_BG,   1u, tp);
-        set_bkg_palette(PAL_PILLAR_BG, 1u, tp);
+        // PAL_PILLAR_BG = blue water ramp for the border F10 tile (idx3 bulk / idx2 wave specks).
+        palette_color_t water_pal[4] = {
+            RGB(2, 4, 10), RGB(4, 8, 16), RGB(9, 16, 26), RGB(2, 7, 16),
+        };
+        set_bkg_palette(PAL_WALL_BG,   1u, tree_pal);
+        set_bkg_palette(PAL_PILLAR_BG, 1u, water_pal);
         return;
     }
     wall_pal[0] = bg0; // field color — seamless with blank / pit-adjacent open cells
@@ -107,6 +113,16 @@ static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t m
                 else                               pal = PAL_FLOOR_BG;
             }
             set_bkg_attribute_xy(sx, sy, pal);
+        } else if (t == TILE_WALL && floor_biome == BIOME_OVERWORLD) {
+            // Hub walls split by position: outer band = blue water (F10/PAL_PILLAR_BG),
+            // interior = green tree (c10/PAL_WALL_BG). Neighbor-count pillar logic is bypassed
+            // so the blue pillar slot never leaks onto interior trees.
+            uint8_t border = (mx < OVERWORLD_BORDER_BAND || my < OVERWORLD_BORDER_BAND
+                           || mx >= (uint8_t)(active_map_w - OVERWORLD_BORDER_BAND)
+                           || my >= (uint8_t)(active_map_h - OVERWORLD_BORDER_BAND));
+            uint8_t vram = border ? TILE_OVERWORLD_WATER_VRAM : TILE_OVERWORLD_WALL_VRAM;
+            set_bkg_tiles(sx, sy, 1, 1, &vram);
+            set_bkg_attribute_xy(sx, sy, border ? PAL_PILLAR_BG : PAL_WALL_BG);
         } else if (t == TILE_WALL) {
             uint8_t n = wall_ortho_wall_count_xy(mx, my); // computed from floor_bits at draw-time to save WRAM
             uint8_t off = wall_tileset_index;

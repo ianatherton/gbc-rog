@@ -244,11 +244,17 @@ typedef struct {
 #define TILE_CHEST           5   /* F1  */
 #define TILE_BARREL         21   /* F2  */
 #define TILE_MUSHROOM       37   /* F3  */
-/* F4 (index 53) — repurposed: overworld wall/pillar tile. ROM source c10 (offset 146)
-   lives past the first-128 VRAM upload, so it's boot-copied into F4's VRAM slot (181). */
-#define TILE_C10                146u /* C10 sheet source = (10-1)*16 + 2 — overworld wall art */
-#define TILE_OVERWORLD_WALL_OFF  53u /* F4 sheet offset; renderer adds TILESET_VRAM_OFFSET */
-#define TILE_OVERWORLD_WALL_VRAM ((uint8_t)(TILESET_VRAM_OFFSET + TILE_OVERWORLD_WALL_OFF)) /* =181 */
+/* F4 (index 53) — unused, skip (was a stale c10 home; the title logo restore stomped VRAM 181). */
+/* Overworld terrain art (hub only). Both ROM sources live past the first-128 VRAM upload, so they
+   are boot-copied into title-safe VRAM slots — the title logo (title_logo.c) patches+restores
+   128..181, so the wall/water slots must sit ≥182 and outside that table or they get blanked. */
+#define TILE_C10                 146u /* C10 sheet source = (10-1)*16 + 2 — overworld wall (pine tree) art */
+#define TILE_F10                 149u /* F10 sheet source = (10-1)*16 + 5 — overworld water (border) art */
+#define TILE_OVERWORLD_WALL_OFF   85u /* borrows unused F6 VRAM slot (213); renderer adds TILESET_VRAM_OFFSET */
+#define TILE_OVERWORLD_WATER_OFF  86u /* borrows unused G6 VRAM slot (214) */
+#define TILE_OVERWORLD_WALL_VRAM  ((uint8_t)(TILESET_VRAM_OFFSET + TILE_OVERWORLD_WALL_OFF))  /* =213 tree */
+#define TILE_OVERWORLD_WATER_VRAM ((uint8_t)(TILESET_VRAM_OFFSET + TILE_OVERWORLD_WATER_OFF)) /* =214 water */
+#define OVERWORLD_BORDER_BAND      2u /* hub: outermost N tiles are the blue water border */
 
 /* ── G col — doors + shrine states ──────────────────────────────────────── */
 #define TILE_DOOR_OPEN       6   /* G1  */

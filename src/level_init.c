@@ -30,8 +30,8 @@ void level_init_display(uint8_t from_pit) BANKED {
     } else {
         lcd_gameplay_active = 0u;
         window_ui_hide();
-        floor_num = 1;
-        deepest_floor = 1u;       // new run — floor 1 is the deepest reached so far
+        floor_num = 0;            // new run starts on the overworld hub (floor 0)
+        deepest_floor = 0u;       // hub is the shallowest; floor 1+ are "deeper"
         entered_from_below = 0u;
         player_hp_max = PLAYER_HP_BASE_MAX;
         player_level = 1;

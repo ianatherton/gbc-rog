@@ -232,7 +232,7 @@ void spawn_enemies(void) { // random placement with collision checks
     num_enemies = 0;
     boss_alive = 0u;
     for (i = 0; i < MAX_ENEMIES; i++) { enemy_force_active[i] = 0u; enemy_status[i] = 0u; enemy_persistent[i] = 0u; }
-    if (floor_num == 1u) return; // entry floor is a safe 20x20 no-monster zone
+    if (floor_num == 1u || floor_biome == BIOME_OVERWORLD) return; // hub + entry floor are safe no-monster zones (empty roster → guard rand() % 0)
     if (floor_biome == BIOME_BOSS) {
         uint8_t attempts, gx = 1u, gy = 3u; // fallback position
         boss_alive = 1u;

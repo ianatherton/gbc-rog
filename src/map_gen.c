@@ -107,7 +107,7 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
     mix ^= mix >> 17;
     mix *= 2246523629u;
     if (floor_num == 1u || floor_num == BOSS_FLOOR_NUM) {
-        active_map_w = 20u;
+        active_map_w = 20u; // entry floor (1), boss (3): fixed compact arena
         active_map_h = 20u;
     } else {
         active_map_w = MAP_W;
@@ -127,7 +127,9 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
     pit_present = 0u;
 
     set_floor(x, y); // ensure spawn is open
-    for (i = 0; i < WALK_STEPS; i++) {
+    {
+        uint16_t steps = (floor_num == 0u) ? 12000u : WALK_STEPS;
+        for (i = 0; i < steps; i++) {
         uint8_t d  = rand() >> 6; // use top bits of rand(); low bits are weak on this LCG
         uint8_t nx = x, ny = y;
         if      (d == 0) ny = y > 1           ? y - 1 : y; // stay one tile inside border
@@ -136,6 +138,7 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
         else             nx = x < active_map_w - 2   ? x + 1 : x;
         set_floor(nx, ny);
         x = nx; y = ny; // wander
+        }
     }
 
     uint8_t placed = 0;
@@ -167,7 +170,8 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
     {
         uint8_t target_count;
         uint16_t attempts = 0u;
-        if (floor_num == 1u) target_count = 4u;
+        if (floor_num == 0u) target_count = 0u; // hub: no braziers
+        else if (floor_num == 1u) target_count = 4u;
         else if (floor_num == BOSS_FLOOR_NUM) target_count = 0u; // unlit boss arena
         else {
             uint8_t base = (uint8_t)(10u + (uint8_t)(rand() % 11u)); // 10..20

@@ -10,8 +10,9 @@
 #define BIOME_CRYPT   1u
 #define BIOME_CAVERN  2u
 #define BIOME_BOSS    3u
-#define BIOME_COUNT   4u
-#define BIOME_RANDOM_COUNT 3u // random floors pick from dungeon/crypt/cavern only (excludes BIOME_BOSS)
+#define BIOME_OVERWORLD 4u // top-level hub (floor 0); never appears in the random rotation
+#define BIOME_COUNT   5u
+#define BIOME_RANDOM_COUNT 3u // random floors pick from dungeon/crypt/cavern only (excludes BIOME_BOSS/OVERWORLD)
 
 // HOME-resident roster cache; populated by biome_load_active() at floor-gen time.
 // enemy.c / entity_sprites.c read this directly without bank switching.
@@ -32,8 +33,10 @@ void biome_dungeon_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_co
 void biome_crypt_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 void biome_cavern_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 void biome_boss_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
+void biome_overworld_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 
 typedef void (*BiomeLoadPalettesFn)(void);
 void biome_boss_load_palettes(void); // overrides OCP4 with green+tan ramp for gorgon body/feet
+void biome_overworld_load_palettes(void); // dark-green field (BG slot 0 + floor-deco color 0)
 
 #endif

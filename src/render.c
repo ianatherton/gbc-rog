@@ -35,20 +35,32 @@ void render_sprite_palette_player_hurt(void) NONBANKED {
 }
 
 static uint8_t wall_palette_hw_iw = 255u, wall_palette_hw_ip = 255u; // 255 = out of band; invalidated in load_palettes
+static uint8_t wall_palette_hw_biome = 255u; // tracks floor_biome so the field color follows hub<->dungeon transitions
 
 void apply_wall_palette(void) { // PAL_WALL_BG bulk walls + PAL_PILLAR_BG column tiles (CGB BGP slots)
     uint8_t iw = wall_palette_index, ip = pillar_palette_index;
     palette_color_t wall_pal[4], pil_pal[4];
+    // index-0 ("paper" behind wall/pillar art) matches the open field: dark green on the hub, else black
+    palette_color_t bg0 = (floor_biome == BIOME_OVERWORLD) ? (palette_color_t)RGB(1, 6, 2) : pal_default[0];
     if (iw >= NUM_WALL_PALETTES) iw = 0;
     if (ip >= NUM_WALL_PALETTES) ip = 0;
-    if (iw == wall_palette_hw_iw && ip == wall_palette_hw_ip) return; // skip CRAM when draw_screen repeats same ramp
+    if (iw == wall_palette_hw_iw && ip == wall_palette_hw_ip && floor_biome == wall_palette_hw_biome) return; // skip CRAM when draw_screen repeats same ramp
     wall_palette_hw_iw = iw;
     wall_palette_hw_ip = ip;
-    wall_pal[0] = pal_default[0]; // black field — seamless with blank / pit-adjacent open cells
+    wall_palette_hw_biome = floor_biome;
+    if (floor_biome == BIOME_OVERWORLD) {
+        palette_color_t tp[4] = {
+            RGB(1, 6, 2), RGB(12, 6, 2), RGB(5, 15, 4), RGB(12, 26, 6),
+        };
+        set_bkg_palette(PAL_WALL_BG,   1u, tp);
+        set_bkg_palette(PAL_PILLAR_BG, 1u, tp);
+        return;
+    }
+    wall_pal[0] = bg0; // field color — seamless with blank / pit-adjacent open cells
     wall_pal[1] = wall_palette_table[iw][1];
     wall_pal[2] = wall_palette_table[iw][2];
     wall_pal[3] = wall_palette_table[iw][3];
-    pil_pal[0] = pal_default[0];
+    pil_pal[0] = bg0;
     pil_pal[1] = wall_palette_table[ip][1];
     pil_pal[2] = wall_palette_table[ip][2];
     pil_pal[3] = wall_palette_table[ip][3];

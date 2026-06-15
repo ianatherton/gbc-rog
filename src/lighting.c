@@ -1,4 +1,6 @@
 #include "map.h"
+#include "globals.h"
+#include "biome.h"
 
 #define LIGHTING_DIRTY_MAX 80u // knight r=4 diamond ≤77; 80 covers full unexplored room entry
 
@@ -181,10 +183,11 @@ void lighting_reveal_radius(uint8_t cx, uint8_t cy, uint8_t radius) {
 }
 
 uint8_t lighting_is_revealed(uint8_t x, uint8_t y) {
+    if (floor_biome == BIOME_OVERWORLD) return 1u;
 #if FEATURE_MAP_FOG
     return exp2_test(TILE_IDX(x, y));
 #else
-    x = x; y = y; // keep renderer branch-free when fog is disabled
+    x = x; y = y;
     return 1u;
 #endif
 }

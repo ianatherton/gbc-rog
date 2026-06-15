@@ -136,9 +136,9 @@ void floor_ground_init(uint16_t floor_seed) { // deterministic floor visuals fro
 
 uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; else random E3/E4 on black field
     if (x == player_spawn_x && y == player_spawn_y) {
-        if (floor_num > 1u && (floor_biome != BIOME_BOSS || !boss_alive))
+        if (floor_num > 0u && (floor_biome != BIOME_BOSS || !boss_alive))
             return TILE_STAIRS_UP_1;
-        // floor 1 (no floor above) or boss alive: fall through to normal floor rendering
+        // floor 0 hub (nothing above) or boss alive: fall through to normal floor rendering
     }
     {
         uint8_t bi = brazier_index_at(x, y);
@@ -243,6 +243,12 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     ally_clear_all();
     biome_load_active(biome_pick_for_floor(floor_num, run_seed)); // fills HOME enemy_defs[] from coral bank before spawn
     if (floor_biome == BIOME_CAVERN) wall_tileset_index = TILE_WALL_F;
+    if (floor_biome == BIOME_OVERWORLD) {
+        // Hub uses c10 for both bulk walls and isolated pillars. Future areas would also
+        // place extra transition tiles here and route them via a destination lookup.
+        wall_tileset_index = TILE_OVERWORLD_WALL_OFF;
+        floor_column_off   = TILE_OVERWORLD_WALL_OFF;
+    }
     generate_level(floor_seed);
     lighting_reset();
     if (pit_present) lighting_reveal_radius(pit_x, pit_y, LIGHT_RADIUS_LADDER_DOWN);
@@ -255,7 +261,7 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     }
     spawn_enemies();
     ground_items_clear();
-    {
+    if (floor_biome != BIOME_OVERWORLD) { // hub has no items (also avoids floor_items_picked[floor_num-1] underflow at floor 0)
         uint8_t target = (uint8_t)(2u + (uint8_t)(rand() & 3u)); // 2..5 items per floor
         uint8_t placed = 0u;
         uint16_t attempts = 0u;

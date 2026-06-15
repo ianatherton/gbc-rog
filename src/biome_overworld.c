@@ -13,10 +13,10 @@
 // (E3/E4 ground deco) replace the usual black. Remaining colors mirror render.c's
 // pal_default / pal_floor_deco so non-hub visuals are unchanged.
 static const palette_color_t pal_overworld_field[] = {
-    RGB(10, 22, 8), RGB(8, 8, 8), RGB(16, 16, 16), RGB(31, 31, 31),
+    RGB(13, 26, 6), RGB(8, 8, 8), RGB(16, 16, 16), RGB(31, 31, 31),
 };
 static const palette_color_t pal_overworld_floor_deco[] = {
-    RGB(10, 22, 8), RGB(5, 5, 5), RGB(11, 11, 11), RGB(17, 17, 17),
+    RGB(13, 26, 6), RGB(5, 5, 5), RGB(11, 11, 11), RGB(17, 17, 17),
 };
 
 BANKREF(biome_overworld_load_palettes)

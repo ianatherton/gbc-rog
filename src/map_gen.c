@@ -195,6 +195,20 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
             }
         }
     }
+    if (floor_num == 0u && pit_present) {
+        uint8_t lo  = OVERWORLD_BORDER_BAND;
+        uint8_t hix = (uint8_t)(active_map_w - OVERWORLD_BORDER_BAND);
+        uint8_t hiy = (uint8_t)(active_map_h - OVERWORLD_BORDER_BAND);
+        uint8_t sx  = (pit_x + 4u < hix)             ? (uint8_t)(pit_x + 4u)
+                    : (pit_x >= (uint8_t)(lo + 4u))   ? (uint8_t)(pit_x - 4u)
+                    : lo;
+        uint8_t sy  = pit_y;
+        if (sy < lo)   sy = lo;
+        if (sy >= hiy) sy = (uint8_t)(hiy - 1u);
+        player_spawn_x = sx;
+        player_spawn_y = sy;
+        set_floor(player_spawn_x, player_spawn_y);
+    }
 
     {
         uint8_t target_count;

@@ -115,7 +115,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000009D  l__CODE_1 |    000000AB  l__HEADER |    00000172  l__CODE_2
      00000200  s__CODE   |    0000025A  l__CODE_1 |    00000272  l__CODE_9
      00000293  l__CODE_8 |    00000501  l__CODE_1 |    0000096B  l__CODE_1
-     00000B9B  l__CODE_4 |    00000BC9  l__HOME   |    00000DA2  l__CODE_1
+     00000B9B  l__CODE_4 |    00000BC9  l__HOME   |    00000E01  l__CODE_1
      00000EDF  l__CODE_1 |    00001108  l__CODE_1 |    00001554  l__CODE_1
 ASxxxx Linker V03.00/V05.40 + sdld,  page 3.
 Hexadecimal  [32-Bits]
@@ -658,12 +658,12 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_10               000A4000    00000DA2 =        3490. bytes (REL,CON)
+_CODE_10               000A4000    00000E01 =        3585. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     000A44E8  ___func_g |    000A44E8  _generate |    000A4B97  ___func_l
-     000A4B97  _level_in |    000A4CBD  ___func_b |    000A4CBD  _biome_du
+     000A44E8  ___func_g |    000A44E8  _generate |    000A4BF6  ___func_l
+     000A4BF6  _level_in |    000A4D1C  ___func_b |    000A4D1C  _biome_du
 ASxxxx Linker V03.00/V05.40 + sdld,  page 40.
 Hexadecimal  [32-Bits]
 

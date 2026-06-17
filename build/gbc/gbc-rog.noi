@@ -297,7 +297,7 @@ DEF l__CODE_19 0x501
 DEF l__CODE_13 0x96B
 DEF l__CODE_4 0xB9B
 DEF l__HOME 0xBC9
-DEF l__CODE_10 0xDA2
+DEF l__CODE_10 0xE01
 DEF l__CODE_14 0xEDF
 DEF l__CODE_1 0x1108
 DEF l__CODE_18 0x1554
@@ -905,10 +905,10 @@ DEF ___func_ability_zerker_cast_belt 0x94251
 DEF _ability_zerker_cast_belt 0x94251
 DEF ___func_generate_level 0xA44E8
 DEF _generate_level 0xA44E8
-DEF ___func_level_init_display 0xA4B97
-DEF _level_init_display 0xA4B97
-DEF ___func_biome_dungeon_copy_defs 0xA4CBD
-DEF _biome_dungeon_copy_defs 0xA4CBD
+DEF ___func_level_init_display 0xA4BF6
+DEF _level_init_display 0xA4BF6
+DEF ___func_biome_dungeon_copy_defs 0xA4D1C
+DEF _biome_dungeon_copy_defs 0xA4D1C
 DEF ___func_biome_crypt_copy_defs 0xB4000
 DEF _biome_crypt_copy_defs 0xB4000
 DEF ___func_biome_cavern_copy_defs 0xC4000

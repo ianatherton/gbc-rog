@@ -22,6 +22,9 @@ BANKREF_EXTERN(map_pit_position)
 #define SP_BRAZIER_FIRE 37u
 #define SP_BELT_SELECTOR 35u // fixed screen-space OAM; excluded from post-enemy hide sweep
 #define SP_ROOT_ICON     2u  // root indicator — below SP_ENEMY_BASE (3) so it draws on top of enemies
+#define SP_GORGON_HEAD_R SP_INV_CURSOR // boss-floor-only 6th gorgon tile; shares slot 38 with the
+                                       // inventory cursor + loading skulls, none of which ever render
+                                       // while enemy OAM is being refreshed — see entity_sprites.h
 #define BRAZIER_FIRE_TTL_VBL 12u
 
 static uint8_t brazier_fire_active;
@@ -347,7 +350,7 @@ static void refresh_enemy_oam(uint8_t slot) {
             oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 1u));
             oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 2u));
             oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 3u));
-            oam_hide((uint8_t)(SP_ALLY_BASE + 0u));
+            oam_hide(SP_GORGON_HEAD_R);
         }
         if (enemy_poof_ttl[slot] > 0u) {
             uint8_t mx = enemy_x[slot], my = enemy_y[slot];
@@ -368,8 +371,9 @@ static void refresh_enemy_oam(uint8_t slot) {
         return;
     }
     // Custom 2×3 OAM render for ENEMY_GORGON (boss floor only).
-    // Borrows SP_BIG_SKELL_HEAD_BASE+0..3 (slots 27-30) and SP_ALLY_BASE+0 (slot 31)
-    // for the 5 extra body tiles — safe because no BIG_SKELL or allies spawn on floor 3.
+    // Borrows SP_BIG_SKELL_HEAD_BASE+0..3 (slots 27-30, safe because no BIG_SKELL spawns
+    // on floor 3) and SP_GORGON_HEAD_R (slot 38, shared with the inventory cursor /
+    // loading skulls — never visible while enemy OAM is live) for the 5 extra body tiles.
     if (enemy_type[slot] == ENEMY_GORGON) {
         int16_t ewx = (int16_t)enemy_x[slot] * 8 + en_ofs_x[slot];
         int16_t ewy = (int16_t)enemy_y[slot] * 8 + en_ofs_y[slot];
@@ -381,7 +385,7 @@ static void refresh_enemy_oam(uint8_t slot) {
             oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 1u));
             oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 2u));
             oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 3u));
-            oam_hide((uint8_t)(SP_ALLY_BASE + 0u));
+            oam_hide(SP_GORGON_HEAD_R);
             return;
         }
         {
@@ -410,7 +414,7 @@ static void refresh_enemy_oam(uint8_t slot) {
                 oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 1u));
                 oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 2u));
             }
-            // head row: slot 30 = head-left, slot 31 = head-right; flip both on anim_toggle
+            // head row: slot 30 = head-left, SP_GORGON_HEAD_R = head-right; flip both on anim_toggle
             if (enemy_y[slot] > 1u) {
                 uint8_t head_prop = (uint8_t)(pal_head & 7u);
                 uint8_t head_l_tile, head_r_tile;
@@ -425,12 +429,12 @@ static void refresh_enemy_oam(uint8_t slot) {
                 move_entity_oam((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 3u),
                     ewx, (int16_t)(ewy - 16), head_l_tile, pal_head);
                 set_sprite_prop((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 3u), head_prop);
-                move_entity_oam((uint8_t)(SP_ALLY_BASE + 0u),
+                move_entity_oam(SP_GORGON_HEAD_R,
                     ewx + 8, (int16_t)(ewy - 16), head_r_tile, pal_head);
-                set_sprite_prop((uint8_t)(SP_ALLY_BASE + 0u), head_prop);
+                set_sprite_prop(SP_GORGON_HEAD_R, head_prop);
             } else {
                 oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 3u));
-                oam_hide((uint8_t)(SP_ALLY_BASE + 0u));
+                oam_hide(SP_GORGON_HEAD_R);
             }
         }
         return;
@@ -602,7 +606,6 @@ void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) BANKED {
     g_cam_tx_end = (uint8_t)(g_cam_tx + GRID_W);
     g_cam_ty_end = (uint8_t)(g_cam_ty + GRID_H);
     entity_sprites_refresh_player_only(px, py);
-    // Allies and belt UI cleared before enemy pass so gorgon can borrow SP_ALLY_BASE+0 for its head tile
     refresh_allies_oam();
     refresh_belt_selector_oam();
     refresh_buff_icon_oam();

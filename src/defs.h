@@ -198,6 +198,7 @@ typedef struct {
 #define TILE_CLASS_BERSERKER 17  /* B2 — Zerker in-game */
 #define TILE_CLASS_WITCH     33  /* B3  */
 #define TILE_CLASS_SCOUNDREL 49  /* B4 — Scoundrel / rogue */
+#define TILE_B6              81  /* B6 — unused placeholder (ladder/fence); reused as torch-frame decor on the title screen */
 
 /* Class emblems on sheet: each is 2×2 (row 15–16 1-based). Knight = A15 B15 / A16 B16 → VRAM order TL,TR,BL,BR */
 /* TL index below is A15 for Knight; Scoundrel C15; Witch E15; Zerker G15 (16-wide sheet: BR = TL+17).          */

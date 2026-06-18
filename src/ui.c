@@ -115,6 +115,27 @@ static void ui_title_torch_place(uint8_t bkg_text_row, uint8_t left_pad_px) {
     move_sprite(UI_TITLE_TORCH_OAM_R, rx, ty);
 }
 
+static void ui_title_torch_frame_put(uint8_t x, uint8_t y) {
+    uint8_t v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_B6);
+    set_bkg_tiles(x, y, 1, 1, &v);
+    set_bkg_attribute_xy(x, y, 0u);
+    VBK_REG = VBK_TILES;
+}
+
+static void ui_title_torch_frame_draw(void) { // 3×3 block minus center around each torch sprite (title screen only)
+    uint8_t col_l = (uint8_t)((ui_title_torch_lx - DEVICE_SPRITE_PX_OFFSET_X) / 8u);
+    uint8_t col_r = (uint8_t)((ui_title_torch_rx - DEVICE_SPRITE_PX_OFFSET_X) / 8u);
+    uint8_t row   = (uint8_t)((ui_title_torch_ty - DEVICE_SPRITE_PX_OFFSET_Y + 4u) / 8u);
+    int8_t dx, dy;
+    for (dy = -1; dy <= 1; dy++) {
+        for (dx = -1; dx <= 1; dx++) {
+            if (dx == 0 && dy == 0) continue;
+            ui_title_torch_frame_put((uint8_t)(col_l + dx), (uint8_t)(row + dy));
+            ui_title_torch_frame_put((uint8_t)(col_r + dx), (uint8_t)(row + dy));
+        }
+    }
+}
+
 static void ui_title_style_begin(uint8_t bkg_text_row, uint8_t torch_left_pad_px) {
     set_bkg_palette(0u, 1u, ui_title_bkg_pal);
     set_sprite_palette(PAL_PLAYER, 1u, ui_title_torch_sprite_pal);
@@ -935,6 +956,7 @@ uint16_t title_screen(uint16_t entropy_hint) BANKED { // blocking until START or
     BANK_DBG("UI_title");
     ui_title_style_begin(7u, UI_TITLE_TORCH_PAD_L_TITLE);
     ui_title_menu_border_draw();
+    ui_title_torch_frame_draw();
     title_logo_bkg_vram_patch();
     ui_title_logo_draw_bkg(4u, 3u); // 12×4 scaled; centered (x=4), one row up vs (4,4)
     gotoxy(7, 7); printf("Abyss"); // centered; 8px below logo (map row below 4-row block: 3+4=7)

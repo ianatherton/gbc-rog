@@ -373,6 +373,14 @@ typedef struct {
 #define TILE_FLOOR_DECO_5   75   /* L5  */
 #define TILE_FLOOR_DECO_6   91   /* L6  */
 #define TILE_FLOOR_DECO_7  107   /* L7  */
+#define TILE_FLOOR_DECO_8  123   /* L8  */
+/* L6/L7/L8's own VRAM slots (TILESET_VRAM_OFFSET+91/107/123 = 219/235/251) are permanently borrowed at boot
+   for the arrow/bow/knight-shield icons (see TILE_ARROW_VRAM / TILE_BOW_VRAM / TILE_KNIGHT_SHIELD_VRAM) — reading
+   those slots back does NOT show the original L6/L7/L8 art. To actually display it (e.g. title-screen FX), read
+   the ROM tiles fresh via tileset_read_tiles() into dedicated scratch VRAM, then restore before leaving that screen. */
+#define TILE_TITLE_FIREANIM_VRAM_1 182u // title-only scratch (1 of 3) — borrows G4 shrine-anim-2 slot
+#define TILE_TITLE_FIREANIM_VRAM_2 183u // borrows H4 pit-hazard slot
+#define TILE_TITLE_FIREANIM_VRAM_3 184u // borrows I4 item slot
 #define TILE_SMILE_L10     155u  /* L10 — smile over player on level-up; ROM >127 → TILE_LEVELUP_SMILE_VRAM */
 
 #define TILE_LEVELUP_SMILE_VRAM 244u // OBJ — copied from TILE_SMILE_L10 at boot

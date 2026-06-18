@@ -14,6 +14,7 @@ BANKREF(ui)
 #include "render.h"      // load_palettes — restore sprite CRAM after title fire uses OCP7
 #include "perf.h"
 #include "title_logo.h"  // title_logo_* — tileset ROM read in HOME (not bank 5) to avoid MBC mismatch crashes
+#include "tileset_io.h"  // tileset_read_tiles — true L6/L7/L8 art (their native VRAM slots are borrowed by other icons)
 #include "items.h"       // items_kind_tile/palette — belt right-half mirrors inventory_kind[0..3]
 #include "ally.h"
 
@@ -34,6 +35,8 @@ BANKREF_EXTERN(load_palettes)
 #define UI_TITLE_FIRE_COUNT   8u
 #define UI_TITLE_RISE_FIRST   30u // below SP_BELT_SELECTOR 35 — falling border-skull wisps (title + seed menus)
 #define UI_TITLE_RISE_COUNT   5u
+#define UI_TITLE_FIREANIM_FIRST 35u // SP_BELT_SELECTOR..SP_BUFF_ICON span — gameplay-only HUD slots, free during title
+#define UI_TITLE_FIREANIM_COUNT 5u  // 3-frame flicker variant (L6/L7/L8) alongside the original single-glyph embers
 #define PAL_TITLE_FIRE        7u  // OCP7: orange flame; gameplay restores via load_palettes in ui_title_style_end
 #define PAL_TITLE_RISE_SKULL  3u  // OCP3: duplicate of BGP 0 border ramp (ui_title_bkg_pal) for TILE_LOADING_SKULL wisps
 #define UI_TITLE_TORCH_PAD_L_TITLE 24u // OAM X = DEVICE_SPRITE_PX_OFFSET_X + this (seed menu uses 8u = 16px further left)
@@ -60,9 +63,13 @@ static const palette_color_t ui_title_torch_glow_pal[3][4] = { // BKG pal 1: all
 
 static uint8_t ui_title_torch_lx, ui_title_torch_rx, ui_title_torch_ty; // fire spawns from torch tops
 static uint8_t ui_title_torch_glow_active;
+static uint8_t ui_title_fireanim_active;
 static uint8_t ui_title_fire_y[UI_TITLE_FIRE_COUNT];
 static uint8_t ui_title_fire_x[UI_TITLE_FIRE_COUNT];
 static uint8_t ui_title_fire_ttl[UI_TITLE_FIRE_COUNT]; // 0 = slot free
+static uint8_t ui_title_fireanim_y[UI_TITLE_FIREANIM_COUNT];
+static uint8_t ui_title_fireanim_x[UI_TITLE_FIREANIM_COUNT];
+static uint8_t ui_title_fireanim_ttl[UI_TITLE_FIREANIM_COUNT]; // 0 = slot free
 static uint8_t ui_title_rise_y[UI_TITLE_RISE_COUNT];
 static uint8_t ui_title_rise_x[UI_TITLE_RISE_COUNT];
 static uint8_t ui_title_rise_ttl[UI_TITLE_RISE_COUNT];
@@ -73,12 +80,14 @@ static void ui_title_torch_hide(void) {
     move_sprite(UI_TITLE_TORCH_OAM_L, 0u, 0u);
     move_sprite(UI_TITLE_TORCH_OAM_R, 0u, 0u);
     for (i = UI_TITLE_FIRE_FIRST; i < UI_TITLE_FIRE_FIRST + UI_TITLE_FIRE_COUNT; i++) move_sprite(i, 0u, 0u);
+    for (i = UI_TITLE_FIREANIM_FIRST; i < UI_TITLE_FIREANIM_FIRST + UI_TITLE_FIREANIM_COUNT; i++) move_sprite(i, 0u, 0u);
     for (i = UI_TITLE_RISE_FIRST; i < UI_TITLE_RISE_FIRST + UI_TITLE_RISE_COUNT; i++) move_sprite(i, 0u, 0u);
 }
 
 static void ui_title_fire_init(void) {
     uint8_t i;
     for (i = 0u; i < UI_TITLE_FIRE_COUNT; i++) ui_title_fire_ttl[i] = 0u;
+    for (i = 0u; i < UI_TITLE_FIREANIM_COUNT; i++) ui_title_fireanim_ttl[i] = 0u;
     for (i = 0u; i < UI_TITLE_RISE_COUNT; i++) ui_title_rise_ttl[i] = 0u;
 }
 
@@ -159,6 +168,33 @@ static void ui_title_torch_extra_draw(void) { // 2 extra B6 tiles per side: pair
     ui_title_torch_frame_put(col_r, (uint8_t)(row - 2u)); // 2 above right torch
 }
 
+static void ui_title_fireanim_vram_patch(void) { // true L6/L7/L8 art into scratch VRAM — native slots are borrowed by
+    uint8_t buf[16];                             // the arrow/bow/knight-shield icons (see TILE_ARROW_VRAM etc.)
+    tileset_read_tiles(buf, TILE_FLOOR_DECO_6, 1u);
+    set_bkg_data(TILE_TITLE_FIREANIM_VRAM_1, 1u, buf);
+    set_sprite_data(TILE_TITLE_FIREANIM_VRAM_1, 1u, buf);
+    tileset_read_tiles(buf, TILE_FLOOR_DECO_7, 1u);
+    set_bkg_data(TILE_TITLE_FIREANIM_VRAM_2, 1u, buf);
+    set_sprite_data(TILE_TITLE_FIREANIM_VRAM_2, 1u, buf);
+    tileset_read_tiles(buf, TILE_FLOOR_DECO_8, 1u);
+    set_bkg_data(TILE_TITLE_FIREANIM_VRAM_3, 1u, buf);
+    set_sprite_data(TILE_TITLE_FIREANIM_VRAM_3, 1u, buf);
+    ui_title_fireanim_active = 1u;
+}
+
+static void ui_title_fireanim_vram_restore(void) { // scratch slots double as G4/H4/I4 gameplay art — restore before leaving
+    uint8_t buf[16];
+    tileset_read_tiles(buf, TILE_SHRINE_ON_2, 1u);
+    set_bkg_data(TILE_TITLE_FIREANIM_VRAM_1, 1u, buf);
+    set_sprite_data(TILE_TITLE_FIREANIM_VRAM_1, 1u, buf);
+    tileset_read_tiles(buf, TILE_PIT_TILE, 1u);
+    set_bkg_data(TILE_TITLE_FIREANIM_VRAM_2, 1u, buf);
+    set_sprite_data(TILE_TITLE_FIREANIM_VRAM_2, 1u, buf);
+    tileset_read_tiles(buf, TILE_ITEM_4, 1u);
+    set_bkg_data(TILE_TITLE_FIREANIM_VRAM_3, 1u, buf);
+    set_sprite_data(TILE_TITLE_FIREANIM_VRAM_3, 1u, buf);
+}
+
 static void ui_title_torch_glow_tick(uint16_t frame_counter) { // dim→mid→bright→mid pingpong; one palette write moves every B6 tile
     static const uint8_t seq[4] = { 0u, 1u, 2u, 1u };
     uint8_t step;
@@ -196,9 +232,11 @@ static void ui_title_logo_draw_bkg(uint8_t map_x, uint8_t map_y_top) { // TITLE_
 
 static void ui_title_style_end(void) {
     title_logo_bkg_vram_restore(); // HOME: MBC-safe tileset read — was in bank 5 and could white-screen after return
+    ui_title_fireanim_vram_restore(); // no-op if never patched (seed menu) — restores G4/H4/I4 either way
     set_bkg_palette(0u, 1u, ui_default_bkg_pal0);
     ui_title_torch_hide();
     ui_title_torch_glow_active = 0u;
+    ui_title_fireanim_active = 0u;
     load_palettes(); // BANKED in render.c — do not SWITCH_ROM here; stubs must own bank save/restore
 }
 
@@ -213,6 +251,22 @@ static void ui_title_try_spawn_fire(uint8_t from_right, uint16_t fc) {
             ui_title_fire_x[i] = base_x;
             ui_title_fire_y[i] = (uint8_t)(ui_title_torch_ty - 2u);
             ui_title_fire_ttl[i] = (uint8_t)(24u + (uint8_t)(DIV_REG & 11u));
+            return;
+        }
+    }
+}
+
+static void ui_title_try_spawn_fireanim(uint8_t from_right, uint16_t fc) { // same rise physics, 3-frame L6/L7/L8 flicker tile
+    uint8_t i;
+    for (i = 0u; i < UI_TITLE_FIREANIM_COUNT; i++) {
+        if (ui_title_fireanim_ttl[i] != 0u) continue;
+        {
+            uint8_t base_x = from_right
+                ? (uint8_t)(ui_title_torch_rx + 3u + (uint8_t)(fc & 7u))
+                : (uint8_t)(ui_title_torch_lx + 3u + (uint8_t)((fc >> 1) & 7u));
+            ui_title_fireanim_x[i] = base_x;
+            ui_title_fireanim_y[i] = (uint8_t)(ui_title_torch_ty - 2u);
+            ui_title_fireanim_ttl[i] = (uint8_t)(24u + (uint8_t)(DIV_REG & 11u));
             return;
         }
     }
@@ -261,8 +315,39 @@ static void ui_title_menu_anim_tick(uint16_t frame_counter) {
             }
         }
     }
+    if (ui_title_fireanim_active) {
+        static const uint8_t fireanim_frames[3] =
+            { TILE_TITLE_FIREANIM_VRAM_1, TILE_TITLE_FIREANIM_VRAM_2, TILE_TITLE_FIREANIM_VRAM_3 };
+        for (i = 0u; i < UI_TITLE_FIREANIM_COUNT; i++) {
+            if (ui_title_fireanim_ttl[i] == 0u) continue;
+            {
+                uint8_t y = ui_title_fireanim_y[i];
+                int16_t nx = (int16_t)ui_title_fireanim_x[i];
+                uint8_t at = fireanim_frames[(uint8_t)(((frame_counter + i) >> 2) % 3u)];
+                if (((frame_counter + (uint16_t)i) & 3u) == 1u) nx++;
+                else if (((frame_counter + (uint16_t)i) & 3u) == 3u) nx--;
+                if (nx < 8) nx = 8;
+                if (nx > 152) nx = 152;
+                y = (uint8_t)((uint16_t)y - 1u);
+                if (((frame_counter + i) & 1u) == 0u) y = (uint8_t)((uint16_t)y - 1u);
+                ui_title_fireanim_ttl[i] = (uint8_t)(ui_title_fireanim_ttl[i] - 1u);
+                if (ui_title_fireanim_ttl[i] == 0u || y < 20u) {
+                    ui_title_fireanim_ttl[i] = 0u;
+                    move_sprite((uint8_t)(UI_TITLE_FIREANIM_FIRST + i), 0u, 0u);
+                } else {
+                    ui_title_fireanim_y[i] = y;
+                    ui_title_fireanim_x[i] = (uint8_t)nx;
+                    set_sprite_tile((uint8_t)(UI_TITLE_FIREANIM_FIRST + i), at);
+                    set_sprite_prop((uint8_t)(UI_TITLE_FIREANIM_FIRST + i), fp);
+                    move_sprite((uint8_t)(UI_TITLE_FIREANIM_FIRST + i), (uint8_t)nx, y);
+                }
+            }
+        }
+    }
     if ((frame_counter & 3u) == 0u) ui_title_try_spawn_fire(0, frame_counter);
     if ((frame_counter & 3u) == 2u) ui_title_try_spawn_fire(1, frame_counter);
+    if (ui_title_fireanim_active && (frame_counter & 7u) == 1u) ui_title_try_spawn_fireanim(0, frame_counter);
+    if (ui_title_fireanim_active && (frame_counter & 7u) == 5u) ui_title_try_spawn_fireanim(1, frame_counter);
     if ((frame_counter & 1u) == 0u) ui_title_try_spawn_rise(frame_counter);
     if ((frame_counter & 7u) == 3u) ui_title_try_spawn_rise((uint16_t)(frame_counter ^ 0xA5A5u));
     for (i = 0u; i < UI_TITLE_RISE_COUNT; i++) {
@@ -993,6 +1078,7 @@ uint16_t title_screen(uint16_t entropy_hint) BANKED { // blocking until START or
     ui_title_torch_frame_draw();
     ui_title_torch_extra_draw();
     ui_title_torch_glow_active = 1u;
+    ui_title_fireanim_vram_patch();
     title_logo_bkg_vram_patch();
     ui_title_logo_draw_bkg(4u, 3u); // 12×4 scaled; centered (x=4), one row up vs (4,4)
     gotoxy(7, 7); printf("Abyss"); // centered; 8px below logo (map row below 4-row block: 3+4=7)

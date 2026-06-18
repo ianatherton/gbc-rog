@@ -29,16 +29,19 @@ BANKREF_EXTERN(load_palettes)
 #define COMBAT_LOG_LINES 3u
 #define COMBAT_LOG_LEN   20u
 
+#define UI_TITLE_CURSOR_OAM   19u // menu skull cursor — free during title (lcd_clear_display zeroes all OAM, no gameplay sprites exist yet)
 #define UI_TITLE_TORCH_OAM_L  20u // one 8×8 sprite per torch (no 2×2 upscale)
 #define UI_TITLE_TORCH_OAM_R  21u
 #define UI_TITLE_FIRE_FIRST   22u
 #define UI_TITLE_FIRE_COUNT   8u
 #define UI_TITLE_RISE_FIRST   30u // below SP_BELT_SELECTOR 35 — falling border-skull wisps (title + seed menus)
-#define UI_TITLE_RISE_COUNT   5u
+#define UI_TITLE_RISE_COUNT   4u  // trimmed from 5 to free one OAM slot for UI_TITLE_CURSOR_FIRE_OAM
+#define UI_TITLE_CURSOR_FIRE_OAM (UI_TITLE_RISE_FIRST + UI_TITLE_RISE_COUNT) // 34u — static 3-frame flicker tucked behind the menu skull cursor (title only)
 #define UI_TITLE_FIREANIM_FIRST 35u // SP_BELT_SELECTOR..SP_BUFF_ICON span — gameplay-only HUD slots, free during title
 #define UI_TITLE_FIREANIM_COUNT 5u  // 3-frame flicker variant (L6/L7/L8) alongside the original single-glyph embers
 #define PAL_TITLE_FIRE        7u  // OCP7: orange flame; gameplay restores via load_palettes in ui_title_style_end
 #define PAL_TITLE_RISE_SKULL  3u  // OCP3: duplicate of BGP 0 border ramp (ui_title_bkg_pal) for TILE_LOADING_SKULL wisps
+#define PAL_TITLE_CURSOR_SKULL 0u // OCP0: duplicate of BGP 1 glow ramp (ui_title_torch_glow_pal) for the menu skull cursor; gameplay's PAL_CORPSE restored via load_palettes in ui_title_style_end
 #define UI_TITLE_TORCH_PAD_L_TITLE 24u // OAM X = DEVICE_SPRITE_PX_OFFSET_X + this (seed menu uses 8u = 16px further left)
 #define UI_TITLE_TORCH_GLOW_HOLD_FRAMES 12u // frames held per pingpong step — dim/mid/bright/mid fade (title screen only)
 
@@ -82,6 +85,7 @@ static void ui_title_torch_hide(void) {
     for (i = UI_TITLE_FIRE_FIRST; i < UI_TITLE_FIRE_FIRST + UI_TITLE_FIRE_COUNT; i++) move_sprite(i, 0u, 0u);
     for (i = UI_TITLE_FIREANIM_FIRST; i < UI_TITLE_FIREANIM_FIRST + UI_TITLE_FIREANIM_COUNT; i++) move_sprite(i, 0u, 0u);
     for (i = UI_TITLE_RISE_FIRST; i < UI_TITLE_RISE_FIRST + UI_TITLE_RISE_COUNT; i++) move_sprite(i, 0u, 0u);
+    move_sprite(UI_TITLE_CURSOR_FIRE_OAM, 0u, 0u);
 }
 
 static void ui_title_fire_init(void) {
@@ -201,6 +205,7 @@ static void ui_title_torch_glow_tick(uint16_t frame_counter) { // dim→mid→br
     if (!ui_title_torch_glow_active) return;
     step = (uint8_t)((frame_counter / UI_TITLE_TORCH_GLOW_HOLD_FRAMES) & 3u);
     set_bkg_palette(1u, 1u, ui_title_torch_glow_pal[seq[step]]);
+    set_sprite_palette(PAL_TITLE_CURSOR_SKULL, 1u, ui_title_torch_glow_pal[seq[step]]); // cursor pulses with the wall
 }
 
 static void ui_title_style_begin(uint8_t bkg_text_row, uint8_t torch_left_pad_px) {
@@ -209,6 +214,7 @@ static void ui_title_style_begin(uint8_t bkg_text_row, uint8_t torch_left_pad_px
     set_sprite_palette(PAL_PLAYER, 1u, ui_title_torch_sprite_pal);
     set_sprite_palette(PAL_TITLE_FIRE, 1u, ui_title_fire_pal);
     set_sprite_palette(PAL_TITLE_RISE_SKULL, 1u, ui_title_bkg_pal); // same ramp as border skull BGP 0 — load_palettes restores OCP3
+    set_sprite_palette(PAL_TITLE_CURSOR_SKULL, 1u, ui_title_torch_glow_pal[1]); // mid tone before the first glow tick
     ui_title_fire_init();
     ui_title_torch_place(bkg_text_row, torch_left_pad_px);
     SHOW_SPRITES;
@@ -228,6 +234,80 @@ static void ui_title_logo_draw_bkg(uint8_t map_x, uint8_t map_y_top) { // TITLE_
             set_bkg_attribute_xy((uint8_t)(map_x + i), (uint8_t)(map_y_top + j), 0u);
     }
     VBK_REG = VBK_TILES;
+}
+
+static const uint8_t title_menu_rows[3] = { 10u, 12u, 14u }; // New Quest / Choose Seed / Credits, 2 rows apart
+static const char * const title_menu_labels[3] = { // padded to 11 chars so re-prints never leave stale tail characters
+    "New Quest  ",
+    "Choose Seed",
+    "Credits    ",
+};
+
+static void ui_title_menu_draw(void) {
+    uint8_t i;
+    for (i = 0u; i < 3u; i++) {
+        gotoxy(6, title_menu_rows[i]);
+        printf(title_menu_labels[i]);
+    }
+}
+
+static void ui_title_cursor_draw(uint8_t sel) { // skull cursor — one tile left of the menu text column
+    uint8_t tt = (uint8_t)(TILESET_VRAM_OFFSET + TILE_LOADING_SKULL);
+    uint8_t cx = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_X + 4u * 8u);
+    uint8_t cy = (uint8_t)(DEVICE_SPRITE_PX_OFFSET_Y + (uint16_t)title_menu_rows[sel] * 8u);
+    set_sprite_tile(UI_TITLE_CURSOR_OAM, tt);
+    set_sprite_prop(UI_TITLE_CURSOR_OAM, (uint8_t)(PAL_TITLE_CURSOR_SKULL & 7u));
+    move_sprite(UI_TITLE_CURSOR_OAM, cx, cy);
+    if (ui_title_fireanim_active) { // higher OAM index than the cursor, so ties render underneath it; nudged up 4px to peek above the skull
+        set_sprite_prop(UI_TITLE_CURSOR_FIRE_OAM, (uint8_t)(PAL_TITLE_FIRE & 7u));
+        move_sprite(UI_TITLE_CURSOR_FIRE_OAM, cx, (uint8_t)(cy - 4u));
+    }
+}
+
+static void ui_title_screen_static_draw(void) { // border + torches + logo + menu text — redrawn after Credits clears the screen
+    ui_title_style_begin(7u, UI_TITLE_TORCH_PAD_L_TITLE);
+    ui_title_menu_border_draw();
+    ui_title_torch_frame_draw();
+    ui_title_torch_extra_draw();
+    ui_title_logo_draw_bkg(4u, 3u); // 12×4 scaled; centered (x=4), one row up vs (4,4)
+    gotoxy(7, 7); printf("Abyss"); // centered; 8px below logo (map row below 4-row block: 3+4=7)
+    ui_title_menu_draw();
+}
+
+static void ui_title_menu_reenter(uint8_t sel) { // full (re)draw of the title menu — used at entry and whenever a sub-screen (Choose Seed/Credits) returns to it
+    wait_vbl_done();
+    lcd_clear_display();
+    ui_title_torch_glow_active = 1u;
+    ui_title_fireanim_vram_patch();
+    title_logo_bkg_vram_patch();
+    ui_title_screen_static_draw();
+    ui_title_cursor_draw(sel);
+}
+
+static void ui_title_credits_screen(void) { // static screen; B returns to the title menu
+    uint8_t prev_j = 0u;
+    wait_vbl_done();
+    lcd_clear_display();
+    ui_title_menu_border_draw();
+    gotoxy(7, 1);  printf("CREDITS");
+    gotoxy(2, 3);  printf("Artist/Designer:");
+    gotoxy(7, 4);  printf("Ian A.");
+    gotoxy(1, 6);  printf("Producer/Creative");
+    gotoxy(5, 7);  printf("Assistant:");
+    gotoxy(7, 8);  printf("Liz L.");
+    gotoxy(6, 10); printf("Testers:");
+    gotoxy(7, 11); printf("Liz L.");
+    gotoxy(6, 12); printf("Lauri A.");
+    gotoxy(6, 13); printf("Kasey K.");
+    gotoxy(6, 14); printf("Alex V.");
+    gotoxy(6, 16); printf("Press B");
+    while (1) {
+        uint8_t j = joypad();
+        uint8_t edge = (uint8_t)(j & (uint8_t)~prev_j);
+        if (edge & J_B) return;
+        prev_j = j;
+        wait_vbl_done();
+    }
 }
 
 static void ui_title_style_end(void) {
@@ -343,6 +423,7 @@ static void ui_title_menu_anim_tick(uint16_t frame_counter) {
                 }
             }
         }
+        set_sprite_tile(UI_TITLE_CURSOR_FIRE_OAM, fireanim_frames[(uint8_t)((frame_counter >> 2) % 3u)]); // cursor backdrop flicker
     }
     if ((frame_counter & 3u) == 0u) ui_title_try_spawn_fire(0, frame_counter);
     if ((frame_counter & 3u) == 2u) ui_title_try_spawn_fire(1, frame_counter);
@@ -1000,7 +1081,7 @@ void ui_panel_show_inspect(uint8_t enemy_slot) BANKED {
 
 uint8_t ui_panel_inspect_slot(void) BANKED { return panel_inspect_slot; }
 
-static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t entropy_hint) { // interactive seed picker
+static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t entropy_hint, uint8_t *cancelled) { // interactive seed picker; *cancelled set on B (back to title menu)
     uint8_t  word_pos = 0, prev_j = 0; // word_pos 0..2 selects which word the caret edits
     uint16_t frame_counter = 0;              // feeds entropy mixer each frame
     uint16_t s = initial_seed ? initial_seed : 1u;
@@ -1030,6 +1111,7 @@ static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t entropy_
         gotoxy(1, 7); printf("U/D scroll");
         gotoxy(1, 8); printf("New seed: (A)");
         gotoxy(1, 9); printf("START=play");
+        gotoxy(1, 10); printf("B=back");
         {
             uint8_t j    = joypad();
             uint8_t edge = (uint8_t)(j & (uint8_t)~prev_j); // buttons newly pressed this frame
@@ -1037,7 +1119,13 @@ static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t entropy_
                 uint16_t fs = (uint16_t)(1u + (uint16_t)d + 40u*(uint16_t)n + 1600u*(uint16_t)p); // pack triple back to seed
                 if (!fs) fs = 1;
                 ui_title_style_end();
+                *cancelled = 0u;
                 return fs;
+            }
+            if (edge & J_B) {
+                ui_title_style_end();
+                *cancelled = 1u;
+                return 0u;
             }
             if (edge & J_A) {
                 uint16_t t = seed_entropy_random_seed(entropy_hint, frame_counter); // reroll all three indices
@@ -1064,47 +1152,46 @@ static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t entropy_
     }
 }
 
-uint16_t title_screen(uint16_t entropy_hint) BANKED { // blocking until START or SELECT path returns a seed
-    uint8_t  blink_counter = 0, blink_visible = 1, prev_j = 0;
+uint16_t title_screen(uint16_t entropy_hint) BANKED { // blocking until New Quest/Choose Seed is confirmed; returns a seed
+    uint8_t  prev_j = 0;
+    uint8_t  sel = 0u; // 0=New Quest, 1=Choose Seed, 2=Credits
     uint16_t frame_counter = 0;
 
     lcd_gameplay_active = 0u;
     window_ui_hide();
-    wait_vbl_done();
-    lcd_clear_display();
     BANK_DBG("UI_title");
-    ui_title_style_begin(7u, UI_TITLE_TORCH_PAD_L_TITLE);
-    ui_title_menu_border_draw();
-    ui_title_torch_frame_draw();
-    ui_title_torch_extra_draw();
-    ui_title_torch_glow_active = 1u;
-    ui_title_fireanim_vram_patch();
-    title_logo_bkg_vram_patch();
-    ui_title_logo_draw_bkg(4u, 3u); // 12×4 scaled; centered (x=4), one row up vs (4,4)
-    gotoxy(7, 7); printf("Abyss"); // centered; 8px below logo (map row below 4-row block: 3+4=7)
-    gotoxy(4, 10); printf("Start: Quest"); // 12 chars — (20−12)/2; shown before blink loop
-    gotoxy(4, 12); printf("Select: Seed"); // blank row 11 under Start: Quest
+    ui_title_menu_reenter(sel);
 
     while (1) {
         uint8_t  j    = joypad();
         uint8_t  edge = (uint8_t)(j & (uint8_t)~prev_j);
-        uint16_t mixed = seed_entropy_random_seed(entropy_hint, frame_counter); // fresh candidate each frame for START
-        if (edge & J_START) {
-            ui_title_style_end();
-            return mixed;
+        uint16_t mixed = seed_entropy_random_seed(entropy_hint, frame_counter); // fresh candidate each frame for New Quest
+        if (edge & (J_UP | J_DOWN)) {
+            if (edge & J_UP)   sel = (sel == 0u) ? 2u : (uint8_t)(sel - 1u);
+            if (edge & J_DOWN) sel = (uint8_t)((sel + 1u) % 3u);
+            ui_title_cursor_draw(sel);
         }
-        if (edge & J_SELECT) {
-            ui_title_style_end();
-            uint16_t seed = input_seed_words_screen(mixed, entropy_hint); // user-defined mnemonic seed
-            if (!seed) seed = 1;
-            return seed;
-        }
-        blink_counter++;
-        if (blink_counter >= 30) { // ~0.5s at 60Hz VBlank loop
-            blink_counter = 0; blink_visible ^= 1;
-            gotoxy(4, 10);
-            if (blink_visible) printf("Start: Quest");
-            else               printf("            "); // 12 spaces
+        if (edge & (J_START | J_A)) {
+            if (sel == 0u) {
+                ui_title_style_end();
+                return mixed;
+            }
+            if (sel == 1u) {
+                uint8_t cancelled = 0u;
+                ui_title_style_end();
+                {
+                    uint16_t seed = input_seed_words_screen(mixed, entropy_hint, &cancelled); // user-defined mnemonic seed
+                    if (cancelled) {
+                        ui_title_menu_reenter(sel); // B pressed — back to this menu, still on Choose Seed
+                    } else {
+                        if (!seed) seed = 1;
+                        return seed;
+                    }
+                }
+            } else if (sel == 2u) {
+                ui_title_credits_screen(); // shows credits, then returns to this same menu
+                ui_title_menu_reenter(sel);
+            }
         }
         frame_counter++;
         wait_vbl_done();

@@ -119,6 +119,7 @@ void state_char_create_enter(void) BANKED {
         gotoxy(0, 13); printf(sel == 3 ? ">" : " ");
         gotoxy(2, 13); printf("ZERKER");
         gotoxy(0, 16); printf("START=confirm");
+        gotoxy(0, 17); printf("B=back");
         if (sel != prev_sel) {
             class_emblem_draw(sel);
             prev_sel = sel;
@@ -133,6 +134,12 @@ void state_char_create_enter(void) BANKED {
                 class_emblem_vram_restore();
                 class_palettes_sprite_player_apply(); // BANKED far-call — do not SWITCH_ROM here (return must see bank 1 code)
                 break;
+            }
+            if (e & J_B) {
+                class_emblem_vram_restore();
+                next_state = STATE_TITLE;
+                g_prev_j = 0;
+                return;
             }
             prev_j = j;
         }

@@ -37,6 +37,7 @@ BANKREF_EXTERN(load_palettes)
 #define PAL_TITLE_FIRE        7u  // OCP7: orange flame; gameplay restores via load_palettes in ui_title_style_end
 #define PAL_TITLE_RISE_SKULL  3u  // OCP3: duplicate of BGP 0 border ramp (ui_title_bkg_pal) for TILE_LOADING_SKULL wisps
 #define UI_TITLE_TORCH_PAD_L_TITLE 24u // OAM X = DEVICE_SPRITE_PX_OFFSET_X + this (seed menu uses 8u = 16px further left)
+#define UI_TITLE_TORCH_GLOW_HOLD_FRAMES 12u // frames held per pingpong step — dim/mid/bright/mid fade (title screen only)
 
 static const palette_color_t ui_title_bkg_pal[] = { // BKG pal 0: dark red field + light text (font pen 3 / paper 0)
     RGB(5, 0, 1),
@@ -51,8 +52,14 @@ static const palette_color_t ui_title_fire_pal[] = { // OCP PAL_TITLE_FIRE — d
 static const palette_color_t ui_title_torch_sprite_pal[] = { // OCP PAL_PLAYER on menus only — duplicate of pal_ladder (floor brazier BKG in play)
     RGB(0, 0, 0), RGB(6, 8, 12), RGB(31, 16, 2), RGB(31, 26, 8),
 };
+static const palette_color_t ui_title_torch_glow_pal[3][4] = { // BKG pal 1: all B6 tiles share this slot — each step ~15% value apart
+    { RGB(7, 2, 1), RGB(15, 3, 2), RGB(24, 12, 5), RGB(26, 26, 20) }, // dim    (~-15%)
+    { RGB(8, 2, 1), RGB(18, 4, 2), RGB(28, 14, 6), RGB(31, 30, 24) }, // mid    (base)
+    { RGB(9, 2, 1), RGB(21, 5, 2), RGB(31, 16, 7), RGB(31, 31, 28) }, // bright (~+15%)
+};
 
 static uint8_t ui_title_torch_lx, ui_title_torch_rx, ui_title_torch_ty; // fire spawns from torch tops
+static uint8_t ui_title_torch_glow_active;
 static uint8_t ui_title_fire_y[UI_TITLE_FIRE_COUNT];
 static uint8_t ui_title_fire_x[UI_TITLE_FIRE_COUNT];
 static uint8_t ui_title_fire_ttl[UI_TITLE_FIRE_COUNT]; // 0 = slot free
@@ -118,15 +125,20 @@ static void ui_title_torch_place(uint8_t bkg_text_row, uint8_t left_pad_px) {
 static void ui_title_torch_frame_put(uint8_t x, uint8_t y) {
     uint8_t v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_B6);
     set_bkg_tiles(x, y, 1, 1, &v);
-    set_bkg_attribute_xy(x, y, 0u);
+    set_bkg_attribute_xy(x, y, 1u); // BKG pal 1 — dedicated slot so the glow fade doesn't affect border/text on pal 0
     VBK_REG = VBK_TILES;
 }
 
+static void ui_title_torch_anchor(uint8_t *col_l, uint8_t *col_r, uint8_t *row) { // BG tile the torch sprite is centered on
+    *col_l = (uint8_t)((ui_title_torch_lx - DEVICE_SPRITE_PX_OFFSET_X) / 8u);
+    *col_r = (uint8_t)((ui_title_torch_rx - DEVICE_SPRITE_PX_OFFSET_X) / 8u);
+    *row   = (uint8_t)((ui_title_torch_ty - DEVICE_SPRITE_PX_OFFSET_Y + 4u) / 8u);
+}
+
 static void ui_title_torch_frame_draw(void) { // 3×3 block minus center around each torch sprite (title screen only)
-    uint8_t col_l = (uint8_t)((ui_title_torch_lx - DEVICE_SPRITE_PX_OFFSET_X) / 8u);
-    uint8_t col_r = (uint8_t)((ui_title_torch_rx - DEVICE_SPRITE_PX_OFFSET_X) / 8u);
-    uint8_t row   = (uint8_t)((ui_title_torch_ty - DEVICE_SPRITE_PX_OFFSET_Y + 4u) / 8u);
+    uint8_t col_l, col_r, row;
     int8_t dx, dy;
+    ui_title_torch_anchor(&col_l, &col_r, &row);
     for (dy = -1; dy <= 1; dy++) {
         for (dx = -1; dx <= 1; dx++) {
             if (dx == 0 && dy == 0) continue;
@@ -136,8 +148,28 @@ static void ui_title_torch_frame_draw(void) { // 3×3 block minus center around 
     }
 }
 
+static void ui_title_torch_extra_draw(void) { // 2 extra B6 tiles per side: pair beside frame top row, plus 1 two rows above torch
+    uint8_t col_l, col_r, row;
+    ui_title_torch_anchor(&col_l, &col_r, &row);
+    ui_title_torch_frame_put((uint8_t)(col_l - 1u), (uint8_t)(row - 1u));
+    ui_title_torch_frame_put(col_l,                 (uint8_t)(row - 1u));
+    ui_title_torch_frame_put(col_r,                 (uint8_t)(row - 1u));
+    ui_title_torch_frame_put((uint8_t)(col_r + 1u), (uint8_t)(row - 1u));
+    ui_title_torch_frame_put(col_l, (uint8_t)(row - 2u)); // 2 above left torch
+    ui_title_torch_frame_put(col_r, (uint8_t)(row - 2u)); // 2 above right torch
+}
+
+static void ui_title_torch_glow_tick(uint16_t frame_counter) { // dim→mid→bright→mid pingpong; one palette write moves every B6 tile
+    static const uint8_t seq[4] = { 0u, 1u, 2u, 1u };
+    uint8_t step;
+    if (!ui_title_torch_glow_active) return;
+    step = (uint8_t)((frame_counter / UI_TITLE_TORCH_GLOW_HOLD_FRAMES) & 3u);
+    set_bkg_palette(1u, 1u, ui_title_torch_glow_pal[seq[step]]);
+}
+
 static void ui_title_style_begin(uint8_t bkg_text_row, uint8_t torch_left_pad_px) {
     set_bkg_palette(0u, 1u, ui_title_bkg_pal);
+    set_bkg_palette(1u, 1u, ui_title_torch_glow_pal[1]); // mid tone before the first glow tick (seed menu never enables the tick)
     set_sprite_palette(PAL_PLAYER, 1u, ui_title_torch_sprite_pal);
     set_sprite_palette(PAL_TITLE_FIRE, 1u, ui_title_fire_pal);
     set_sprite_palette(PAL_TITLE_RISE_SKULL, 1u, ui_title_bkg_pal); // same ramp as border skull BGP 0 — load_palettes restores OCP3
@@ -166,6 +198,7 @@ static void ui_title_style_end(void) {
     title_logo_bkg_vram_restore(); // HOME: MBC-safe tileset read — was in bank 5 and could white-screen after return
     set_bkg_palette(0u, 1u, ui_default_bkg_pal0);
     ui_title_torch_hide();
+    ui_title_torch_glow_active = 0u;
     load_palettes(); // BANKED in render.c — do not SWITCH_ROM here; stubs must own bank save/restore
 }
 
@@ -269,6 +302,7 @@ static void ui_title_menu_anim_tick(uint16_t frame_counter) {
         set_sprite_tile(UI_TITLE_TORCH_OAM_L, tt);
         set_sprite_tile(UI_TITLE_TORCH_OAM_R, tt);
     }
+    ui_title_torch_glow_tick(frame_counter);
 }
 
 static char combat_log[COMBAT_LOG_LINES][COMBAT_LOG_LEN];
@@ -957,6 +991,8 @@ uint16_t title_screen(uint16_t entropy_hint) BANKED { // blocking until START or
     ui_title_style_begin(7u, UI_TITLE_TORCH_PAD_L_TITLE);
     ui_title_menu_border_draw();
     ui_title_torch_frame_draw();
+    ui_title_torch_extra_draw();
+    ui_title_torch_glow_active = 1u;
     title_logo_bkg_vram_patch();
     ui_title_logo_draw_bkg(4u, 3u); // 12×4 scaled; centered (x=4), one row up vs (4,4)
     gotoxy(7, 7); printf("Abyss"); // centered; 8px below logo (map row below 4-row block: 3+4=7)

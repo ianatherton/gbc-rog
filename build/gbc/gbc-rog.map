@@ -126,8 +126,8 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     000019EC  l__DATA   |    00001AC5  l__CODE_3 |    00002000  _rROMB0  
-     00002742  l__CODE   |    00002911  l__CODE_5 |    00002942  s__HOME  
+     000019ED  l__DATA   |    00001AC5  l__CODE_3 |    00002000  _rROMB0  
+     00002742  l__CODE   |    00002942  s__HOME   |    000029E1  l__CODE_5
      00002A7D  l__CODE_1 |    00003000  _rROMB1   |    0000350B  s__BASE  
      0000350B  s__CODE_0 |    0000350B  s__INITIA |    0000350B  s__LIT   
      00003528  s__GSINIT |    00003534  s__GSFINA |    00003B35  l__CODE_2
@@ -137,8 +137,8 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000A000  _rMBC7_LA |    0000A010  _rMBC7_LA |    0000A020  _rMBC7_AC
      0000A030  _rMBC7_AC |    0000A040  _rMBC7_AC |    0000A050  _rMBC7_AC
      0000C000  __RAM     |    0000C000  _shadow_O |    0000C0A0  s__DATA  
-     0000D000  __RAMBANK |    0000DA8C  s__BSS    |    0000DA8C  s__INITIA
-     0000DAA9  s__HEAP   |    0000DAA9  s__HEAP_E |    0000E000  .STACK   
+     0000D000  __RAMBANK |    0000DA8D  s__BSS    |    0000DA8D  s__INITIA
+     0000DAAA  s__HEAP   |    0000DAAA  s__HEAP_E |    0000E000  .STACK   
      0000FE00  __OAMRAM  |    0000FF00  _P1_REG   |    0000FF00  __IO     
      0000FF01  _SB_REG   |    0000FF02  _SC_REG   |    0000FF04  _DIV_REG 
      0000FF05  _TIMA_REG |    0000FF06  _TMA_REG  |    0000FF07  _TAC_REG 
@@ -455,7 +455,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_DATA                  0000C0A0    000019EC =        6636. bytes (REL,CON)
+_DATA                  0000C0A0    000019ED =        6637. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -490,23 +490,23 @@ _DATA                  0000C0A0    000019EC =        6636. bytes (REL,CON)
      0000D8B8  _brazier_ |    0000D8B9  _brazier_ |    0000D8CD  _brazier_
      0000D8E1  _brazier_ |    0000D8F5  _pit_x    |    0000D8F6  _pit_y   
      0000D8F7  _pit_pres |    0000D8F8  _camera_p |    0000D8FA  _camera_p
-     0000DA6C  ___rand_s |    0000DA6E  font_curr |    0000DA71  font_firs
-     0000DA72  font_tabl |    0000DA84  .int_0x48
+     0000DA6D  ___rand_s |    0000DA6F  font_curr |    0000DA72  font_firs
+     0000DA73  font_tabl |    0000DA85  .int_0x48
 ASxxxx Linker V03.00/V05.40 + sdld,  page 28.
 Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_INITIALIZED           0000DA8C    0000001D =          29. bytes (REL,CON)
+_INITIALIZED           0000DA8D    0000001D =          29. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     0000DA8C  _current_ |    0000DA8D  _next_sta |    0000DA8E  _player_h
-     0000DA8F  _player_h |    0000DA90  _player_l |    0000DA91  _player_d
-     0000DA92  _floor_nu |    0000DA93  _run_seed |    0000DA95  _boss_ali
-     0000DA99  _ui_panel |    0000DAA3  .curx     |    0000DAA4  .cury    
-     0000DAA5  .fg_colou |    0000DAA5  __current |    0000DAA6  .bg_colou
-     0000DAA7  .draw_mod |    0000DAA8  __map_til
+     0000DA8D  _current_ |    0000DA8E  _next_sta |    0000DA8F  _player_h
+     0000DA90  _player_h |    0000DA91  _player_l |    0000DA92  _player_d
+     0000DA93  _floor_nu |    0000DA94  _run_seed |    0000DA96  _boss_ali
+     0000DA9A  _ui_panel |    0000DAA4  .curx     |    0000DAA5  .cury    
+     0000DAA6  .fg_colou |    0000DAA6  __current |    0000DAA7  .bg_colou
+     0000DAA8  .draw_mod |    0000DAA9  __map_til
 ASxxxx Linker V03.00/V05.40 + sdld,  page 29.
 Hexadecimal  [32-Bits]
 
@@ -596,19 +596,19 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_5                00054000    00002911 =       10513. bytes (REL,CON)
+_CODE_5                00054000    000029E1 =       10721. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00054000  ___func_u |    00054864  _ui_comba |    0005486F  _ui_comba
-     00054954  _ui_comba |    00054969  _ui_comba |    00054985  _ui_push_
-     00054D01  _ui_push_ |    00054F0A  _ui_push_ |    000550E1  _ui_push_
-     000551E6  _ui_comba |    00055228  _seed_wor |    00055278  _seed_wor
-     000552C8  _seed_wor |    000561B5  _run_seed |    00056232  _ui_game_
-     00056273  _window_u |    000562C3  _window_u |    000562CA  _ui_loadi
-     0005632F  _ui_loadi |    00056340  _ui_draw_ |    00056373  _ui_draw_
-     000563FC  _ui_panel |    00056401  _ui_panel |    00056411  _ui_panel
-     0005641D  _ui_panel |    000567CA  _title_sc
+     00054000  ___func_u |    0005492C  _ui_comba |    00054937  _ui_comba
+     00054A1C  _ui_comba |    00054A31  _ui_comba |    00054A4D  _ui_push_
+     00054DC9  _ui_push_ |    00054FD2  _ui_push_ |    000551A9  _ui_push_
+     000552AE  _ui_comba |    000552F0  _seed_wor |    00055340  _seed_wor
+     00055390  _seed_wor |    0005627D  _run_seed |    000562FA  _ui_game_
+     0005633B  _window_u |    0005638B  _window_u |    00056392  _ui_loadi
+     000563F7  _ui_loadi |    00056408  _ui_draw_ |    0005643B  _ui_draw_
+     000564C4  _ui_panel |    000564C9  _ui_panel |    000564D9  _ui_panel
+     000564E5  _ui_panel |    00056892  _title_sc
 ASxxxx Linker V03.00/V05.40 + sdld,  page 35.
 Hexadecimal  [32-Bits]
 

@@ -405,7 +405,7 @@ void state_gameplay_tick(void) BANKED {
                 return;
             } else if (nx == player_spawn_x && ny == player_spawn_y
                        && floor_num > 0u
-                       && !(floor_biome == BIOME_BOSS && boss_alive)) {
+                       && !((floor_biome == BIOME_BOSS || floor_biome == BIOME_MINIBOSS) && boss_alive)) {
                 wait_vbl_done();
                 draw_cell(g_player_x, g_player_y);
                 pending_transition = TRANS_FLOOR_UP;

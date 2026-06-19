@@ -352,6 +352,12 @@ static void refresh_enemy_oam(uint8_t slot) {
             oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 3u));
             oam_hide(SP_GORGON_HEAD_R);
         }
+        if (enemy_type[slot] == ENEMY_SLIME_BIG) {
+            // hide the 3 borrowed quadrant slots on death/poof so only primary slot shows poof
+            oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 0u));
+            oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 1u));
+            oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 2u));
+        }
         if (enemy_poof_ttl[slot] > 0u) {
             uint8_t mx = enemy_x[slot], my = enemy_y[slot];
             if (mx < g_cam_tx || mx >= g_cam_tx_end
@@ -436,6 +442,42 @@ static void refresh_enemy_oam(uint8_t slot) {
                 oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 3u));
                 oam_hide(SP_GORGON_HEAD_R);
             }
+        }
+        return;
+    }
+    // Custom 2×2 OAM render for ENEMY_SLIME_BIG (miniboss floor only): 4 quadrants of a
+    // nearest-neighbor 2x upscale of the regular Slime sprite, centered on the enemy's
+    // single logical tile (visual-only scale-up — no footprint/occupancy change).
+    // Borrows SP_BIG_SKELL_HEAD_BASE+0..2 (slots 27-29), safe because no BIG_SKELL spawns
+    // on this biome.
+    if (enemy_type[slot] == ENEMY_SLIME_BIG) {
+        int16_t ewx = (int16_t)enemy_x[slot] * 8 + en_ofs_x[slot];
+        int16_t ewy = (int16_t)enemy_y[slot] * 8 + en_ofs_y[slot];
+        if (enemy_x[slot] < g_cam_tx || enemy_x[slot] >= g_cam_tx_end
+                || enemy_y[slot] < g_cam_ty || enemy_y[slot] >= g_cam_ty_end
+                || !lighting_is_revealed(enemy_x[slot], enemy_y[slot])) {
+            oam_hide(sp);
+            oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 0u));
+            oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 1u));
+            oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 2u));
+            return;
+        }
+        {
+            uint8_t pal = PAL_ENEMY_SNAKE;
+            uint8_t h = en_hit_flash_age[slot];
+            if (h > 0u && h <= ENEMY_HIT_FLASH_VBL) {
+                uint8_t age0 = (uint8_t)(h - 1u);
+                if (((age0 >> 1) & 1u) == 0u) pal = 0u; // OCP0 grey ramp vs native enemy ramp
+            }
+            // centered on the logical tile: ±4px from tile origin per quadrant
+            move_entity_oam(sp, ewx - 4, ewy - 4,
+                (uint8_t)(TILESET_VRAM_OFFSET + TILE_SLIMEBIG_TL_OFF), pal);
+            move_entity_oam((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 0u), ewx + 4, ewy - 4,
+                (uint8_t)(TILESET_VRAM_OFFSET + TILE_SLIMEBIG_TR_OFF), pal);
+            move_entity_oam((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 1u), ewx - 4, ewy + 4,
+                (uint8_t)(TILESET_VRAM_OFFSET + TILE_SLIMEBIG_BL_OFF), pal);
+            move_entity_oam((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 2u), ewx + 4, ewy + 4,
+                (uint8_t)(TILESET_VRAM_OFFSET + TILE_SLIMEBIG_BR_OFF), pal);
         }
         return;
     }

@@ -229,6 +229,7 @@ uint8_t corpse_deco_random(void) BANKED { return CORPSE_DECO_OFF[rand() & 1u]; }
 
 void spawn_enemies(void) { // random placement with collision checks
     uint8_t i;
+    uint8_t fodder_cap = NUM_ENEMIES;
     num_enemies = 0;
     boss_alive = 0u;
     for (i = 0; i < MAX_ENEMIES; i++) { enemy_force_active[i] = 0u; enemy_status[i] = 0u; enemy_persistent[i] = 0u; }
@@ -259,11 +260,12 @@ void spawn_enemies(void) { // random placement with collision checks
         num_enemies = 1u;
         return;
     }
-    for (i = 0; i < NUM_ENEMIES; i++) {
+    if (floor_biome == BIOME_MINIBOSS) fodder_cap = (uint8_t)(rand() % 6u); // 0-5 small slimes alongside the guaranteed elite below
+    for (i = 0; i < fodder_cap; i++) {
         uint8_t attempts;
         for (attempts = 0; attempts < 100; attempts++) {
-            uint8_t tx = (uint8_t)(rand() % MAP_W);
-            uint8_t ty = (uint8_t)(rand() % MAP_H);
+            uint8_t tx = (uint8_t)(rand() % active_map_w);
+            uint8_t ty = (uint8_t)(rand() % active_map_h);
             if ((tx != player_spawn_x || ty != player_spawn_y)
                     && is_walkable(tx, ty)
                     && enemy_at(tx, ty) == ENEMY_DEAD) {
@@ -276,6 +278,28 @@ void spawn_enemies(void) { // random placement with collision checks
                 enemy_persistent[num_enemies] = 1u; // initial spawn — permanence-tracked
                 enemy_place_slot(num_enemies, tx, ty);
                 num_enemies++;
+                break;
+            }
+        }
+    }
+    if (floor_biome == BIOME_MINIBOSS) { // one guaranteed 2x Slime elite, visual-only footprint (single tile)
+        uint8_t attempts;
+        for (attempts = 0; attempts < 100; attempts++) {
+            uint8_t tx = (uint8_t)(rand() % active_map_w);
+            uint8_t ty = (uint8_t)(rand() % active_map_h);
+            if ((tx != player_spawn_x || ty != player_spawn_y)
+                    && is_walkable(tx, ty)
+                    && enemy_at(tx, ty) == ENEMY_DEAD) {
+                enemy_x[num_enemies]    = tx;
+                enemy_y[num_enemies]    = ty;
+                enemy_type[num_enemies] = ENEMY_SLIME_BIG;
+                enemy_hp[num_enemies]   = enemy_effective_max_hp(ENEMY_SLIME_BIG);
+                enemy_alive[num_enemies] = 1u;
+                enemy_force_active[num_enemies] = 0u;
+                enemy_persistent[num_enemies] = 1u;
+                enemy_place_slot(num_enemies, tx, ty);
+                num_enemies++;
+                boss_alive = 1u; // suppresses stairs/pit until the elite is cleared (map.c/state_gameplay.c)
                 break;
             }
         }

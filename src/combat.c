@@ -84,9 +84,9 @@ uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage, uint8_t from_shield_burn
         entity_sprites_enemy_poof_begin(ei);
         if (dead_enemy_pool_count < MAX_ENEMIES)
             dead_enemy_pool[dead_enemy_pool_count++] = ei;
-        if (enemy_type[ei] == ENEMY_GORGON) {
+        if (enemy_type[ei] == ENEMY_GORGON || enemy_type[ei] == ENEMY_SLIME_BIG) {
             boss_alive = 0u;
-            draw_boss_reveal_cells_far(); // reveal stairs + pit now that boss is dead
+            draw_boss_reveal_cells_far(); // reveal stairs + pit now that boss/miniboss is dead
         }
         grant_xp_from_kill(kill_xp);
 #if GBC_ROG_DEBUG

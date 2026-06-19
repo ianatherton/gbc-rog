@@ -106,8 +106,8 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
     uint32_t mix = (uint32_t)floor_seed * 2654435761u ^ (uint32_t)floor_seed << 13;
     mix ^= mix >> 17;
     mix *= 2246523629u;
-    if (floor_num == 1u || floor_num == BOSS_FLOOR_NUM) {
-        active_map_w = 20u; // entry floor (1), boss (3): fixed compact arena
+    if (floor_num == 1u || floor_num == MINIBOSS_FLOOR_NUM || floor_num == BOSS_FLOOR_NUM) {
+        active_map_w = 20u; // entry floor (1), miniboss, boss: fixed compact arena
         active_map_h = 20u;
     } else {
         active_map_w = MAP_W;

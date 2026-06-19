@@ -12,6 +12,7 @@ BANKREF_EXTERN(biome_boss_copy_defs)
 BANKREF_EXTERN(biome_boss_load_palettes)
 BANKREF_EXTERN(biome_overworld_copy_defs)
 BANKREF_EXTERN(biome_overworld_load_palettes)
+BANKREF_EXTERN(biome_miniboss_copy_defs)
 
 // Dispatch table indexed by biome ID — adding a biome is one new bank file plus one row here
 // (and BIOME_*/BIOME_COUNT in biome.h). Rows hold plain fn pointers; we map the bank ourselves.
@@ -22,6 +23,7 @@ static const BiomeEntry biome_table[BIOME_COUNT] = {
     /* BIOME_CAVERN  */ { BANK(biome_cavern_copy_defs),  biome_cavern_copy_defs,  NULL },
     /* BIOME_BOSS    */ { BANK(biome_boss_copy_defs),    biome_boss_copy_defs,    biome_boss_load_palettes },
     /* BIOME_OVERWORLD */ { BANK(biome_overworld_copy_defs), biome_overworld_copy_defs, biome_overworld_load_palettes },
+    /* BIOME_MINIBOSS */ { BANK(biome_miniboss_copy_defs), biome_miniboss_copy_defs, NULL },
 };
 
 void biome_load_active(uint8_t biome_id) {
@@ -36,16 +38,19 @@ void biome_load_active(uint8_t biome_id) {
     SWITCH_ROM(sb);
 }
 
-// Floor 1: always dungeon. Floor 3: always boss. Other floors: pseudo-random dungeon/crypt/cavern
-// from run_seed so the same seed still reproduces the same sequence without storing prior floors in WRAM.
+// Floor 1: always dungeon. Floor 3: always miniboss. Floor 5: always boss. Other floors:
+// pseudo-random dungeon/crypt/cavern from run_seed so the same seed still reproduces the
+// same sequence without storing prior floors in WRAM.
+static const uint8_t random_biomes[BIOME_RANDOM_COUNT] = { BIOME_DUNGEON, BIOME_CRYPT, BIOME_CAVERN };
 uint8_t biome_pick_for_floor(uint8_t floor_n, uint16_t seed) {
     uint16_t h;
-    if (floor_n == 0u)             return BIOME_OVERWORLD; // floor 0 is the top-level hub
-    if (floor_n <= 1u)             return BIOME_DUNGEON;
-    if (floor_n == BOSS_FLOOR_NUM) return BIOME_BOSS;
+    if (floor_n == 0u)                 return BIOME_OVERWORLD; // floor 0 is the top-level hub
+    if (floor_n <= 1u)                 return BIOME_DUNGEON;
+    if (floor_n == MINIBOSS_FLOOR_NUM) return BIOME_MINIBOSS;
+    if (floor_n == BOSS_FLOOR_NUM)     return BIOME_BOSS;
     h = (uint16_t)(seed ^ (uint16_t)((uint16_t)floor_n * 2053u));
     h ^= (uint16_t)(h >> 8);
     h ^= (uint16_t)((uint16_t)floor_n * 6361u);
     h ^= (uint16_t)(h >> 7);
-    return (uint8_t)(h % BIOME_RANDOM_COUNT); // excludes BIOME_BOSS from random selection
+    return random_biomes[h % BIOME_RANDOM_COUNT]; // excludes BIOME_BOSS/OVERWORLD/MINIBOSS from random selection
 }

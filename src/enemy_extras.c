@@ -12,7 +12,7 @@ BANKREF_EXTERN(enemy_effective_max_hp)
 BANKREF(enemy_type_short_name_copy)
 void enemy_type_short_name_copy(uint8_t t, char *out, uint8_t cap) BANKED {
     static const char *const n[NUM_ENEMY_TYPES] = {
-        "SNAKE", "SLIME", "RAT", "BAT", "BIG SKELL", "IMP", "SKELETON", "GORGON"
+        "SNAKE", "SLIME", "RAT", "BAT", "BIG SKELL", "IMP", "SKELETON", "GORGON", "BIG SLIME"
     };
     const char *s = (t < NUM_ENEMY_TYPES) ? n[t] : "?";
     uint8_t i = 0u;
@@ -28,7 +28,7 @@ static const uint8_t slime_oy[4] = {0xFFu, 1u, 0u, 0u};
 BANKREF(enemy_slime_split)
 void enemy_slime_split(uint8_t type, uint8_t dx, uint8_t dy, uint8_t px, uint8_t py) BANKED {
     uint8_t d, ni, tx, ty, spawned = 0u;
-    if (type != ENEMY_SLIME || !(rand() & 1u)) return;
+    if ((type != ENEMY_SLIME && type != ENEMY_SLIME_BIG) || !(rand() & 1u)) return;
     for (d = 0u; d < 4u && spawned < 3u; d++) {
         tx = (uint8_t)(dx + slime_ox[d]);
         ty = (uint8_t)(dy + slime_oy[d]);

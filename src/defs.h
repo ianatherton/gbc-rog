@@ -102,7 +102,8 @@ typedef struct {
 /* ── Level generation ────────────────────────────────────────────────────── */
 #define WALK_STEPS 4000   // scaled up from 350 to match the larger 64×64 map
 #define NUM_PITS     1    // single descent tile per floor
-#define BOSS_FLOOR_NUM 3u // floor 3 always generates the boss biome
+#define MINIBOSS_FLOOR_NUM 3u // floor 3 always generates the miniboss biome
+#define BOSS_FLOOR_NUM      5u // floor 5 always generates the boss biome
 #define MAX_FLOORS     50u // hard cap; floor MAX_FLOORS pit ends the run
 
 /* ── Enemy roster ────────────────────────────────────────────────────────── */
@@ -141,7 +142,8 @@ typedef struct {
 #define ENEMY_IMP       5
 #define ENEMY_SKELETON  6
 #define ENEMY_GORGON    7
-#define NUM_ENEMY_TYPES 8
+#define ENEMY_SLIME_BIG 8 // 2x-scaled Slime miniboss; visual-only footprint, reuses Slime AI + melee-split behavior
+#define NUM_ENEMY_TYPES 9
 
 /* ── Animation ───────────────────────────────────────────────────────────── */
 // DIV_REG runs at 16384 Hz; 1638 ticks ≈ 0.10s between frame flips
@@ -220,7 +222,7 @@ typedef struct {
 #define TILE_LIGHT_2        18   /* C2  */
 #define TILE_LIGHT_3        34   /* C3  */
 #define TILE_LIGHT_4        50   /* C4  */
-#define TILE_LIGHT_5        66   /* C5  */
+#define TILE_LIGHT_5        66   /* C5  — dead variant, never placed; VRAM 194 borrowed by TILE_SLIMEBIG_TL */
 #define TILE_LIGHT_6        82   /* C6  */
 
 /* ── D col — decorative columns ─────────────────────────────────────────── */
@@ -229,7 +231,7 @@ typedef struct {
 #define TILE_COLUMN_2       19   /* D2  */
 #define TILE_COLUMN_3       35   /* D3  */
 #define TILE_COLUMN_4       51   /* D4  */
-#define TILE_COLUMN_5       67   /* D5  */
+#define TILE_COLUMN_5       67   /* D5  — dead variant, never placed; VRAM 195 borrowed by TILE_SLIMEBIG_TR */
 #define TILE_COLUMN_6       83   /* D6  */
 #define TILE_COLUMN_7       99   /* D7  */
 
@@ -239,7 +241,7 @@ typedef struct {
 #define TILE_GROUND_C       36   /* E3  */
 #define TILE_GROUND_D       52   /* E4  — also title-menu fire particle glyph */
 #define TILE_TITLE_FIRE     TILE_GROUND_D
-#define TILE_GROUND_E       68   /* E5  */
+#define TILE_GROUND_E       68   /* E5  — dead variant, never placed; VRAM 196 borrowed by TILE_SLIMEBIG_BL */
 
 /* ── F col — props ───────────────────────────────────────────────────────── */
 #define TILE_CHEST           5   /* F1  */
@@ -262,7 +264,7 @@ typedef struct {
 #define TILE_DOOR_CLOSED    22   /* G2  */
 #define TILE_SHRINE_ON_1    38   /* G3  - active shrine animation frame 1  */
 #define TILE_SHRINE_ON_2    54   /* G4  - active shrine animation frame 2  */
-#define TILE_SHRINE_OFF     70   /* G5  - inactive shrine                  */
+#define TILE_SHRINE_OFF     70   /* G5  - inactive shrine; dead, never placed; VRAM 198 borrowed by TILE_SLIMEBIG_BR */
 
 /* ── H col — stairs + pit ────────────────────────────────────────────────── */
 #define TILE_STAIRS_UP_1     7   /* H1  */
@@ -364,6 +366,28 @@ typedef struct {
 #define TILE_GORGON_BODY_R_OFF  101u
 #define TILE_GORGON_FEET_L_OFF  102u
 #define TILE_GORGON_FEET_R_OFF  103u
+
+/* A9-D9 — 2x-scaled Slime miniboss (2×2 tiles, nearest-neighbor upscale of TILE_SLIME_ROM_1).
+   ROM indices past first VRAM pack, never auto-loaded. Boot-patched to borrowed dead-variant
+   slots — C5/D5/E5/G5 are the Nth drawn variant of a themed column (lights/columns/ground/
+   shrine) that the game logic never wires up, confirmed by zero references anywhere outside
+   their own #define (same precedent as TILE_FLOOR_DECO_6/7/8 already borrowed for arrow/bow/
+   knight-shield). Visual-only scale-up: the enemy still occupies a single logical tile.
+   NOTE: an earlier version of this borrowed A7/D7/I7/J7, which turned out to be live content
+   (TILE_WALL_F, TILE_COLUMN_7, TILE_ITEM_7, TILE_LOADING_SKULL/TILE_BIG_SKELL_HEAD) — do not
+   reuse those for anything. */
+#define TILE_SLIMEBIG_TL_ROM  128u  /* A9 */
+#define TILE_SLIMEBIG_TR_ROM  129u  /* B9 */
+#define TILE_SLIMEBIG_BL_ROM  130u  /* C9 */
+#define TILE_SLIMEBIG_BR_ROM  131u  /* D9 */
+#define TILE_SLIMEBIG_TL_VRAM 194u  /* borrows C5=ROM66 (TILE_LIGHT_5, dead variant) */
+#define TILE_SLIMEBIG_TR_VRAM 195u  /* borrows D5=ROM67 (TILE_COLUMN_5, dead variant) */
+#define TILE_SLIMEBIG_BL_VRAM 196u  /* borrows E5=ROM68 (TILE_GROUND_E, dead variant) */
+#define TILE_SLIMEBIG_BR_VRAM 198u  /* borrows G5=ROM70 (TILE_SHRINE_OFF, dead variant) */
+#define TILE_SLIMEBIG_TL_OFF   66u  /* = VRAM - TILESET_VRAM_OFFSET */
+#define TILE_SLIMEBIG_TR_OFF   67u
+#define TILE_SLIMEBIG_BL_OFF   68u
+#define TILE_SLIMEBIG_BR_OFF   70u
 
 /* ── L col — floor decorations ──────────────────────────────────────────── */
 #define TILE_FLOOR_DECO_1   11   /* L1  */

@@ -35,7 +35,8 @@ SRAM (battery RAM) is currently unused — free for saves later.
 | 20 | — | — | equipment (`EquipStatDef` table, `items_equip_apply`, `items_equip_slot`, `equipped_kind_in_slot`) |
 | 21 | 132 | 1% | biome_boss |
 | 22 | ~140 | 1% | biome_overworld (top-level hub, floor 0; no enemies/items, dark-green field, c10 walls) |
-| 23–31 | 0 | 0% | empty — ~170 KB free |
+| 27 | ~150 | 1% | biome_miniboss (fixed at floor 3: normal fodder roster + one guaranteed 2x Slime) |
+| 23–26, 28–31 | 0 | 0% | empty — ~165 KB free |
 
 Total ROM used ≈ 76 KB of 512 KB (~15%). ROM is not the constraint. If it ever is,
 MBC5 goes to 8 MB: bump `-Wl-yo32` in the Makefile (64/128/…), nothing else changes.
@@ -43,8 +44,9 @@ MBC5 goes to 8 MB: bump `-Wl-yo32` in the Makefile (64/128/…), nothing else ch
 ## Bank allocation policy (where new content goes)
 
 - **6–9** class abilities/spells (one bank per class, each ~99% free)
-- **10–12, 21 (boss), 22 (overworld); reserve 27+** biomes + map gen (a new biome is one
-  bank file + one row in `biome_table` in `src/biome.c` + a `BIOME_*` id in `src/biome.h`)
+- **10–12, 21 (boss), 22 (overworld), 27 (miniboss); reserve 28+** biomes + map gen (a new
+  biome is one bank file + one row in `biome_table` in `src/biome.c` + a `BIOME_*` id in
+  `src/biome.h`)
 - **13, reserve 23** items (consumables, inventory management) + affixes
 - **20, reserve 21** equipment (stat table, slot system)
 - **15/16, reserve 24** scrolls / castable item effects

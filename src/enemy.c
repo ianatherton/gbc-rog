@@ -19,6 +19,7 @@ uint8_t enemy_y[MAX_ENEMIES];      // map row
 uint8_t enemy_type[MAX_ENEMIES];   // index into enemy_defs
 uint8_t enemy_hp[MAX_ENEMIES];     // hits remaining; player reduces before kill
 uint8_t enemy_status[MAX_ENEMIES]; // root_turns counter: turns remaining skipping movement (0 = free)
+uint8_t enemy_stun[MAX_ENEMIES];   // stun_turns counter: turns remaining fully helpless (0 = free)
 uint8_t num_enemies;               // live count ≤ NUM_ENEMIES after spawn
 
 uint8_t corpse_x[MAX_CORPSES];
@@ -232,7 +233,7 @@ void spawn_enemies(void) { // random placement with collision checks
     uint8_t fodder_cap = NUM_ENEMIES;
     num_enemies = 0;
     boss_alive = 0u;
-    for (i = 0; i < MAX_ENEMIES; i++) { enemy_force_active[i] = 0u; enemy_status[i] = 0u; enemy_persistent[i] = 0u; }
+    for (i = 0; i < MAX_ENEMIES; i++) { enemy_force_active[i] = 0u; enemy_status[i] = 0u; enemy_stun[i] = 0u; enemy_persistent[i] = 0u; }
     if (floor_num == 1u || floor_biome == BIOME_OVERWORLD) return; // hub + entry floor are safe no-monster zones (empty roster → guard rand() % 0)
     if (floor_biome == BIOME_BOSS) {
         uint8_t attempts, gx = 1u, gy = 3u; // fallback position
@@ -253,6 +254,7 @@ void spawn_enemies(void) { // random placement with collision checks
         enemy_hp[0]          = enemy_effective_max_hp(ENEMY_GORGON);
         enemy_alive[0]       = 1u;
         enemy_status[0]      = 0u;
+        enemy_stun[0]        = 0u;
         enemy_persistent[0]  = 1u; // boss is part of the deterministic spawn — stays dead on revisit
         enemy_force_active[0] = 1u; // always-active boss hook
         enemy_place_slot(0, gx, gy);
@@ -434,6 +436,10 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
 
         uint8_t sx = enemy_x[i], sy = enemy_y[i];
 
+        if (enemy_stun[i] > 0u) {
+            enemy_stun[i]--; // fully helpless: no move, no melee
+            continue;
+        }
         if (enemy_status[i] > 0u) {
             enemy_status[i]--;
             // rooted: can't move but still melee if player is king-adjacent

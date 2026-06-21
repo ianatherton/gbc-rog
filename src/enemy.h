@@ -25,6 +25,8 @@ extern uint8_t enemy_type[MAX_ENEMIES];
 extern uint8_t enemy_hp[MAX_ENEMIES];
 // root_turns: turns remaining where enemy skips movement (0 = free); set by scroll effects; cleared each floor by spawn_enemies
 extern uint8_t enemy_status[MAX_ENEMIES];
+// stun_turns: turns remaining where enemy is fully helpless (no movement, no melee); set by Mace hits; cleared each floor by spawn_enemies
+extern uint8_t enemy_stun[MAX_ENEMIES];
 extern uint8_t num_enemies;
 
 /* ── Spatial occupancy ────────────────────────────────────────────────────── */

@@ -232,7 +232,7 @@ static void draw_cursor_and_name(void) {
     gotoxy(2, INV_NAME_ROW);
     printf("                  "); // 18 spaces to clear name+count area
     if (inv_kind != ITEM_KIND_NONE) {
-        items_kind_name_copy(inv_kind, name, (uint8_t)sizeof name);
+        items_kind_display_name_copy(inv_kind, inventory_mod_level[inv_cursor], name, (uint8_t)sizeof name);
         nlen = 0u; while (name[nlen]) nlen++;
         gotoxy(2, INV_NAME_ROW); printf("%s", name);
         if (items_kind_category(inv_kind) == ITEM_CAT_CONSUMABLE) {
@@ -280,7 +280,7 @@ static void draw_drop_confirm(void) {
     uint8_t kind = inventory_kind[inv_cursor];
     uint8_t v;
     char namebuf[18];
-    items_kind_name_copy(kind, namebuf, sizeof namebuf);
+    items_kind_display_name_copy(kind, inventory_mod_level[inv_cursor], namebuf, sizeof namebuf);
     entity_sprites_inv_cursor_hide();
     lcd_clear_display();
     gotoxy(3, 4); printf("Item drop?");
@@ -349,13 +349,13 @@ void state_inventory_tick(void) BANKED {
                         if (i != inv_cursor && inventory_equipped[i] &&
                                 items_equip_slot(ek) == my_slot) {
                             inventory_equipped[i] = 0u;
-                            items_equip_apply(ek, 0u);
+                            items_equip_apply(ek, i, 0u);
                         }
                     }
                 }
             }
             inventory_equipped[inv_cursor] ^= 1u;
-            items_equip_apply(kind, inventory_equipped[inv_cursor]);
+            items_equip_apply(kind, inv_cursor, inventory_equipped[inv_cursor]);
             wait_vbl_done();
             draw_equipped_marks();
             draw_equip_panel();

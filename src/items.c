@@ -26,6 +26,7 @@ static const uint8_t kind_cat[ITEM_KIND_COUNT] = {
     ITEM_CAT_CONSUMABLE, // BOW — stack item, one arrow spent per shot
     ITEM_CAT_EQUIPMENT,  // AXE
     ITEM_CAT_EQUIPMENT,  // SHIELD
+    ITEM_CAT_EQUIPMENT,  // MACE
 };
 
 static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
@@ -42,6 +43,7 @@ static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
     TILE_BOW_BELT_OFF,    // BOW — I15 art at TILE_BOW_VRAM
     TILE_AXE_BELT_OFF,    // AXE — I10 art; VRAM slot shared with Zerker Whirlwind belt icon
     TILE_SHIELD_BELT_OFF, // SHIELD — I9 art; VRAM slot shared with Knight Shield UI icon
+    TILE_ITEM_2,          // MACE — I2
 };
 
 static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
@@ -58,12 +60,13 @@ static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
     PAL_LADDER,       // BOW — torch ramp
     PAL_WALL_BG,      // AXE — warm metal ramp
     PAL_WALL_BG,      // SHIELD — warm metal ramp
+    PAL_WALL_BG,      // MACE — warm metal ramp
 };
 
 static const char *const kind_name[ITEM_KIND_COUNT] = {
     "Heal Potion", "Death Scroll", "BigHeal Potion", "Candle", "Root Scroll",
     "Rusty Sword", "Book: Heal", "Helmet", "Tunic", "Boots", "Bow & Arrow",
-    "Axe", "Shield",
+    "Axe", "Shield", "Mace",
 };
 
 static const char *const kind_desc[ITEM_KIND_COUNT] = {
@@ -80,6 +83,7 @@ static const char *const kind_desc[ITEM_KIND_COUNT] = {
     "Looses an arrow at the nearest foe.",
     "Cleaves up to 2 nearby foes on attack.",
     "+10 max HP. A battered iron shield.",
+    "+5 attack, chance to stun. A spiked iron mace.",
 };
 
 uint8_t items_kind_category(uint8_t kind) BANKED {
@@ -113,6 +117,28 @@ void items_kind_name_copy(uint8_t kind, char *out, uint8_t cap) BANKED {
     out[i] = 0;
 }
 
+/* "+N "/"-N " prefix (range is always -1..+10, so at most 2 digits) ahead of the kind name;
+   no prefix at all when mod_level is 0 (the common case). */
+void items_kind_display_name_copy(uint8_t kind, int8_t mod_level, char *out, uint8_t cap) BANKED {
+    const char *s;
+    uint8_t i = 0u, k;
+    if (cap == 0u) return;
+    if (mod_level != 0) {
+        int8_t mag = (mod_level < 0) ? (int8_t)(-mod_level) : mod_level;
+        if ((uint8_t)(i + 1u) < cap) out[i++] = (mod_level < 0) ? '-' : '+';
+        if (mag >= 10) {
+            if ((uint8_t)(i + 1u) < cap) out[i++] = '1';
+            mag = (int8_t)(mag - 10);
+        }
+        if ((uint8_t)(i + 1u) < cap) out[i++] = (char)('0' + mag);
+        if ((uint8_t)(i + 1u) < cap) out[i++] = ' ';
+    }
+    s = (kind < ITEM_KIND_COUNT) ? kind_name[kind] : "?";
+    k = 0u;
+    while (s[k] && (uint8_t)(i + 1u) < cap) { out[i++] = s[k++]; }
+    out[i] = 0;
+}
+
 uint8_t inventory_first_empty(void) BANKED {
     uint8_t i;
     for (i = 0u; i < INVENTORY_MAX_SLOTS; i++)
@@ -133,10 +159,11 @@ void inventory_clear_all(void) BANKED {
         inventory_kind[i]     = ITEM_KIND_NONE;
         inventory_equipped[i] = 0u;
         inventory_count[i]    = 0u;
+        inventory_mod_level[i] = 0;
     }
 }
 
-uint8_t inventory_add(uint8_t kind) BANKED {
+uint8_t inventory_add(uint8_t kind, int8_t mod_level) BANKED {
     uint8_t s;
     uint8_t start = (items_kind_category(kind) == ITEM_CAT_EQUIPMENT) ? BELT_ITEM_SLOT_COUNT : 0u;
     /* bow picks up a full quiver; everything else is a single unit */
@@ -155,6 +182,7 @@ uint8_t inventory_add(uint8_t kind) BANKED {
         if (inventory_kind[s] == ITEM_KIND_NONE) {
             inventory_kind[s]  = kind;
             inventory_count[s] = qty;
+            inventory_mod_level[s] = mod_level;
             return 1u;
         }
     }
@@ -168,13 +196,15 @@ void inventory_remove(uint8_t slot) BANKED {
     if (inventory_count[slot] > 1u) { inventory_count[slot]--; return; }
 
     for (i = slot; (uint8_t)(i + 1u) < INVENTORY_MAX_SLOTS; i++) {
-        inventory_kind[i]     = inventory_kind[(uint8_t)(i + 1u)];
-        inventory_equipped[i] = inventory_equipped[(uint8_t)(i + 1u)];
-        inventory_count[i]    = inventory_count[(uint8_t)(i + 1u)];
+        inventory_kind[i]      = inventory_kind[(uint8_t)(i + 1u)];
+        inventory_equipped[i]  = inventory_equipped[(uint8_t)(i + 1u)];
+        inventory_count[i]     = inventory_count[(uint8_t)(i + 1u)];
+        inventory_mod_level[i] = inventory_mod_level[(uint8_t)(i + 1u)];
     }
-    inventory_kind[INVENTORY_MAX_SLOTS - 1u]     = ITEM_KIND_NONE;
-    inventory_equipped[INVENTORY_MAX_SLOTS - 1u] = 0u;
-    inventory_count[INVENTORY_MAX_SLOTS - 1u]    = 0u;
+    inventory_kind[INVENTORY_MAX_SLOTS - 1u]      = ITEM_KIND_NONE;
+    inventory_equipped[INVENTORY_MAX_SLOTS - 1u]  = 0u;
+    inventory_count[INVENTORY_MAX_SLOTS - 1u]     = 0u;
+    inventory_mod_level[INVENTORY_MAX_SLOTS - 1u] = 0;
 
     /* Removing a belt slot compacts everything left, which can pull equipment
        from slot BELT_ITEM_SLOT_COUNT into the last belt slot.  Fix it. */
@@ -187,12 +217,15 @@ void inventory_remove(uint8_t slot) BANKED {
                 if (inventory_kind[j] != ITEM_KIND_NONE &&
                     items_kind_category(inventory_kind[j]) != ITEM_CAT_EQUIPMENT) {
                     uint8_t tk = inventory_kind[j], te = inventory_equipped[j], tc = inventory_count[j];
-                    inventory_kind[j]     = inventory_kind[lb];
-                    inventory_equipped[j] = inventory_equipped[lb];
-                    inventory_count[j]    = inventory_count[lb];
-                    inventory_kind[lb]    = tk;
-                    inventory_equipped[lb]= te;
-                    inventory_count[lb]   = tc;
+                    int8_t  tm = inventory_mod_level[j];
+                    inventory_kind[j]      = inventory_kind[lb];
+                    inventory_equipped[j]  = inventory_equipped[lb];
+                    inventory_count[j]     = inventory_count[lb];
+                    inventory_mod_level[j] = inventory_mod_level[lb];
+                    inventory_kind[lb]     = tk;
+                    inventory_equipped[lb] = te;
+                    inventory_count[lb]    = tc;
+                    inventory_mod_level[lb]= tm;
                     break;
                 }
             }
@@ -200,19 +233,22 @@ void inventory_remove(uint8_t slot) BANKED {
                 /* no usable items remain — push equipment to first empty non-belt slot */
                 for (j = BELT_ITEM_SLOT_COUNT; j < INVENTORY_MAX_SLOTS; j++) {
                     if (inventory_kind[j] == ITEM_KIND_NONE) {
-                        inventory_kind[j]     = inventory_kind[lb];
-                        inventory_equipped[j] = inventory_equipped[lb];
-                        inventory_count[j]    = inventory_count[lb];
-                        inventory_kind[lb]     = ITEM_KIND_NONE;
-                        inventory_equipped[lb] = 0u;
-                        inventory_count[lb]    = 0u;
+                        inventory_kind[j]      = inventory_kind[lb];
+                        inventory_equipped[j]  = inventory_equipped[lb];
+                        inventory_count[j]     = inventory_count[lb];
+                        inventory_mod_level[j] = inventory_mod_level[lb];
+                        inventory_kind[lb]      = ITEM_KIND_NONE;
+                        inventory_equipped[lb]  = 0u;
+                        inventory_count[lb]     = 0u;
+                        inventory_mod_level[lb] = 0;
                         break;
                     }
                 }
                 if (j >= INVENTORY_MAX_SLOTS) {
-                    inventory_kind[lb]     = ITEM_KIND_NONE;
-                    inventory_equipped[lb] = 0u;
-                    inventory_count[lb]    = 0u;
+                    inventory_kind[lb]      = ITEM_KIND_NONE;
+                    inventory_equipped[lb]  = 0u;
+                    inventory_count[lb]     = 0u;
+                    inventory_mod_level[lb] = 0;
                 }
             }
         }
@@ -269,9 +305,9 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
     out->consumed_turn = 1u;
 }
 
-/* Weighted drop table: consumables weight 5, equipment/reusables weight 4, bow/axe/shield weight 3-4.
-   Total 55 entries. The bow lands as a full quiver (ITEM_BOW_STACK_QTY) at pickup. */
-static const uint8_t drop_table[55] = {
+/* Weighted drop table: consumables weight 5, equipment/reusables weight 4, bow/axe/shield/mace weight 3-4.
+   Total 58 entries. The bow lands as a full quiver (ITEM_BOW_STACK_QTY) at pickup. */
+static const uint8_t drop_table[58] = {
     ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,
     ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,
     ITEM_KIND_KEY,         ITEM_KIND_KEY,         ITEM_KIND_KEY,         ITEM_KIND_KEY,         ITEM_KIND_KEY,
@@ -285,16 +321,29 @@ static const uint8_t drop_table[55] = {
     ITEM_KIND_BOW,         ITEM_KIND_BOW,         ITEM_KIND_BOW,         ITEM_KIND_BOW,
     ITEM_KIND_AXE,         ITEM_KIND_AXE,         ITEM_KIND_AXE,
     ITEM_KIND_SHIELD,      ITEM_KIND_SHIELD,      ITEM_KIND_SHIELD,
+    ITEM_KIND_MACE,        ITEM_KIND_MACE,        ITEM_KIND_MACE,
 };
+
+/* "+N" modifier roll: weighted toward 0, with a rare (~1%) reroll across the full -1..+10
+   range so the occasional "masterwork" item can still show up. */
+static const int8_t mod_table[16] = { 0,0,0,0,0,0,0,0, -1,-1, 1,1,1, 2,2, 3 };
+int8_t item_roll_mod_level(void) BANKED {
+    int8_t m = mod_table[rand() % 16u];
+    if ((rand() % 100u) == 0u) m = (int8_t)(rand() % 12u) - 1;
+    return m;
+}
 
 uint8_t enemy_try_drop_item(uint8_t dx, uint8_t dy) BANKED {
     uint8_t gi;
+    uint8_t kind;
     if ((rand() % 20u) >= 3u) return 0u;
     for (gi = 0u; gi < MAX_GROUND_ITEMS; gi++) {
         if (ground_item_kind[gi] == ITEM_KIND_NONE) {
-            ground_item_kind[gi] = drop_table[rand() % 55u];
+            kind = drop_table[rand() % 58u];
+            ground_item_kind[gi] = kind;
             ground_item_x[gi] = dx;
             ground_item_y[gi] = dy;
+            ground_item_mod_level[gi] = (items_kind_category(kind) == ITEM_CAT_EQUIPMENT) ? item_roll_mod_level() : 0;
             return 1u;
         }
     }

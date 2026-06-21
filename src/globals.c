@@ -60,9 +60,11 @@ uint8_t floor_enemy_dead[MAX_FLOORS * 3u];
 uint8_t inventory_kind[INVENTORY_MAX_SLOTS];
 uint8_t inventory_equipped[INVENTORY_MAX_SLOTS];
 uint8_t inventory_count[INVENTORY_MAX_SLOTS];
+int8_t  inventory_mod_level[INVENTORY_MAX_SLOTS];
 uint8_t ground_item_kind[MAX_GROUND_ITEMS];
 uint8_t ground_item_x[MAX_GROUND_ITEMS];
 uint8_t ground_item_y[MAX_GROUND_ITEMS];
+int8_t  ground_item_mod_level[MAX_GROUND_ITEMS];
 uint8_t pending_pickup_slot;
 
 volatile uint8_t inv_desc_scx; // BSS 0 — see globals.h

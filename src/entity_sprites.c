@@ -596,11 +596,12 @@ void entity_sprites_vbl_tick(void) BANKED {
                 }
             }
         }
-        // Root icon — delegate cycle/search to banked root_icon_next to save HOME space
+        // Root/stun icon — delegate cycle/search to banked root_icon_next to save HOME space;
+        // shares one OAM slot since all 40 are already spoken for (root + stun cycle together).
         {
-            uint8_t rex, rey;
-            if (root_icon_next(&rex, &rey))
-                move_entity_oam(SP_ROOT_ICON, (int16_t)rex * 8, (int16_t)rey * 8, TILE_ROOT_ICON_VRAM, PAL_XP_UI);
+            uint8_t rex, rey, rtile;
+            if (root_icon_next(&rex, &rey, &rtile))
+                move_entity_oam(SP_ROOT_ICON, (int16_t)rex * 8, (int16_t)rey * 8, rtile, PAL_XP_UI);
             else
                 oam_hide(SP_ROOT_ICON);
         }

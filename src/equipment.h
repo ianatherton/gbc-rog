@@ -22,8 +22,9 @@ typedef struct {
 
 extern const EquipStatDef equip_stat_defs[ITEM_KIND_COUNT];
 
-void    items_equip_apply(uint8_t kind, uint8_t now_equipped) BANKED;
+void    items_equip_apply(uint8_t kind, uint8_t inv_slot, uint8_t now_equipped) BANKED;
 uint8_t items_equip_slot(uint8_t kind) BANKED;       /* returns EQUIP_SLOT_* */
 uint8_t equipped_kind_in_slot(uint8_t slot) BANKED;  /* returns equipped ITEM_KIND_*, or ITEM_KIND_NONE */
+uint8_t equipped_inv_index(uint8_t slot) BANKED;     /* returns the inventory_kind[] index equipped in slot, or 255 */
 
 #endif

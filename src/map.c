@@ -98,7 +98,7 @@ void ground_item_kill(uint8_t slot) BANKED {
 
 static void ground_items_clear(void) {
     uint8_t i;
-    for (i = 0u; i < MAX_GROUND_ITEMS; i++) ground_item_kind[i] = ITEM_KIND_NONE;
+    for (i = 0u; i < MAX_GROUND_ITEMS; i++) { ground_item_kind[i] = ITEM_KIND_NONE; ground_item_mod_level[i] = 0; }
 }
 
 BANKREF(is_walkable)
@@ -280,6 +280,8 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
             ground_item_x[placed] = tx;
             ground_item_y[placed] = ty;
             ground_item_kind[placed] = (uint8_t)(rand() % ITEM_KIND_COUNT);
+            ground_item_mod_level[placed] = (items_kind_category(ground_item_kind[placed]) == ITEM_CAT_EQUIPMENT)
+                ? item_roll_mod_level() : 0;
             placed++;
         }
         if (!level_is_revisit) {

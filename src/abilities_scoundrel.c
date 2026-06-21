@@ -20,8 +20,8 @@ static void push_short(const char *s) {
 
 BANKREF(abilities_scoundrel_new_run_init)
 void abilities_scoundrel_new_run_init(void) BANKED {
-    inventory_add(ITEM_KIND_BOW);
-    inventory_add(ITEM_KIND_BOW); // stacks → 40 arrows total
+    inventory_add(ITEM_KIND_BOW, 0);
+    inventory_add(ITEM_KIND_BOW, 0); // stacks → 40 arrows total
 }
 
 BANKREF(ability_scoundrel_cast_belt)

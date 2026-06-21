@@ -18,7 +18,8 @@
 #define ITEM_KIND_BOW        10u  // Bow & Arrow — usable; fires one arrow, depletes stack by 1; drops in stacks of 20
 #define ITEM_KIND_AXE        11u  // Axe — equipment; cleave hits up to 2 adjacent enemies on melee attack
 #define ITEM_KIND_SHIELD     12u  // Shield — equipment; +10 max HP while equipped
-#define ITEM_KIND_COUNT      13u
+#define ITEM_KIND_MACE       13u  // Mace — equipment; chance to stun an enemy on melee hit
+#define ITEM_KIND_COUNT      14u
 #define ITEM_KIND_NONE      255u
 
 #define ITEM_BOW_STACK_QTY   20u  // arrows granted per bow pickup
@@ -35,11 +36,14 @@ uint8_t items_kind_category(uint8_t kind) BANKED;  // ITEM_CAT_*
 uint8_t items_kind_palette(uint8_t kind) BANKED; // CGB palette
 void    items_kind_name_copy(uint8_t kind, char *out, uint8_t cap) BANKED; // NUL-term, capped — copy required since strings live in bank 13
 void    items_kind_desc_copy(uint8_t kind, char *out, uint8_t cap) BANKED; // short description for inventory/pickup display
+void    items_kind_display_name_copy(uint8_t kind, int8_t mod_level, char *out, uint8_t cap) BANKED; // "+N "/"-N " prefix (omitted when 0) + kind name
+
+int8_t  item_roll_mod_level(void) BANKED; // -1..+10 "+N" modifier roll, weighted toward 0; call only for ITEM_CAT_EQUIPMENT kinds
 
 uint8_t inventory_first_empty(void) BANKED; // 0..INVENTORY_MAX_SLOTS-1, else 255
 uint8_t inventory_count_used(void) BANKED;
 void    inventory_clear_all(void) BANKED;
-uint8_t inventory_add(uint8_t kind) BANKED; // 1=added, 0=full
+uint8_t inventory_add(uint8_t kind, int8_t mod_level) BANKED; // 1=added, 0=full
 void    inventory_remove(uint8_t slot) BANKED; // compact upper slots down so belt slots 0..3 stay synced
 
 void    items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED; // belt slots 4..7 → inventory_kind[0..3]

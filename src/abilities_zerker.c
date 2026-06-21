@@ -70,7 +70,7 @@ static void cast_whirlwind(uint8_t px, uint8_t py, AbilityResult *out) {
 
 BANKREF(abilities_zerker_new_run_init)
 void abilities_zerker_new_run_init(void) BANKED {
-    inventory_add(ITEM_KIND_AXE);
+    inventory_add(ITEM_KIND_AXE, 0);
 }
 
 BANKREF(ability_zerker_cast_belt)

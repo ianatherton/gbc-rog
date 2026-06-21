@@ -84,8 +84,8 @@ static void cast_swamp_root(AbilityResult *out) {
 
 BANKREF(abilities_witch_new_run_init)
 void abilities_witch_new_run_init(void) BANKED {
-    inventory_add(ITEM_KIND_KEY);
-    inventory_add(ITEM_KIND_KEY); // 2× BigHeal Potion
+    inventory_add(ITEM_KIND_KEY, 0);
+    inventory_add(ITEM_KIND_KEY, 0); // 2× BigHeal Potion
 }
 
 BANKREF(ability_witch_cast_belt)

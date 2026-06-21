@@ -17,33 +17,49 @@ const EquipStatDef equip_stat_defs[ITEM_KIND_COUNT] = {
     /* ITEM_KIND_BOW         */ { EQUIP_SLOT_NONE,    0,  0, 0,  0 },
     /* ITEM_KIND_AXE         */ { EQUIP_SLOT_WEAPON,  0,  6, 0,  0 },
     /* ITEM_KIND_SHIELD      */ { EQUIP_SLOT_OFFHAND,10,  0, 0,  0 },
+    /* ITEM_KIND_MACE        */ { EQUIP_SLOT_WEAPON,  0,  5, 0,  0 },
 };
 
-void items_equip_apply(uint8_t kind, uint8_t now_equipped) BANKED {
+/* Adds the item's "+N" mod_level to a nonzero base stat, clamped so a nonzero base stat
+   never drops to 0 (a -1 mod never fully negates it) and never exceeds the given cap. */
+static uint8_t mod_clamped(uint8_t base, int8_t mod, uint8_t cap) {
+    int16_t eff = (int16_t)base + mod;
+    if (eff < 1) return 1u;
+    if (eff > (int16_t)cap) return cap;
+    return (uint8_t)eff;
+}
+
+void items_equip_apply(uint8_t kind, uint8_t inv_slot, uint8_t now_equipped) BANKED {
     const EquipStatDef *d;
+    int8_t mod;
     if (kind >= ITEM_KIND_COUNT) return;
     d = &equip_stat_defs[kind];
+    mod = (inv_slot < INVENTORY_MAX_SLOTS) ? inventory_mod_level[inv_slot] : 0;
 
     if (d->hp_max) {
-        if (now_equipped) { player_hp_max = (uint8_t)(player_hp_max + d->hp_max); }
+        uint8_t applied = mod_clamped(d->hp_max, mod, 255u);
+        if (now_equipped) { player_hp_max = (uint8_t)(player_hp_max + applied); }
         else {
-            player_hp_max = (player_hp_max > d->hp_max) ? (uint8_t)(player_hp_max - d->hp_max) : 1u;
+            player_hp_max = (player_hp_max > applied) ? (uint8_t)(player_hp_max - applied) : 1u;
             if (player_hp > player_hp_max) player_hp = player_hp_max;
         }
     }
     if (d->damage) {
-        if (now_equipped) player_damage = (uint8_t)(player_damage + d->damage);
-        else              player_damage = (player_damage > d->damage) ? (uint8_t)(player_damage - d->damage) : 1u;
+        uint8_t applied = mod_clamped(d->damage, mod, 255u);
+        if (now_equipped) player_damage = (uint8_t)(player_damage + applied);
+        else              player_damage = (player_damage > applied) ? (uint8_t)(player_damage - applied) : 1u;
     }
     if (d->light_bonus) {
-        if (now_equipped) { uint16_t nb = (uint16_t)player_light_bonus + d->light_bonus;
+        uint8_t applied = mod_clamped(d->light_bonus, mod, 255u);
+        if (now_equipped) { uint16_t nb = (uint16_t)player_light_bonus + applied;
                             player_light_bonus = (nb > 255u) ? 255u : (uint8_t)nb; }
-        else              { player_light_bonus = (player_light_bonus > d->light_bonus) ? (uint8_t)(player_light_bonus - d->light_bonus) : 0u; }
+        else              { player_light_bonus = (player_light_bonus > applied) ? (uint8_t)(player_light_bonus - applied) : 0u; }
     }
     if (d->crit_chance) {
-        if (now_equipped) { uint16_t nc = (uint16_t)player_crit_chance + d->crit_chance;
+        uint8_t applied = mod_clamped(d->crit_chance, mod, 100u);
+        if (now_equipped) { uint16_t nc = (uint16_t)player_crit_chance + applied;
                             player_crit_chance = (nc > 100u) ? 100u : (uint8_t)nc; }
-        else              { player_crit_chance = (player_crit_chance > d->crit_chance) ? (uint8_t)(player_crit_chance - d->crit_chance) : 0u; }
+        else              { player_crit_chance = (player_crit_chance > applied) ? (uint8_t)(player_crit_chance - applied) : 0u; }
     }
 }
 
@@ -60,4 +76,14 @@ uint8_t equipped_kind_in_slot(uint8_t slot) BANKED {
             return k;
     }
     return ITEM_KIND_NONE;
+}
+
+uint8_t equipped_inv_index(uint8_t slot) BANKED {
+    uint8_t i, k;
+    for (i = 0u; i < INVENTORY_MAX_SLOTS; i++) {
+        k = inventory_kind[i];
+        if (inventory_equipped[i] && k < ITEM_KIND_COUNT && equip_stat_defs[k].slot == slot)
+            return i;
+    }
+    return 255u;
 }

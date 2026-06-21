@@ -61,9 +61,11 @@ static void draw_equip_slot_info(void) {
     }
     cur_kind = equipped_kind_in_slot(slot);
     if (cur_kind != ITEM_KIND_NONE) {
+        uint8_t cur_idx = equipped_inv_index(slot);
+        int8_t cur_mod = (cur_idx < INVENTORY_MAX_SLOTS) ? inventory_mod_level[cur_idx] : 0;
         slot_v   = (uint8_t)(TILESET_VRAM_OFFSET + items_kind_tile(cur_kind));
         slot_pal = items_kind_palette(cur_kind);
-        items_kind_name_copy(cur_kind, cur_name, sizeof cur_name);
+        items_kind_display_name_copy(cur_kind, cur_mod, cur_name, sizeof cur_name);
     } else {
         slot_v   = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY);
         slot_pal = PAL_UI;
@@ -79,7 +81,7 @@ static void draw_equip_slot_info(void) {
 
 static void draw_phase(void) {
     char namebuf[18];
-    items_kind_name_copy(pu_kind, namebuf, sizeof namebuf);
+    items_kind_display_name_copy(pu_kind, ground_item_mod_level[pending_pickup_slot], namebuf, sizeof namebuf);
     lcd_clear_display();
     gotoxy(2, 4); printf("Found:");
     draw_icon(3, 6);
@@ -136,13 +138,14 @@ void state_pickup_tick(void) BANKED {
         pu_cursor_update();
     } else if (e & (J_A | J_B)) {
         if ((e & J_A) && pu_sel == PU_SEL_TAKE && !pu_inv_full) {
-            inventory_add(pu_kind);
+            int8_t pu_mod = ground_item_mod_level[pending_pickup_slot];
+            inventory_add(pu_kind, pu_mod);
             ground_item_kill(pending_pickup_slot);
             {
                 char log[20];
                 char namebuf[16];
                 uint8_t i = 0u, k = 0u;
-                items_kind_name_copy(pu_kind, namebuf, sizeof namebuf);
+                items_kind_display_name_copy(pu_kind, pu_mod, namebuf, sizeof namebuf);
                 log[i++] = 'G'; log[i++] = 'o'; log[i++] = 't'; log[i++] = ' ';
                 while (namebuf[k] && i < 19u) { log[i++] = namebuf[k++]; }
                 log[i] = 0;

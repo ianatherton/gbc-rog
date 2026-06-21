@@ -53,6 +53,8 @@
 #define LIGHT_RADIUS_MAGE 3u
 #define CANDLE_LIGHT_BONUS 3u // per use; stacks; cleared on new floor
 #define MAX_BRAZIERS 20u // upper bound for floor brazier placements before depth reduction
+#define MACE_STUN_CHANCE_PCT 25u // chance per melee hit while Mace is equipped
+#define MACE_STUN_TURNS       3u // enemy_stun[] duration on a successful Mace stun
 
 /* ── Navigation graph constants ──────────────────────────────────────────── */
 // A nav-graph node sits at a "junction" floor tile — any tile that is NOT a
@@ -244,6 +246,7 @@ typedef struct {
 #define TILE_GROUND_E       68   /* E5  — dead variant, never placed; VRAM 196 borrowed by TILE_SLIMEBIG_BL */
 
 /* ── F col — props ───────────────────────────────────────────────────────── */
+#define TILE_F5              69u  /* F5  — dead variant, never placed; VRAM 197 borrowed by TILE_STUN_ICON_VRAM */
 #define TILE_CHEST           5   /* F1  */
 #define TILE_BARREL         21   /* F2  */
 #define TILE_MUSHROOM       37   /* F3  */
@@ -425,6 +428,8 @@ typedef struct {
 #define TILE_SHEET_M9          140u   /* M9  - root indicator glyph; ROM index (9-1)*16+12; copied to VRAM at boot */
 #define TILE_SHEET_L11         171u   /* L11 - root indicator glyph; ROM index (11-1)*16+11 */
 #define TILE_ROOT_ICON_VRAM    242u   /* borrows unused C8 VRAM slot (ROM tile 114, not placed by any map code) */
+#define TILE_SHEET_M13         204u   /* M13 - stun indicator glyph; ROM index (13-1)*16+12; art left blank for now, copied to VRAM at boot */
+#define TILE_STUN_ICON_VRAM    197u   /* borrows unused F5 VRAM slot (ROM tile 69 = TILE_F5, dead prop-column variant, not placed by any map code) */
 #define TILE_ZERKER_WHIRLWIND_VRAM 247u // copied from TILE_ITEM_10 (I10) at boot for Zerker Whirlwind belt icon
 #define TILE_PLAYER_AURA_VRAM_A 248u // below CLASS_EMBLEM_VRAM_START 252 — gameplay aura only
 #define TILE_PLAYER_AURA_VRAM_B 249u

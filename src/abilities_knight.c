@@ -18,7 +18,7 @@ static void push_short(const char *s) {
 
 BANKREF(abilities_knight_new_run_init)
 void abilities_knight_new_run_init(void) BANKED {
-    inventory_add(ITEM_KIND_SHIELD);
+    inventory_add(ITEM_KIND_SHIELD, 0);
 }
 
 BANKREF(ability_knight_cast_belt)

@@ -115,9 +115,10 @@ static void push_selected_belt_description(void) {
         buf[i] = 0;
         ui_combat_log_push(buf);
     } else {
-        uint8_t kind = inventory_kind[selected_belt_slot - BELT_SLOT_COUNT];
+        uint8_t belt_idx = selected_belt_slot - BELT_SLOT_COUNT;
+        uint8_t kind = inventory_kind[belt_idx];
         if (kind == ITEM_KIND_NONE) return;
-        items_kind_name_copy(kind, buf, sizeof buf);
+        items_kind_display_name_copy(kind, inventory_mod_level[belt_idx], buf, sizeof buf);
         if (items_kind_category(kind) == ITEM_CAT_CONSUMABLE) {
             uint8_t p = 0u, split, cnt = inventory_count[selected_belt_slot - BELT_SLOT_COUNT];
             while (buf[p]) p++;
@@ -353,6 +354,20 @@ void state_gameplay_tick(void) BANKED {
                                 }
                                 hits++;
                             }
+                            break;
+                        }
+                    }
+                }
+                /* Mace stun: if mace equipped and the struck enemy survived, chance to stun it.
+                   (Axe cleave above never targets ei, so enemy_alive[ei] alone reflects whether
+                   the primary attack killed it — the shared `killed` flag may have been set by
+                   a cleave kill on a different enemy.) */
+                if (enemy_alive[ei]) {
+                    uint8_t ck;
+                    for (ck = 0u; ck < INVENTORY_MAX_SLOTS; ck++) {
+                        if (inventory_kind[ck] == ITEM_KIND_MACE && inventory_equipped[ck]) {
+                            if ((uint8_t)(DIV_REG % 100u) < MACE_STUN_CHANCE_PCT)
+                                enemy_stun[ei] = MACE_STUN_TURNS;
                             break;
                         }
                     }

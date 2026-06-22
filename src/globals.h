@@ -12,6 +12,9 @@ extern uint8_t  player_level;
 extern uint8_t  player_damage;
 extern uint16_t player_xp;
 extern uint8_t  player_crit_chance; // 0-100 percent; accumulated from equipment
+extern uint8_t  player_armor;   // 0-100 percent; mitigates physical damage taken
+extern uint8_t  player_magdef;  // 0-100 percent; mitigates magic damage taken
+extern uint8_t  player_dodge;   // 0-100 percent; chance to avoid an incoming hit entirely
 extern uint8_t  floor_num;
 extern uint16_t run_seed;
 extern uint8_t  player_class; // 0=KNIGHT 1=SCOUNDREL 2=WITCH 3=ZERKER (char create)

@@ -412,7 +412,20 @@ void enemy_resolve_hit(uint8_t slot) BANKED { // one strike: log line + subtract
     uint8_t hit = enemy_effective_damage(enemy_type[slot]);
     uint8_t hp_before = player_hp;
     char logbuf[20];
-    uint8_t p = 0, d = hit; // d consumed while formatting digits
+    uint8_t p, d; // d consumed while formatting digits
+
+    if (player_dodge && (uint8_t)(DIV_REG % 100u) < player_dodge) {
+        // Build in a RAM buffer rather than passing a bank-2 ROM literal: ui_combat_log_push_pal
+        // is BANKED into bank 5, and the cross-bank call switches ROM banks before the callee
+        // dereferences the pointer, so a literal living in bank 2's switchable ROM reads back
+        // as garbage once bank 5 is mapped in.
+        logbuf[0] = 'D'; logbuf[1] = 'O'; logbuf[2] = 'D'; logbuf[3] = 'G'; logbuf[4] = 'E'; logbuf[5] = 0;
+        ui_combat_log_push_pal(logbuf, PAL_UI);
+        return; // hit fully avoided — no HP change, no panic-flash check
+    }
+    if (player_armor) hit = (uint8_t)(((uint16_t)hit * (100u - player_armor)) / 100u);
+
+    p = 0; d = hit;
     logbuf[p++] = 'Y'; logbuf[p++] = 'O'; logbuf[p++] = 'U'; logbuf[p++] = ' '; logbuf[p++] = '-';
     if (d >= 100u) { logbuf[p++] = (char)('0' + d / 100u); d %= 100u; logbuf[p++] = (char)('0' + d / 10u); d %= 10u; }
     else if (d >= 10u) { logbuf[p++] = (char)('0' + d / 10u); d %= 10u; }

@@ -150,28 +150,23 @@ static void draw_stats_panel(void) {
     gotoxy((uint8_t)(EQUIP_PANEL_X + 5u), y); putchar('/');
     put_stat_uint((uint8_t)(EQUIP_PANEL_X + 6u), y, player_hp_max, 3u);
 
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 1u)); printf("MelDmg:");
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 1u)); printf("Damage:");
     put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 1u), player_damage, 3u);
 
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 2u)); printf("MagDmg:");
-    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 2u), 0u, 3u);
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 2u)); printf("Dodge%%:");
+    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 2u), player_dodge, 2u);
+    gotoxy((uint8_t)(EQUIP_PANEL_X + 9u), (uint8_t)(y + 2u)); putchar('%');
 
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 3u)); printf("RngDmg:");
-    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 3u), 0u, 3u);
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 3u)); printf("Armor:");
+    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 3u), player_armor, 2u);
+    gotoxy((uint8_t)(EQUIP_PANEL_X + 9u), (uint8_t)(y + 3u)); putchar('%');
 
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 4u)); printf("Dodge%%:");
-    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 4u), 0u, 2u);
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 4u)); printf("MagDef:");
+    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 4u), player_magdef, 2u);
     gotoxy((uint8_t)(EQUIP_PANEL_X + 9u), (uint8_t)(y + 4u)); putchar('%');
 
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 5u)); printf("ResPhys:");
-    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 8u), (uint8_t)(y + 5u), 0u, 2u);
-
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 6u)); printf("ResMag:");
-    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 6u), 0u, 2u);
-    gotoxy((uint8_t)(EQUIP_PANEL_X + 9u), (uint8_t)(y + 6u)); putchar('%');
-
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 7u)); printf("Light :");
-    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 7u), player_light_radius(), 3u);
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 5u)); printf("Light :");
+    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 5u), player_light_radius(), 3u);
 }
 
 static void draw_equipped_marks(void) {

@@ -41,6 +41,10 @@ void level_init_display(uint8_t from_pit) BANKED {
         else if (player_class == 2u) player_crit_chance = 10u; // WITCH
         else if (player_class == 3u) player_crit_chance = 20u; // ZERKER
         else                         player_crit_chance = 10u; // KNIGHT (0)
+        if      (player_class == 1u) { player_armor =  0u; player_magdef =  5u; player_dodge = 15u; } // SCOUNDREL — evasive
+        else if (player_class == 2u) { player_armor =  0u; player_magdef = 15u; player_dodge =  5u; } // WITCH — warded
+        else if (player_class == 3u) { player_armor = 10u; player_magdef =  0u; player_dodge =  5u; } // ZERKER — reckless
+        else                          { player_armor = 15u; player_magdef =  5u; player_dodge =  0u; } // KNIGHT — armored
         player_hp = player_hp_max;
         inventory_clear_all(); // fresh run wipes any items from a previous attempt
         {

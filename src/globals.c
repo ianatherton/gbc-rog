@@ -23,6 +23,9 @@ uint8_t  player_level = 1;
 uint8_t  player_damage = 1; 
 uint16_t player_xp;                            // BSS 0 — level_init zeroes on fresh run
 uint8_t  player_crit_chance;                   // BSS 0 — level_init zeroes on fresh run
+uint8_t  player_armor;                         // BSS 0 — level_init zeroes on fresh run
+uint8_t  player_magdef;                        // BSS 0 — level_init zeroes on fresh run
+uint8_t  player_dodge;                         // BSS 0 — level_init zeroes on fresh run
 uint8_t  floor_num  = 1;
 uint16_t run_seed   = 12345;
 uint8_t  player_class;                       // 0 = knight

@@ -18,6 +18,9 @@ typedef struct {
     uint8_t damage;      /* delta to player_damage      */
     uint8_t light_bonus; /* delta to player_light_bonus */
     uint8_t crit_chance; /* delta to player_crit_chance (0-100 pct) */
+    uint8_t armor;       /* delta to player_armor (0-100 pct)       */
+    uint8_t magdef;      /* delta to player_magdef (0-100 pct)      */
+    uint8_t dodge;        /* delta to player_dodge (0-100 pct)        */
 } EquipStatDef;
 
 extern const EquipStatDef equip_stat_defs[ITEM_KIND_COUNT];

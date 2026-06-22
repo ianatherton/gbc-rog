@@ -28,7 +28,7 @@ static const uint8_t slime_oy[4] = {0xFFu, 1u, 0u, 0u};
 BANKREF(enemy_slime_split)
 void enemy_slime_split(uint8_t type, uint8_t dx, uint8_t dy, uint8_t px, uint8_t py) BANKED {
     uint8_t d, ni, tx, ty, spawned = 0u;
-    if ((type != ENEMY_SLIME && type != ENEMY_SLIME_BIG) || !(rand() & 1u)) return;
+    if (type != ENEMY_SLIME || !(rand() & 1u)) return; // SLIME_BIG uses the guaranteed death-spawn instead
     for (d = 0u; d < 4u && spawned < 3u; d++) {
         tx = (uint8_t)(dx + slime_ox[d]);
         ty = (uint8_t)(dy + slime_oy[d]);
@@ -57,6 +57,49 @@ void enemy_slime_split(uint8_t type, uint8_t dx, uint8_t dy, uint8_t px, uint8_t
         spawned++;
     }
     if (spawned > 0u) ui_combat_log_push("SLIME SPLITS!");
+}
+
+#define ENEMY_SLIME_BIG_SPAWN_CAP 10u
+
+// Guaranteed pop on SLIME_BIG death (any kill method — see combat.c's combat_damage_enemy):
+// ring-searches outward (Chebyshev radius 1..3) for free/walkable/non-player tiles and fills
+// up to ENEMY_SLIME_BIG_SPAWN_CAP with transient regular Slimes.
+BANKREF(enemy_slime_big_death_spawn)
+void enemy_slime_big_death_spawn(uint8_t dx, uint8_t dy) BANKED {
+    uint8_t r, ni, tx, ty, spawned = 0u;
+    int8_t ox, oy;
+    for (r = 1u; r <= 3u && spawned < ENEMY_SLIME_BIG_SPAWN_CAP; r++) {
+        for (oy = (int8_t)-r; oy <= (int8_t)r && spawned < ENEMY_SLIME_BIG_SPAWN_CAP; oy++) {
+            for (ox = (int8_t)-r; ox <= (int8_t)r && spawned < ENEMY_SLIME_BIG_SPAWN_CAP; ox++) {
+                if (ox != (int8_t)-r && ox != (int8_t)r && oy != (int8_t)-r && oy != (int8_t)r) continue; // ring perimeter only
+                tx = (uint8_t)(dx + ox);
+                ty = (uint8_t)(dy + oy);
+                if (tx >= MAP_W || ty >= MAP_H) continue;
+                if (tx == g_player_x && ty == g_player_y) continue;
+                {
+                    uint16_t tidx = TILE_IDX(tx, ty);
+                    if (!BIT_GET(floor_bits, tidx) || BIT_GET(enemy_occ, tidx)) continue;
+                }
+                if (dead_enemy_pool_count > 0u) {
+                    ni = dead_enemy_pool[--dead_enemy_pool_count];
+                } else {
+                    for (ni = 0u; ni < MAX_ENEMIES; ni++) {
+                        if (!enemy_alive[ni]) break;
+                    }
+                    if (ni >= MAX_ENEMIES) return;
+                }
+                enemy_x[ni] = tx; enemy_y[ni] = ty;
+                enemy_type[ni] = ENEMY_SLIME;
+                enemy_hp[ni] = enemy_effective_max_hp(ENEMY_SLIME);
+                enemy_status[ni] = 0u; enemy_force_active[ni] = 0u; enemy_alive[ni] = 1u;
+                enemy_persistent[ni] = 0u; // transient: vanishes on revisit, no gravestone
+                enemy_place_slot_far(ni, tx, ty);
+                if (ni >= num_enemies) num_enemies = (uint8_t)(ni + 1u);
+                spawned++;
+            }
+        }
+    }
+    if (spawned > 0u) ui_combat_log_push("SLIME EXPLODES!");
 }
 
 BANKREF(enemy_gorgon_summon)

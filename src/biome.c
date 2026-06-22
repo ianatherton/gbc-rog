@@ -1,5 +1,7 @@
 #include "biome.h"
 #include "globals.h"
+#include "tileset.h"
+#include <gb/gb.h>
 
 EnemyDef enemy_defs[NUM_ENEMY_TYPES];        // HOME storage — biome_load_active fills this; indexed by type ID
 uint8_t  enemy_active_types[NUM_ENEMY_TYPES]; // type IDs present this floor
@@ -35,6 +37,21 @@ void biome_load_active(uint8_t biome_id) {
     SWITCH_ROM(e->bank);
     e->copy_defs(enemy_defs, enemy_active_types, &enemy_active_count);
     if (e->load_palettes) e->load_palettes(); // still in e->bank; HOME-bank GBDK fns always reachable
+    // SLIME_BIG's 2nd animation frame has no permanent VRAM slots: Skeleton/Rat/BigSkell never
+    // spawn on BIOME_MINIBOSS, so their dedicated sprite slots are temporarily repurposed for it
+    // while floor 3 is loaded, and restored to their normal art on every other floor.
+    SWITCH_ROM(BANK(tileset));
+    if (biome_id == BIOME_MINIBOSS) {
+        set_sprite_data(TILE_SKEL_1_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SLIMEBIG_TL2_ROM * 16u);
+        set_sprite_data(TILE_SKEL_2_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SLIMEBIG_TR2_ROM * 16u);
+        set_sprite_data(TILE_RAT_VRAM,    1u, tileset_tiles + (uint16_t)TILE_SLIMEBIG_BL2_ROM * 16u);
+        set_sprite_data(TILE_BIG_SKELL_BODY_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SLIMEBIG_BR2_ROM * 16u);
+    } else {
+        set_sprite_data(TILE_SKEL_1_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SKEL_ROM_1 * 16u);
+        set_sprite_data(TILE_SKEL_2_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SKEL_ROM_2 * 16u);
+        set_sprite_data(TILE_RAT_VRAM,    1u, tileset_tiles + (uint16_t)TILE_RAT_ROM * 16u);
+        set_sprite_data(TILE_BIG_SKELL_BODY_VRAM, 1u, tileset_tiles + (uint16_t)TILE_BIG_SKELL_BODY_ROM * 16u);
+    }
     SWITCH_ROM(sb);
 }
 

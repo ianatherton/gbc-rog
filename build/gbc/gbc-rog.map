@@ -10,53 +10,53 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00000000  .__.ABS.  |    00000000  ___bank_a |    00000000  ___bank_a
      00000000  ___bank_a |    00000000  ___bank_a |    00000000  ___bank_a
      00000000  ___bank_e |    00000000  ___bank_e |    00000000  ___bank_e
-     00000000  _rMBC7_SR |    00000000  _rRAMG    |    00000000  b_enemy_g
-     00000000  b_enemy_s |    00000000  b_enemy_t |    00000000  l__BASE  
-     00000000  l__BSS    |    00000000  l__CABS   |    00000000  l__CODE_0
-     00000000  l__DABS   |    00000000  l__FONT_H |    00000000  l__HEADER
-     00000000  l__HEADER |    00000000  l__HEAP   |    00000000  l__HEAP_E
-     00000000  l__LIT    |    00000000  s__CABS   |    00000000  s__DABS  
-     00000000  s__FONT_H |    00000000  s__FONT_H |    00000000  s__HEADER
+     00000000  ___bank_e |    00000000  _rMBC7_SR |    00000000  _rRAMG   
+     00000000  b_enemy_g |    00000000  b_enemy_s |    00000000  b_enemy_s
+     00000000  b_enemy_t |    00000000  l__BASE   |    00000000  l__BSS   
+     00000000  l__CABS   |    00000000  l__CODE_0 |    00000000  l__DABS  
+     00000000  l__FONT_H |    00000000  l__HEADER |    00000000  l__HEADER
+     00000000  l__HEAP   |    00000000  l__HEAP_E |    00000000  l__LIT   
+     00000000  s__CABS   |    00000000  s__DABS   |    00000000  s__FONT_H
+     00000000  s__FONT_H |    00000000  s__HEADER |    00000000  s__HEADER
      00000000  s__HEADER |    00000000  s__HEADER |    00000000  s__HEADER
      00000000  s__HEADER |    00000000  s__HEADER |    00000000  s__HEADER
      00000000  s__HEADER |    00000000  s__HEADER |    00000000  s__HEADER
      00000000  s__HEADER |    00000000  s__HEADER |    00000000  s__HEADER
      00000000  s__HEADER |    00000000  s__HEADER |    00000000  s__HEADER
      00000000  s__HEADER |    00000000  s__HEADER |    00000000  s__HEADER
-     00000000  s__HEADER |    00000000  s__HEADER |    00000001  ___bank_t
-     00000001  l__GSFINA |    00000001  l__HEADER |    00000001  l__HEADER
+     00000000  s__HEADER |    00000001  ___bank_t |    00000001  l__GSFINA
      00000001  l__HEADER |    00000001  l__HEADER |    00000001  l__HEADER
-     00000001  l__HEADER |    00000001  l__HEADER |    00000002  ___bank_c
-     00000002  ___bank_e |    00000002  ___bank_e |    00000002  ___bank_g
-     00000002  ___bank_g |    00000002  ___bank_i |    00000002  ___bank_l
-     00000002  ___bank_l |    00000002  ___bank_m |    00000002  ___bank_s
-     00000002  ___bank_s |    00000002  ___bank_t |    00000002  b_camera_
-     00000002  b_camera_ |    00000002  b_camera_ |    00000002  b_corpse_
-     00000002  b_corpse_ |    00000002  b_draw_bo |    00000002  b_draw_co
-     00000002  b_draw_ga |    00000002  b_enemy_a |    00000002  b_enemy_c
-     00000002  b_enemy_e |    00000002  b_enemy_e |    00000002  b_enemy_p
-     00000002  b_enemy_r |    00000002  b_ground_ |    00000002  b_ground_
-     00000002  b_is_walk |    00000002  b_level_g |    00000002  b_load_pa
-     00000002  b_map_pit |    00000002  b_state_g |    00000002  b_state_g
-     00000002  b_tile_at |    00000002  l__HEADER |    00000002  l__HEADER
-     00000002  l__HEADER |    00000003  ___bank_c |    00000003  ___bank_s
+     00000001  l__HEADER |    00000001  l__HEADER |    00000001  l__HEADER
+     00000001  l__HEADER |    00000002  ___bank_c |    00000002  ___bank_e
+     00000002  ___bank_e |    00000002  ___bank_g |    00000002  ___bank_g
+     00000002  ___bank_i |    00000002  ___bank_l |    00000002  ___bank_l
+     00000002  ___bank_m |    00000002  ___bank_s |    00000002  ___bank_s
+     00000002  ___bank_t |    00000002  b_camera_ |    00000002  b_camera_
+     00000002  b_camera_ |    00000002  b_corpse_ |    00000002  b_corpse_
+     00000002  b_draw_bo |    00000002  b_draw_co |    00000002  b_draw_ga
+     00000002  b_enemy_a |    00000002  b_enemy_c |    00000002  b_enemy_e
+     00000002  b_enemy_e |    00000002  b_enemy_p |    00000002  b_enemy_r
+     00000002  b_ground_ |    00000002  b_ground_ |    00000002  b_is_walk
+     00000002  b_level_g |    00000002  b_load_pa |    00000002  b_map_pit
+     00000002  b_state_g |    00000002  b_state_g |    00000002  b_tile_at
+     00000002  l__HEADER |    00000002  l__HEADER |    00000002  l__HEADER
+     00000003  ___bank_c |    00000003  ___bank_s |    00000003  ___bank_s
      00000003  ___bank_s |    00000003  ___bank_s |    00000003  ___bank_s
      00000003  ___bank_s |    00000003  ___bank_s |    00000003  ___bank_s
      00000003  ___bank_s |    00000003  ___bank_s |    00000003  ___bank_s
      00000003  ___bank_s |    00000003  ___bank_s |    00000003  ___bank_s
-     00000003  ___bank_s |    00000003  b_class_p |    00000003  b_class_p
-     00000003  b_state_a |    00000003  b_state_a |    00000003  b_state_c
-     00000003  b_state_g |    00000003  b_state_i |    00000003  b_state_i
-     00000003  b_state_m |    00000003  b_state_m |    00000003  b_state_p
-     00000003  b_state_p |    00000003  b_state_s |    00000003  b_state_s
-     00000003  b_state_t |    00000003  b_state_t |    00000003  l__FONT_H
-     00000003  l__HEADER |    00000003  l__HEADER |    00000004  ___bank_b
-     00000005  ___bank_u |    00000005  b_run_see |    00000005  b_title_s
+     00000003  b_class_p |    00000003  b_class_p |    00000003  b_state_a
+     00000003  b_state_a |    00000003  b_state_c |    00000003  b_state_g
+     00000003  b_state_i |    00000003  b_state_i |    00000003  b_state_m
+     00000003  b_state_m |    00000003  b_state_p |    00000003  b_state_p
+     00000003  b_state_s |    00000003  b_state_s |    00000003  b_state_t
+     00000003  b_state_t |    00000003  l__FONT_H |    00000003  l__HEADER
+     00000003  l__HEADER |    00000004  ___bank_b |    00000005  ___bank_u
+     00000005  b_run_see |    00000005  b_title_s |    00000005  b_ui_comb
      00000005  b_ui_comb |    00000005  b_ui_comb |    00000005  b_ui_comb
-     00000005  b_ui_comb |    00000005  b_ui_comb |    00000005  b_ui_draw
-     00000005  b_ui_draw |    00000005  b_ui_game |    00000005  b_ui_load
-     00000005  b_ui_load |    00000005  b_ui_pane |    00000005  b_ui_pane
-     00000005  b_ui_pane |    00000005  b_ui_pane |    00000005  b_ui_push
+     00000005  b_ui_comb |    00000005  b_ui_draw |    00000005  b_ui_draw
+     00000005  b_ui_game |    00000005  b_ui_load |    00000005  b_ui_load
+     00000005  b_ui_pane |    00000005  b_ui_pane |    00000005  b_ui_pane
 ASxxxx Linker V03.00/V05.40 + sdld,  page 2.
 Hexadecimal  [32-Bits]
 
@@ -66,25 +66,26 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00000005  b_ui_push |    00000005  b_ui_push |    00000005  b_ui_push
-     00000005  b_window_ |    00000005  b_window_ |    00000005  l__HEADER
-     00000006  ___bank_a |    00000006  ___bank_a |    00000006  b_abiliti
-     00000006  b_ability |    00000006  l__HEADER |    00000007  ___bank_a
-     00000007  ___bank_a |    00000007  b_abiliti |    00000007  b_ability
-     00000007  l__HEADER |    00000008  ___bank_a |    00000008  ___bank_a
-     00000008  b_abiliti |    00000008  b_ability |    00000008  l__HEADER
-     00000009  ___bank_a |    00000009  ___bank_a |    00000009  b_abiliti
-     00000009  b_ability |    0000000A  ___bank_b |    0000000A  ___bank_g
-     0000000A  ___bank_l |    0000000A  b_generat |    0000000A  b_level_i
-     0000000B  ___bank_b |    0000000C  ___bank_b |    0000000C  l__GSINIT
-     0000000D  b_enemy_t |    0000000D  b_invento |    0000000D  b_invento
+     00000005  b_ui_pane |    00000005  b_ui_push |    00000005  b_ui_push
+     00000005  b_ui_push |    00000005  b_ui_push |    00000005  b_window_
+     00000005  b_window_ |    00000005  l__HEADER |    00000006  ___bank_a
+     00000006  ___bank_a |    00000006  b_abiliti |    00000006  b_ability
+     00000006  l__HEADER |    00000007  ___bank_a |    00000007  ___bank_a
+     00000007  b_abiliti |    00000007  b_ability |    00000007  l__HEADER
+     00000008  ___bank_a |    00000008  ___bank_a |    00000008  b_abiliti
+     00000008  b_ability |    00000008  l__HEADER |    00000009  ___bank_a
+     00000009  ___bank_a |    00000009  b_abiliti |    00000009  b_ability
+     0000000A  ___bank_b |    0000000A  ___bank_g |    0000000A  ___bank_l
+     0000000A  b_generat |    0000000A  b_level_i |    0000000B  ___bank_b
+     0000000C  ___bank_b |    0000000C  l__GSINIT |    0000000D  b_enemy_t
      0000000D  b_invento |    0000000D  b_invento |    0000000D  b_invento
-     0000000D  b_item_ro |    0000000D  b_items_k |    0000000D  b_items_k
+     0000000D  b_invento |    0000000D  b_invento |    0000000D  b_item_ro
      0000000D  b_items_k |    0000000D  b_items_k |    0000000D  b_items_k
-     0000000D  b_items_k |    0000000D  b_items_u |    0000000E  ___bank_s
-     0000000E  b_story_u |    0000000F  b_scroll_ |    00000010  b_bow_sho
-     00000010  b_root_ic |    00000010  b_scroll_ |    00000011  ___bank_a
-     00000011  ___bank_a |    00000011  ___bank_a |    00000011  ___bank_e
+     0000000D  b_items_k |    0000000D  b_items_k |    0000000D  b_items_k
+     0000000D  b_items_u |    0000000E  ___bank_s |    0000000E  b_story_u
+     0000000F  b_scroll_ |    00000010  b_bow_sho |    00000010  b_root_ic
+     00000010  b_scroll_ |    00000011  ___bank_a |    00000011  ___bank_a
+     00000011  ___bank_a |    00000011  ___bank_e |    00000011  ___bank_e
      00000011  ___bank_e |    00000011  ___bank_e |    00000011  ___bank_e
      00000011  ___bank_e |    00000011  ___bank_e |    00000011  ___bank_e
      00000011  ___bank_e |    00000011  ___bank_e |    00000011  ___bank_e
@@ -93,8 +94,8 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00000011  ___bank_e |    00000011  ___bank_e |    00000011  ___bank_e
      00000011  ___bank_e |    00000011  ___bank_e |    00000011  ___bank_e
      00000011  ___bank_e |    00000011  ___bank_e |    00000011  ___bank_e
-     00000011  ___bank_e |    00000011  ___bank_e |    00000011  b_ally_fo
-     00000011  b_ally_fo |    00000011  b_ally_fo |    00000011  b_entity_
+     00000011  ___bank_e |    00000011  b_ally_fo |    00000011  b_ally_fo
+     00000011  b_ally_fo |    00000011  b_entity_ |    00000011  b_entity_
      00000011  b_entity_ |    00000011  b_entity_ |    00000011  b_entity_
      00000011  b_entity_ |    00000011  b_entity_ |    00000011  b_entity_
      00000011  b_entity_ |    00000011  b_entity_ |    00000011  b_entity_
@@ -103,20 +104,19 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00000011  b_entity_ |    00000011  b_entity_ |    00000011  b_entity_
      00000011  b_entity_ |    00000011  b_entity_ |    00000011  b_entity_
      00000011  b_entity_ |    00000011  b_entity_ |    00000011  b_entity_
-     00000011  b_entity_ |    00000011  b_entity_ |    00000012  ___bank_b
-     00000013  ___bank_c |    00000013  ___bank_c |    00000013  ___bank_c
-     00000013  ___bank_r |    00000013  b_combat_ |    00000013  b_combat_
-     00000013  b_combat_ |    00000013  b_resolve |    00000013  l__HRAM  
-     00000014  b_equippe |    00000014  b_equippe |    00000014  b_items_e
-     00000014  b_items_e |    00000015  ___bank_b |    00000015  ___bank_b
-     00000016  ___bank_b |    00000016  ___bank_b |    0000001B  ___bank_b
-     0000001D  l__INITIA |    0000001D  l__INITIA |    00000030  l__HEADER
-     00000034  l__CODE_2 |    00000042  l__CODE_2 |    00000052  l__CODE_2
-     00000060  l__HEADER |    00000074  l__CODE_7 |    00000084  l__CODE_1
-     00000084  l__CODE_1 |    00000088  l__CODE_6 |    0000009D  l__CODE_1
-     000000AB  l__HEADER |    00000200  s__CODE   |    0000026D  l__CODE_2
-     00000272  l__CODE_9 |    00000277  l__CODE_1 |    00000293  l__CODE_8
-     00000505  l__CODE_1 |    00000B9B  l__CODE_4 |    00000BC9  l__HOME  
+     00000011  b_entity_ |    00000012  ___bank_b |    00000013  ___bank_c
+     00000013  ___bank_c |    00000013  ___bank_c |    00000013  ___bank_r
+     00000013  b_combat_ |    00000013  b_combat_ |    00000013  b_combat_
+     00000013  b_resolve |    00000013  l__HRAM   |    00000014  b_equippe
+     00000014  b_equippe |    00000014  b_items_e |    00000014  b_items_e
+     00000015  ___bank_b |    00000015  ___bank_b |    00000016  ___bank_b
+     00000016  ___bank_b |    0000001B  ___bank_b |    0000001D  l__INITIA
+     0000001D  l__INITIA |    00000030  l__HEADER |    00000034  l__CODE_2
+     00000042  l__CODE_2 |    00000052  l__CODE_2 |    00000060  l__HEADER
+     00000074  l__CODE_7 |    00000084  l__CODE_1 |    00000084  l__CODE_1
+     00000088  l__CODE_6 |    0000009D  l__CODE_1 |    000000AB  l__HEADER
+     00000200  s__CODE   |    0000026D  l__CODE_2 |    00000272  l__CODE_9
+     00000277  l__CODE_1 |    00000293  l__CODE_8 |    00000516  l__CODE_1
 ASxxxx Linker V03.00/V05.40 + sdld,  page 3.
 Hexadecimal  [32-Bits]
 
@@ -126,56 +126,57 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00000C46  l__CODE_1 |    00000E05  l__CODE_1 |    00000EDF  l__CODE_1
-     00001108  l__CODE_1 |    00001554  l__CODE_1 |    00001A3F  l__DATA  
-     00001B7A  l__CODE_3 |    00002000  _rROMB0   |    000027B5  l__CODE  
-     000029B5  s__HOME   |    00002BE1  l__CODE_1 |    00003000  _rROMB1  
-     00003092  l__CODE_5 |    0000357E  s__BASE   |    0000357E  s__CODE_0
-     0000357E  s__INITIA |    0000357E  s__LIT    |    0000359B  s__GSINIT
-     000035A7  s__GSFINA |    00003D37  l__CODE_2 |    00004000  _rMBC7_SR
-     00004000  _rRAMB    |    00008000  __VRAM    |    00008000  __VRAM800
-     00008800  __VRAM880 |    00009000  __VRAM900 |    00009800  __SCRN0  
-     00009C00  __SCRN1   |    0000A000  __SRAM    |    0000A000  _rMBC7_LA
-     0000A010  _rMBC7_LA |    0000A020  _rMBC7_AC |    0000A030  _rMBC7_AC
-     0000A040  _rMBC7_AC |    0000A050  _rMBC7_AC |    0000C000  __RAM    
-     0000C000  _shadow_O |    0000C0A0  s__DATA   |    0000D000  __RAMBANK
-     0000DADF  s__BSS    |    0000DADF  s__INITIA |    0000DAFC  s__HEAP  
-     0000DAFC  s__HEAP_E |    0000E000  .STACK    |    0000FE00  __OAMRAM 
-     0000FF00  _P1_REG   |    0000FF00  __IO      |    0000FF01  _SB_REG  
-     0000FF02  _SC_REG   |    0000FF04  _DIV_REG  |    0000FF05  _TIMA_REG
-     0000FF06  _TMA_REG  |    0000FF07  _TAC_REG  |    0000FF0F  _IF_REG  
-     0000FF10  _NR10_REG |    0000FF11  _NR11_REG |    0000FF12  _NR12_REG
-     0000FF13  _NR13_REG |    0000FF14  _NR14_REG |    0000FF16  _NR21_REG
-     0000FF17  _NR22_REG |    0000FF18  _NR23_REG |    0000FF19  _NR24_REG
-     0000FF1A  _NR30_REG |    0000FF1B  _NR31_REG |    0000FF1C  _NR32_REG
-     0000FF1D  _NR33_REG |    0000FF1E  _NR34_REG |    0000FF20  _NR41_REG
-     0000FF21  _NR42_REG |    0000FF22  _NR43_REG |    0000FF23  _NR44_REG
-     0000FF24  _NR50_REG |    0000FF25  _NR51_REG |    0000FF26  _NR52_REG
-     0000FF30  _AUD3WAVE |    0000FF30  _PCM_SAMP |    0000FF30  __AUD3WAV
-     0000FF40  _LCDC_REG |    0000FF41  _STAT_REG |    0000FF42  _SCY_REG 
-     0000FF43  _SCX_REG  |    0000FF44  _LY_REG   |    0000FF45  _LYC_REG 
-     0000FF46  _DMA_REG  |    0000FF47  _BGP_REG  |    0000FF48  _OBP0_REG
-     0000FF49  _OBP1_REG |    0000FF4A  _WY_REG   |    0000FF4B  _WX_REG  
-     0000FF4D  _KEY1_REG |    0000FF4F  _VBK_REG  |    0000FF51  _HDMA1_RE
-     0000FF52  _HDMA2_RE |    0000FF53  _HDMA3_RE |    0000FF54  _HDMA4_RE
-     0000FF55  _HDMA5_RE |    0000FF56  _RP_REG   |    0000FF68  _BCPS_REG
-     0000FF69  _BCPD_REG |    0000FF6A  _OCPS_REG |    0000FF6B  _OCPD_REG
-     0000FF70  _SVBK_REG |    0000FF76  _PCM12_RE |    0000FF77  _PCM34_RE
-     0000FF80  __HRAM    |    0000FF80  s__HRAM   |    0000FFFF  _IE_REG  
-     00014000  s__CODE_1 |    00024000  s__CODE_2 |    00034000  s__CODE_3
-     00044000  s__CODE_4 |    00054000  s__CODE_5 |    00064000  s__CODE_6
-     00074000  s__CODE_7 |    00084000  s__CODE_8 |    00094000  s__CODE_9
-     000A4000  s__CODE_1 |    000B4000  s__CODE_1 |    000C4000  s__CODE_1
-     000D4000  s__CODE_1 |    000E4000  s__CODE_1 |    000F4000  s__CODE_1
-     00104000  s__CODE_1 |    00114000  s__CODE_1 |    00124000  s__CODE_1
-     00134000  s__CODE_1 |    00144000  s__CODE_2 |    00154000  s__CODE_2
-     00164000  s__CODE_2 |    001B4000  s__CODE_2
+     00000B9B  l__CODE_4 |    00000BC9  l__HOME   |    00000C46  l__CODE_1
+     00000E05  l__CODE_1 |    00000EDF  l__CODE_1 |    00001108  l__CODE_1
+     00001554  l__CODE_1 |    00001A3F  l__DATA   |    00001B7A  l__CODE_3
+     00002000  _rROMB0   |    00002A35  l__CODE   |    00002C35  s__HOME  
+     00002C44  l__CODE_1 |    00003000  _rROMB1   |    00003092  l__CODE_5
+     000037FE  s__BASE   |    000037FE  s__CODE_0 |    000037FE  s__INITIA
+     000037FE  s__LIT    |    0000381B  s__GSINIT |    00003827  s__GSFINA
+     00003DEE  l__CODE_2 |    00004000  _rMBC7_SR |    00004000  _rRAMB   
+     00008000  __VRAM    |    00008000  __VRAM800 |    00008800  __VRAM880
+     00009000  __VRAM900 |    00009800  __SCRN0   |    00009C00  __SCRN1  
+     0000A000  __SRAM    |    0000A000  _rMBC7_LA |    0000A010  _rMBC7_LA
+     0000A020  _rMBC7_AC |    0000A030  _rMBC7_AC |    0000A040  _rMBC7_AC
+     0000A050  _rMBC7_AC |    0000C000  __RAM     |    0000C000  _shadow_O
+     0000C0A0  s__DATA   |    0000D000  __RAMBANK |    0000DADF  s__BSS   
+     0000DADF  s__INITIA |    0000DAFC  s__HEAP   |    0000DAFC  s__HEAP_E
+     0000E000  .STACK    |    0000FE00  __OAMRAM  |    0000FF00  _P1_REG  
+     0000FF00  __IO      |    0000FF01  _SB_REG   |    0000FF02  _SC_REG  
+     0000FF04  _DIV_REG  |    0000FF05  _TIMA_REG |    0000FF06  _TMA_REG 
+     0000FF07  _TAC_REG  |    0000FF0F  _IF_REG   |    0000FF10  _NR10_REG
+     0000FF11  _NR11_REG |    0000FF12  _NR12_REG |    0000FF13  _NR13_REG
+     0000FF14  _NR14_REG |    0000FF16  _NR21_REG |    0000FF17  _NR22_REG
+     0000FF18  _NR23_REG |    0000FF19  _NR24_REG |    0000FF1A  _NR30_REG
+     0000FF1B  _NR31_REG |    0000FF1C  _NR32_REG |    0000FF1D  _NR33_REG
+     0000FF1E  _NR34_REG |    0000FF20  _NR41_REG |    0000FF21  _NR42_REG
+     0000FF22  _NR43_REG |    0000FF23  _NR44_REG |    0000FF24  _NR50_REG
+     0000FF25  _NR51_REG |    0000FF26  _NR52_REG |    0000FF30  _AUD3WAVE
+     0000FF30  _PCM_SAMP |    0000FF30  __AUD3WAV |    0000FF40  _LCDC_REG
+     0000FF41  _STAT_REG |    0000FF42  _SCY_REG  |    0000FF43  _SCX_REG 
+     0000FF44  _LY_REG   |    0000FF45  _LYC_REG  |    0000FF46  _DMA_REG 
+     0000FF47  _BGP_REG  |    0000FF48  _OBP0_REG |    0000FF49  _OBP1_REG
+     0000FF4A  _WY_REG   |    0000FF4B  _WX_REG   |    0000FF4D  _KEY1_REG
+     0000FF4F  _VBK_REG  |    0000FF51  _HDMA1_RE |    0000FF52  _HDMA2_RE
+     0000FF53  _HDMA3_RE |    0000FF54  _HDMA4_RE |    0000FF55  _HDMA5_RE
+     0000FF56  _RP_REG   |    0000FF68  _BCPS_REG |    0000FF69  _BCPD_REG
+     0000FF6A  _OCPS_REG |    0000FF6B  _OCPD_REG |    0000FF70  _SVBK_REG
+     0000FF76  _PCM12_RE |    0000FF77  _PCM34_RE |    0000FF80  __HRAM   
+     0000FF80  s__HRAM   |    0000FFFF  _IE_REG   |    00014000  s__CODE_1
+     00024000  s__CODE_2 |    00034000  s__CODE_3 |    00044000  s__CODE_4
+     00054000  s__CODE_5 |    00064000  s__CODE_6 |    00074000  s__CODE_7
+     00084000  s__CODE_8 |    00094000  s__CODE_9 |    000A4000  s__CODE_1
+     000B4000  s__CODE_1 |    000C4000  s__CODE_1 |    000D4000  s__CODE_1
+     000E4000  s__CODE_1 |    000F4000  s__CODE_1 |    00104000  s__CODE_1
+     00114000  s__CODE_1 |    00124000  s__CODE_1 |    00134000  s__CODE_1
+     00144000  s__CODE_2 |    00154000  s__CODE_2 |    00164000  s__CODE_2
+     001B4000  s__CODE_2
 ASxxxx Linker V03.00/V05.40 + sdld,  page 4.
 Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE                  00000200    000027B5 =       10165. bytes (REL,CON)
+_CODE                  00000200    00002A35 =       10805. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -185,39 +186,40 @@ _CODE                  00000200    000027B5 =       10165. bytes (REL,CON)
      0000038C  _ally_cle |    000003B1  ___func_a |    000003B1  _ally_cle
      000003C0  ___func_a |    000003C0  _ally_fin |    000003DB  ___func_a
      000003DB  _ally_has |    000003FD  _ally_wal |    0000048B  ___func_a
-     0000048B  _ally_sum |    000004B9  _biome_lo |    00000547  _biome_pi
-     000005DC  ___func_e |    000005DC  _enemy_ty |    00000682  ___func_e
-     00000682  _enemy_sl |    00000831  ___func_e |    00000831  _enemy_go
-     00000A4D  _player_l |    00000A6D  _lcd_hp_p |    00000B33  _lcd_init
-     00000B4A  _lcd_susp |    00000B5C  _lcd_resu |    00000B73  _lcd_clea
-     00000C4F  _lighting |    00000C57  _lighting |    00000C5B  _lighting
-     00000C97  _lighting |    00000C9B  _lighting |    00000CA1  _lighting
-     00000E72  _lighting |    00000EB3  _main     |    0000196A  _sfx_lung
-     00001974  _sfx_spel |    00001985  _sfx_whir |    00001994  _sfx_shie
-     000019A5  _sfx_fox_ |    000019B6  _music_pl |    000019EC  _music_pl
-     00001A3D  _music_se |    00001A47  _music_ge |    00001A4B  _music_be
-     00001A80  _music_lo |    00001AAE  _music_st |    00001AC7  _music_pl
-     00001B1E  _music_in |    00001B4C  _perf_sta |    00001B4F  _perf_sta
-     00001B57  _perf_rec |    00001BFB  _perf_avg |    00001C2F  _perf_max
-     00001C3E  _perf_cle |    00001C63  _seed_ent |    00001CE4  _seed_ent
-     00001D20  _seed_ent |    00001D81  _targetin |    00001E21  _tileset_
-     00001E69  _tileset_ |    00001ED3  _title_lo |    00001F5D  _title_lo
-     00002135  _title_lo |    0000218F  _ui_loadi |    000021C8  _wall_pal
-     00002308  __divsuch |    0000230E  __modsuch |    00002317  __divusch
-     00002320  __modusch |    0000232C  __divscha |    00002331  __modscha
-     00002338  __divsint |    00002341  __modsint |    0000234D  __divucha
-     00002352  __moducha |    00002359  __divuint |    00002362  __moduint
-     0000236E  .div8     |    0000236E  .mod8     |    00002376  .div16   
-     00002376  .mod16    |    000023AC  .divu8    |    000023AC  .modu8   
-     000023AF  .divu16   |    000023AF  .modu16   |    000023EF  _set_spri
-     000023F4  _set_bkg_ |    000023F7  .set_pale |    00002416  _set_spri
-     0000241B  _set_bkg_ |    0000241E  .set_pale |    0000243A  _memmove 
-     000024E9  __mulsuch |    000024EC  __mulusch |    000024F5  __mulscha
-     000024FD  __mulint  |    0000251C  __mulucha |    0000252E  _set_vram
-     00002537  _set_win_ |    00002540  _set_bkg_ |    0000256F  ___memcpy
-     0000256F  _memcpy   |    000025A1  _strcat   |    000025B2  _printf  
-     000025C7  _cpu_slow |    000025E2  _cpu_fast |    000025E9  _cgb_comp
-     000025E9  _set_defa |    00002639  ___printf |    00002996  _sprintf 
+     0000048B  _ally_sum |    000004B9  _biome_lo |    000005C8  _biome_pi
+     0000065D  ___func_e |    0000065D  _enemy_ty |    00000703  ___func_e
+     00000703  _enemy_sl |    000008AB  ___func_e |    000008AB  _enemy_sl
+     00000AB1  ___func_e |    00000AB1  _enemy_go |    00000CCD  _player_l
+     00000CED  _lcd_hp_p |    00000DB3  _lcd_init |    00000DCA  _lcd_susp
+     00000DDC  _lcd_resu |    00000DF3  _lcd_clea |    00000ECF  _lighting
+     00000ED7  _lighting |    00000EDB  _lighting |    00000F17  _lighting
+     00000F1B  _lighting |    00000F21  _lighting |    000010F2  _lighting
+     00001133  _main     |    00001BEA  _sfx_lung |    00001BF4  _sfx_spel
+     00001C05  _sfx_whir |    00001C14  _sfx_shie |    00001C25  _sfx_fox_
+     00001C36  _music_pl |    00001C6C  _music_pl |    00001CBD  _music_se
+     00001CC7  _music_ge |    00001CCB  _music_be |    00001D00  _music_lo
+     00001D2E  _music_st |    00001D47  _music_pl |    00001D9E  _music_in
+     00001DCC  _perf_sta |    00001DCF  _perf_sta |    00001DD7  _perf_rec
+     00001E7B  _perf_avg |    00001EAF  _perf_max |    00001EBE  _perf_cle
+     00001EE3  _seed_ent |    00001F64  _seed_ent |    00001FA0  _seed_ent
+     00002001  _targetin |    000020A1  _tileset_ |    000020E9  _tileset_
+     00002153  _title_lo |    000021DD  _title_lo |    000023B5  _title_lo
+     0000240F  _ui_loadi |    00002448  _wall_pal |    00002588  __divsuch
+     0000258E  __modsuch |    00002597  __divusch |    000025A0  __modusch
+     000025AC  __divscha |    000025B1  __modscha |    000025B8  __divsint
+     000025C1  __modsint |    000025CD  __divucha |    000025D2  __moducha
+     000025D9  __divuint |    000025E2  __moduint |    000025EE  .div8    
+     000025EE  .mod8     |    000025F6  .div16    |    000025F6  .mod16   
+     0000262C  .divu8    |    0000262C  .modu8    |    0000262F  .divu16  
+     0000262F  .modu16   |    0000266F  _set_spri |    00002674  _set_bkg_
+     00002677  .set_pale |    00002696  _set_spri |    0000269B  _set_bkg_
+     0000269E  .set_pale |    000026BA  _memmove  |    00002769  __mulsuch
+     0000276C  __mulusch |    00002775  __mulscha |    0000277D  __mulint 
+     0000279C  __mulucha |    000027AE  _set_vram |    000027B7  _set_win_
+     000027C0  _set_bkg_ |    000027EF  ___memcpy |    000027EF  _memcpy  
+     00002821  _strcat   |    00002832  _printf   |    00002847  _cpu_slow
+     00002862  _cpu_fast |    00002869  _cgb_comp |    00002869  _set_defa
+     000028B9  ___printf |    00002C16  _sprintf 
 ASxxxx Linker V03.00/V05.40 + sdld,  page 5.
 Hexadecimal  [32-Bits]
 
@@ -395,41 +397,41 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_HOME                  000029B5    00000BC9 =        3017. bytes (REL,CON)
+_HOME                  00002C35    00000BC9 =        3017. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     000029B5  .memset_s |    000029BE  .memcpy_s |    000029DB  .display_
-     000029DB  _display_ |    000029F3  _render_s |    00002A53  _render_s
-     00002A7A  _fill_win |    00002A8C  _strcpy   |    00002A9E  _rand    
-     00002A9E  _randw    |    00002AC9  _initrand |    00002ACB  .initrand
-     00002AD4  _font_loa |    00002ADB  font_load |    00002B23  font_copy
-     00002B59  font_set  |    00002B66  .put_char |    00002B7E  .out_char
-     00002B84  .del_char |    00002BDA  _putchar  |    00002BE3  _setchar 
-     00002BEC  _font_loa |    00002BFA  _font_set |    00002C09  _font_ini
-     00002C28  .cls      |    00002C28  _cls      |    00002C4A  _gotoxy  
-     00002C55  _posx     |    00002C66  _posy     |    00002C8E  .cr_curs 
-     00002CA3  .adv_curs |    00002CFF  .tmode    |    00002D1C  .tmode_ou
-     00002D25  _font_col |    00002D30  _set_tile |    00002D35  _set_bkg_
-     00002D35  _set_win_ |    00002D3D  _set_spri |    00002D9C  .add_LCD 
-     00002D9C  _add_LCD  |    00002DA2  .remove_L |    00002DA2  _remove_L
-     00002DA8  .fill_rec |    00002DB1  .fill_rec |    00002DFE  __modulon
-     00002E9B  .padup    |    00002E9B  _waitpadu |    00002EAB  .jpad    
-     00002EAB  _joypad   |    00002ED3  _waitpad  |    00002ED4  .wait_pad
-     00002EDB  _fill_bkg |    00002EED  ___sdcc_c |    00002EEE  _color   
-     00002EEE  _set_1bpp |    00002EFD  _memset   |    00002F30  .drawing_
-     00002F4D  _font_ibm |    000032FF  ___sdcc_b |    00003313  _strlen  
-     00003318  .strlen   |    00003321  __mullong |    00003408  _set_bkg_
-     0000341C  _set_bkg_ |    0000341C  _set_win_ |    00003424  _set_spri
-     0000347C  .set_xy_w |    00003485  .set_xy_b |    00003494  .set_xy_t
-     000034D8  _uitoa    |    000034E7  _itoa     |    000034F6  .itoa    
-     0000350A  .utoa    
+     00002C35  .memset_s |    00002C3E  .memcpy_s |    00002C5B  .display_
+     00002C5B  _display_ |    00002C73  _render_s |    00002CD3  _render_s
+     00002CFA  _fill_win |    00002D0C  _strcpy   |    00002D1E  _rand    
+     00002D1E  _randw    |    00002D49  _initrand |    00002D4B  .initrand
+     00002D54  _font_loa |    00002D5B  font_load |    00002DA3  font_copy
+     00002DD9  font_set  |    00002DE6  .put_char |    00002DFE  .out_char
+     00002E04  .del_char |    00002E5A  _putchar  |    00002E63  _setchar 
+     00002E6C  _font_loa |    00002E7A  _font_set |    00002E89  _font_ini
+     00002EA8  .cls      |    00002EA8  _cls      |    00002ECA  _gotoxy  
+     00002ED5  _posx     |    00002EE6  _posy     |    00002F0E  .cr_curs 
+     00002F23  .adv_curs |    00002F7F  .tmode    |    00002F9C  .tmode_ou
+     00002FA5  _font_col |    00002FB0  _set_tile |    00002FB5  _set_bkg_
+     00002FB5  _set_win_ |    00002FBD  _set_spri |    0000301C  .add_LCD 
+     0000301C  _add_LCD  |    00003022  .remove_L |    00003022  _remove_L
+     00003028  .fill_rec |    00003031  .fill_rec |    0000307E  __modulon
+     0000311B  .padup    |    0000311B  _waitpadu |    0000312B  .jpad    
+     0000312B  _joypad   |    00003153  _waitpad  |    00003154  .wait_pad
+     0000315B  _fill_bkg |    0000316D  ___sdcc_c |    0000316E  _color   
+     0000316E  _set_1bpp |    0000317D  _memset   |    000031B0  .drawing_
+     000031CD  _font_ibm |    0000357F  ___sdcc_b |    00003593  _strlen  
+     00003598  .strlen   |    000035A1  __mullong |    00003688  _set_bkg_
+     0000369C  _set_bkg_ |    0000369C  _set_win_ |    000036A4  _set_spri
+     000036FC  .set_xy_w |    00003705  .set_xy_b |    00003714  .set_xy_t
+     00003758  _uitoa    |    00003767  _itoa     |    00003776  .itoa    
+     0000378A  .utoa    
 ASxxxx Linker V03.00/V05.40 + sdld,  page 24.
 Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_INITIALIZER           0000357E    0000001D =          29. bytes (REL,CON)
+_INITIALIZER           000037FE    0000001D =          29. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -438,17 +440,17 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_GSINIT                0000359B    0000000C =          12. bytes (REL,CON)
+_GSINIT                0000381B    0000000C =          12. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     0000359B  gsinit   
+     0000381B  gsinit   
 ASxxxx Linker V03.00/V05.40 + sdld,  page 26.
 Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_GSFINAL               000035A7    00000001 =           1. bytes (REL,CON)
+_GSFINAL               00003827    00000001 =           1. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -537,7 +539,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_2                00024000    00003D37 =       15671. bytes (REL,CON)
+_CODE_2                00024000    00003DEE =       15854. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -546,23 +548,23 @@ _CODE_2                00024000    00003D37 =       15671. bytes (REL,CON)
      000243C5  _enemy_pl |    000243D3  _enemy_ef |    0002441D  _enemy_ef
      00024468  _enemy_an |    00024476  _enemy_an |    000244F2  ___func_e
      000244F2  _enemy_at |    0002456A  _corpse_s |    000245E2  _corpse_a
-     000245EE  _corpse_d |    000245FD  _spawn_en |    00024A04  _enemy_se
-     00024A1C  _enemy_ge |    00024D87  _enemy_re |    00024EBA  _move_ene
-     000256AE  ___func_s |    000256AE  _state_ga |    0002571B  ___func_s
-     0002571B  _state_ga |    00026155  _wall_ort |    0002630A  ___func_t
-     0002630A  _tile_at  |    00026398  ___func_m |    00026398  _map_pit_
-     000263B1  ___func_g |    000263B1  _ground_i |    000263E4  ___func_g
-     000263E4  _ground_i |    0002642A  ___func_i |    0002642A  _is_walka
-     0002646D  _tile_cha |    0002647B  _tile_vra |    000264A2  _tile_pal
-     000264AF  _floor_gr |    000264C7  _floor_ti |    000265E6  _nearest_
-     00026688  _nav_fill |    0002676F  ___func_l |    0002676F  _level_ge
-     00026E6D  ___func_c |    00026E6D  _camera_i |    000270D7  _camera_s
-     000275AC  _camera_s |    000275FB  _apply_wa |    00027772  _apply_fi
-     00027A43  ___func_l |    00027A43  _load_pal |    00027B27  _draw_cel
-     00027B7B  _draw_col |    00027BB5  _draw_row |    00027BEC  _draw_ui_
-     00027BF4  _draw_gam |    00027C0E  _draw_scr |    00027C8D  _draw_gam
-     00027CAA  _draw_gam |    00027CB2  _draw_ene |    00027CC1  _draw_cor
-     00027D06  _draw_cor |    00027D09  _draw_bos
+     000245EE  _corpse_d |    000245FD  _spawn_en |    00024A45  _enemy_se
+     00024A5D  _enemy_ge |    00024DC8  _enemy_re |    00024EFB  _move_ene
+     0002574C  ___func_s |    0002574C  _state_ga |    000257B9  ___func_s
+     000257B9  _state_ga |    000261F3  _wall_ort |    000263A8  ___func_t
+     000263A8  _tile_at  |    00026436  ___func_m |    00026436  _map_pit_
+     0002644F  ___func_g |    0002644F  _ground_i |    00026482  ___func_g
+     00026482  _ground_i |    000264C8  ___func_i |    000264C8  _is_walka
+     0002650B  _tile_cha |    00026519  _tile_vra |    00026540  _tile_pal
+     00026562  _floor_gr |    0002657A  _floor_ti |    00026699  _nearest_
+     0002673B  _nav_fill |    00026822  ___func_l |    00026822  _level_ge
+     00026F24  ___func_c |    00026F24  _camera_i |    0002718E  _camera_s
+     00027663  _camera_s |    000276B2  _apply_wa |    00027829  _apply_fi
+     00027AFA  ___func_l |    00027AFA  _load_pal |    00027BDE  _draw_cel
+     00027C32  _draw_col |    00027C6C  _draw_row |    00027CA3  _draw_ui_
+     00027CAB  _draw_gam |    00027CC5  _draw_scr |    00027D44  _draw_gam
+     00027D61  _draw_gam |    00027D69  _draw_ene |    00027D78  _draw_cor
+     00027DBD  _draw_cor |    00027DC0  _draw_bos
 ASxxxx Linker V03.00/V05.40 + sdld,  page 32.
 Hexadecimal  [32-Bits]
 
@@ -736,7 +738,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_17               00114000    00002BE1 =       11233. bytes (REL,CON)
+_CODE_17               00114000    00002C44 =       11332. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -744,22 +746,22 @@ _CODE_17               00114000    00002BE1 =       11233. bytes (REL,CON)
      00114367  _entity_s |    00114382  ___func_e |    00114382  _entity_s
      00114429  ___func_e |    00114429  _entity_s |    00114451  ___func_e
      00114451  _entity_s |    00114457  ___func_e |    00114457  _entity_s
-     00114DBB  ___func_e |    00114DBB  _entity_s |    00115064  ___func_e
-     00115064  _entity_s |    00115095  ___func_e |    00115095  _entity_s
-     001150B6  ___func_e |    001150B6  _entity_s |    001150C5  ___func_e
-     001150C5  _entity_s |    00115107  ___func_e |    00115107  _entity_s
-     001151DE  ___func_e |    001151DE  _entity_s |    00115203  ___func_e
-     00115203  _entity_s |    0011521F  ___func_e |    0011521F  _entity_s
-     001152C6  ___func_e |    001152C6  _entity_s |    0011534D  ___func_e
-     0011534D  _entity_s |    0011552B  ___func_e |    0011552B  _entity_s
-     00115744  ___func_e |    00115744  _entity_s |    00115A3B  ___func_e
-     00115A3B  _entity_s |    00115C35  ___func_e |    00115C35  _entity_s
-     00115D51  ___func_e |    00115D51  _entity_s |    00115F3B  ___func_e
-     00115F3B  _entity_s |    00116079  ___func_e |    00116079  _entity_s
-     001160A5  ___func_e |    001160A5  _entity_s |    001160AE  ___func_e
-     001160AE  _entity_s |    001160C2  ___func_e |    001160C2  _entity_s
-     001164D5  ___func_a |    001164D5  _ally_fox |    0011664B  ___func_a
-     0011664B  _ally_fox |    00116819  ___func_a |    00116819  _ally_fox
+     00114E09  ___func_e |    00114E09  _entity_s |    001150C7  ___func_e
+     001150C7  _entity_s |    001150F8  ___func_e |    001150F8  _entity_s
+     00115119  ___func_e |    00115119  _entity_s |    00115128  ___func_e
+     00115128  _entity_s |    0011516A  ___func_e |    0011516A  _entity_s
+     00115241  ___func_e |    00115241  _entity_s |    00115266  ___func_e
+     00115266  _entity_s |    00115282  ___func_e |    00115282  _entity_s
+     00115329  ___func_e |    00115329  _entity_s |    001153B0  ___func_e
+     001153B0  _entity_s |    0011558E  ___func_e |    0011558E  _entity_s
+     001157A7  ___func_e |    001157A7  _entity_s |    00115A9E  ___func_e
+     00115A9E  _entity_s |    00115C98  ___func_e |    00115C98  _entity_s
+     00115DB4  ___func_e |    00115DB4  _entity_s |    00115F9E  ___func_e
+     00115F9E  _entity_s |    001160DC  ___func_e |    001160DC  _entity_s
+     00116108  ___func_e |    00116108  _entity_s |    00116111  ___func_e
+     00116111  _entity_s |    00116125  ___func_e |    00116125  _entity_s
+     00116538  ___func_a |    00116538  _ally_fox |    001166AE  ___func_a
+     001166AE  _ally_fox |    0011687C  ___func_a |    0011687C  _ally_fox
 ASxxxx Linker V03.00/V05.40 + sdld,  page 47.
 Hexadecimal  [32-Bits]
 
@@ -776,13 +778,13 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_19               00134000    00000505 =        1285. bytes (REL,CON)
+_CODE_19               00134000    00000516 =        1302. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00134088  ___func_c |    00134088  _combat_d |    001342CC  ___func_c
-     001342CC  _combat_c |    001342FC  ___func_c |    001342FC  _combat_p
-     001343BE  ___func_r |    001343BE  _resolve_
+     00134088  ___func_c |    00134088  _combat_d |    001342DD  ___func_c
+     001342DD  _combat_c |    0013430D  ___func_c |    0013430D  _combat_p
+     001343CF  ___func_r |    001343CF  _resolve_
 ASxxxx Linker V03.00/V05.40 + sdld,  page 49.
 Hexadecimal  [32-Bits]
 

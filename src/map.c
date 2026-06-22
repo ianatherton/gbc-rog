@@ -124,7 +124,10 @@ uint8_t tile_vram_index(uint8_t t) { // non-zero → set_bkg_tiles uses ROM tile
 
 uint8_t tile_palette(uint8_t t) { // CGB attribute palette index per terrain type
     if (t == TILE_WALL) return PAL_WALL_BG; // colors chosen by wall_palette_index via apply_wall_palette
-    if (t == TILE_PIT)  return PAL_LADDER;  // bright ladder palette in render.c
+    if (t == TILE_PIT) {
+        if ((floor_biome == BIOME_BOSS || floor_biome == BIOME_MINIBOSS) && boss_alive) return 0u; // no color tell either, while hidden
+        return PAL_LADDER; // bright ladder palette in render.c
+    }
     return 0;                               // default floor text color
 }
 
@@ -301,7 +304,7 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
                     & (uint8_t)(1u << (_ei & 7u))) {
                 enemy_alive[_ei] = 0u;
                 enemy_clear_slot(enemy_x[_ei], enemy_y[_ei]);
-                if (enemy_type[_ei] == ENEMY_GORGON)
+                if (enemy_type[_ei] == ENEMY_GORGON || enemy_type[_ei] == ENEMY_SLIME_BIG)
                     enemy_clear_slot((uint8_t)(enemy_x[_ei] + 1u), enemy_y[_ei]);
                 if (enemy_type[_ei] == ENEMY_GORGON || enemy_type[_ei] == ENEMY_SLIME_BIG)
                     boss_alive = 0u;

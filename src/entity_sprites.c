@@ -7,6 +7,7 @@
 #include "lcd.h"
 #include "defs.h"
 #include "map.h"
+#include "biome.h"
 #include "ally.h"
 #include "root_icon.h"
 #include <gb/cgb.h>
@@ -447,7 +448,10 @@ static void refresh_enemy_oam(uint8_t slot) {
     }
     // Custom 2×2 OAM render for ENEMY_SLIME_BIG (miniboss floor only): 4 quadrants of a
     // nearest-neighbor 2x upscale of the regular Slime sprite, centered on the enemy's
-    // single logical tile (visual-only scale-up — no footprint/occupancy change).
+    // primary logical tile (occupies 2 tiles for collision/attack — see ENEMY_GORGON-style
+    // checks in enemy.c/combat.c/map.c). Animated: toggles to a 2nd quadrant set on
+    // enemy_anim_toggle, temporarily uploaded into Skeleton/Rat/BigSkell's VRAM slots by
+    // biome_load_active() since none of those types spawn on this biome (see defs.h).
     // Borrows SP_BIG_SKELL_HEAD_BASE+0..2 (slots 27-29), safe because no BIG_SKELL spawns
     // on this biome.
     if (enemy_type[slot] == ENEMY_SLIME_BIG) {
@@ -465,19 +469,24 @@ static void refresh_enemy_oam(uint8_t slot) {
         {
             uint8_t pal = PAL_ENEMY_SNAKE;
             uint8_t h = en_hit_flash_age[slot];
+            uint8_t tl, tr, bl, br;
             if (h > 0u && h <= ENEMY_HIT_FLASH_VBL) {
                 uint8_t age0 = (uint8_t)(h - 1u);
                 if (((age0 >> 1) & 1u) == 0u) pal = 0u; // OCP0 grey ramp vs native enemy ramp
             }
             // centered on the logical tile: ±4px from tile origin per quadrant
+            tl = enemy_anim_toggle ? TILE_SKEL_1_OFF     : TILE_SLIMEBIG_TL_OFF;
+            tr = enemy_anim_toggle ? TILE_SKEL_2_OFF     : TILE_SLIMEBIG_TR_OFF;
+            bl = enemy_anim_toggle ? TILE_RAT_OFF        : TILE_SLIMEBIG_BL_OFF;
+            br = enemy_anim_toggle ? TILE_BIG_SKELL_BODY : TILE_SLIMEBIG_BR_OFF;
             move_entity_oam(sp, ewx - 4, ewy - 4,
-                (uint8_t)(TILESET_VRAM_OFFSET + TILE_SLIMEBIG_TL_OFF), pal);
+                (uint8_t)(TILESET_VRAM_OFFSET + tl), pal);
             move_entity_oam((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 0u), ewx + 4, ewy - 4,
-                (uint8_t)(TILESET_VRAM_OFFSET + TILE_SLIMEBIG_TR_OFF), pal);
+                (uint8_t)(TILESET_VRAM_OFFSET + tr), pal);
             move_entity_oam((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 1u), ewx - 4, ewy + 4,
-                (uint8_t)(TILESET_VRAM_OFFSET + TILE_SLIMEBIG_BL_OFF), pal);
+                (uint8_t)(TILESET_VRAM_OFFSET + bl), pal);
             move_entity_oam((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 2u), ewx + 4, ewy + 4,
-                (uint8_t)(TILESET_VRAM_OFFSET + TILE_SLIMEBIG_BR_OFF), pal);
+                (uint8_t)(TILESET_VRAM_OFFSET + br), pal);
         }
         return;
     }
@@ -530,7 +539,8 @@ void entity_sprites_vbl_tick(void) BANKED {
     } else {
         brazier_fire_try_spawn();
     }
-    if (lcd_gameplay_active && ladder_cache_valid) {
+    if (lcd_gameplay_active && ladder_cache_valid
+            && !((floor_biome == BIOME_BOSS || floor_biome == BIOME_MINIBOSS) && boss_alive)) {
         uint8_t mx = ladder_cache_mx, my = ladder_cache_my;
         if (my > 0u
                 && mx >= CAM_TX && mx < (uint8_t)(CAM_TX + GRID_W)

@@ -23,6 +23,7 @@ BANKREF_EXTERN(entity_sprites_player_hurt_flash)
 BANKREF_EXTERN(entity_sprites_run_projectile)
 BANKREF_EXTERN(enemy_try_drop_item)
 BANKREF_EXTERN(enemy_slime_split)
+BANKREF_EXTERN(enemy_slime_big_death_spawn)
 BANKREF_EXTERN(enemy_gorgon_summon)
 BANKREF_EXTERN(draw_boss_reveal_cells_far)
 
@@ -76,7 +77,7 @@ uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage, uint8_t from_shield_burn
             }
         }
         enemy_clear_slot(dx, dy);
-        if (enemy_type[ei] == ENEMY_GORGON) enemy_clear_slot((uint8_t)(dx+1u), dy);
+        if (enemy_type[ei] == ENEMY_GORGON || enemy_type[ei] == ENEMY_SLIME_BIG) enemy_clear_slot((uint8_t)(dx+1u), dy);
         enemy_alive[ei] = 0u;
         if (enemy_persistent[ei]) // transient summons/splits don't leave permanent gravestones
             floor_enemy_dead[(floor_num - 1u) * 3u + (ei >> 3u)] |= (uint8_t)(1u << (ei & 7u));
@@ -88,6 +89,7 @@ uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage, uint8_t from_shield_burn
             boss_alive = 0u;
             draw_boss_reveal_cells_far(); // reveal stairs + pit now that boss/miniboss is dead
         }
+        if (enemy_type[ei] == ENEMY_SLIME_BIG) enemy_slime_big_death_spawn(dx, dy); // guaranteed pop, any kill method
         grant_xp_from_kill(kill_xp);
 #if GBC_ROG_DEBUG
         {

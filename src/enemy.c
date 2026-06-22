@@ -284,14 +284,17 @@ void spawn_enemies(void) { // random placement with collision checks
             }
         }
     }
-    if (floor_biome == BIOME_MINIBOSS) { // one guaranteed 2x Slime elite, visual-only footprint (single tile)
+    if (floor_biome == BIOME_MINIBOSS) { // one guaranteed 2x Slime elite — Gorgon-style 2-tile footprint
         uint8_t attempts;
         for (attempts = 0; attempts < 100; attempts++) {
             uint8_t tx = (uint8_t)(rand() % active_map_w);
             uint8_t ty = (uint8_t)(rand() % active_map_h);
             if ((tx != player_spawn_x || ty != player_spawn_y)
                     && is_walkable(tx, ty)
-                    && enemy_at(tx, ty) == ENEMY_DEAD) {
+                    && enemy_at(tx, ty) == ENEMY_DEAD
+                    && (uint8_t)(tx+1u) < active_map_w
+                    && is_walkable((uint8_t)(tx+1u), ty)
+                    && enemy_at((uint8_t)(tx+1u), ty) == ENEMY_DEAD) {
                 enemy_x[num_enemies]    = tx;
                 enemy_y[num_enemies]    = ty;
                 enemy_type[num_enemies] = ENEMY_SLIME_BIG;
@@ -300,6 +303,7 @@ void spawn_enemies(void) { // random placement with collision checks
                 enemy_force_active[num_enemies] = 0u;
                 enemy_persistent[num_enemies] = 1u;
                 enemy_place_slot(num_enemies, tx, ty);
+                enemy_place_slot(num_enemies, (uint8_t)(tx+1u), ty);
                 num_enemies++;
                 boss_alive = 1u; // suppresses stairs/pit until the elite is cleared (map.c/state_gameplay.c)
                 break;
@@ -484,7 +488,7 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
             uint8_t occ = enemy_at(nx, ny);
             if (occ != ENEMY_DEAD && occ != (uint8_t)i) continue; // don't stack enemies
         }
-        if (enemy_type[i] == ENEMY_GORGON) { // right tile must also be free
+        if (enemy_type[i] == ENEMY_GORGON || enemy_type[i] == ENEMY_SLIME_BIG) { // right tile must also be free
             uint8_t rocc = enemy_at((uint8_t)(nx+1u), ny);
             if (rocc != ENEMY_DEAD && rocc != (uint8_t)i) continue;
         }
@@ -495,10 +499,10 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
         }
 
         if (!is_walkable(nx, ny)) continue; // wall blocked proposed step
-        if (enemy_type[i] == ENEMY_GORGON && !is_walkable((uint8_t)(nx+1u), ny)) continue;
+        if ((enemy_type[i] == ENEMY_GORGON || enemy_type[i] == ENEMY_SLIME_BIG) && !is_walkable((uint8_t)(nx+1u), ny)) continue;
 
         enemy_clear_slot(sx, sy);
-        if (enemy_type[i] == ENEMY_GORGON) enemy_clear_slot((uint8_t)(sx+1u), sy);
+        if (enemy_type[i] == ENEMY_GORGON || enemy_type[i] == ENEMY_SLIME_BIG) enemy_clear_slot((uint8_t)(sx+1u), sy);
         enemy_x[i] = nx;
         enemy_y[i] = ny;
         if (tile_at(nx, ny) == TILE_PIT) {
@@ -510,7 +514,7 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
                 dead_enemy_pool[dead_enemy_pool_count++] = i;
         } else {
             enemy_place_slot(i, nx, ny);
-            if (enemy_type[i] == ENEMY_GORGON) enemy_place_slot(i, (uint8_t)(nx+1u), ny);
+            if (enemy_type[i] == ENEMY_GORGON || enemy_type[i] == ENEMY_SLIME_BIG) enemy_place_slot(i, (uint8_t)(nx+1u), ny);
         }
     }
     perf_record(PERF_ENEMY_MOVE, perf_stamp_elapsed(&perf_stamp));

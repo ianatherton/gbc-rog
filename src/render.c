@@ -123,6 +123,7 @@ static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t m
                 if      (off == TILE_STAIRS_UP_1)  pal = 0u;
                 else if ((off & 15u) == 2u)        pal = PAL_LADDER;  // TILE_LIGHT_1..4 (col C rows 1-4: 2,18,34,50)
                 else if (off == TILE_ITEM_4)        pal = PAL_XP_UI;
+                else if (off == TILE_TEST)          pal = PAL_LADDER;  // single non-overworld floor deco tile, torch-tinted
                 else                               pal = PAL_FLOOR_BG;
             }
             set_bkg_attribute_xy(sx, sy, pal);

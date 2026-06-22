@@ -134,7 +134,7 @@ void floor_ground_init(uint16_t floor_seed) { // deterministic floor visuals fro
     floor_visual_seed = (uint16_t)(floor_seed ^ 0x6d2bu);
 }
 
-uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; else random E3/E4 on black field
+uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; overworld random E3/E4, else single A1 tile
     if (x == player_spawn_x && y == player_spawn_y) {
         if (floor_num > 0u
                 && ((floor_biome != BIOME_BOSS && floor_biome != BIOME_MINIBOSS) || !boss_alive))
@@ -150,6 +150,7 @@ uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; else ran
         }
     }
     if (ground_item_index_at(x, y) != 255u) return TILE_ITEM_4; // mystery icon — true kind revealed in pickup dialog
+    if (floor_biome != BIOME_OVERWORLD) return TILE_TEST; // single floor-deco tile, torch-tinted in render.c — every lit cell, no blank sparsity
     if (floor_tile_is_blank(x, y)) return 255u;
     {
         static const uint8_t ground_e34[2] = { TILE_GROUND_C, TILE_GROUND_D }; // sheet E3, E4

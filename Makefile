@@ -37,6 +37,13 @@ DEPS        = $(OBJS:%.o=%.d)
 TILESET_PNG = res/tileset.png
 TILESET_C   = src/tileset.c
 
+# Per-biome enemy sprite sheets (enemies only; shared BG stays in tileset.png).
+# Each PNG holds that biome's enemy frames row-major; biome_load_active() uploads
+# them into the ENEMY_SCRATCH VRAM region on floor entry. One bank per sheet (the
+# biome's own bank). Add a biome: new res/enemies_<biome>.png + a rule below.
+ENEMIES_MINIBOSS_PNG = res/enemies_miniboss.png
+ENEMIES_MINIBOSS_C   = src/enemies_miniboss.c
+
 -include $(DEPS)
 
 all: assets $(TARGETS)
@@ -45,12 +52,19 @@ all: assets $(TARGETS)
 sameboy:
 	bash "$(CURDIR)/emu/build-sameboy.sh"
 
-assets: $(TILESET_C)
+assets: $(TILESET_C) $(ENEMIES_MINIBOSS_C)
 
 $(TILESET_C): $(TILESET_PNG)
 	$(PNG2ASSET) $< -o $@ -map -keep_duplicate_tiles -noflip
 	@sed -i '/#pragma bank /d' $@
 	@sed -i '2a #pragma bank 1' $@
+
+# Indexed source PNG carries the 4-gray palette in tileset order, so -keep_palette_order
+# reproduces the same 2bpp indices (idx0 transparent .. idx3 body) as the old baked art.
+$(ENEMIES_MINIBOSS_C): $(ENEMIES_MINIBOSS_PNG)
+	$(PNG2ASSET) $< -o $@ -map -keep_duplicate_tiles -noflip -keep_palette_order
+	@sed -i '/#pragma bank /d' $@
+	@sed -i '2a #pragma bank 27' $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(LCC) $(CFLAGS) -c -o $@ $<

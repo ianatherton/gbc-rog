@@ -7,6 +7,9 @@ EnemyDef enemy_defs[NUM_ENEMY_TYPES];        // HOME storage — biome_load_acti
 uint8_t  enemy_active_types[NUM_ENEMY_TYPES]; // type IDs present this floor
 uint8_t  enemy_active_count;
 
+BANKREF_EXTERN(enemies_miniboss)
+extern const uint8_t enemies_miniboss_tiles[]; // bank 27 — 8 big-slime quadrant tiles: f1 TL/TR/BL/BR, f2 TL/TR/BL/BR
+
 BANKREF_EXTERN(biome_dungeon_copy_defs)
 BANKREF_EXTERN(biome_crypt_copy_defs)
 BANKREF_EXTERN(biome_cavern_copy_defs)
@@ -37,16 +40,25 @@ void biome_load_active(uint8_t biome_id) {
     SWITCH_ROM(e->bank);
     e->copy_defs(enemy_defs, enemy_active_types, &enemy_active_count);
     if (e->load_palettes) e->load_palettes(); // still in e->bank; HOME-bank GBDK fns always reachable
-    // SLIME_BIG's 2nd animation frame has no permanent VRAM slots: Skeleton/Rat/BigSkell never
-    // spawn on BIOME_MINIBOSS, so their dedicated sprite slots are temporarily repurposed for it
-    // while floor 3 is loaded, and restored to their normal art on every other floor.
-    SWITCH_ROM(BANK(tileset));
+    // Per-biome enemy art: upload the active biome's sprite sheet into the shared scratch slots.
+    // (Scaffold: only BIOME_MINIBOSS uses this path; other biomes still rely on the permanent
+    // boot-loaded slots in main.c. Migrating a biome here lets its enemy art be load/unloaded
+    // per floor — see docs/BANKS.md.) The big-slime's 8 quadrant tiles come from bank 27's
+    // enemies_miniboss.png, NOT the shared tileset. Frame 1 goes to 4 dead background cells
+    // (194/195/196/198, no restore needed); frame 2 borrows Skeleton/Rat/BigSkell slots, which
+    // are free on this floor (none of those spawn here) and get restored on every other floor.
     if (biome_id == BIOME_MINIBOSS) {
-        set_sprite_data(TILE_SKEL_1_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SLIMEBIG_TL2_ROM * 16u);
-        set_sprite_data(TILE_SKEL_2_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SLIMEBIG_TR2_ROM * 16u);
-        set_sprite_data(TILE_RAT_VRAM,    1u, tileset_tiles + (uint16_t)TILE_SLIMEBIG_BL2_ROM * 16u);
-        set_sprite_data(TILE_BIG_SKELL_BODY_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SLIMEBIG_BR2_ROM * 16u);
+        SWITCH_ROM(BANK(enemies_miniboss));
+        set_sprite_data((uint8_t)(TILESET_VRAM_OFFSET + TILE_SLIMEBIG_TL_OFF), 1u, enemies_miniboss_tiles + 0u * 16u);
+        set_sprite_data((uint8_t)(TILESET_VRAM_OFFSET + TILE_SLIMEBIG_TR_OFF), 1u, enemies_miniboss_tiles + 1u * 16u);
+        set_sprite_data((uint8_t)(TILESET_VRAM_OFFSET + TILE_SLIMEBIG_BL_OFF), 1u, enemies_miniboss_tiles + 2u * 16u);
+        set_sprite_data((uint8_t)(TILESET_VRAM_OFFSET + TILE_SLIMEBIG_BR_OFF), 1u, enemies_miniboss_tiles + 3u * 16u);
+        set_sprite_data(TILE_SKEL_1_VRAM,         1u, enemies_miniboss_tiles + 4u * 16u);
+        set_sprite_data(TILE_SKEL_2_VRAM,         1u, enemies_miniboss_tiles + 5u * 16u);
+        set_sprite_data(TILE_RAT_VRAM,            1u, enemies_miniboss_tiles + 6u * 16u);
+        set_sprite_data(TILE_BIG_SKELL_BODY_VRAM, 1u, enemies_miniboss_tiles + 7u * 16u);
     } else {
+        SWITCH_ROM(BANK(tileset));
         set_sprite_data(TILE_SKEL_1_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SKEL_ROM_1 * 16u);
         set_sprite_data(TILE_SKEL_2_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SKEL_ROM_2 * 16u);
         set_sprite_data(TILE_RAT_VRAM,    1u, tileset_tiles + (uint16_t)TILE_RAT_ROM * 16u);

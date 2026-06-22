@@ -225,7 +225,7 @@ typedef struct {
 #define TILE_LIGHT_2        18   /* C2  */
 #define TILE_LIGHT_3        34   /* C3  */
 #define TILE_LIGHT_4        50   /* C4  */
-#define TILE_LIGHT_5        66   /* C5  — dead variant, never placed; VRAM 194 borrowed by TILE_SLIMEBIG_TL */
+#define TILE_LIGHT_5        66   /* C5  — dead variant, never placed; VRAM 194 = big-slime frame-1 TL scratch */
 #define TILE_LIGHT_6        82   /* C6  */
 
 /* ── D col — decorative columns ─────────────────────────────────────────── */
@@ -234,7 +234,7 @@ typedef struct {
 #define TILE_COLUMN_2       19   /* D2  */
 #define TILE_COLUMN_3       35   /* D3  */
 #define TILE_COLUMN_4       51   /* D4  */
-#define TILE_COLUMN_5       67   /* D5  — dead variant, never placed; VRAM 195 borrowed by TILE_SLIMEBIG_TR */
+#define TILE_COLUMN_5       67   /* D5  — dead variant, never placed; VRAM 195 = big-slime frame-1 TR scratch */
 #define TILE_COLUMN_6       83   /* D6  */
 #define TILE_COLUMN_7       99   /* D7  */
 
@@ -244,7 +244,7 @@ typedef struct {
 #define TILE_GROUND_C       36   /* E3  */
 #define TILE_GROUND_D       52   /* E4  — also title-menu fire particle glyph */
 #define TILE_TITLE_FIRE     TILE_GROUND_D
-#define TILE_GROUND_E       68   /* E5  — dead variant, never placed; VRAM 196 borrowed by TILE_SLIMEBIG_BL */
+#define TILE_GROUND_E       68   /* E5  — dead variant, never placed; VRAM 196 = big-slime frame-1 BL scratch */
 
 /* ── F col — props ───────────────────────────────────────────────────────── */
 #define TILE_F5              69u  /* F5  — dead variant, never placed; VRAM 197 borrowed by TILE_STUN_ICON_VRAM */
@@ -268,7 +268,7 @@ typedef struct {
 #define TILE_DOOR_CLOSED    22   /* G2  */
 #define TILE_SHRINE_ON_1    38   /* G3  - active shrine animation frame 1  */
 #define TILE_SHRINE_ON_2    54   /* G4  - active shrine animation frame 2  */
-#define TILE_SHRINE_OFF     70   /* G5  - inactive shrine; dead, never placed; VRAM 198 borrowed by TILE_SLIMEBIG_BR */
+#define TILE_SHRINE_OFF     70   /* G5  - inactive shrine; dead, never placed; VRAM 198 = big-slime frame-1 BR scratch */
 
 /* ── H col — stairs + pit ────────────────────────────────────────────────── */
 #define TILE_STAIRS_UP_1     7   /* H1  */
@@ -371,43 +371,31 @@ typedef struct {
 #define TILE_GORGON_FEET_L_OFF  102u
 #define TILE_GORGON_FEET_R_OFF  103u
 
-/* A9-D9 — 2x-scaled Slime miniboss (2×2 tiles, nearest-neighbor upscale of TILE_SLIME_ROM_1).
-   ROM indices past first VRAM pack, never auto-loaded. Boot-patched to borrowed dead-variant
-   slots — C5/D5/E5/G5 are the Nth drawn variant of a themed column (lights/columns/ground/
-   shrine) that the game logic never wires up, confirmed by zero references anywhere outside
-   their own #define (same precedent as TILE_FLOOR_DECO_6/7/8 already borrowed for arrow/bow/
-   knight-shield). Animated 2-frame: occupies 2 logical map tiles (like Gorgon) so both are
-   attackable — see ENEMY_GORGON checks in enemy.c/combat.c/map.c, mirrored for ENEMY_SLIME_BIG.
-   NOTE: an earlier version of this borrowed A7/D7/I7/J7, which turned out to be live content
+/* ── Active-biome enemy sprite scratch ────────────────────────────────────────
+   The 2x-scaled Slime miniboss (2×2 tiles, animated 2-frame) is the first user of the
+   per-biome enemy-art scheme: its 8 quadrant tiles live in res/enemies_miniboss.png
+   (src/enemies_miniboss.c, bank 27) and are uploaded into VRAM by biome_load_active()
+   on entry to BIOME_MINIBOSS — NOT baked into the shared tileset.png anymore. It occupies
+   2 logical map tiles (like Gorgon) so both are attackable — see ENEMY_GORGON checks in
+   enemy.c/combat.c/map.c, mirrored for ENEMY_SLIME_BIG.
+
+   VRAM slots reused (proven safe; no permanent baking):
+   • Frame 1 (TL/TR/BL/BR) → 4 dead background cells C5/D5/E5/G5 (TILE_LIGHT_5/COLUMN_5/
+     GROUND_E/SHRINE_OFF — never placed by any map code, confirmed zero refs). Dead cells
+     have no owner, so they need no restore on leaving the floor.
+   • Frame 2 (TL/TR/BL/BR) → Skeleton/Rat/BigSkell sprite slots (TILE_SKEL_1/2_VRAM,
+     TILE_RAT_VRAM, TILE_BIG_SKELL_BODY_VRAM). Those enemies never spawn on BIOME_MINIBOSS,
+     so biome_load_active() repurposes the slots while floor 3 is loaded and restores their
+     normal art on every other floor.
+   The renderer (entity_sprites.c) toggles frame 1 (the _OFF constants below) vs frame 2
+   (TILE_SKEL_1_OFF/SKEL_2_OFF/RAT_OFF/BIG_SKELL_BODY) on enemy_anim_toggle.
+   NOTE: an earlier version borrowed A7/D7/I7/J7, which turned out to be live content
    (TILE_WALL_F, TILE_COLUMN_7, TILE_ITEM_7, TILE_LOADING_SKULL/TILE_BIG_SKELL_HEAD) — do not
    reuse those for anything. */
-#define TILE_SLIMEBIG_TL_ROM  128u  /* A9 */
-#define TILE_SLIMEBIG_TR_ROM  129u  /* B9 */
-#define TILE_SLIMEBIG_BL_ROM  130u  /* C9 */
-#define TILE_SLIMEBIG_BR_ROM  131u  /* D9 */
-#define TILE_SLIMEBIG_TL_VRAM 194u  /* borrows C5=ROM66 (TILE_LIGHT_5, dead variant) */
-#define TILE_SLIMEBIG_TR_VRAM 195u  /* borrows D5=ROM67 (TILE_COLUMN_5, dead variant) */
-#define TILE_SLIMEBIG_BL_VRAM 196u  /* borrows E5=ROM68 (TILE_GROUND_E, dead variant) */
-#define TILE_SLIMEBIG_BR_VRAM 198u  /* borrows G5=ROM70 (TILE_SHRINE_OFF, dead variant) */
-#define TILE_SLIMEBIG_TL_OFF   66u  /* = VRAM - TILESET_VRAM_OFFSET */
-#define TILE_SLIMEBIG_TR_OFF   67u
+#define TILE_SLIMEBIG_TL_OFF   66u  /* frame-1 quadrant offsets; VRAM = TILESET_VRAM_OFFSET + off */
+#define TILE_SLIMEBIG_TR_OFF   67u  /* (194/195/196/198 = C5/D5/E5/G5 dead cells) */
 #define TILE_SLIMEBIG_BL_OFF   68u
 #define TILE_SLIMEBIG_BR_OFF   70u
-
-/* E9-H9 — second animation frame for the 2x-scaled Slime miniboss (upscale of TILE_SLIME_ROM_2).
-   Row 9 (sheet idx 128-143) is never auto-loaded by any code path, so these cells were free for
-   new art with no slot-hunting needed. Unlike the frame-1 quadrants above, this frame has NO
-   permanent VRAM slots of its own: BIOME_MINIBOSS's roster never spawns Skeleton/Rat/BigSkell,
-   so biome_load_active() (biome.c) temporarily re-uploads this frame's quadrants into THEIR
-   VRAM slots (TILE_SKEL_1/2_VRAM, TILE_RAT_VRAM, TILE_BIG_SKELL_BODY_VRAM) only while floor 3
-   is loaded, restoring the normal Skeleton/Rat/BigSkell art on every other floor. The renderer
-   (entity_sprites.c) toggles between the frame-1 _OFF constants above and these donor types'
-   existing _OFF aliases (TILE_SKEL_1_OFF/TILE_SKEL_2_OFF/TILE_RAT_OFF/TILE_BIG_SKELL_BODY) on
-   enemy_anim_toggle — no new _VRAM/_OFF constants needed for frame 2. */
-#define TILE_SLIMEBIG_TL2_ROM 132u  /* E9 */
-#define TILE_SLIMEBIG_TR2_ROM 133u  /* F9 */
-#define TILE_SLIMEBIG_BL2_ROM 134u  /* G9 */
-#define TILE_SLIMEBIG_BR2_ROM 135u  /* H9 */
 
 /* ── L col — floor decorations ──────────────────────────────────────────── */
 #define TILE_FLOOR_DECO_1   11   /* L1  */

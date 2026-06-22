@@ -35,7 +35,7 @@ SRAM (battery RAM) is currently unused — free for saves later.
 | 20 | — | — | equipment (`EquipStatDef` table, `items_equip_apply`, `items_equip_slot`, `equipped_kind_in_slot`) |
 | 21 | 132 | 1% | biome_boss |
 | 22 | ~140 | 1% | biome_overworld (top-level hub, floor 0; no enemies/items, dark-green field, c10 walls) |
-| 27 | ~150 | 1% | biome_miniboss (fixed at floor 3: normal fodder roster + one guaranteed 2x Slime) |
+| 27 | ~300 | 2% | biome_miniboss (fixed at floor 3: normal fodder roster + one guaranteed 2x Slime) + enemies_miniboss (png2asset enemy sprite sheet; big-slime art uploaded to VRAM scratch per floor by biome_load_active) |
 | 23–26, 28–31 | 0 | 0% | empty — ~165 KB free |
 
 Total ROM used ≈ 76 KB of 512 KB (~15%). ROM is not the constraint. If it ever is,
@@ -105,9 +105,13 @@ Rules for adding banked-WRAM data (the `exp2_*` accessors in `src/lighting.c` ar
 
 ## Known caps to watch
 
-- **VRAM sprite tile slots** cap creature variety before ROM does — entity sprite tiles are
-  uploaded at boot (`main.c`) into borrowed slots. Scaling creatures per-biome means moving
-  to per-floor VRAM uploads at `level_init` time.
+- **VRAM sprite tile slots** cap creature variety before ROM does — most entity sprite tiles are
+  still uploaded at boot (`main.c`) into borrowed slots. The per-biome path now exists: a biome's
+  enemy art can live in its own `res/enemies_<biome>.png` (png2asset → `src/enemies_<biome>.c`,
+  one bank per sheet) and be uploaded into a VRAM scratch region by `biome_load_active()` on floor
+  entry. Currently only BIOME_MINIBOSS uses it (the 2x slime, frame-1 in 4 dead BG cells +
+  frame-2 in Skeleton/Rat/BigSkell slots, restored on other floors). Migrating the rest lets the
+  boot-time borrowed slots be reclaimed — that's the real "plenty of space" win, deferred.
 - **Bank 0 (~77%)** grows with every new HOME dispatcher/driver. Candidates to evict if
   needed: lighting reveal logic (keep only the asm accessors HOME), perf, title_logo.
 - **Bank 2 (78%)** is the gameplay kernel. Next eviction candidate: enemy AI behaviors into

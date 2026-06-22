@@ -130,10 +130,10 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00000E05  l__CODE_1 |    00000EDF  l__CODE_1 |    00001108  l__CODE_1
      00001554  l__CODE_1 |    00001A3F  l__DATA   |    00001B7A  l__CODE_3
      00002000  _rROMB0   |    00002A35  l__CODE   |    00002C35  s__HOME  
-     00002C44  l__CODE_1 |    00003000  _rROMB1   |    00003092  l__CODE_5
+     00002C4A  l__CODE_1 |    00003000  _rROMB1   |    00003092  l__CODE_5
      000037FE  s__BASE   |    000037FE  s__CODE_0 |    000037FE  s__INITIA
      000037FE  s__LIT    |    0000381B  s__GSINIT |    00003827  s__GSFINA
-     00003DEE  l__CODE_2 |    00004000  _rMBC7_SR |    00004000  _rRAMB   
+     00003DE4  l__CODE_2 |    00004000  _rMBC7_SR |    00004000  _rRAMB   
      00008000  __VRAM    |    00008000  __VRAM800 |    00008800  __VRAM880
      00009000  __VRAM900 |    00009800  __SCRN0   |    00009C00  __SCRN1  
      0000A000  __SRAM    |    0000A000  _rMBC7_LA |    0000A010  _rMBC7_LA
@@ -539,7 +539,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_2                00024000    00003DEE =       15854. bytes (REL,CON)
+_CODE_2                00024000    00003DE4 =       15844. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -550,21 +550,21 @@ _CODE_2                00024000    00003DEE =       15854. bytes (REL,CON)
      000244F2  _enemy_at |    0002456A  _corpse_s |    000245E2  _corpse_a
      000245EE  _corpse_d |    000245FD  _spawn_en |    00024A45  _enemy_se
      00024A5D  _enemy_ge |    00024DC8  _enemy_re |    00024EFB  _move_ene
-     0002574C  ___func_s |    0002574C  _state_ga |    000257B9  ___func_s
-     000257B9  _state_ga |    000261F3  _wall_ort |    000263A8  ___func_t
-     000263A8  _tile_at  |    00026436  ___func_m |    00026436  _map_pit_
-     0002644F  ___func_g |    0002644F  _ground_i |    00026482  ___func_g
-     00026482  _ground_i |    000264C8  ___func_i |    000264C8  _is_walka
-     0002650B  _tile_cha |    00026519  _tile_vra |    00026540  _tile_pal
-     00026562  _floor_gr |    0002657A  _floor_ti |    00026699  _nearest_
-     0002673B  _nav_fill |    00026822  ___func_l |    00026822  _level_ge
-     00026F24  ___func_c |    00026F24  _camera_i |    0002718E  _camera_s
-     00027663  _camera_s |    000276B2  _apply_wa |    00027829  _apply_fi
-     00027AFA  ___func_l |    00027AFA  _load_pal |    00027BDE  _draw_cel
-     00027C32  _draw_col |    00027C6C  _draw_row |    00027CA3  _draw_ui_
-     00027CAB  _draw_gam |    00027CC5  _draw_scr |    00027D44  _draw_gam
-     00027D61  _draw_gam |    00027D69  _draw_ene |    00027D78  _draw_cor
-     00027DBD  _draw_cor |    00027DC0  _draw_bos
+     00025751  ___func_s |    00025751  _state_ga |    000257BE  ___func_s
+     000257BE  _state_ga |    000261F8  _wall_ort |    000263AD  ___func_t
+     000263AD  _tile_at  |    0002643B  ___func_m |    0002643B  _map_pit_
+     00026454  ___func_g |    00026454  _ground_i |    00026487  ___func_g
+     00026487  _ground_i |    000264CD  ___func_i |    000264CD  _is_walka
+     00026510  _tile_cha |    0002651E  _tile_vra |    00026545  _tile_pal
+     00026552  _floor_gr |    0002656A  _floor_ti |    00026689  _nearest_
+     0002672B  _nav_fill |    00026812  ___func_l |    00026812  _level_ge
+     00026F14  ___func_c |    00026F14  _camera_i |    0002717E  _camera_s
+     00027653  _camera_s |    000276A2  _apply_wa |    00027819  _apply_fi
+     00027AF0  ___func_l |    00027AF0  _load_pal |    00027BD4  _draw_cel
+     00027C28  _draw_col |    00027C62  _draw_row |    00027C99  _draw_ui_
+     00027CA1  _draw_gam |    00027CBB  _draw_scr |    00027D3A  _draw_gam
+     00027D57  _draw_gam |    00027D5F  _draw_ene |    00027D6E  _draw_cor
+     00027DB3  _draw_cor |    00027DB6  _draw_bos
 ASxxxx Linker V03.00/V05.40 + sdld,  page 32.
 Hexadecimal  [32-Bits]
 
@@ -738,7 +738,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_17               00114000    00002C44 =       11332. bytes (REL,CON)
+_CODE_17               00114000    00002C4A =       11338. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    

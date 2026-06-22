@@ -221,7 +221,7 @@ uint8_t ally_fox_turn_tick(uint8_t slot, uint8_t px, uint8_t py) BANKED {
     }
 
     if (nx != ally_x[slot] || ny != ally_y[slot]) {
-        if (tile_at(nx, ny) == TILE_PIT) {
+        if (tile_at(nx, ny) == TILE_PIT && !boss_alive) {
             ally_clear_slot(slot);
             return 0u;
         }

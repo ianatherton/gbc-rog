@@ -124,10 +124,7 @@ uint8_t tile_vram_index(uint8_t t) { // non-zero → set_bkg_tiles uses ROM tile
 
 uint8_t tile_palette(uint8_t t) { // CGB attribute palette index per terrain type
     if (t == TILE_WALL) return PAL_WALL_BG; // colors chosen by wall_palette_index via apply_wall_palette
-    if (t == TILE_PIT) {
-        if ((floor_biome == BIOME_BOSS || floor_biome == BIOME_MINIBOSS) && boss_alive) return 0u; // no color tell either, while hidden
-        return PAL_LADDER; // bright ladder palette in render.c
-    }
+    if (t == TILE_PIT) return PAL_LADDER; // bright ladder palette in render.c; hidden case is intercepted by tile_vram_index before this is called
     return 0;                               // default floor text color
 }
 

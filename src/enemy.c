@@ -505,7 +505,7 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
         if (enemy_type[i] == ENEMY_GORGON || enemy_type[i] == ENEMY_SLIME_BIG) enemy_clear_slot((uint8_t)(sx+1u), sy);
         enemy_x[i] = nx;
         enemy_y[i] = ny;
-        if (tile_at(nx, ny) == TILE_PIT) {
+        if (tile_at(nx, ny) == TILE_PIT && !boss_alive) {
             enemy_alive[i] = 0u;
             if (enemy_persistent[i]) // transient summons/splits don't leave permanent gravestones
                 floor_enemy_dead[(floor_num - 1u) * 3u + (i >> 3u)] |= (uint8_t)(1u << (i & 7u));

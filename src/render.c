@@ -110,7 +110,7 @@ static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t m
     {
         uint8_t t = tile_at(mx, my);
         gotoxy(sx, sy);
-        if (t == TILE_FLOOR) {
+        if (t == TILE_FLOOR || (t == TILE_PIT && tile_vram_index(t) == 0u)) { // hidden boss/miniboss pit renders as plain floor — no ASCII fallback tell
             uint8_t off = floor_tile_sheet_offset(mx, my);
             uint8_t pal;
             if (off == 255u) {

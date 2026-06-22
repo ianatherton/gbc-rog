@@ -9,11 +9,11 @@
 #include "map.h"
 #include "biome.h"
 #include "ally.h"
-#include "root_icon.h"
+#include "debuff_icon.h"
 #include <gb/cgb.h>
 #include <string.h>
 
-BANKREF_EXTERN(root_icon_next)
+BANKREF_EXTERN(debuff_icon_next)
 BANKREF_EXTERN(map_pit_position)
 
 #define PLAYER_HURT_FLASH_DURATION_VBL 60u // 1 s at ~60 Hz VBlank
@@ -22,7 +22,7 @@ BANKREF_EXTERN(map_pit_position)
 #define SP_LADDER_ARROW 36u
 #define SP_BRAZIER_FIRE 37u
 #define SP_BELT_SELECTOR 35u // fixed screen-space OAM; excluded from post-enemy hide sweep
-#define SP_ROOT_ICON     2u  // root indicator — below SP_ENEMY_BASE (3) so it draws on top of enemies
+#define SP_DEBUFF_ICON   2u  // shared root/stun indicator — below SP_ENEMY_BASE (3) so it draws on top of enemies
 #define SP_GORGON_HEAD_R SP_INV_CURSOR // boss-floor-only 6th gorgon tile; shares slot 38 with the
                                        // inventory cursor + loading skulls, none of which ever render
                                        // while enemy OAM is being refreshed — see entity_sprites.h
@@ -606,14 +606,14 @@ void entity_sprites_vbl_tick(void) BANKED {
                 }
             }
         }
-        // Root/stun icon — delegate cycle/search to banked root_icon_next to save HOME space;
-        // shares one OAM slot since all 40 are already spoken for (root + stun cycle together).
+        // Debuff icon (root/stun) — delegate cycle/search to banked debuff_icon_next to save HOME
+        // space; shares one OAM slot since all 40 are already spoken for.
         {
             uint8_t rex, rey, rtile;
-            if (root_icon_next(&rex, &rey, &rtile))
-                move_entity_oam(SP_ROOT_ICON, (int16_t)rex * 8, (int16_t)rey * 8, rtile, PAL_XP_UI);
+            if (debuff_icon_next(&rex, &rey, &rtile))
+                move_entity_oam(SP_DEBUFF_ICON, (int16_t)rex * 8, (int16_t)rey * 8, rtile, PAL_XP_UI);
             else
-                oam_hide(SP_ROOT_ICON);
+                oam_hide(SP_DEBUFF_ICON);
         }
     }
 }

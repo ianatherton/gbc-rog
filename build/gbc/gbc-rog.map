@@ -83,7 +83,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000000D  b_items_k |    0000000D  b_items_k |    0000000D  b_items_k
      0000000D  b_items_k |    0000000D  b_items_k |    0000000D  b_items_k
      0000000D  b_items_u |    0000000E  ___bank_s |    0000000E  b_story_u
-     0000000F  b_scroll_ |    00000010  b_bow_sho |    00000010  b_root_ic
+     0000000F  b_scroll_ |    00000010  b_bow_sho |    00000010  b_debuff_
      00000010  b_scroll_ |    00000011  ___bank_a |    00000011  ___bank_a
      00000011  ___bank_a |    00000011  ___bank_e |    00000011  ___bank_e
      00000011  ___bank_e |    00000011  ___bank_e |    00000011  ___bank_e
@@ -732,7 +732,7 @@ _CODE_16               00104000    00000277 =         631. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00104024  _root_ico |    0010413F  _bow_shoo |    00104201  _scroll_r
+     00104024  _debuff_i |    0010413F  _bow_shoo |    00104201  _scroll_r
 ASxxxx Linker V03.00/V05.40 + sdld,  page 46.
 Hexadecimal  [32-Bits]
 
@@ -898,7 +898,7 @@ obj/gbc/biome_cavern.rel                  [ biome_cavern ]
 obj/gbc/items.rel                         [ items ]
 obj/gbc/story_ui.rel                      [ story_ui ]
 obj/gbc/scroll_blast.rel                  [ scroll_blast ]
-obj/gbc/root_icon.rel                     [ root_icon ]
+obj/gbc/debuff_icon.rel                   [ debuff_icon ]
 obj/gbc/bow_shoot.rel                     [ bow_shoot ]
 obj/gbc/scroll_root.rel                   [ scroll_root ]
 obj/gbc/entity_sprites.rel                [ entity_sprites ]

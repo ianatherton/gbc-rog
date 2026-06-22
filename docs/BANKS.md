@@ -28,7 +28,7 @@ SRAM (battery RAM) is currently unused — free for saves later.
 | 13 | 2,242 | 14% | items (kinds + affixes) |
 | 14 | 3,807 | 23% | story_ui |
 | 15 | 157 | 1% | scroll_blast |
-| 16 | 357 | 2% | scroll_root, root_icon, bow_shoot |
+| 16 | 357 | 2% | scroll_root, debuff_icon, bow_shoot |
 | 17 | 10,184 | 62% | entity_sprites, scoundrel_fox |
 | 18 | 5,460 | 33% | bwv527 music data (moved out of bank 5) |
 | 19 | 1,037 | 6% | combat (moved out of bank 2; per-turn, far-call boundary is cheap) |

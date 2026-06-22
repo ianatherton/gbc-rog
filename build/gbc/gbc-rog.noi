@@ -201,7 +201,7 @@ DEF ___bank_story_ui_run_before_first_floor 0xE
 DEF b_story_ui_run_before_first_floor 0xE
 DEF b_scroll_blast_use 0xF
 DEF b_bow_shoot_use 0x10
-DEF b_root_icon_next 0x10
+DEF b_debuff_icon_next 0x10
 DEF b_scroll_root_use 0x10
 DEF ___bank_ally_fox_run_glide 0x11
 DEF ___bank_ally_fox_summon 0x11
@@ -943,7 +943,7 @@ DEF _enemy_try_drop_item 0xD4B70
 DEF ___func_story_ui_run_before_first_floor 0xE4000
 DEF _story_ui_run_before_first_floor 0xE4B99
 DEF _scroll_blast_use 0xF4000
-DEF _root_icon_next 0x104024
+DEF _debuff_icon_next 0x104024
 DEF _bow_shoot_use 0x10413F
 DEF _scroll_root_use 0x104201
 DEF ___func_entity_sprites_poof_clear_all 0x11431E

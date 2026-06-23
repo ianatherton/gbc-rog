@@ -57,6 +57,7 @@ static void draw_equip_slot_info(void) {
         case EQUIP_SLOT_FEET:    label = "Feet"; break;
         case EQUIP_SLOT_WEAPON:  label = "Hand"; break;
         case EQUIP_SLOT_OFFHAND: label = "Hand"; break;
+        case EQUIP_SLOT_RING:    label = "Ring"; break;
         default: return;
     }
     cur_kind = equipped_kind_in_slot(slot);

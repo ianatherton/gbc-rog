@@ -304,6 +304,10 @@ typedef struct {
 #define TILE_BOW_BELT_OFF ((uint8_t)(TILE_BOW_VRAM - TILESET_VRAM_OFFSET)) // items_kind_tile(BOW)
 #define TILE_AXE_BELT_OFF    ((uint8_t)(TILE_ZERKER_WHIRLWIND_VRAM - TILESET_VRAM_OFFSET)) // items_kind_tile(AXE)   — shares VRAM slot with whirlwind icon
 #define TILE_SHIELD_BELT_OFF ((uint8_t)(TILE_KNIGHT_SHIELD_VRAM    - TILESET_VRAM_OFFSET)) // items_kind_tile(SHIELD) — shares VRAM slot with knight shield icon
+#define TILE_SHEET_I16           248u // I16 — ring item art; ROM (16-1)*16+8, sheet >127 → boot copy
+#define TILE_RING_VRAM           215u // belt/pickup UI — copied from TILE_SHEET_I16 at boot; borrows unused H6 slot (sheet 87, never placed). All 30 ring kinds share this tile; tiers differ by palette only.
+#define TILE_RING_OFF ((uint8_t)(TILE_RING_VRAM - TILESET_VRAM_OFFSET)) // items_kind_tile(RING_*)
+#define RING_DROP_PCT            12u  // % chance an equipment drop is instead a (random) ring
 
 /* ── J col — enemy sprites ───────────────────────────────────────────────── */
 #define TILE_SPIDER_1        9   /* J1  - spider frame 1 (unused after snake remap) */

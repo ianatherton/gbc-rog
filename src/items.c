@@ -27,6 +27,17 @@ static const uint8_t kind_cat[ITEM_KIND_COUNT] = {
     ITEM_CAT_EQUIPMENT,  // AXE
     ITEM_CAT_EQUIPMENT,  // SHIELD
     ITEM_CAT_EQUIPMENT,  // MACE
+    /* 30 rings (Might,Keen,Rage,Guard,Veil,Vigor,Valor,Hunter,Mystic,Storm × T1/T2/T3) */
+    ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, // Might
+    ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, // Keen
+    ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, // Rage
+    ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, // Guard
+    ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, // Veil
+    ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, // Vigor
+    ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, // Valor
+    ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, // Hunter
+    ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, // Mystic
+    ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, // Storm
 };
 
 static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
@@ -44,6 +55,17 @@ static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
     TILE_AXE_BELT_OFF,    // AXE — I10 art; VRAM slot shared with Zerker Whirlwind belt icon
     TILE_SHIELD_BELT_OFF, // SHIELD — I9 art; VRAM slot shared with Knight Shield UI icon
     TILE_ITEM_2,          // MACE — I2
+    /* 30 rings — all share the I16 ring tile (TILE_RING_OFF); tier shown by palette */
+    TILE_RING_OFF, TILE_RING_OFF, TILE_RING_OFF, // Might
+    TILE_RING_OFF, TILE_RING_OFF, TILE_RING_OFF, // Keen
+    TILE_RING_OFF, TILE_RING_OFF, TILE_RING_OFF, // Rage
+    TILE_RING_OFF, TILE_RING_OFF, TILE_RING_OFF, // Guard
+    TILE_RING_OFF, TILE_RING_OFF, TILE_RING_OFF, // Veil
+    TILE_RING_OFF, TILE_RING_OFF, TILE_RING_OFF, // Vigor
+    TILE_RING_OFF, TILE_RING_OFF, TILE_RING_OFF, // Valor
+    TILE_RING_OFF, TILE_RING_OFF, TILE_RING_OFF, // Hunter
+    TILE_RING_OFF, TILE_RING_OFF, TILE_RING_OFF, // Mystic
+    TILE_RING_OFF, TILE_RING_OFF, TILE_RING_OFF, // Storm
 };
 
 static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
@@ -61,12 +83,34 @@ static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
     PAL_WALL_BG,      // AXE — warm metal ramp
     PAL_WALL_BG,      // SHIELD — warm metal ramp
     PAL_WALL_BG,      // MACE — warm metal ramp
+    /* 30 rings — tier tint: T1 bronze(PAL_WALL_BG) / T2 silver(PAL_UI) / T3 gold(PAL_XP_UI) */
+    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Might
+    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Keen
+    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Rage
+    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Guard
+    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Veil
+    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Vigor
+    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Valor
+    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Hunter
+    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Mystic
+    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Storm
 };
 
 static const char *const kind_name[ITEM_KIND_COUNT] = {
     "Heal Potion", "Death Scroll", "BigHeal Potion", "Candle", "Root Scroll",
     "Rusty Sword", "Book: Heal", "Helmet", "Tunic", "Boots", "Bow & Arrow",
     "Axe", "Shield", "Mace",
+    /* 30 rings — 3 tiers per type share a name; tier is conveyed by palette tint */
+    "Might Ring",  "Might Ring",  "Might Ring",
+    "Keen Ring",   "Keen Ring",   "Keen Ring",
+    "Rage Ring",   "Rage Ring",   "Rage Ring",
+    "Guard Ring",  "Guard Ring",  "Guard Ring",
+    "Veil Ring",   "Veil Ring",   "Veil Ring",
+    "Vigor Ring",  "Vigor Ring",  "Vigor Ring",
+    "Valor Ring",  "Valor Ring",  "Valor Ring",
+    "Hunter Ring", "Hunter Ring", "Hunter Ring",
+    "Mystic Ring", "Mystic Ring", "Mystic Ring",
+    "Storm Ring",  "Storm Ring",  "Storm Ring",
 };
 
 static const char *const kind_desc[ITEM_KIND_COUNT] = {
@@ -84,6 +128,37 @@ static const char *const kind_desc[ITEM_KIND_COUNT] = {
     "Cleaves up to 2 nearby foes on attack.",
     "+10 max HP. A battered iron shield.",
     "+5 attack, chance to stun. A spiked iron mace.",
+    /* 30 rings — desc per (type,tier); + modifier adjusts each stat on top of these */
+    "+2 attack. A plain iron band.",        // Might T1
+    "+4 attack. A bevelled steel band.",    // Might T2
+    "+6 attack. A rune-etched warband.",    // Might T3
+    "+5% crit. A sharp-edged ring.",        // Keen T1
+    "+10% crit. A faceted gem ring.",       // Keen T2
+    "+15% crit. A keen glass sliver.",      // Keen T3
+    "+3 attack. A jagged red band.",        // Rage T1
+    "+6 attack. A blood-warm band.",        // Rage T2
+    "+9 attack. A wrathful iron coil.",     // Rage T3
+    "+5% armor. A thick banded ring.",      // Guard T1
+    "+10% armor. A plated steel ring.",     // Guard T2
+    "+15% armor. A bulwark signet.",        // Guard T3
+    "+5% magic def. A cool jade ring.",     // Veil T1
+    "+10% magic def. A warded ring.",       // Veil T2
+    "+15% magic def. A silent veil ring.",  // Veil T3
+    "+5 HP, +3% armor. A sturdy ring.",     // Vigor T1
+    "+10 HP, +6% armor. A hale ring.",      // Vigor T2
+    "+15 HP, +9% armor. A titan band.",     // Vigor T3
+    "+1 atk, +4 HP. A brave band.",         // Valor T1
+    "+2 atk, +8 HP. A valiant ring.",       // Valor T2
+    "+3 atk, +12 HP. A hero's ring.",       // Valor T3
+    "+4% crit, +3% dodge. A lithe ring.",   // Hunter T1
+    "+8% crit, +6% dodge. A hawk ring.",    // Hunter T2
+    "+12% crit, +9% dodge. A predator ring.", // Hunter T3
+    "+4% mdef, +3% dodge. A misty ring.",   // Mystic T1
+    "+8% mdef, +6% dodge. A seer ring.",    // Mystic T2
+    "+12% mdef, +9% dodge. An arcane ring.", // Mystic T3
+    "+1 atk, +4% dodge. A breezy ring.",    // Storm T1
+    "+2 atk, +8% dodge. A gale ring.",      // Storm T2
+    "+3 atk, +12% dodge. A tempest ring.",  // Storm T3
 };
 
 uint8_t items_kind_category(uint8_t kind) BANKED {
@@ -333,6 +408,15 @@ int8_t item_roll_mod_level(void) BANKED {
     return m;
 }
 
+/* Random ring kind: type uniform across 10, tier weighted toward T1 (60% / 30% / 10%).
+   kind = ITEM_KIND_RING_FIRST + type*3 + tier. The caller still rolls the "+N" modifier. */
+uint8_t ring_roll_kind(void) BANKED {
+    uint8_t type = (uint8_t)(rand() % 10u);
+    uint8_t r = (uint8_t)(rand() % 10u);
+    uint8_t tier = (r < 6u) ? 0u : (r < 9u) ? 1u : 2u;
+    return (uint8_t)(ITEM_KIND_RING_FIRST + type * 3u + tier);
+}
+
 uint8_t enemy_try_drop_item(uint8_t dx, uint8_t dy) BANKED {
     uint8_t gi;
     uint8_t kind;
@@ -340,6 +424,7 @@ uint8_t enemy_try_drop_item(uint8_t dx, uint8_t dy) BANKED {
     for (gi = 0u; gi < MAX_GROUND_ITEMS; gi++) {
         if (ground_item_kind[gi] == ITEM_KIND_NONE) {
             kind = drop_table[rand() % 58u];
+            if ((rand() % 100u) < RING_DROP_PCT) kind = ring_roll_kind();
             ground_item_kind[gi] = kind;
             ground_item_x[gi] = dx;
             ground_item_y[gi] = dy;

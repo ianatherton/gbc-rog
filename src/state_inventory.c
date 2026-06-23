@@ -133,7 +133,7 @@ static void draw_equip_panel(void) {
     draw_equip_slot_tile(14u, (uint8_t)(EQUIP_PANEL_Y + 2u), ITEM_KIND_BOOTS);
     gotoxy(15u, (uint8_t)(EQUIP_PANEL_Y + 2u));
     printf("Ring");
-    draw_equip_slot_tile(19u, (uint8_t)(EQUIP_PANEL_Y + 2u), ITEM_KIND_NONE);
+    draw_equip_slot_tile(19u, (uint8_t)(EQUIP_PANEL_Y + 2u), equipped_kind_in_slot(EQUIP_SLOT_RING));
 }
 
 static void draw_stats_panel(void) {

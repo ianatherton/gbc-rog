@@ -19,7 +19,14 @@
 #define ITEM_KIND_AXE        11u  // Axe — equipment; cleave hits up to 2 adjacent enemies on melee attack
 #define ITEM_KIND_SHIELD     12u  // Shield — equipment; +10 max HP while equipped
 #define ITEM_KIND_MACE       13u  // Mace — equipment; chance to stun an enemy on melee hit
-#define ITEM_KIND_COUNT      14u
+/* Rings — 10 types × 3 tiers = 30 kinds, all EQUIP_SLOT_RING. Layout is type-major, tier-minor:
+   kind = ITEM_KIND_RING_FIRST + type*3 + (tier-1). Types 0..9:
+   0 Might(dmg) 1 Keen(crit) 2 Rage(dmg) 3 Guard(armor) 4 Veil(magdef)
+   5 Vigor(hp+armor) 6 Valor(dmg+hp) 7 Hunter(crit+dodge) 8 Mystic(magdef+dodge) 9 Storm(dmg+dodge).
+   All share the I16 tile; tier shown by palette tint (T1 bronze / T2 silver / T3 gold). */
+#define ITEM_KIND_RING_FIRST 14u
+#define ITEM_KIND_RING_COUNT 30u
+#define ITEM_KIND_COUNT      44u
 #define ITEM_KIND_NONE      255u
 
 #define ITEM_BOW_STACK_QTY   20u  // arrows granted per bow pickup
@@ -39,6 +46,7 @@ void    items_kind_desc_copy(uint8_t kind, char *out, uint8_t cap) BANKED; // sh
 void    items_kind_display_name_copy(uint8_t kind, int8_t mod_level, char *out, uint8_t cap) BANKED; // "+N "/"-N " prefix (omitted when 0) + kind name
 
 int8_t  item_roll_mod_level(void) BANKED; // -1..+10 "+N" modifier roll, weighted toward 0; call only for ITEM_CAT_EQUIPMENT kinds
+uint8_t ring_roll_kind(void) BANKED;      // random ring kind: uniform type, tier weighted toward T1
 
 uint8_t inventory_first_empty(void) BANKED; // 0..INVENTORY_MAX_SLOTS-1, else 255
 uint8_t inventory_count_used(void) BANKED;

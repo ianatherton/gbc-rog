@@ -11,6 +11,7 @@
 #define EQUIP_SLOT_FEET    3u
 #define EQUIP_SLOT_WEAPON  4u  /* rusty sword and axe both occupy this slot */
 #define EQUIP_SLOT_OFFHAND 5u
+#define EQUIP_SLOT_RING    6u  /* all 30 ring kinds occupy this single slot */
 
 typedef struct {
     uint8_t slot;        /* EQUIP_SLOT_* */

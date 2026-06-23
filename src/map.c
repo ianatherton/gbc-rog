@@ -280,7 +280,9 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
                     || ground_item_index_at(tx, ty) != 255u) continue;
             ground_item_x[placed] = tx;
             ground_item_y[placed] = ty;
-            ground_item_kind[placed] = (uint8_t)(rand() % ITEM_KIND_COUNT);
+            /* Uniform over the non-ring kinds; a RING_DROP_PCT slice becomes a (tier-weighted) ring. */
+            ground_item_kind[placed] = (uint8_t)(rand() % ITEM_KIND_RING_FIRST);
+            if ((rand() % 100u) < RING_DROP_PCT) ground_item_kind[placed] = ring_roll_kind();
             ground_item_mod_level[placed] = (items_kind_category(ground_item_kind[placed]) == ITEM_CAT_EQUIPMENT)
                 ? item_roll_mod_level() : 0;
             placed++;

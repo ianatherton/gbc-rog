@@ -298,7 +298,7 @@ static void ui_title_credits_screen(void) { // static screen; B returns to the t
     gotoxy(6, 10); printf("Testers:");
     gotoxy(7, 11); printf("Liz L.");
     gotoxy(6, 12); printf("Lauri A.");
-    gotoxy(6, 13); printf("Kasey K.");
+    gotoxy(6, 13); printf("Kasey C.");
     gotoxy(6, 14); printf("Alex V.");
     gotoxy(6, 16); printf("Press B");
     while (1) {

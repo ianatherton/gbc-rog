@@ -235,7 +235,7 @@ static void draw_cursor_and_name(void) {
             uint8_t digs = (cnt >= 100u) ? 3u : (cnt >= 10u) ? 2u : 1u;
             printf(" x%u", (unsigned int)cnt);
             for (xi = (uint8_t)(2u + nlen + 1u); xi < (uint8_t)(2u + nlen + 1u + 1u + digs); xi++)
-                set_bkg_attribute_xy(xi, INV_NAME_ROW, PAL_XP_UI);
+                set_bkg_attribute_xy(xi, INV_NAME_ROW, PAL_XP_UI_BG);
         }
     } else {
         gotoxy(2, INV_NAME_ROW); printf("(empty)");
@@ -248,10 +248,10 @@ static void draw_menu_tabs_inv(void) {
     uint8_t x;
     gotoxy(0, 0); printf(" ITEM STAT SPELL MAP");
     set_bkg_tiles(0u, 0u, 1u, 1u, &v);
-    set_bkg_attribute_xy(0u, 0u, PAL_XP_UI);
-    for (x = 6u;  x <= 9u;  x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI); // STAT
-    for (x = 11u; x <= 15u; x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI); // SPELL
-    for (x = 17u; x <= 19u; x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI); // MAP
+    set_bkg_attribute_xy(0u, 0u, PAL_XP_UI_BG);
+    for (x = 6u;  x <= 9u;  x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI_BG); // STAT
+    for (x = 11u; x <= 15u; x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI_BG); // SPELL
+    for (x = 17u; x <= 19u; x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI_BG); // MAP
     VBK_REG = VBK_TILES;
 }
 
@@ -267,7 +267,7 @@ static void draw_grid_screen(void) {
     gotoxy(1, 16); printf("A:equip  B:drop");
     gotoxy(1, 17); printf("START resume");
     VBK_REG = VBK_ATTRIBUTES;
-    fill_bkg_rect(0u, INV_DESC_ROW, INV_DESC_DRAW_W, 1u, PAL_XP_UI);
+    fill_bkg_rect(0u, INV_DESC_ROW, INV_DESC_DRAW_W, 1u, PAL_XP_UI_BG);
     VBK_REG = VBK_TILES;
 }
 
@@ -290,6 +290,9 @@ static void draw_drop_confirm(void) {
 BANKREF(state_inventory_enter)
 void state_inventory_enter(void) BANKED {
     static const palette_color_t inv_bkg0_black[4] = { RGB(0,0,0), RGB(8,8,8), RGB(16,16,16), RGB(31,31,31) };
+    // PAL_WALL_BG carries metal/bronze-ring icons; the overworld repurposes slot 3 for snow terrain,
+    // so restore a neutral stone ramp here (== wall_palette_table[0]) so item icons aren't icy.
+    static const palette_color_t inv_metal_ramp[4] = { RGB(2,2,6), RGB(8,6,4), RGB(14,12,10), RGB(22,20,18) };
     BANK_DBG("IV_enter");
     inv_prev_j = joypad();
     inv_cursor = 0u;
@@ -297,6 +300,7 @@ void state_inventory_enter(void) BANKED {
     lcd_gameplay_active = 0u;
     window_ui_hide();
     set_bkg_palette(0u, 1u, inv_bkg0_black); // menu is black-backed even on the overworld (green field slot 0)
+    set_bkg_palette(PAL_WALL_BG, 1u, inv_metal_ramp); // restore metal ramp (hub may have left snow here)
     wait_vbl_done();
     draw_grid_screen();
 }

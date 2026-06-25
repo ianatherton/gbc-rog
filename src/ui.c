@@ -473,7 +473,7 @@ static void ui_title_menu_anim_tick(uint16_t frame_counter) {
 
 static char combat_log[COMBAT_LOG_LINES][COMBAT_LOG_LEN];
 static uint8_t combat_log_pal[COMBAT_LOG_LINES];   // per-row CGB palette when drawing log lines
-static uint8_t combat_log_split[COMBAT_LOG_LINES]; // 0=no split; >0=col where PAL_XP_UI starts
+static uint8_t combat_log_split[COMBAT_LOG_LINES]; // 0=no split; >0=col where PAL_XP_UI_BG starts
 
 UIPanelMode ui_panel_mode = UI_PANEL_COMBAT;
 static uint8_t panel_inspect_slot;
@@ -603,7 +603,7 @@ void ui_push_combat_log_shield_burn(uint8_t type_idx, uint8_t dmg, uint8_t hp_re
         }
     }
     logbuf[p] = 0;
-    ui_combat_log_push_pal(logbuf, PAL_XP_UI);
+    ui_combat_log_push_pal(logbuf, PAL_XP_UI_BG);
 }
 
 void ui_push_xp_gain_line(uint8_t amt) BANKED {
@@ -621,7 +621,7 @@ void ui_push_xp_gain_line(uint8_t amt) BANKED {
     else if (pct >= 10u) { buf[p++] = (char)('0' + pct / 10u); buf[p++] = (char)('0' + pct % 10u); }
     else                 { buf[p++] = (char)('0' + pct); }
     buf[p++] = '%'; buf[p++] = ')'; buf[p] = 0;
-    ui_combat_log_push_pal(buf, PAL_XP_UI);
+    ui_combat_log_push_pal(buf, PAL_XP_UI_BG);
 }
 
 void ui_push_level_up_line(uint8_t new_level) BANKED {
@@ -710,7 +710,7 @@ static void win_puts_row_pad_cols(uint8_t y, const char *s, uint8_t pal, uint8_t
 
 static void win_puts_row_split(uint8_t y, const char *s, uint8_t pal, uint8_t split, uint8_t cols) {
     uint8_t x = 0;
-    while (*s && x < cols) { win_putc_pal(x, y, *s++, x >= split ? PAL_XP_UI : pal); x++; }
+    while (*s && x < cols) { win_putc_pal(x, y, *s++, x >= split ? PAL_XP_UI_BG : pal); x++; }
     while (x < cols) win_put_space(x++, y);
 }
 
@@ -740,10 +740,10 @@ static void ui_belt_spell_slot(uint8_t s, uint8_t *icon_v, uint8_t *icon_pal) {
         *icon_pal = knight_shield_active ? PAL_LIFE_UI : PAL_WALL_BG;
     } else if (s == 0u && player_class == 1u && player_level >= 1u) { // scoundrel — Call Fox (J9 patched)
         *icon_v = TILE_FOX_J9_VRAM;
-        *icon_pal = ally_has_type(ALLY_TYPE_FOX) ? PAL_WALL_BG : PAL_XP_UI;
+        *icon_pal = ally_has_type(ALLY_TYPE_FOX) ? PAL_WALL_BG : PAL_XP_UI_BG;
     } else if (s == 1u && player_class == 2u && player_level >= 3u) { // witch — Swamp Root (L11, unlocks lv3)
         *icon_v = TILE_ROOT_ICON_VRAM;
-        *icon_pal = (witch_shot_cooldown_turns == 0u) ? PAL_XP_UI : PAL_CORPSE;
+        *icon_pal = (witch_shot_cooldown_turns == 0u) ? PAL_XP_UI_BG : PAL_CORPSE;
     } else {
         *icon_v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY);
         *icon_pal = PAL_UI;
@@ -828,11 +828,11 @@ static void ui_draw_top_hud(void) { // bottom window row: L:♥×5 HP% XP% FLOOR
         uint16_t next_level_xp = (uint16_t)PLAYER_LEVEL_XP_BASE + (uint16_t)(player_level - 1u) * PLAYER_LEVEL_XP_STEP;
         xp_pct = (player_xp >= next_level_xp) ? 99u : (uint8_t)((player_xp * 100u) / next_level_xp);
     }
-    win_putc_pal(tx++, hy, 'X', PAL_XP_UI);
-    win_putc_pal(tx++, hy, 'P', PAL_XP_UI);
-    win_putc_pal(tx++, hy, (char)('0' + xp_pct / 10u), PAL_XP_UI);
-    win_putc_pal(tx++, hy, (char)('0' + xp_pct % 10u), PAL_XP_UI);
-    win_putc_pal(tx++, hy, '%', PAL_XP_UI);
+    win_putc_pal(tx++, hy, 'X', PAL_XP_UI_BG);
+    win_putc_pal(tx++, hy, 'P', PAL_XP_UI_BG);
+    win_putc_pal(tx++, hy, (char)('0' + xp_pct / 10u), PAL_XP_UI_BG);
+    win_putc_pal(tx++, hy, (char)('0' + xp_pct % 10u), PAL_XP_UI_BG);
+    win_putc_pal(tx++, hy, '%', PAL_XP_UI_BG);
     vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_FLOOR_L);
     set_win_tile_xy(tx, hy, vram);
     set_win_attribute_xy(tx++, hy, PAL_UI);

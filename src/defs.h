@@ -479,13 +479,19 @@ typedef struct {
 #define PAL_ENEMY_SNAKE     1 // serpent + adder — green on BKG+sprites
 #define PAL_ENEMY_SKELETON  4 // violet bone; same index as PAL_LADDER, sprite CRAM only
 #define PAL_GORGON_BODY     4u // boss floor: reuses skeleton slot (no skeletons on floor 3)
-#define PAL_ENEMY_RAT       5 // red–rose; BKG5 = life bar
-#define PAL_ENEMY_GOBLIN    6 // magenta–pink; BKG6 = window HUD text
-#define PAL_ENEMY_BAT       7 // aqua–turquoise; BKG7 = XP HUD
-#define PAL_UI      6   // white on black — BKG/window HUD text
-#define PAL_LIFE_UI 5   // red on black   — BKG life bar fill
-#define PAL_XP_UI   7   // gold/yellow — BKG XP digits
-#define PAL_CORPSE  0   // corpse 'x' uses default grayscale ramp (freed slot 7 for PAL_XP_UI)
+#define PAL_ENEMY_RAT       5 // red–rose; OCP5 (BKG5 = life/UI text — separate CRAM)
+#define PAL_ENEMY_GOBLIN    6 // magenta–pink; OCP6 (BKG6 now free for biome palettes)
+#define PAL_ENEMY_BAT       7 // aqua–turquoise; OCP7 (shared with PAL_XP_UI sprite gold ramp)
+#define PAL_LIFE_UI 5   // red on black; index 3 = white — life bar fill + all white HUD/UI text
+#define PAL_UI      PAL_LIFE_UI // white HUD text rides the heart palette (index 3 = white). BKG-only
+#define PAL_XP_UI   7   // OCP7 gold ramp: sprite gold (belt selector, aura, arrows) + story screen only
+#define PAL_XP_UI_BG PAL_LADDER // BKG gold rides the static fire/ladder ramp (slot 4, index 3 ≈ gold)
+#define PAL_CORPSE  0   // corpse 'x' uses default grayscale ramp
+/* BKG slots 6 & 7 are now free for biome palettes; OCP 6/7 still hold goblin/bat (separate CRAM). */
+#define PAL_OW_FOLIAGE 6 // overworld-only BKG: dedicated tree/foliage ramp (slot freed from UI)
+#define PAL_OW_ACCENT  7 // overworld-only BKG: spare ramp for new hub deco (slot freed from UI)
+#define PAL_ITEM_GOLD_BG PAL_OW_FOLIAGE // dungeon ground-item gold (true orange-gold ramp); shares slot 6
+                                        // with hub foliage — safe, the hub has no ground items
 
 /* ── Player/floor stats: globals.h ────────────────────────────────────────── */
 extern uint16_t camera_px;    // pixel x of viewport top-left (defined in camera.c)

@@ -25,10 +25,10 @@ void state_ability_enter(void) BANKED {
         uint8_t x;
         gotoxy(0, 0); printf(" ITEM STAT SPELL MAP");
         set_bkg_tiles(10u, 0u, 1u, 1u, &v);
-        set_bkg_attribute_xy(10u, 0u, PAL_XP_UI);
-        for (x = 1u; x <= 4u; x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI);  // ITEM
-        for (x = 6u; x <= 9u; x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI);  // STAT
-        for (x = 17u; x <= 19u; x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI); // MAP
+        set_bkg_attribute_xy(10u, 0u, PAL_XP_UI_BG);
+        for (x = 1u; x <= 4u; x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI_BG);  // ITEM
+        for (x = 6u; x <= 9u; x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI_BG);  // STAT
+        for (x = 17u; x <= 19u; x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI_BG); // MAP
         VBK_REG = VBK_TILES;
     }
     gotoxy(2, 6); printf("SPELLS");

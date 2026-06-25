@@ -23,9 +23,8 @@ static const palette_color_t pal_enemy_skeleton[] = { RGB(0,0,0), RGB(8,6,20),  
 static const palette_color_t pal_enemy_rat[]      = { RGB(0,0,0), RGB(22,6,10), RGB(30,10,16), RGB(31,18,22) }; // OCP5 red–rose (BKG5 = life bar)
 static const palette_color_t pal_enemy_goblin[]   = { RGB(0,0,0), RGB(18,4,18), RGB(26,8,24),  RGB(31,14,28) }; // OCP6 magenta–pink (BKG6 = HUD text)
 static const palette_color_t pal_enemy_bat[]      = { RGB(0,0,0), RGB(0,14,18), RGB(4,22,24),  RGB(10,28,28) }; // OCP7 aqua–turquoise (BKG7 = XP gold)
-static const palette_color_t pal_life_ui[]  = { RGB(0,0,0),  RGB(18,0,0),  RGB(25,2,2),   RGB(31,31,31) }; // slot 5: hearts/bar — bright = white
-static const palette_color_t pal_ui[]       = { RGB(0,0,0),  RGB(8,8,8),   RGB(16,16,16), RGB(31,31,31) }; // slot 6: HUD text
-static const palette_color_t pal_xp_ui[]    = { RGB(0,0,0),  RGB(23,9,0), RGB(30,17,0), RGB(31,27,1) }; // slot 7: saturated gold ramp — low B keeps hue; steps stay dark/mid/bright
+static const palette_color_t pal_life_ui[]  = { RGB(0,0,0),  RGB(18,0,0),  RGB(25,2,2),   RGB(31,31,31) }; // slot 5: hearts/bar + all white HUD/UI text — bright = white
+static const palette_color_t pal_xp_ui[]    = { RGB(0,0,0),  RGB(23,9,0), RGB(30,17,0), RGB(31,27,1) }; // OCP7 sprite gold ramp — low B keeps hue; steps stay dark/mid/bright
 
 void render_sprite_palette_player_default(void) NONBANKED { class_palettes_sprite_player_apply(); }
 void render_sprite_palette_player_hurt(void) NONBANKED {
@@ -49,8 +48,9 @@ void apply_wall_palette(void) { // PAL_WALL_BG bulk walls + PAL_PILLAR_BG column
     wall_palette_hw_ip = ip;
     wall_palette_hw_biome = floor_biome;
     if (floor_biome == BIOME_OVERWORLD) {
-        // PAL_WALL_BG = green pine ramp for interior c10 trees (idx0 bg / idx1 foliage / idx2 trunk);
-        // idx0 matches the open-field color so trees sit seamlessly on the field.
+        // PAL_OW_FOLIAGE (slot 6, freed from UI) = green pine ramp for interior c10 trees
+        // (idx0 bg / idx1 foliage / idx2 trunk); idx0 matches the open-field color so trees
+        // sit seamlessly on the field. Moving trees here frees PAL_WALL_BG (3) for future hub deco.
         palette_color_t tree_pal[4] = {
             RGB(12, 23, 5), RGB(6, 18, 4), RGB(10, 7, 2), RGB(12, 26, 6), // idx0 == pal_overworld_field[0]
         };
@@ -58,8 +58,14 @@ void apply_wall_palette(void) { // PAL_WALL_BG bulk walls + PAL_PILLAR_BG column
         palette_color_t water_pal[4] = {
             RGB(2, 4, 10), RGB(4, 8, 16), RGB(9, 16, 26), RGB(2, 7, 16),
         };
-        set_bkg_palette(PAL_WALL_BG,   1u, tree_pal);
-        set_bkg_palette(PAL_PILLAR_BG, 1u, water_pal);
+        // PAL_WALL_BG (freed in the hub) = icy snow ramp for the NW snowfield region: idx0 snow base
+        // (open snow), idx1 blue shadow grain, idx2 mid, idx3 white. Frosted trees reuse it too.
+        palette_color_t snow_pal[4] = {
+            RGB(24, 27, 31), RGB(15, 19, 27), RGB(20, 24, 30), RGB(31, 31, 31),
+        };
+        set_bkg_palette(PAL_OW_FOLIAGE, 1u, tree_pal);
+        set_bkg_palette(PAL_PILLAR_BG,  1u, water_pal);
+        set_bkg_palette(PAL_WALL_BG,    1u, snow_pal);
         return;
     }
     wall_pal[0] = bg0; // field color — seamless with blank / pit-adjacent open cells
@@ -86,6 +92,24 @@ void apply_field_palette(void) { // slot 0 (blank field) + floor-deco, per biome
         set_bkg_palette(0, 1, pal_default);
         set_bkg_palette(PAL_FLOOR_BG, 1, pal_floor_deco);
     }
+    // A menu may have stomped PAL_WALL_BG/PAL_PILLAR_BG (e.g. inventory restores the metal ramp into
+    // slot 3). Invalidate the cache so the next apply_wall_palette re-pushes the floor's true ramps —
+    // dungeon walls/pillars, or hub water/snow/foliage.
+    wall_palette_hw_iw = wall_palette_hw_ip = wall_palette_hw_biome = 255u;
+}
+
+static uint8_t overworld_is_desert(uint8_t mx, uint8_t my) { // hub SE corner: diagonal "coast" so it meets the water border
+    uint16_t sum    = (uint16_t)mx + (uint16_t)my;
+    uint16_t thresh = ((uint16_t)active_map_w + (uint16_t)active_map_h) * 5u / 8u;
+    uint8_t  jitter = (uint8_t)(((uint8_t)(mx * 7u) ^ (uint8_t)(my * 13u)) & 3u); // ragged edge, +0..3 tiles
+    return (uint8_t)((sum + jitter) >= thresh);
+}
+
+static uint8_t overworld_is_snow(uint8_t mx, uint8_t my) { // hub NW corner: snowfield on the freed PAL_WALL_BG slot
+    uint16_t sum    = (uint16_t)mx + (uint16_t)my;
+    uint16_t thresh = ((uint16_t)active_map_w + (uint16_t)active_map_h) / 3u; // ~20% less area than 3/8 (corner ∝ thresh^2)
+    uint8_t  jitter = (uint8_t)(((uint8_t)(mx * 11u) ^ (uint8_t)(my * 5u)) & 3u); // ragged edge
+    return (uint8_t)(sum <= (uint16_t)(thresh + jitter));
 }
 
 static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t my) { // floor/wall/pit/corpse; no actors on BG
@@ -110,21 +134,25 @@ static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t m
     {
         uint8_t t = tile_at(mx, my);
         gotoxy(sx, sy);
+        uint8_t ow     = (floor_biome == BIOME_OVERWORLD);
+        uint8_t desert = ow && overworld_is_desert(mx, my);
+        uint8_t snow   = ow && overworld_is_snow(mx, my);
+        uint8_t ground_pal = snow ? PAL_WALL_BG : (desert ? PAL_OW_ACCENT : PAL_FLOOR_BG); // hub ground by region
         if (t == TILE_FLOOR || (t == TILE_PIT && tile_vram_index(t) == 0u)) { // hidden boss/miniboss pit renders as plain floor — no ASCII fallback tell
             uint8_t off = floor_tile_sheet_offset(mx, my);
             uint8_t pal;
             if (off == 255u) {
                 setchar(' ');
-                pal = 0u;
+                pal = snow ? PAL_WALL_BG : (desert ? PAL_OW_ACCENT : 0u); // blank snow/sand vs green field
             } else {
                 uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + off);
                 set_bkg_tiles(sx, sy, 1, 1, &vram);
                 // Palette is deterministic from offset — no second brazier/item scan needed
                 if      (off == TILE_STAIRS_UP_1)  pal = 0u;
                 else if ((off & 15u) == 2u)        pal = PAL_LADDER;  // TILE_LIGHT_1..4 (col C rows 1-4: 2,18,34,50)
-                else if (off == TILE_ITEM_4)        pal = PAL_XP_UI;
+                else if (off == TILE_ITEM_4)        pal = PAL_ITEM_GOLD_BG; // true orange-gold (slot 6), not the fire ramp
                 else if (off == TILE_TEST)          pal = PAL_LADDER;  // single non-overworld floor deco tile, torch-tinted
-                else                               pal = PAL_FLOOR_BG;
+                else                               pal = ground_pal;   // snow / sand / grey ground deco by region
             }
             set_bkg_attribute_xy(sx, sy, pal);
         } else if (t == TILE_WALL && floor_biome == BIOME_OVERWORLD) {
@@ -136,7 +164,9 @@ static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t m
                            || my >= (uint8_t)(active_map_h - OVERWORLD_BORDER_BAND));
             uint8_t vram = border ? TILE_OVERWORLD_WATER_VRAM : TILE_OVERWORLD_WALL_VRAM;
             set_bkg_tiles(sx, sy, 1, 1, &vram);
-            set_bkg_attribute_xy(sx, sy, border ? PAL_PILLAR_BG : PAL_WALL_BG);
+            // border = water; interior trees = green foliage, frosted (snow) or sandy mounds (desert)
+            set_bkg_attribute_xy(sx, sy, border ? PAL_PILLAR_BG
+                                              : (snow ? PAL_WALL_BG : (desert ? PAL_OW_ACCENT : PAL_OW_FOLIAGE)));
         } else if (t == TILE_WALL) {
             uint8_t n = wall_ortho_wall_count_xy(mx, my); // computed from floor_bits at draw-time to save WRAM
             uint8_t off = wall_tileset_index;
@@ -168,10 +198,10 @@ void load_palettes(void) BANKED { // slots 0–7 except walls: wall table entry 
     set_bkg_palette(PAL_PILLAR_BG, 1, wall_palette_table[0]); // slot 1 = pillars in gameplay (was unused BKG green)
     set_bkg_palette(PAL_FLOOR_BG, 1, pal_floor_deco); // ground deco tile only; blank floor uses slot 0
     set_bkg_palette(PAL_WALL_BG, 1, wall_palette_table[0]); // matches wall_palette_index default 0
-    set_bkg_palette(PAL_LADDER, 1, pal_ladder); // static shared ladder+brazier fire tone
-    set_bkg_palette(5, 1, pal_life_ui);
-    set_bkg_palette(6, 1, pal_ui);
-    set_bkg_palette(PAL_XP_UI, 1, pal_xp_ui);
+    set_bkg_palette(PAL_LADDER, 1, pal_ladder); // static shared ladder+brazier fire tone — also BKG gold (PAL_XP_UI_BG)
+    set_bkg_palette(PAL_LIFE_UI, 1, pal_life_ui); // hearts + all white HUD/UI text (index 3 = white)
+    set_bkg_palette(PAL_ITEM_GOLD_BG, 1, pal_xp_ui); // slot 6: true orange-gold for dungeon ground items
+    // (the hub overwrites slot 6 with foliage via apply_wall_palette; slot 7 stays free for biome use)
     set_sprite_palette(0, 1, pal_default);
     set_sprite_palette(1, 1, pal_green);
     class_palettes_sprite_player_apply();

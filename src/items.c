@@ -70,12 +70,12 @@ static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
 
 static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
     PAL_LIFE_UI,      // POTION
-    PAL_XP_UI,        // SCROLL (Death)
+    PAL_XP_UI_BG,        // SCROLL (Death)
     PAL_LIFE_UI,      // KEY
     PAL_LADDER,       // CANDLE
     PAL_ENEMY_SNAKE,  // SCROLL_ROOT — green
     PAL_WALL_BG,      // RUSTY_SWORD — warm brownish ramp
-    PAL_XP_UI,        // BOOK_HEAL — blue
+    PAL_XP_UI_BG,        // BOOK_HEAL — blue
     PAL_WALL_BG,      // HELMET — warm metal ramp
     PAL_WALL_BG,      // TUNIC — warm metal ramp
     PAL_LADDER,       // BOOTS — earthy/leather
@@ -83,17 +83,19 @@ static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
     PAL_WALL_BG,      // AXE — warm metal ramp
     PAL_WALL_BG,      // SHIELD — warm metal ramp
     PAL_WALL_BG,      // MACE — warm metal ramp
-    /* 30 rings — tier tint: T1 bronze(PAL_WALL_BG) / T2 silver(PAL_UI) / T3 gold(PAL_XP_UI) */
-    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Might
-    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Keen
-    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Rage
-    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Guard
-    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Veil
-    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Vigor
-    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Valor
-    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Hunter
-    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Mystic
-    PAL_WALL_BG, PAL_UI, PAL_XP_UI, // Storm
+    /* 30 rings — tier tint: T1 bronze(PAL_WALL_BG) / T2 silver(PAL_CORPSE grey) / T3 gold(PAL_XP_UI_BG).
+       Silver uses slot 0 (grey ramp == the old PAL_UI ramp) so the multi-color ring icon keeps its
+       grey mid-tones; PAL_UI now points at the red heart palette, which would tint silver red. */
+    PAL_WALL_BG, PAL_CORPSE, PAL_XP_UI_BG, // Might
+    PAL_WALL_BG, PAL_CORPSE, PAL_XP_UI_BG, // Keen
+    PAL_WALL_BG, PAL_CORPSE, PAL_XP_UI_BG, // Rage
+    PAL_WALL_BG, PAL_CORPSE, PAL_XP_UI_BG, // Guard
+    PAL_WALL_BG, PAL_CORPSE, PAL_XP_UI_BG, // Veil
+    PAL_WALL_BG, PAL_CORPSE, PAL_XP_UI_BG, // Vigor
+    PAL_WALL_BG, PAL_CORPSE, PAL_XP_UI_BG, // Valor
+    PAL_WALL_BG, PAL_CORPSE, PAL_XP_UI_BG, // Hunter
+    PAL_WALL_BG, PAL_CORPSE, PAL_XP_UI_BG, // Mystic
+    PAL_WALL_BG, PAL_CORPSE, PAL_XP_UI_BG, // Storm
 };
 
 static const char *const kind_name[ITEM_KIND_COUNT] = {

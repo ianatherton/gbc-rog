@@ -139,18 +139,23 @@ BANKREF(resolve_enemy_hits_and_animate)
 uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) BANKED {
     uint8_t perf_stamp = perf_stamp_now();
     uint8_t a;
+    uint8_t any_landed = 0u;
     if (!enemy_attack_count) return 0;
     player_hp_prev = player_hp;
     for (a = 0; a < enemy_attack_count; a++) {
-        enemy_resolve_hit(enemy_attack_slots[a]);
+        if (!enemy_resolve_hit(enemy_attack_slots[a])) any_landed = 1u; // returns 1 on dodge
         enemy_gorgon_summon(enemy_attack_slots[a]); // no-op for non-Gorgon slots
     }
     wait_vbl_done();
     draw_gameplay_overlays_profiled_far(px, py); // HP/log in WIN; lunges are sprites — BKG unchanged here
-    sfx_lunge_hit();
-    entity_sprites_run_enemy_lunges_batch(px, py, enemy_attack_slots, enemy_attack_count);
-    entity_sprites_player_hurt_flash();
-    camera_shake();
+    entity_sprites_run_enemy_lunges_batch(px, py, enemy_attack_slots, enemy_attack_count); // enemy still lunges even on a dodge
+    if (any_landed) {
+        sfx_lunge_hit();
+        entity_sprites_player_hurt_flash();
+        camera_shake();
+    } else {
+        sfx_dodge_woosh(); // every strike dodged — woosh, no flash/shake/crunch
+    }
     if (knight_shield_active && player_hp != 0u) { // reply: 1 dmg/level + fireball — only adjacent strikers reach here, so no range gate needed
         uint8_t reflect_dmg = player_level ? player_level : 1u;
         uint8_t shield_killed = 0u;

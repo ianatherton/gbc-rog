@@ -408,7 +408,7 @@ static void step_blink(uint8_t sx, uint8_t sy,
     step_random(sx, sy, nx, ny); // no viable landing — shuffle in place
 }
 
-void enemy_resolve_hit(uint8_t slot) BANKED { // one strike: log line + subtract HP
+uint8_t enemy_resolve_hit(uint8_t slot) BANKED { // one strike: log line + subtract HP; returns 1 if dodged, 0 if landed
     uint8_t hit = enemy_effective_damage(enemy_type[slot]);
     uint8_t hp_before = player_hp;
     char logbuf[20];
@@ -421,7 +421,7 @@ void enemy_resolve_hit(uint8_t slot) BANKED { // one strike: log line + subtract
         // as garbage once bank 5 is mapped in.
         logbuf[0] = 'D'; logbuf[1] = 'O'; logbuf[2] = 'D'; logbuf[3] = 'G'; logbuf[4] = 'E'; logbuf[5] = 0;
         ui_combat_log_push_pal(logbuf, PAL_UI);
-        return; // hit fully avoided — no HP change, no panic-flash check
+        return 1u; // hit fully avoided — no HP change, no panic-flash check
     }
     if (player_armor) hit = (uint8_t)(((uint16_t)hit * (100u - player_armor)) / 100u);
 
@@ -439,6 +439,7 @@ void enemy_resolve_hit(uint8_t slot) BANKED { // one strike: log line + subtract
         uint8_t pct_a = (uint8_t)(((uint16_t)player_hp * 100u) / (uint16_t)player_hp_max);
         if (pct_b > 30u && pct_a <= 30u) lcd_hp_panic_flash_trigger();
     }
+    return 0u; // hit landed (armor may have absorbed it, but it connected)
 }
 
 uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes — HP applied later in enemy_resolve_hit per hit

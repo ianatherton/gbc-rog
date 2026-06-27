@@ -69,7 +69,7 @@ uint8_t corpse_sheet_at(uint8_t x, uint8_t y); // TILE_FLOOR_DECO_* offset or 25
 uint8_t corpse_deco_random(void) BANKED;          // random L1–L5 sheet offset for new corpse
 void    spawn_enemies(void); // fill world with NUM_ENEMIES instances
 uint8_t move_enemies(uint8_t px, uint8_t py); // enemy turn: moves + records strikes in enemy_attack_* (no HP yet); 0 none, 1 pending hits
-void    enemy_resolve_hit(uint8_t slot) BANKED; // combat log + apply that slot's damage (call before its lunge)
+uint8_t enemy_resolve_hit(uint8_t slot) BANKED; // combat log + apply that slot's damage (call before its lunge); returns 1 if dodged, 0 if the hit landed
 void    enemy_set_force_active(uint8_t slot, uint8_t on); // per-enemy override for always-active AI (future boss behavior)
 uint8_t enemy_get_force_active(uint8_t slot); // query override state (0 or 1)
 

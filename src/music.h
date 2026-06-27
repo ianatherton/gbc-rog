@@ -11,6 +11,7 @@ void music_stop(void);                // silence all channels; VBL becomes no-op
 void music_play_levelup_jingle(void); // short CH1 fanfare; resumes BGM after
 void music_loading_screen_set(uint8_t on); // 1: mute BGM + six quieting footfalls; 0: resume BGM
 void sfx_lunge_hit(void);   // CH4 noise — player or enemy strike (one-shot)
+void sfx_dodge_woosh(void); // CH4 airy swish — player dodged all incoming strikes this turn
 void sfx_spell_zap(void);   // CH2 short zap for witch bolt cast
 void sfx_whirlwind_cast(void); // CH4 burst for zerker Whirlwind cast
 void sfx_shield_sparkle(void); // CH2 sparkle for knight shield cast

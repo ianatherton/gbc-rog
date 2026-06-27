@@ -347,6 +347,13 @@ void sfx_lunge_hit(void) {
     else                      sfx_ch4_hit_noise();
 }
 
+void sfx_dodge_woosh(void) { // CH4 — airy swish when the player evades a strike (no impact crunch)
+    NR41_REG = 0x18u;   // short body
+    NR42_REG = 0xA4u;   // medium volume, slow-ish decay — softer than the hit's 0xF2 crunch
+    NR43_REG = 0x21u;   // higher-frequency noise for an airy whoosh rather than a low thud
+    NR44_REG = 0x80u;   // trigger
+}
+
 void sfx_spell_zap(void) {
     NR21_REG = 0x80u; // 50% duty, short length
     NR22_REG = 0xD2u; // loud start, quick decay

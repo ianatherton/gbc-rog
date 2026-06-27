@@ -54,9 +54,11 @@ void apply_wall_palette(void) { // PAL_WALL_BG bulk walls + PAL_PILLAR_BG column
         palette_color_t tree_pal[4] = {
             RGB(12, 23, 5), RGB(6, 18, 4), RGB(10, 7, 2), RGB(12, 26, 6), // idx0 == pal_overworld_field[0]
         };
-        // PAL_PILLAR_BG = blue water ramp for the border F10 tile (idx3 bulk / idx2 wave specks).
+        // PAL_PILLAR_BG = water ramp for open sea (F10: idx3 bulk / idx2 wave specks) and the coast
+        // tiles. idx0 is the green field color: open water never uses idx0, but the coast tiles use it
+        // for their land bulk, so the shore reads as green land (idx0) with a blue water edge (idx2/3).
         palette_color_t water_pal[4] = {
-            RGB(2, 4, 10), RGB(4, 8, 16), RGB(9, 16, 26), RGB(2, 7, 16),
+            RGB(12, 23, 5), RGB(4, 8, 16), RGB(9, 16, 26), RGB(2, 7, 16),
         };
         // PAL_WALL_BG (freed in the hub) = icy snow ramp for the NW snowfield region: idx0 snow base
         // (open snow), idx1 blue shadow grain, idx2 mid, idx3 white. Frosted trees reuse it too.
@@ -98,19 +100,10 @@ void apply_field_palette(void) { // slot 0 (blank field) + floor-deco, per biome
     wall_palette_hw_iw = wall_palette_hw_ip = wall_palette_hw_biome = 255u;
 }
 
-static uint8_t overworld_is_desert(uint8_t mx, uint8_t my) { // hub SE corner: diagonal "coast" so it meets the water border
-    uint16_t sum    = (uint16_t)mx + (uint16_t)my;
-    uint16_t thresh = ((uint16_t)active_map_w + (uint16_t)active_map_h) * 5u / 8u;
-    uint8_t  jitter = (uint8_t)(((uint8_t)(mx * 7u) ^ (uint8_t)(my * 13u)) & 3u); // ragged edge, +0..3 tiles
-    return (uint8_t)((sum + jitter) >= thresh);
-}
-
-static uint8_t overworld_is_snow(uint8_t mx, uint8_t my) { // hub NW corner: snowfield on the freed PAL_WALL_BG slot
-    uint16_t sum    = (uint16_t)mx + (uint16_t)my;
-    uint16_t thresh = ((uint16_t)active_map_w + (uint16_t)active_map_h) / 3u; // ~20% less area than 3/8 (corner ∝ thresh^2)
-    uint8_t  jitter = (uint8_t)(((uint8_t)(mx * 11u) ^ (uint8_t)(my * 5u)) & 3u); // ragged edge
-    return (uint8_t)(sum <= (uint16_t)(thresh + jitter));
-}
+// The hub terrain helpers — overworld_water_at / overworld_coast_vram / overworld_is_desert /
+// overworld_is_snow — all live in bank 22 (biome_overworld.c) and are called here as BANKED entries,
+// keeping their arithmetic out of the pinned (and nearly full) bank-2 render code. They're only
+// reached on the hub (callers guard with `ow &&`), so dungeons pay no trampoline cost.
 
 static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t my) { // floor/wall/pit/corpse; no actors on BG
     if (!lighting_is_revealed(mx, my)) {
@@ -139,34 +132,41 @@ static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t m
         uint8_t snow   = ow && overworld_is_snow(mx, my);
         uint8_t ground_pal = snow ? PAL_WALL_BG : (desert ? PAL_OW_ACCENT : PAL_FLOOR_BG); // hub ground by region
         if (t == TILE_FLOOR || (t == TILE_PIT && tile_vram_index(t) == 0u)) { // hidden boss/miniboss pit renders as plain floor — no ASCII fallback tell
-            uint8_t off = floor_tile_sheet_offset(mx, my);
-            uint8_t pal;
-            if (off == 255u) {
-                setchar(' ');
-                pal = snow ? PAL_WALL_BG : (desert ? PAL_OW_ACCENT : 0u); // blank snow/sand vs green field
+            uint8_t coast = (ow && t == TILE_FLOOR) ? overworld_coast_vram(mx, my) : 0u; // shore tile when this land cell borders water
+            if (coast) {
+                set_bkg_tiles(sx, sy, 1, 1, &coast);
+                set_bkg_attribute_xy(sx, sy, PAL_PILLAR_BG); // green land bulk (idx0) + blue shore edge
             } else {
-                uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + off);
-                set_bkg_tiles(sx, sy, 1, 1, &vram);
-                // Palette is deterministic from offset — no second brazier/item scan needed
-                if      (off == TILE_STAIRS_UP_1)  pal = 0u;
-                else if ((off & 15u) == 2u)        pal = PAL_LADDER;  // TILE_LIGHT_1..4 (col C rows 1-4: 2,18,34,50)
-                else if (off == TILE_ITEM_4)        pal = PAL_ITEM_GOLD_BG; // true orange-gold (slot 6), not the fire ramp
-                else if (off == TILE_TEST)          pal = PAL_LADDER;  // single non-overworld floor deco tile, torch-tinted
-                else                               pal = ground_pal;   // snow / sand / grey ground deco by region
+                uint8_t off = floor_tile_sheet_offset(mx, my);
+                uint8_t pal;
+                if (off == 255u) {
+                    setchar(' ');
+                    pal = snow ? PAL_WALL_BG : (desert ? PAL_OW_ACCENT : 0u); // blank snow/sand vs green field
+                } else {
+                    uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + off);
+                    set_bkg_tiles(sx, sy, 1, 1, &vram);
+                    // Palette is deterministic from offset — no second brazier/item scan needed
+                    if      (off == TILE_STAIRS_UP_1)  pal = 0u;
+                    else if ((off & 15u) == 2u)        pal = PAL_LADDER;  // TILE_LIGHT_1..4 (col C rows 1-4: 2,18,34,50)
+                    else if (off == TILE_ITEM_4)        pal = PAL_ITEM_GOLD_BG; // true orange-gold (slot 6), not the fire ramp
+                    else if (off == TILE_TEST)          pal = PAL_LADDER;  // single non-overworld floor deco tile, torch-tinted
+                    else                               pal = ground_pal;   // snow / sand / grey ground deco by region
+                }
+                set_bkg_attribute_xy(sx, sy, pal);
             }
-            set_bkg_attribute_xy(sx, sy, pal);
         } else if (t == TILE_WALL && floor_biome == BIOME_OVERWORLD) {
-            // Hub walls split by position: outer band = blue water (F10/PAL_PILLAR_BG),
-            // interior = green tree (c10/PAL_WALL_BG). Neighbor-count pillar logic is bypassed
-            // so the blue pillar slot never leaks onto interior trees.
-            uint8_t border = (mx < OVERWORLD_BORDER_BAND || my < OVERWORLD_BORDER_BAND
-                           || mx >= (uint8_t)(active_map_w - OVERWORLD_BORDER_BAND)
-                           || my >= (uint8_t)(active_map_h - OVERWORLD_BORDER_BAND));
-            uint8_t vram = border ? TILE_OVERWORLD_WATER_VRAM : TILE_OVERWORLD_WALL_VRAM;
-            set_bkg_tiles(sx, sy, 1, 1, &vram);
-            // border = water; interior trees = green foliage, frosted (snow) or sandy mounds (desert)
-            set_bkg_attribute_xy(sx, sy, border ? PAL_PILLAR_BG
-                                              : (snow ? PAL_WALL_BG : (desert ? PAL_OW_ACCENT : PAL_OW_FOLIAGE)));
+            // Hub non-floor cells split by the continent water mask: water (ocean/river/lake) draws
+            // open sea (the coastline lives on the bordering land floor cells); land obstacles draw a
+            // green tree. Neighbor-count pillar logic is bypassed so the blue slot never leaks onto trees.
+            if (overworld_water_at(mx, my)) {
+                uint8_t vram = TILE_OVERWORLD_WATER_VRAM; // open sea
+                set_bkg_tiles(sx, sy, 1, 1, &vram);
+                set_bkg_attribute_xy(sx, sy, PAL_PILLAR_BG);
+            } else {
+                uint8_t vram = TILE_OVERWORLD_WALL_VRAM; // tree; frosted (snow) or sandy mounds (desert)
+                set_bkg_tiles(sx, sy, 1, 1, &vram);
+                set_bkg_attribute_xy(sx, sy, snow ? PAL_WALL_BG : (desert ? PAL_OW_ACCENT : PAL_OW_FOLIAGE));
+            }
         } else if (t == TILE_WALL) {
             uint8_t n = wall_ortho_wall_count_xy(mx, my); // computed from floor_bits at draw-time to save WRAM
             uint8_t off = wall_tileset_index;
@@ -299,3 +299,4 @@ void draw_boss_reveal_cells_far(void) BANKED { // called from combat.c on Gorgon
     draw_cell(player_spawn_x, player_spawn_y);
     if (map_pit_position(&px, &py)) draw_cell(px, py);
 }
+

@@ -3,6 +3,8 @@
 #include "biome.h"
 #include "enemy.h"
 #include "defs.h"
+#include "globals.h" // overworld_preset
+#include "map.h"     // active_map_w / active_map_h
 #include <gb/cgb.h>
 
 // Top-level hub floor (floor 0). No enemy roster, no items (the item scatter loop in
@@ -38,4 +40,176 @@ void biome_overworld_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_
     (void)out;
     (void)out_active;
     *out_count = 0u; // empty roster — spawn_enemies() early-returns for the hub
+}
+
+// ── Continent water mask ─────────────────────────────────────────────────────
+// One of OVERWORLD_PRESET_COUNT seeded layouts (picked into overworld_preset by generate_level).
+// Lives here in bank 22 (not the full bank-2 render bank). map_gen.c carves land from it; render.c
+// draws coast from it — both call the BANKED entry points below. ow_water() is the same-bank impl
+// so overworld_coast_vram() can sample neighbours without per-call trampolines.
+static const OverworldPreset OW_PRESETS[OVERWORLD_PRESET_COUNT] = {
+    /* land_thresh, rivers, lakes, desert_num (/32; 20 == legacy 5/8).
+       Tuned for ~30% less water than the original layouts (bigger landmasses; wettest presets
+       also drop one lake) — see scratch sweep. Resulting water coverage ≈ 19/29/33/44/47%. */
+    { 48u, 0u, 1u, 19u }, // 0: least water — big landmass, enlarged desert (~+17%)
+    { 46u, 1u, 2u, 20u }, // 1
+    { 44u, 2u, 2u, 20u }, // 2
+    { 43u, 2u, 2u, 20u }, // 3
+    { 41u, 3u, 2u, 20u }, // 4: most water — small landmass cut by rivers/lakes
+};
+
+static uint8_t ow_hash8(uint8_t a, uint8_t b) {
+    uint8_t h = (uint8_t)((uint8_t)(a * 73u) ^ (uint8_t)(b * 151u) ^ (uint8_t)(overworld_preset * 89u));
+    h ^= (uint8_t)(h >> 3);
+    h = (uint8_t)(h * 17u);
+    h ^= (uint8_t)(h >> 5);
+    return h;
+}
+
+// n² for n = 0..79 — replaces every per-cell 16-bit multiply in ow_water with a table read. The
+// largest distance we ever square is ~72 (lake centre to far corner), comfortably inside 80.
+static const uint16_t ow_sq[80] = {
+    0, 1, 4, 9, 16, 25, 36, 49, 64, 81,
+    100, 121, 144, 169, 196, 225, 256, 289, 324, 361,
+    400, 441, 484, 529, 576, 625, 676, 729, 784, 841,
+    900, 961, 1024, 1089, 1156, 1225, 1296, 1369, 1444, 1521,
+    1600, 1681, 1764, 1849, 1936, 2025, 2116, 2209, 2304, 2401,
+    2500, 2601, 2704, 2809, 2916, 3025, 3136, 3249, 3364, 3481,
+    3600, 3721, 3844, 3969, 4096, 4225, 4356, 4489, 4624, 4761,
+    4900, 5041, 5184, 5329, 5476, 5625, 5776, 5929, 6084, 6241,
+};
+#define OW_SQ(n) ow_sq[(n) < 80u ? (n) : 79u]
+
+// Per-preset invariants, computed once by ow_prepare() instead of being re-derived (with a modulo)
+// for every one of the ~8.8k cells. ow_water() then reads these — no multiplies, no modulo.
+static uint8_t  ow_prep_preset = 0xFFu, ow_prep_w = 0u, ow_prep_h = 0u;
+static uint8_t  ow_cx, ow_cy, ow_land_thresh, ow_nlakes, ow_nrivers;
+static uint8_t  ow_lake_x[3], ow_lake_y[3];
+static uint16_t ow_lake_r2[3];
+static uint8_t  ow_river_col[3];
+static int8_t   ow_lobe[6][6]; // coast undulation per 16×16 block — 36 values, indexed [x>>4][y>>4]
+
+static void ow_prepare(void) {
+    const OverworldPreset *p;
+    uint8_t i, a, b;
+    if (overworld_preset == ow_prep_preset && active_map_w == ow_prep_w && active_map_h == ow_prep_h) return;
+    ow_prep_preset = overworld_preset; ow_prep_w = active_map_w; ow_prep_h = active_map_h;
+    p = &OW_PRESETS[overworld_preset];
+    ow_cx = (uint8_t)(active_map_w >> 1); ow_cy = (uint8_t)(active_map_h >> 1);
+    ow_land_thresh = p->land_thresh;
+    ow_nlakes = p->n_lakes; ow_nrivers = p->n_rivers;
+    for (a = 0u; a < 6u; a++)
+        for (b = 0u; b < 6u; b++)
+            ow_lobe[a][b] = (int8_t)((ow_hash8((uint8_t)(a + 1u), (uint8_t)(b + 1u)) & 15u)) - 7; // ~16-tile bays/capes
+    for (i = 0u; i < ow_nlakes; i++) {
+        uint8_t rad = (uint8_t)(3u + (ow_hash8((uint8_t)(120u + i), overworld_preset) & 3u)); // 3..6
+        ow_lake_x[i]  = (uint8_t)((active_map_w >> 2) + (ow_hash8((uint8_t)(100u + i), (uint8_t)(overworld_preset + 7u)) % (active_map_w >> 1)));
+        ow_lake_y[i]  = (uint8_t)((active_map_h >> 2) + (ow_hash8((uint8_t)(110u + i), (uint8_t)(overworld_preset + 9u)) % (active_map_h >> 1)));
+        ow_lake_r2[i] = OW_SQ(rad);
+    }
+    for (i = 0u; i < ow_nrivers; i++)
+        ow_river_col[i] = (uint8_t)((active_map_w >> 2) + (ow_hash8((uint8_t)(200u + i), (uint8_t)(overworld_preset + 50u)) % (active_map_w >> 1)));
+}
+
+static uint8_t ow_water(uint8_t x, uint8_t y) { // 1 = water (ocean / river / lake), 0 = land
+    uint8_t w = active_map_w, h = active_map_h;
+    uint8_t i, adx, ady;
+    if (x < OVERWORLD_BORDER_BAND || y < OVERWORLD_BORDER_BAND
+            || x >= (uint8_t)(w - OVERWORLD_BORDER_BAND)
+            || y >= (uint8_t)(h - OVERWORLD_BORDER_BAND)) return 1u; // forced ocean margin
+    {
+        uint16_t d2;
+        int16_t  lobe = ow_lobe[x >> 4][y >> 4];                                  // precomputed ~16-tile bays/capes
+        uint8_t  jit  = (uint8_t)(((uint8_t)(x * 7u) ^ (uint8_t)(y * 13u)) & 3u); // ragged per-tile edge
+        int16_t  r    = (int16_t)ow_land_thresh + lobe + (int16_t)jit;
+        adx = (x > ow_cx) ? (uint8_t)(x - ow_cx) : (uint8_t)(ow_cx - x);
+        ady = (y > ow_cy) ? (uint8_t)(y - ow_cy) : (uint8_t)(ow_cy - y);
+        d2  = (uint16_t)(OW_SQ(adx) + OW_SQ(ady));
+        if (r < 6) r = 6;
+        if (d2 >= OW_SQ((uint8_t)r)) return 1u; // outside continent → ocean
+    }
+    for (i = 0u; i < ow_nlakes; i++) { // inland lakes
+        adx = (x > ow_lake_x[i]) ? (uint8_t)(x - ow_lake_x[i]) : (uint8_t)(ow_lake_x[i] - x);
+        ady = (y > ow_lake_y[i]) ? (uint8_t)(y - ow_lake_y[i]) : (uint8_t)(ow_lake_y[i] - y);
+        if ((uint16_t)(OW_SQ(adx) + OW_SQ(ady)) <= ow_lake_r2[i]) return 1u;
+    }
+    for (i = 0u; i < ow_nrivers; i++) { // wobbling vertical channels carving the continent
+        uint8_t wob = (uint8_t)(ow_hash8((uint8_t)(y >> 2), (uint8_t)(30u + i)) & 7u); // coarse wobble per 4 rows
+        uint8_t col = (uint8_t)(ow_river_col[i] + wob - 3u);
+        adx = (x > col) ? (uint8_t)(x - col) : (uint8_t)(col - x);
+        if (adx <= 1u) return 1u; // 3-tile-wide river
+    }
+    return 0u; // land
+}
+
+BANKREF(overworld_water_at)
+uint8_t overworld_water_at(uint8_t x, uint8_t y) BANKED { ow_prepare(); return ow_water(x, y); }
+
+// Carve the whole landmass into floor_bits in one banked call (was ~8.8k per-cell banked calls from
+// bank 10). Trees/spawn/pit are layered on afterward by generate_level.
+BANKREF(overworld_carve)
+void overworld_carve(void) BANKED {
+    uint8_t x, y;
+    ow_prepare();
+    for (y = 1u; y < (uint8_t)(active_map_h - 1u); y++)
+        for (x = 1u; x < (uint8_t)(active_map_w - 1u); x++)
+            if (!ow_water(x, y)) BIT_SET(floor_bits, TILE_IDX(x, y));
+}
+
+// Coast tiles only exist in the grass-green palette (no free CRAM slot for desert/snow coast art), so
+// keep desert and snow back from every shoreline: any land within OW_COAST_GRASS_BAND tiles of water
+// is forced to grassland. Only cells already inside the desert/snow region run this scan.
+#define OW_COAST_GRASS_BAND 2
+static uint8_t ow_near_water(uint8_t x, uint8_t y) {
+    int8_t dx, dy;
+    for (dy = -OW_COAST_GRASS_BAND; dy <= OW_COAST_GRASS_BAND; dy++)
+        for (dx = -OW_COAST_GRASS_BAND; dx <= OW_COAST_GRASS_BAND; dx++)
+            if (ow_water((uint8_t)((int16_t)x + dx), (uint8_t)((int16_t)y + dy))) return 1u;
+    return 0u;
+}
+
+BANKREF(overworld_is_desert)
+uint8_t overworld_is_desert(uint8_t mx, uint8_t my) BANKED { // hub SE corner: diagonal "coast" meeting the sea
+    uint16_t sum = (uint16_t)mx + (uint16_t)my;
+    // preset 0 (least water) widens the sand: 19/32 vs 20/32 (== legacy 5/8) → ~+17% area.
+    uint16_t thresh = ((uint16_t)active_map_w + (uint16_t)active_map_h) * (overworld_preset == 0u ? 19u : 20u) / 32u;
+    uint8_t  jitter = (uint8_t)(((uint8_t)(mx * 7u) ^ (uint8_t)(my * 13u)) & 3u); // ragged edge, +0..3 tiles
+    if ((sum + jitter) < thresh) return 0u;       // outside the SE sand region
+    ow_prepare();
+    return ow_near_water(mx, my) ? 0u : 1u;       // grass band hugs the coast
+}
+
+BANKREF(overworld_is_snow)
+uint8_t overworld_is_snow(uint8_t mx, uint8_t my) BANKED { // hub NW corner: snowfield on the freed PAL_WALL_BG slot
+    uint16_t sum = (uint16_t)mx + (uint16_t)my;
+    uint16_t thresh = ((uint16_t)active_map_w + (uint16_t)active_map_h) / 3u; // ~20% less area than 3/8 (corner ∝ thresh^2)
+    uint8_t  jitter = (uint8_t)(((uint8_t)(mx * 11u) ^ (uint8_t)(my * 5u)) & 3u); // ragged edge
+    if (sum > (uint16_t)(thresh + jitter)) return 0u; // outside the NW snow region
+    ow_prepare();
+    return ow_near_water(mx, my) ? 0u : 1u;           // grass band hugs the coast
+}
+
+// Coast tiles are drawn on the LAND cell that borders water: their bulk (index 0) is the green field
+// and the shore stroke (index 2/3) is the blue water edge, oriented toward whichever side is sea. For
+// a land cell, return the coast VRAM tile matching its water neighbours, or 0 if it is interior land
+// (caller then draws normal ground). The 8 sheet tiles give top/bottom edges + 4 corners only, so
+// E/W shores reuse the corner art. Land never touches the map edge (border band is forced ocean), so
+// neighbours are always in-bounds.
+BANKREF(overworld_coast_vram)
+uint8_t overworld_coast_vram(uint8_t mx, uint8_t my) BANKED {
+    uint8_t wn;
+    ow_prepare();
+    wn = ow_water(mx, (uint8_t)(my - 1u)); // water to the north?
+    uint8_t ws = ow_water(mx, (uint8_t)(my + 1u));
+    uint8_t we = ow_water((uint8_t)(mx + 1u), my);
+    uint8_t ww = ow_water((uint8_t)(mx - 1u), my);
+    if (wn && we) return COAST_VRAM_NE;
+    if (wn && ww) return COAST_VRAM_NW;
+    if (ws && we) return COAST_VRAM_SE;
+    if (ws && ww) return COAST_VRAM_SW;
+    if (wn) return (mx & 1u) ? COAST_VRAM_NA : COAST_VRAM_N;
+    if (ws) return (mx & 1u) ? COAST_VRAM_SA : COAST_VRAM_S;
+    if (we) return (my & 1u) ? COAST_VRAM_SE : COAST_VRAM_NE; // E shore ← corner art
+    if (ww) return (my & 1u) ? COAST_VRAM_SW : COAST_VRAM_NW; // W shore ← corner art
+    return 0u; // interior land — no coast, draw normal ground
 }

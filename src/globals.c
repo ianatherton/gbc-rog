@@ -30,6 +30,7 @@ uint8_t  floor_num  = 1;
 uint16_t run_seed   = 12345;
 uint8_t  player_class;                       // 0 = knight
 uint8_t  floor_biome;                        // level_init sets before spawn
+uint8_t  overworld_preset;                   // 0..OVERWORLD_PRESET_COUNT-1; generate_level picks from run_seed on floor 0
 
 uint8_t  g_player_x, g_player_y, g_prev_j;
 uint16_t g_run_entropy;

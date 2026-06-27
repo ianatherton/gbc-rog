@@ -2,6 +2,7 @@
 
 #include "map.h"
 #include "globals.h"
+#include "biome.h" // overworld_water_at (bank 22, BANKED) — hub continent carve
 #include <rand.h>
 
 BANKREF_EXTERN(is_walkable) // build_nav_graph traces corridors via is_walkable (bank 2, BANKED)
@@ -100,6 +101,9 @@ static void build_nav_graph(void) { // run after floor/pit layout is final
     }
 }
 
+// Hub continent shape lives in overworld_water_at (bank 22, biome_overworld.c); generate_level calls
+// it as a BANKED entry to carve land. overworld_preset (set below) selects one of 5 seeded layouts.
+
 BANKREF(generate_level)
 void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, walks, pits, then nav graph
     uint16_t i;
@@ -128,33 +132,40 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
 
     set_floor(x, y); // ensure spawn is open
     if (floor_num == 0u) {
-        // Hub overworld: open walkable field ringed by a solid border (rendered as blue water),
-        // dotted with scattered c10 tree walls. No drunkard carve — we fill, then stamp trees back.
-        uint8_t lo  = OVERWORLD_BORDER_BAND;
-        uint8_t hix = (uint8_t)(active_map_w - OVERWORLD_BORDER_BAND); // exclusive interior bound
-        uint8_t hiy = (uint8_t)(active_map_h - OVERWORLD_BORDER_BAND);
-        uint8_t bx, by;
-        // keep the player off the water: pull spawn into the open interior
-        if (player_spawn_x < lo)  player_spawn_x = lo;
-        if (player_spawn_x >= hix) player_spawn_x = (uint8_t)(hix - 1u);
-        if (player_spawn_y < lo)  player_spawn_y = lo;
-        if (player_spawn_y >= hiy) player_spawn_y = (uint8_t)(hiy - 1u);
-        for (by = lo; by < hiy; by++)
-            for (bx = lo; bx < hix; bx++)
-                set_floor(bx, by); // flood interior to floor
+        // Hub overworld: a seeded continent (one of OVERWORLD_PRESET_COUNT layouts) surrounded by
+        // ocean, with rivers and lakes carved as water. Land = !overworld_water_at; trees scatter on
+        // land only. render.c recomputes the same mask to split water/trees and pick coast tiles.
+        uint16_t t;
+        overworld_preset = (uint8_t)(((run_seed ^ (uint16_t)(run_seed >> 7)) & 0xFFu) % OVERWORLD_PRESET_COUNT);
+        overworld_carve(); // fills floor_bits for the whole landmass in one banked call (no per-cell trampoline)
+        // spawn on the land cell nearest map centre (handles a lake/river sitting on centre)
+        player_spawn_x = (uint8_t)(active_map_w >> 1);
+        player_spawn_y = (uint8_t)(active_map_h >> 1);
         {
-            uint16_t t; // scatter tree clumps (carve floor back to wall); ~11% coverage on 96×96
-            uint8_t span_ix = (uint8_t)(hix - lo), span_iy = (uint8_t)(hiy - lo);
-            for (t = 0u; t < 600u; t++) {
-                uint8_t tx = (uint8_t)(lo + (uint8_t)(rand() % span_ix));
-                uint8_t ty = (uint8_t)(lo + (uint8_t)(rand() % span_iy));
-                uint8_t adx = (tx > player_spawn_x) ? (uint8_t)(tx - player_spawn_x) : (uint8_t)(player_spawn_x - tx);
-                uint8_t ady = (ty > player_spawn_y) ? (uint8_t)(ty - player_spawn_y) : (uint8_t)(player_spawn_y - ty);
-                if (adx <= 2u && ady <= 2u) continue; // leave a clearing around spawn
-                BIT_CLR(floor_bits, TILE_IDX(tx, ty));
-                if ((rand() & 0x40u) && (uint8_t)(tx + 1u) < hix) // ~50% grow into a 2-tile clump
-                    BIT_CLR(floor_bits, TILE_IDX((uint8_t)(tx + 1u), ty));
+            uint8_t ccx = (uint8_t)(active_map_w >> 1), ccy = (uint8_t)(active_map_h >> 1);
+            uint8_t rad, found = 0u;
+            for (rad = 0u; rad < (uint8_t)(active_map_w >> 1) && !found; rad++) {
+                int8_t ox, oy;
+                for (oy = -(int8_t)rad; oy <= (int8_t)rad && !found; oy++)
+                    for (ox = -(int8_t)rad; ox <= (int8_t)rad && !found; ox++) {
+                        uint8_t cx2 = (uint8_t)(ccx + ox), cy2 = (uint8_t)(ccy + oy);
+                        if (BIT_GET(floor_bits, TILE_IDX(cx2, cy2))) {
+                            player_spawn_x = cx2; player_spawn_y = cy2; found = 1u;
+                        }
+                    }
             }
+        }
+        for (t = 0u; t < 600u; t++) { // scatter tree clumps on land only
+            uint8_t tx = (uint8_t)(1u + (uint8_t)(rand() % (uint8_t)(active_map_w - 2u)));
+            uint8_t ty = (uint8_t)(1u + (uint8_t)(rand() % (uint8_t)(active_map_h - 2u)));
+            uint8_t adx = (tx > player_spawn_x) ? (uint8_t)(tx - player_spawn_x) : (uint8_t)(player_spawn_x - tx);
+            uint8_t ady = (ty > player_spawn_y) ? (uint8_t)(ty - player_spawn_y) : (uint8_t)(player_spawn_y - ty);
+            if (adx <= 2u && ady <= 2u) continue;               // clearing around spawn
+            if (!BIT_GET(floor_bits, TILE_IDX(tx, ty))) continue; // skip water — trees only on land
+            BIT_CLR(floor_bits, TILE_IDX(tx, ty));
+            if ((rand() & 0x40u) && (uint8_t)(tx + 1u) < (uint8_t)(active_map_w - 1u)
+                    && BIT_GET(floor_bits, TILE_IDX((uint8_t)(tx + 1u), ty)))
+                BIT_CLR(floor_bits, TILE_IDX((uint8_t)(tx + 1u), ty)); // grow into a 2-tile clump
         }
         set_floor(player_spawn_x, player_spawn_y); // guarantee spawn open after scatter
     } else {
@@ -196,17 +207,22 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
         }
     }
     if (floor_num == 0u && pit_present) {
-        uint8_t lo  = OVERWORLD_BORDER_BAND;
-        uint8_t hix = (uint8_t)(active_map_w - OVERWORLD_BORDER_BAND);
-        uint8_t hiy = (uint8_t)(active_map_h - OVERWORLD_BORDER_BAND);
-        uint8_t sx  = (pit_x + 4u < hix)             ? (uint8_t)(pit_x + 4u)
-                    : (pit_x >= (uint8_t)(lo + 4u))   ? (uint8_t)(pit_x - 4u)
-                    : lo;
-        uint8_t sy  = pit_y;
-        if (sy < lo)   sy = lo;
-        if (sy >= hiy) sy = (uint8_t)(hiy - 1u);
-        player_spawn_x = sx;
-        player_spawn_y = sy;
+        // Put the player a few tiles off the ladder, on a land cell of the same landmass (so the
+        // ladder stays reachable even when a river splits the continent). Scan rings 2..6 around it.
+        uint8_t rad, placed2 = 0u;
+        for (rad = 2u; rad <= 6u && !placed2; rad++) {
+            int8_t ox, oy;
+            for (oy = -(int8_t)rad; oy <= (int8_t)rad && !placed2; oy++)
+                for (ox = -(int8_t)rad; ox <= (int8_t)rad && !placed2; ox++) {
+                    if (ox > -(int8_t)rad && ox < (int8_t)rad && oy > -(int8_t)rad && oy < (int8_t)rad) continue; // ring only
+                    int16_t cx2 = (int16_t)pit_x + ox, cy2 = (int16_t)pit_y + oy;
+                    if (cx2 < 1 || cy2 < 1 || cx2 >= (int16_t)(active_map_w - 1u) || cy2 >= (int16_t)(active_map_h - 1u)) continue;
+                    if (BIT_GET(floor_bits, TILE_IDX((uint8_t)cx2, (uint8_t)cy2))
+                            && !BIT_GET(pit_bits, TILE_IDX((uint8_t)cx2, (uint8_t)cy2))) {
+                        player_spawn_x = (uint8_t)cx2; player_spawn_y = (uint8_t)cy2; placed2 = 1u;
+                    }
+                }
+        }
         set_floor(player_spawn_x, player_spawn_y);
     }
 
@@ -237,5 +253,8 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
         }
     }
 
-    build_nav_graph(); // enemies need graph after geometry is known
+    // The hub has no enemies, so its nav graph is never consulted — skip the ~9k banked is_walkable
+    // probes (a big chunk of floor-0 load) and just present an empty graph to any nav consumer.
+    if (floor_num == 0u) num_nav_nodes = 0u;
+    else                 build_nav_graph(); // enemies need graph after geometry is known
 }

@@ -261,7 +261,42 @@ typedef struct {
 #define TILE_OVERWORLD_WATER_OFF  86u /* borrows unused G6 VRAM slot (214) */
 #define TILE_OVERWORLD_WALL_VRAM  ((uint8_t)(TILESET_VRAM_OFFSET + TILE_OVERWORLD_WALL_OFF))  /* =213 tree */
 #define TILE_OVERWORLD_WATER_VRAM ((uint8_t)(TILESET_VRAM_OFFSET + TILE_OVERWORLD_WATER_OFF)) /* =214 water */
-#define OVERWORLD_BORDER_BAND      2u /* hub: outermost N tiles are the blue water border */
+#define OVERWORLD_BORDER_BAND      2u /* hub: outermost N tiles are always ocean (forced water margin) */
+
+/* Overworld coastline tiles — sheet cells D11..G12 (rows 11-12 are past the first-128 VRAM upload,
+   so biome_load_active() boot-copies them into borrowed VRAM slots when floor 0 loads). ROM offset
+   = (row-1)*16 + col, A=0..H=7. */
+#define TILE_COAST_D11   163u /* NW corner */
+#define TILE_COAST_E11   164u /* N edge    */
+#define TILE_COAST_F11   165u /* N edge alt*/
+#define TILE_COAST_G11   166u /* NE corner */
+#define TILE_COAST_D12   179u /* SW corner */
+#define TILE_COAST_E12   180u /* S edge    */
+#define TILE_COAST_F12   181u /* S edge alt*/
+#define TILE_COAST_G12   182u /* SE corner */
+/* The 8 coast tiles alias enemy OBJ VRAM slots (no enemies on the hub). biome_load_active() uploads
+   coast art here on floor 0 and restores the enemy sprites on every dungeon floor. Order below must
+   match the upload order in biome.c. */
+#define COAST_VRAM_NW  237u /* TILE_SKEL_1_VRAM        */
+#define COAST_VRAM_N   238u /* TILE_SKEL_2_VRAM        */
+#define COAST_VRAM_NA  239u /* TILE_RAT_VRAM (N alt)   */
+#define COAST_VRAM_NE  234u /* TILE_BIG_SKELL_BODY_VRAM*/
+#define COAST_VRAM_SW  225u /* TILE_GORGON_HEAD_L_VRAM */
+#define COAST_VRAM_S   226u /* TILE_GORGON_HEAD_R_VRAM */
+#define COAST_VRAM_SA  228u /* TILE_GORGON_BODY_L_VRAM (S alt) */
+#define COAST_VRAM_SE  229u /* TILE_GORGON_BODY_R_VRAM */
+
+/* Overworld preset: 5 seeded continent layouts. run_seed picks one per playthrough (set in
+   generate_level into the overworld_preset global; render.c reads it). land_thresh scales the
+   landmass radius², n_rivers/n_lakes control interior water, desert_num scales the SE sand region
+   (larger = bigger desert; the lowest-water preset bumps this ~20%). */
+#define OVERWORLD_PRESET_COUNT 5u
+typedef struct {
+    uint8_t land_thresh; /* radius² budget for land, in units of (w+h)²/256 */
+    uint8_t n_rivers;
+    uint8_t n_lakes;
+    uint8_t desert_num;  /* desert threshold numerator over 8 (see overworld_is_desert) */
+} OverworldPreset;
 
 /* ── G col — doors + shrine states ──────────────────────────────────────── */
 #define TILE_DOOR_OPEN       6   /* G1  */

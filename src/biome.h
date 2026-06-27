@@ -41,4 +41,17 @@ typedef void (*BiomeLoadPalettesFn)(void);
 void biome_boss_load_palettes(void); // overrides OCP4 with green+tan ramp for gorgon body/feet
 void biome_overworld_load_palettes(void); // dark-green field (BG slot 0 + floor-deco color 0)
 
+// Hub continent water mask (bank 22) — generate_level carves land from it; render draws coast tiles.
+// BANKED so they can be called from bank 2 (render) and bank 10 (map_gen) without manual SWITCH_ROM.
+BANKREF_EXTERN(overworld_water_at)
+BANKREF_EXTERN(overworld_coast_vram)
+BANKREF_EXTERN(overworld_is_desert)
+BANKREF_EXTERN(overworld_is_snow)
+BANKREF_EXTERN(overworld_carve)
+void    overworld_carve(void) BANKED;                    // floor-0: fill floor_bits with the landmass (one banked call)
+uint8_t overworld_water_at(uint8_t x, uint8_t y) BANKED;  // 1 = water (ocean/river/lake), 0 = land
+uint8_t overworld_coast_vram(uint8_t mx, uint8_t my) BANKED; // coast tile for a land cell bordering water, 0 = interior land
+uint8_t overworld_is_desert(uint8_t mx, uint8_t my) BANKED;  // hub SE sand region
+uint8_t overworld_is_snow(uint8_t mx, uint8_t my) BANKED;    // hub NW snow region
+
 #endif

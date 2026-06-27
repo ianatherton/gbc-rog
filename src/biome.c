@@ -57,12 +57,29 @@ void biome_load_active(uint8_t biome_id) {
         set_sprite_data(TILE_SKEL_2_VRAM,         1u, enemies_miniboss_tiles + 5u * 16u);
         set_sprite_data(TILE_RAT_VRAM,            1u, enemies_miniboss_tiles + 6u * 16u);
         set_sprite_data(TILE_BIG_SKELL_BODY_VRAM, 1u, enemies_miniboss_tiles + 7u * 16u);
+    } else if (biome_id == BIOME_OVERWORLD) {
+        // Hub draws no enemies, so the 8 coast tiles borrow enemy OBJ slots as BG tiles. Order must
+        // match the COAST_VRAM_* aliases in defs.h. The dungeon floors below restore the enemy art.
+        SWITCH_ROM(BANK(tileset));
+        set_bkg_data(COAST_VRAM_NW, 1u, tileset_tiles + (uint16_t)TILE_COAST_D11 * 16u);
+        set_bkg_data(COAST_VRAM_N,  1u, tileset_tiles + (uint16_t)TILE_COAST_E11 * 16u);
+        set_bkg_data(COAST_VRAM_NA, 1u, tileset_tiles + (uint16_t)TILE_COAST_F11 * 16u);
+        set_bkg_data(COAST_VRAM_NE, 1u, tileset_tiles + (uint16_t)TILE_COAST_G11 * 16u);
+        set_bkg_data(COAST_VRAM_SW, 1u, tileset_tiles + (uint16_t)TILE_COAST_D12 * 16u);
+        set_bkg_data(COAST_VRAM_S,  1u, tileset_tiles + (uint16_t)TILE_COAST_E12 * 16u);
+        set_bkg_data(COAST_VRAM_SA, 1u, tileset_tiles + (uint16_t)TILE_COAST_F12 * 16u);
+        set_bkg_data(COAST_VRAM_SE, 1u, tileset_tiles + (uint16_t)TILE_COAST_G12 * 16u);
     } else {
         SWITCH_ROM(BANK(tileset));
         set_sprite_data(TILE_SKEL_1_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SKEL_ROM_1 * 16u);
         set_sprite_data(TILE_SKEL_2_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SKEL_ROM_2 * 16u);
         set_sprite_data(TILE_RAT_VRAM,    1u, tileset_tiles + (uint16_t)TILE_RAT_ROM * 16u);
         set_sprite_data(TILE_BIG_SKELL_BODY_VRAM, 1u, tileset_tiles + (uint16_t)TILE_BIG_SKELL_BODY_ROM * 16u);
+        // Restore gorgon slots too — the hub's coast tiles stomp these (COAST_VRAM_SW/S/SA/SE).
+        set_sprite_data(TILE_GORGON_HEAD_L_VRAM, 1u, tileset_tiles + (uint16_t)TILE_GORGON_HEAD_L_ROM * 16u);
+        set_sprite_data(TILE_GORGON_HEAD_R_VRAM, 1u, tileset_tiles + (uint16_t)TILE_GORGON_HEAD_R_ROM * 16u);
+        set_sprite_data(TILE_GORGON_BODY_L_VRAM, 1u, tileset_tiles + (uint16_t)TILE_GORGON_BODY_L_ROM * 16u);
+        set_sprite_data(TILE_GORGON_BODY_R_VRAM, 1u, tileset_tiles + (uint16_t)TILE_GORGON_BODY_R_ROM * 16u);
     }
     SWITCH_ROM(sb);
 }

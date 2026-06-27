@@ -1045,15 +1045,24 @@ void ui_loading_screen_end(void) BANKED {
 }
 
 void ui_draw_bottom_rows(void) BANKED {
+    // Overworld hub (floor 0): show only the 3 text rows — no belt, no HUD. Skipping their per-scroll
+    // repaint trims the bottom-band cost, and leaving the belt icons undrawn frees their VRAM slots for
+    // hub graphics. The belt/HUD return automatically on any dungeon floor.
+    static uint8_t bottom_was_hub = 0xFFu; // 0xFF forces the first call to run the blank/setup branch
+    uint8_t hub = (floor_num == 0u);
     VBK_REG = VBK_TILES; // render.c leaves VBK 0 but other paths may not — win writes assume tile plane
-    ui_draw_belt_placeholder_row();
+    if (hub != bottom_was_hub) { // entering the hub: blank belt + HUD once, then skip repainting them
+        bottom_was_hub = hub;
+        if (hub) { win_clear_row(UI_BELT_WIN_Y, PAL_UI); win_clear_row(UI_HUD_WIN_Y, PAL_UI); }
+    }
+    if (!hub) ui_draw_belt_placeholder_row();
     switch (ui_panel_mode) {
         case UI_PANEL_COMBAT:   ui_draw_combat_panel();   break;
         case UI_PANEL_PERF:     ui_draw_perf_panel();     break;
         case UI_PANEL_INSPECT:  ui_draw_inspect_panel();  break;
         default:                ui_draw_combat_panel();   break;
     }
-    ui_draw_top_hud();
+    if (!hub) ui_draw_top_hud();
 }
 
 void ui_draw_seed_words(uint16_t seed, uint8_t win_y) BANKED { // desc + noun + place on one row

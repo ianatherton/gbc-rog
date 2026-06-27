@@ -15,6 +15,17 @@ void draw_gameplay_overlays_profiled_far(uint8_t px, uint8_t py) BANKED; // cros
 void draw_cell(uint8_t mx, uint8_t my); // single map cell if visible (terrain only)
 void draw_col_strip(uint8_t mx); // one world column for horizontal scroll
 void draw_row_strip(uint8_t my); // one world row for vertical scroll
+
+// Strip blit scratch + helpers. render.c (bank 2) fills the buffers via classify_cell, then calls one
+// of these to bulk-blit a column/row, splitting at the 32-tile ring wrap. The helpers live in bank 22
+// (biome_overworld.c) — they use only HOME gbdk calls + these RAM buffers, so relocating them off the
+// near-full render bank 2 costs just one trampoline per strip (not per cell).
+extern uint8_t render_strip_tiles[GRID_W + 1];
+extern uint8_t render_strip_attrs[GRID_W + 1];
+BANKREF_EXTERN(render_blit_strip_col)
+BANKREF_EXTERN(render_blit_strip_row)
+void render_blit_strip_col(uint8_t vx, uint8_t vy0, uint8_t n) BANKED;
+void render_blit_strip_row(uint8_t vy, uint8_t vx0, uint8_t n) BANKED;
 void draw_enemy_cells(uint8_t px, uint8_t py); // idle enemy glyph flip: OAM only (no BG/WIN redraw)
 void draw_corpse_cells(void); // redraw BG tiles for corpses and dropped items after non-melee kills
 void draw_corpse_cells_far(void) BANKED; // cross-bank shim (combat.c)

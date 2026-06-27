@@ -105,67 +105,50 @@ void apply_field_palette(void) { // slot 0 (blank field) + floor-deco, per biome
 // (was 3–4 per cell). Its arithmetic stays out of the pinned, nearly-full bank-2 render code, and it
 // is only reached on the hub, so dungeons pay no trampoline cost.
 
-static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t my) { // floor/wall/pit/corpse; no actors on BG
-    if (!lighting_is_revealed(mx, my)) {
-        gotoxy(sx, sy);
-        setchar(' ');
-        set_bkg_attribute_xy(sx, sy, 0u);
-        VBK_REG = 0;
-        return;
-    }
+// Per-strip scratch (≥ GRID_W+1 ≥ GRID_H+1): classify_cell fills these, then one bulk set_bkg_tiles +
+// one set_bkg_attributes blits the whole strip — far fewer GBDK/VBK calls than a write per cell. The
+// blit helpers (render_blit_strip_col/row) live in bank 22 to relieve the near-full render bank 2; these
+// buffers are global so that bank reaches them.
+uint8_t render_strip_tiles[GRID_W + 1u];
+uint8_t render_strip_attrs[GRID_W + 1u];
+
+// Resolve a world cell to its BG tile index (0 = blank/space, font tile 0) + CGB attribute, WITHOUT
+// touching VRAM. Branch-for-branch identical to the old per-cell draw — the caller blits the result.
+static uint8_t classify_cell(uint8_t mx, uint8_t my, uint8_t *attr_out) {
+    if (!lighting_is_revealed(mx, my)) { *attr_out = 0u; return 0u; } // fog: blank field, pal 0
     {
         uint8_t coff = corpse_sheet_at(mx, my);
-        if (coff != 255) {
-            uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + coff);
-            gotoxy(sx, sy);
-            set_bkg_tiles(sx, sy, 1, 1, &vram);
-            set_bkg_attribute_xy(sx, sy, PAL_CORPSE);
-            VBK_REG = 0;
-            return;
-        }
+        if (coff != 255) { *attr_out = PAL_CORPSE; return (uint8_t)(TILESET_VRAM_OFFSET + coff); }
     }
     {
         uint8_t t = tile_at(mx, my);
-        gotoxy(sx, sy);
         uint8_t snow = 0u, desert = 0u;
         if (floor_biome == BIOME_OVERWORLD) {
-            // One banked call resolves the hub cell. Water / tree / coast (and, later, prefab feature
-            // tiles) come back as a finished VRAM tile we draw immediately; interior land returns 0 with
-            // a region code that drives the floor-deco palette below. OW wall cells always resolve here,
-            // so the dungeon wall branch never sees them.
+            // One banked call resolves the hub cell: water/tree/coast/prefab → a finished VRAM tile;
+            // interior land returns 0 + a region code that drives the floor-deco palette below. OW wall
+            // cells always resolve here, so the dungeon wall branch never sees them.
             uint8_t ow_pal, region;
             uint8_t ow_vram = overworld_cell_render(mx, my, t, &ow_pal, &region);
-            if (ow_vram) {
-                set_bkg_tiles(sx, sy, 1, 1, &ow_vram);
-                set_bkg_attribute_xy(sx, sy, ow_pal);
-                VBK_REG = 0;
-                return;
-            }
+            if (ow_vram) { *attr_out = ow_pal; return ow_vram; }
             snow   = (region == OW_REGION_SNOW);
             desert = (region == OW_REGION_DESERT);
         }
         uint8_t ground_pal = snow ? PAL_WALL_BG : (desert ? PAL_OW_ACCENT : PAL_FLOOR_BG); // hub ground by region
         if (t == TILE_FLOOR || (t == TILE_PIT && tile_vram_index(t) == 0u)) { // hidden boss/miniboss pit renders as plain floor — no ASCII fallback tell
             uint8_t off = floor_tile_sheet_offset(mx, my);
-            uint8_t pal;
-            if (off == 255u) {
-                setchar(' ');
-                pal = snow ? PAL_WALL_BG : (desert ? PAL_OW_ACCENT : 0u); // blank snow/sand vs green field
-            } else {
-                uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + off);
-                set_bkg_tiles(sx, sy, 1, 1, &vram);
-                // Palette is deterministic from offset — no second brazier/item scan needed
-                if      (off == TILE_STAIRS_UP_1)  pal = 0u;
-                else if ((off & 15u) == 2u)        pal = PAL_LADDER;  // TILE_LIGHT_1..4 (col C rows 1-4: 2,18,34,50)
-                else if (off == TILE_ITEM_4)        pal = PAL_ITEM_GOLD_BG; // true orange-gold (slot 6), not the fire ramp
-                else if (off == TILE_TEST)          pal = PAL_LADDER;  // single non-overworld floor deco tile, torch-tinted
-                else                               pal = ground_pal;   // snow / sand / grey ground deco by region
-            }
-            set_bkg_attribute_xy(sx, sy, pal);
+            if (off == 255u) { *attr_out = snow ? PAL_WALL_BG : (desert ? PAL_OW_ACCENT : 0u); return 0u; } // blank snow/sand vs green field
+            // Palette is deterministic from offset — no second brazier/item scan needed
+            if      (off == TILE_STAIRS_UP_1)  *attr_out = 0u;
+            else if ((off & 15u) == 2u)        *attr_out = PAL_LADDER;       // TILE_LIGHT_1..4 (col C rows 1-4: 2,18,34,50)
+            else if (off == TILE_ITEM_4)       *attr_out = PAL_ITEM_GOLD_BG; // true orange-gold (slot 6), not the fire ramp
+            else if (off == TILE_TEST)         *attr_out = PAL_LADDER;       // single non-overworld floor deco tile, torch-tinted
+            else                               *attr_out = ground_pal;       // snow / sand / grey ground deco by region
+            return (uint8_t)(TILESET_VRAM_OFFSET + off);
         } else if (t == TILE_WALL) {
             uint8_t n = wall_ortho_wall_count_xy(mx, my); // computed from floor_bits at draw-time to save WRAM
             uint8_t off = wall_tileset_index;
-            if (n == 0u || n == 2u || n == 3u) {
+            uint8_t pillar = (n == 0u || n == 2u || n == 3u);
+            if (pillar) {
                 if (floor_biome == BIOME_CAVERN) {
                     uint8_t mix = (uint8_t)((uint8_t)(mx * 13u) ^ (uint8_t)(my * 29u) ^ run_seed);
                     off = (mix & 1u) ? TILE_COLUMN_7 : TILE_COLUMN_6;
@@ -173,18 +156,21 @@ static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t m
                     off = floor_column_off;
                 }
             }
-            uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + off);
-            uint8_t attr = (n == 0u || n == 2u || n == 3u) ? PAL_PILLAR_BG : PAL_WALL_BG;
-            set_bkg_tiles(sx, sy, 1, 1, &vram);
-            set_bkg_attribute_xy(sx, sy, attr);
+            *attr_out = pillar ? PAL_PILLAR_BG : PAL_WALL_BG;
+            return (uint8_t)(TILESET_VRAM_OFFSET + off);
         } else {
             uint8_t vram = tile_vram_index(t);
-            if (vram) { set_bkg_tiles(sx, sy, 1, 1, &vram); }
-            else      { setchar(tile_char(t)); }
-            set_bkg_attribute_xy(sx, sy, tile_palette(t));
+            *attr_out = tile_palette(t);
+            return vram ? vram : (uint8_t)((uint8_t)tile_char(t) - 32u); // ASCII fallback → font tile (space = 0)
         }
-        VBK_REG = 0;
     }
+}
+
+static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t my) { // single cell: classify + blit
+    uint8_t attr, t = classify_cell(mx, my, &attr);
+    set_bkg_tiles(sx, sy, 1u, 1u, &t);
+    set_bkg_attributes(sx, sy, 1u, 1u, &attr); // restores VBK to VBK_TILES
+    VBK_REG = 0;
 }
 
 BANKREF(load_palettes)
@@ -218,20 +204,22 @@ void draw_cell(uint8_t mx, uint8_t my) { // cheap update if cell is on-screen
     draw_ring_tile((uint8_t)(mx & 31u), RING_BKG_VY_WORLD(my), mx, my);
 }
 
-void draw_col_strip(uint8_t mx) { // refresh one world column at map x=mx
-    uint8_t y, vx = (uint8_t)(mx & 31u);
-    for (y = 0; y < GRID_H + 1u; y++) {
+void draw_col_strip(uint8_t mx) { // refresh one world column at map x=mx — classify into buffers, one bulk blit
+    uint8_t y, n = (uint8_t)(GRID_H + 1u);
+    for (y = 0u; y < n; y++) {
         uint8_t my = (uint8_t)(CAM_TY + y);
-        draw_ring_tile(vx, RING_BKG_VY_WORLD(my), mx, my);
+        render_strip_tiles[y] = classify_cell(mx, my, &render_strip_attrs[y]);
     }
+    render_blit_strip_col((uint8_t)(mx & 31u), (uint8_t)(CAM_TY & 31u), n);
 }
 
 void draw_row_strip(uint8_t my) { // refresh one world row at map y=my
-    uint8_t x, vy = RING_BKG_VY_WORLD(my);
-    for (x = 0; x < GRID_W + 1u; x++) {
+    uint8_t x, n = (uint8_t)(GRID_W + 1u);
+    for (x = 0u; x < n; x++) {
         uint8_t mx = (uint8_t)(CAM_TX + x);
-        draw_ring_tile((uint8_t)(mx & 31u), vy, mx, my);
+        render_strip_tiles[x] = classify_cell(mx, my, &render_strip_attrs[x]);
     }
+    render_blit_strip_row((uint8_t)(my & 31u), (uint8_t)(CAM_TX & 31u), n);
 }
 
 void draw_ui_rows(void) { // 3-line panel + bottom HUD row after BKG ring updates
@@ -245,17 +233,12 @@ void draw_gameplay_overlays(uint8_t px, uint8_t py) { // used when look/belt/pan
 
 void draw_screen(uint8_t px, uint8_t py) { // full repaint: dungeon ring, then text panel + bottom HUD
     uint8_t perf_stamp = perf_stamp_now();
-    uint8_t x, y;
+    uint8_t x;
 
     apply_wall_palette(); // keep slot PAL_WALL_BG in sync after floor load or A-button cycle
 
-    for (y = 0; y < GRID_H + 1u; y++) {
-        for (x = 0; x < GRID_W + 1u; x++) {
-            uint8_t mx = (uint8_t)(CAM_TX + x);
-            uint8_t my = (uint8_t)(CAM_TY + y);
-            draw_ring_tile((uint8_t)(mx & 31u), RING_BKG_VY_WORLD(my), mx, my);
-        }
-    }
+    for (x = 0; x < GRID_W + 1u; x++) // column-major: each draw_col_strip classifies a column then bulk-blits it
+        draw_col_strip((uint8_t)(CAM_TX + x));
 
     draw_gameplay_overlays(px, py);
     // SCX/SCY: VBL + LYC (lcd.c) — do not write here during gameplay

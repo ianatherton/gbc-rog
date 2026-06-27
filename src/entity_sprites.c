@@ -101,7 +101,7 @@ static uint8_t belt_slot_icon_col(uint8_t slot) { // map slot 0..7 to its WIN ti
 
 static void refresh_belt_selector_oam(void) { // M3 arrow on dungeon row GRID_H-1 (above belt / window band)
     uint8_t s, sx, sy, tt, col;
-    if (!lcd_gameplay_active) {
+    if (!lcd_gameplay_active || floor_num == 0u) { // hidden on title and on the hub (no belt shown there)
         oam_hide(SP_BELT_SELECTOR);
         return;
     }

@@ -5,6 +5,7 @@
 #include "defs.h"
 #include "globals.h" // overworld_preset
 #include "map.h"     // active_map_w / active_map_h
+#include "render.h"  // render_strip_* buffers + render_blit_strip_* (placed here to relieve bank 2)
 #include <gb/cgb.h>
 
 // Top-level hub floor (floor 0). No enemy roster, no items (the item scatter loop in
@@ -283,4 +284,39 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
         if (coast) { *pal_out = PAL_PILLAR_BG; return coast; } // green land bulk + blue shore edge
     }
     return 0u; // interior ground (or a visible pit/other tile) — caller draws via its own path
+}
+
+// Strip blit helpers, placed in bank 22 to relieve the near-full render bank 2 (declared in render.h).
+// They bulk-write render.c's classified strip buffers into one BG column/row, splitting at the 32-tile
+// ring wrap (set_bkg_tiles does not wrap the 32×32 map; spilling past row/col 31 corrupts the WIN map).
+BANKREF(render_blit_strip_col)
+void render_blit_strip_col(uint8_t vx, uint8_t vy0, uint8_t n) BANKED {
+    uint8_t first = (uint8_t)(32u - vy0);
+    if (first >= n) {
+        set_bkg_tiles(vx, vy0, 1u, n, render_strip_tiles);
+        set_bkg_attributes(vx, vy0, 1u, n, render_strip_attrs);
+    } else {
+        uint8_t rem = (uint8_t)(n - first);
+        set_bkg_tiles(vx, vy0, 1u, first, render_strip_tiles);
+        set_bkg_attributes(vx, vy0, 1u, first, render_strip_attrs);
+        set_bkg_tiles(vx, 0u, 1u, rem, render_strip_tiles + first);
+        set_bkg_attributes(vx, 0u, 1u, rem, render_strip_attrs + first);
+    }
+    VBK_REG = 0;
+}
+
+BANKREF(render_blit_strip_row)
+void render_blit_strip_row(uint8_t vy, uint8_t vx0, uint8_t n) BANKED {
+    uint8_t first = (uint8_t)(32u - vx0);
+    if (first >= n) {
+        set_bkg_tiles(vx0, vy, n, 1u, render_strip_tiles);
+        set_bkg_attributes(vx0, vy, n, 1u, render_strip_attrs);
+    } else {
+        uint8_t rem = (uint8_t)(n - first);
+        set_bkg_tiles(vx0, vy, first, 1u, render_strip_tiles);
+        set_bkg_attributes(vx0, vy, first, 1u, render_strip_attrs);
+        set_bkg_tiles(0u, vy, rem, 1u, render_strip_tiles + first);
+        set_bkg_attributes(0u, vy, rem, 1u, render_strip_attrs + first);
+    }
+    VBK_REG = 0;
 }

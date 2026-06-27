@@ -200,7 +200,7 @@ void state_gameplay_tick(void) BANKED {
         return;
     }
 
-    if (lcd_gameplay_active && (j & J_SELECT) && (j & (J_LEFT | J_RIGHT | J_UP | J_DOWN))) {
+    if (lcd_gameplay_active && floor_num != 0u && (j & J_SELECT) && (j & (J_LEFT | J_RIGHT | J_UP | J_DOWN))) { // no look/inspect on the hub
         uint8_t edge_s = (uint8_t)(j & (uint8_t)~g_prev_j);
         if (!(g_prev_j & J_SELECT)
                 || (!(g_prev_j & (J_LEFT | J_RIGHT | J_UP | J_DOWN)) && (j & (J_LEFT | J_RIGHT | J_UP | J_DOWN)))) {
@@ -232,7 +232,7 @@ void state_gameplay_tick(void) BANKED {
         return;
     }
 #define SELECT_HOLD_RESET_FRAMES 30u // ~1 s at 60 Hz VBL
-    if (lcd_gameplay_active && (j & J_SELECT)) {
+    if (lcd_gameplay_active && floor_num != 0u && (j & J_SELECT)) { // belt is hidden on the hub — no cycling/use there
         uint8_t edge_sel = (uint8_t)(j & (uint8_t)~g_prev_j);
         if (edge_sel & J_SELECT) {
             belt_select_advance_skip_empty();
@@ -248,14 +248,14 @@ void state_gameplay_tick(void) BANKED {
         wait_vbl_done();
         return;
     }
-    if (lcd_gameplay_active && (g_prev_j & J_SELECT) && !(j & J_SELECT)) {
+    if (lcd_gameplay_active && floor_num != 0u && (g_prev_j & J_SELECT) && !(j & J_SELECT)) {
         select_hold_ticks = 0u;
         ui_panel_show_combat();
         wait_vbl_done();
         draw_gameplay_overlays_profiled(g_player_x, g_player_y); // panel mode back to combat; BKG unchanged
     }
 
-    if (lcd_gameplay_active && (j & J_B) && !(g_prev_j & J_B)) {
+    if (lcd_gameplay_active && floor_num != 0u && (j & J_B) && !(g_prev_j & J_B)) { // no spell/item use on the hub (avoid accidental belt use)
         AbilityResult ar;
         if (selected_belt_slot < BELT_SLOT_COUNT)
             ability_dispatch_cast_belt(selected_belt_slot, g_player_x, g_player_y, &ar);

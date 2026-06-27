@@ -263,6 +263,45 @@ typedef struct {
 #define TILE_OVERWORLD_WATER_VRAM ((uint8_t)(TILESET_VRAM_OFFSET + TILE_OVERWORLD_WATER_OFF)) /* =214 water */
 #define OVERWORLD_BORDER_BAND      2u /* hub: outermost N tiles are always ocean (forced water margin) */
 
+/* overworld_cell_render() region codes — caller picks the ground/blank palette by hub region. */
+#define OW_REGION_GRASS  0u
+#define OW_REGION_DESERT 1u
+#define OW_REGION_SNOW   2u
+
+/* Overworld prefab features: multi-tile structures placed on land at gen-time (seed-stable), drawn by
+   overworld_cell_render's overlay, and (Part D) triggering a sub-map on the entrance cell. Footprint
+   bodies are stamped blocking (floor_bits cleared); the entrance cell stays walkable. */
+#define OW_FEAT_TOWN      0u  /* 3x3 */
+#define OW_FEAT_WAYPOINT  1u  /* 2x2 */
+#define OW_FEAT_ENTRANCE  2u  /* 1x1 cave/dungeon mouth */
+#define OW_FEAT_COUNT     3u
+#define MAX_OW_FEATURES   12u
+
+/* Prefab feature art (hub only). Sheet sources (offset = (row-1)*16 + col). Like coast, these are
+   uploaded by biome_load_active(BIOME_OVERWORLD) into idle hub OBJ slots and the borrowed enemy art is
+   restored on dungeon/miniboss floors. Upload order must match the PREFAB_VRAM_* slots below. */
+#define TILE_PREFAB_ENTRANCE_D9   131u /* D9 — dungeon/cave mouth      */
+#define TILE_PREFAB_TOWN_WALL_EW  134u /* G9 — town E/W wall (swapped) */
+#define TILE_PREFAB_TOWN_CORNER   133u /* F9 — town corner            */
+#define TILE_PREFAB_TOWN_WALL_NS  132u /* E9 — town N/S wall (swapped) */
+#define TILE_PREFAB_WP_TL         100u /* E7 — waypoint top-left  */
+#define TILE_PREFAB_WP_TR         101u /* F7 — waypoint top-right */
+#define TILE_PREFAB_WP_BL         116u /* E8 — waypoint bot-left  */
+#define TILE_PREFAB_WP_BR         117u /* F8 — waypoint bot-right */
+
+/* Borrowed hub VRAM slots (all idle on the enemy-less hub):
+   194/195/196/198 = C5/D5/E5/G5 dead cells (miniboss re-uploads its big-slime there; no restore needed);
+   230/231 = gorgon feet (boss-only → restored in the dungeon branch, which the boss floor also takes);
+   217/218 = small-slime (restored in BOTH the dungeon and miniboss branches — both draw small slimes). */
+#define PREFAB_VRAM_ENTRANCE      198u
+#define PREFAB_VRAM_TOWN_WALL_EW  195u
+#define PREFAB_VRAM_TOWN_CORNER   194u
+#define PREFAB_VRAM_TOWN_WALL_NS  196u
+#define PREFAB_VRAM_WP_TL         230u
+#define PREFAB_VRAM_WP_TR         231u
+#define PREFAB_VRAM_WP_BL         217u
+#define PREFAB_VRAM_WP_BR         218u
+
 /* Overworld coastline tiles — sheet cells D11..G12 (rows 11-12 are past the first-128 VRAM upload,
    so biome_load_active() boot-copies them into borrowed VRAM slots when floor 0 loads). ROM offset
    = (row-1)*16 + col, A=0..H=7. */

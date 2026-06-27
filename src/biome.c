@@ -57,6 +57,11 @@ void biome_load_active(uint8_t biome_id) {
         set_sprite_data(TILE_SKEL_2_VRAM,         1u, enemies_miniboss_tiles + 5u * 16u);
         set_sprite_data(TILE_RAT_VRAM,            1u, enemies_miniboss_tiles + 6u * 16u);
         set_sprite_data(TILE_BIG_SKELL_BODY_VRAM, 1u, enemies_miniboss_tiles + 7u * 16u);
+        // Small slimes spawn here too; the hub's prefab waypoint stomps their VRAM (217/218), so restore
+        // it from the shared tileset (big-slime's own quadrants overwrite the 194-198 town cells above).
+        SWITCH_ROM(BANK(tileset));
+        set_sprite_data(TILE_SLIME_1_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SLIME_ROM_1 * 16u);
+        set_sprite_data(TILE_SLIME_2_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SLIME_ROM_2 * 16u);
     } else if (biome_id == BIOME_OVERWORLD) {
         // Hub draws no enemies, so the 8 coast tiles borrow enemy OBJ slots as BG tiles. Order must
         // match the COAST_VRAM_* aliases in defs.h. The dungeon floors below restore the enemy art.
@@ -69,6 +74,15 @@ void biome_load_active(uint8_t biome_id) {
         set_bkg_data(COAST_VRAM_S,  1u, tileset_tiles + (uint16_t)TILE_COAST_E12 * 16u);
         set_bkg_data(COAST_VRAM_SA, 1u, tileset_tiles + (uint16_t)TILE_COAST_F12 * 16u);
         set_bkg_data(COAST_VRAM_SE, 1u, tileset_tiles + (uint16_t)TILE_COAST_G12 * 16u);
+        // Prefab feature art (towns/waypoints/entrances) into idle hub OBJ slots — see defs.h PREFAB_VRAM_*.
+        set_bkg_data(PREFAB_VRAM_ENTRANCE,     1u, tileset_tiles + (uint16_t)TILE_PREFAB_ENTRANCE_D9 * 16u);
+        set_bkg_data(PREFAB_VRAM_TOWN_WALL_EW, 1u, tileset_tiles + (uint16_t)TILE_PREFAB_TOWN_WALL_EW * 16u);
+        set_bkg_data(PREFAB_VRAM_TOWN_CORNER,  1u, tileset_tiles + (uint16_t)TILE_PREFAB_TOWN_CORNER  * 16u);
+        set_bkg_data(PREFAB_VRAM_TOWN_WALL_NS, 1u, tileset_tiles + (uint16_t)TILE_PREFAB_TOWN_WALL_NS * 16u);
+        set_bkg_data(PREFAB_VRAM_WP_TL,        1u, tileset_tiles + (uint16_t)TILE_PREFAB_WP_TL * 16u);
+        set_bkg_data(PREFAB_VRAM_WP_TR,        1u, tileset_tiles + (uint16_t)TILE_PREFAB_WP_TR * 16u);
+        set_bkg_data(PREFAB_VRAM_WP_BL,        1u, tileset_tiles + (uint16_t)TILE_PREFAB_WP_BL * 16u);
+        set_bkg_data(PREFAB_VRAM_WP_BR,        1u, tileset_tiles + (uint16_t)TILE_PREFAB_WP_BR * 16u);
     } else {
         SWITCH_ROM(BANK(tileset));
         set_sprite_data(TILE_SKEL_1_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SKEL_ROM_1 * 16u);
@@ -80,6 +94,12 @@ void biome_load_active(uint8_t biome_id) {
         set_sprite_data(TILE_GORGON_HEAD_R_VRAM, 1u, tileset_tiles + (uint16_t)TILE_GORGON_HEAD_R_ROM * 16u);
         set_sprite_data(TILE_GORGON_BODY_L_VRAM, 1u, tileset_tiles + (uint16_t)TILE_GORGON_BODY_L_ROM * 16u);
         set_sprite_data(TILE_GORGON_BODY_R_VRAM, 1u, tileset_tiles + (uint16_t)TILE_GORGON_BODY_R_ROM * 16u);
+        // Restore the enemy art the hub's prefab tiles stomp: gorgon feet (drawn on the boss floor, which
+        // takes this branch) and the small slime (drawn on dungeon/cavern; miniboss restores it too).
+        set_sprite_data(TILE_GORGON_FEET_L_VRAM, 1u, tileset_tiles + (uint16_t)TILE_GORGON_FEET_L_ROM * 16u);
+        set_sprite_data(TILE_GORGON_FEET_R_VRAM, 1u, tileset_tiles + (uint16_t)TILE_GORGON_FEET_R_ROM * 16u);
+        set_sprite_data(TILE_SLIME_1_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SLIME_ROM_1 * 16u);
+        set_sprite_data(TILE_SLIME_2_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SLIME_ROM_2 * 16u);
     }
     SWITCH_ROM(sb);
 }

@@ -101,6 +101,75 @@ static void build_nav_graph(void) { // run after floor/pit layout is final
     }
 }
 
+// ── Overworld prefab feature placement ─────────────────────────────────────────────────────────
+// Seed-stable (hashed from run_seed, NOT rand()) so the hub regenerates the same towns/waypoints/
+// entrances when the player returns from a sub-map. Footprints are stamped blocking except the
+// walkable entrance cell; overworld_cell_render (bank 22) draws the prefab art over them.
+static const uint8_t OW_FEATURE_PLAN[] = { // fixed order = deterministic placement
+    OW_FEAT_TOWN, OW_FEAT_WAYPOINT, OW_FEAT_WAYPOINT,
+    OW_FEAT_ENTRANCE, OW_FEAT_ENTRANCE, OW_FEAT_ENTRANCE,
+};
+
+static uint8_t ow_feat_hash(uint8_t a, uint8_t b) { // run_seed-keyed, position-independent
+    uint8_t h = (uint8_t)((uint8_t)(a * 73u) ^ (uint8_t)(b * 151u)
+              ^ (uint8_t)(run_seed & 0xFFu) ^ (uint8_t)((uint8_t)(run_seed >> 8) * 89u));
+    h ^= (uint8_t)(h >> 3);
+    h = (uint8_t)(h * 17u);
+    h ^= (uint8_t)(h >> 5);
+    return h;
+}
+
+static uint8_t ow_footprint_clear(uint8_t fx, uint8_t fy, uint8_t w, uint8_t h) {
+    uint8_t dx, dy;
+    for (dy = 0u; dy < h; dy++)
+        for (dx = 0u; dx < w; dx++) {
+            uint8_t cx = (uint8_t)(fx + dx), cy = (uint8_t)(fy + dy);
+            uint16_t idx = TILE_IDX(cx, cy);
+            if (!BIT_GET(floor_bits, idx)) return 0u; // open land only (excludes water + tree-cleared cells)
+            if (BIT_GET(pit_bits, idx))    return 0u; // never cover the down-ladder
+            uint8_t adx = (cx > player_spawn_x) ? (uint8_t)(cx - player_spawn_x) : (uint8_t)(player_spawn_x - cx);
+            uint8_t ady = (cy > player_spawn_y) ? (uint8_t)(cy - player_spawn_y) : (uint8_t)(player_spawn_y - cy);
+            if (adx <= 3u && ady <= 3u)    return 0u; // keep a clearing around spawn
+        }
+    return 1u;
+}
+
+static uint8_t ow_overlaps_feature(uint8_t fx, uint8_t fy, uint8_t w, uint8_t h) { // 1-tile margin between features
+    uint8_t i;
+    for (i = 0u; i < ow_feature_count; i++) {
+        const OwPrefabDef *d = &ow_prefab_defs[ow_features[i].type];
+        uint8_t ax0 = ow_features[i].x, ay0 = ow_features[i].y;
+        if (fx < (uint8_t)(ax0 + d->w + 1u) && (uint8_t)(fx + w + 1u) > ax0
+                && fy < (uint8_t)(ay0 + d->h + 1u) && (uint8_t)(fy + h + 1u) > ay0) return 1u;
+    }
+    return 0u;
+}
+
+static void place_overworld_features(void) {
+    uint8_t fi;
+    ow_feature_count = 0u;
+    for (fi = 0u; fi < (uint8_t)sizeof OW_FEATURE_PLAN && ow_feature_count < MAX_OW_FEATURES; fi++) {
+        uint8_t type = OW_FEATURE_PLAN[fi];
+        const OwPrefabDef *d = &ow_prefab_defs[type];
+        uint8_t spanx = (uint8_t)(active_map_w - d->w - 4u);
+        uint8_t spany = (uint8_t)(active_map_h - d->h - 4u);
+        uint8_t attempt;
+        for (attempt = 0u; attempt < 24u; attempt++) {
+            uint8_t fx = (uint8_t)(2u + (ow_feat_hash((uint8_t)(fi + 1u), (uint8_t)(attempt * 2u + 1u)) % spanx));
+            uint8_t fy = (uint8_t)(2u + (ow_feat_hash((uint8_t)(attempt * 2u + 2u), (uint8_t)(fi + 10u)) % spany));
+            if (!ow_footprint_clear(fx, fy, d->w, d->h)) continue;
+            if (ow_overlaps_feature(fx, fy, d->w, d->h)) continue;
+            ow_features[ow_feature_count].x = fx;
+            ow_features[ow_feature_count].y = fy;
+            ow_features[ow_feature_count].type = type;
+            ow_feature_count++;
+            // Footprint stays walkable land (validated open above): the player enters by stepping onto any
+            // feature cell (Part D). overworld_cell_render draws the prefab art over these floor cells.
+            break;
+        }
+    }
+}
+
 // Hub continent shape lives in overworld_water_at (bank 22, biome_overworld.c); generate_level calls
 // it as a BANKED entry to carve land. overworld_preset (set below) selects one of 5 seeded layouts.
 
@@ -128,6 +197,7 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
 
     for (i = 0; i < BITSET_BYTES; i++) { floor_bits[i] = 0; pit_bits[i] = 0; } // all wall to start; visual blanking is hashed now
     brazier_count = 0u;
+    ow_feature_count = 0u; // no prefab features off the hub; place_overworld_features() fills it on floor 0
     pit_present = 0u;
 
     set_floor(x, y); // ensure spawn is open
@@ -252,6 +322,10 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
             brazier_count++;
         }
     }
+
+    // Hub prefab structures: placed after the landmass, trees, pit and spawn are final so footprints
+    // only land on clear open land away from the down-ladder and the spawn clearing.
+    if (floor_num == 0u) place_overworld_features();
 
     // The hub has no enemies, so its nav graph is never consulted — skip the ~9k banked is_walkable
     // probes (a big chunk of floor-0 load) and just present an empty graph to any nav consumer.

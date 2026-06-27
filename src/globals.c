@@ -72,3 +72,13 @@ int8_t  ground_item_mod_level[MAX_GROUND_ITEMS];
 uint8_t pending_pickup_slot;
 
 volatile uint8_t inv_desc_scx; // BSS 0 — see globals.h
+
+// Overworld prefab dims, indexed by OW_FEAT_*. ent_dx/dy = walkable trigger cell within the footprint
+// (bottom-centre for towns/waypoints so you approach the door from below). dest_kind = sub-map id (Part D).
+const OwPrefabDef ow_prefab_defs[OW_FEAT_COUNT] = {
+    { 3u, 3u, 1u, 2u, OW_FEAT_TOWN },     // TOWN     3x3, door bottom-centre
+    { 2u, 2u, 0u, 1u, OW_FEAT_WAYPOINT }, // WAYPOINT 2x2, entrance bottom-left
+    { 1u, 1u, 0u, 0u, OW_FEAT_ENTRANCE }, // ENTRANCE 1x1, the cell itself
+};
+OwFeature ow_features[MAX_OW_FEATURES]; // BSS — filled by generate_level on the hub
+uint8_t   ow_feature_count;             // BSS 0

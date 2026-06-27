@@ -71,6 +71,15 @@ extern uint8_t pending_pickup_slot; // ground_item_* index queued for STATE_PICK
 #define G_STORY_MAX_LINES    40u // wrap + blank lines can exceed 28; tail was dropped from story_line_off[]
 #define G_STORY_FIRE_COUNT   18u
 
+// ── Overworld prefab features (towns/waypoints/entrances) ──────────────────────────────────────
+// Kept in HOME (globals.c) so map_gen (bank 10, places them) and biome_overworld (bank 22, draws/
+// classifies them) both read the tables with no bank switch.
+typedef struct { uint8_t w, h, ent_dx, ent_dy, dest_kind; } OwPrefabDef; // dims + entrance cell + sub-map id
+typedef struct { uint8_t x, y, type; } OwFeature;                        // top-left tile + OW_FEAT_* id
+extern const OwPrefabDef ow_prefab_defs[OW_FEAT_COUNT]; // indexed by OW_FEAT_* type
+extern OwFeature ow_features[MAX_OW_FEATURES];          // placed this floor (hub only)
+extern uint8_t   ow_feature_count;                      // 0 on non-hub floors
+
 uint8_t player_light_radius(void); // class base + player_light_bonus (HOME)
 
 /* Inventory desc-row smooth scroll: ISR reads this to set SCX on scanlines 120-127 only. */

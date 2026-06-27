@@ -168,26 +168,31 @@ static uint8_t ow_near_water(uint8_t x, uint8_t y) {
     return 0u;
 }
 
-BANKREF(overworld_is_desert)
-uint8_t overworld_is_desert(uint8_t mx, uint8_t my) BANKED { // hub SE corner: diagonal "coast" meeting the sea
+// Same-bank region tests (assume ow_prepare() already ran). The BANKED wrappers below add the
+// trampoline + ow_prepare for cross-bank callers; overworld_cell_render() calls these directly so a
+// hub cell pays one prepare + zero internal trampolines instead of re-entering the bank per query.
+static uint8_t ow_desert(uint8_t mx, uint8_t my) { // hub SE corner: diagonal "coast" meeting the sea
     uint16_t sum = (uint16_t)mx + (uint16_t)my;
     // preset 0 (least water) widens the sand: 19/32 vs 20/32 (== legacy 5/8) → ~+17% area.
     uint16_t thresh = ((uint16_t)active_map_w + (uint16_t)active_map_h) * (overworld_preset == 0u ? 19u : 20u) / 32u;
     uint8_t  jitter = (uint8_t)(((uint8_t)(mx * 7u) ^ (uint8_t)(my * 13u)) & 3u); // ragged edge, +0..3 tiles
     if ((sum + jitter) < thresh) return 0u;       // outside the SE sand region
-    ow_prepare();
     return ow_near_water(mx, my) ? 0u : 1u;       // grass band hugs the coast
 }
 
-BANKREF(overworld_is_snow)
-uint8_t overworld_is_snow(uint8_t mx, uint8_t my) BANKED { // hub NW corner: snowfield on the freed PAL_WALL_BG slot
+static uint8_t ow_snow(uint8_t mx, uint8_t my) { // hub NW corner: snowfield on the freed PAL_WALL_BG slot
     uint16_t sum = (uint16_t)mx + (uint16_t)my;
     uint16_t thresh = ((uint16_t)active_map_w + (uint16_t)active_map_h) / 3u; // ~20% less area than 3/8 (corner ∝ thresh^2)
     uint8_t  jitter = (uint8_t)(((uint8_t)(mx * 11u) ^ (uint8_t)(my * 5u)) & 3u); // ragged edge
     if (sum > (uint16_t)(thresh + jitter)) return 0u; // outside the NW snow region
-    ow_prepare();
     return ow_near_water(mx, my) ? 0u : 1u;           // grass band hugs the coast
 }
+
+BANKREF(overworld_is_desert)
+uint8_t overworld_is_desert(uint8_t mx, uint8_t my) BANKED { ow_prepare(); return ow_desert(mx, my); }
+
+BANKREF(overworld_is_snow)
+uint8_t overworld_is_snow(uint8_t mx, uint8_t my) BANKED { ow_prepare(); return ow_snow(mx, my); }
 
 // Coast tiles are drawn on the LAND cell that borders water: their bulk (index 0) is the green field
 // and the shore stroke (index 2/3) is the blue water edge, oriented toward whichever side is sea. For
@@ -195,11 +200,8 @@ uint8_t overworld_is_snow(uint8_t mx, uint8_t my) BANKED { // hub NW corner: sno
 // (caller then draws normal ground). The 8 sheet tiles give top/bottom edges + 4 corners only, so
 // E/W shores reuse the corner art. Land never touches the map edge (border band is forced ocean), so
 // neighbours are always in-bounds.
-BANKREF(overworld_coast_vram)
-uint8_t overworld_coast_vram(uint8_t mx, uint8_t my) BANKED {
-    uint8_t wn;
-    ow_prepare();
-    wn = ow_water(mx, (uint8_t)(my - 1u)); // water to the north?
+static uint8_t ow_coast(uint8_t mx, uint8_t my) { // assumes ow_prepare() ran
+    uint8_t wn = ow_water(mx, (uint8_t)(my - 1u)); // water to the north?
     uint8_t ws = ow_water(mx, (uint8_t)(my + 1u));
     uint8_t we = ow_water((uint8_t)(mx + 1u), my);
     uint8_t ww = ow_water((uint8_t)(mx - 1u), my);
@@ -212,4 +214,73 @@ uint8_t overworld_coast_vram(uint8_t mx, uint8_t my) BANKED {
     if (we) return (my & 1u) ? COAST_VRAM_SE : COAST_VRAM_NE; // E shore ← corner art
     if (ww) return (my & 1u) ? COAST_VRAM_SW : COAST_VRAM_NW; // W shore ← corner art
     return 0u; // interior land — no coast, draw normal ground
+}
+
+BANKREF(overworld_coast_vram)
+uint8_t overworld_coast_vram(uint8_t mx, uint8_t my) BANKED { ow_prepare(); return ow_coast(mx, my); }
+
+// Prefab tile lookup: which VRAM tile to draw for local cell (lx,ly) of a w×h feature of the given type.
+// Returns 0 for the town's interior cell (a grass courtyard — caller draws normal ground). Town wall ring
+// uses corner / E-W / N-S art; waypoint is a 2×2 of distinct quadrants; entrance is its single mouth tile.
+static uint8_t ow_prefab_vram(uint8_t type, uint8_t lx, uint8_t ly, uint8_t w, uint8_t h) {
+    if (type == OW_FEAT_ENTRANCE) return PREFAB_VRAM_ENTRANCE;
+    if (type == OW_FEAT_WAYPOINT) {
+        if (ly == 0u) return (lx == 0u) ? PREFAB_VRAM_WP_TL : PREFAB_VRAM_WP_TR;
+        return (lx == 0u) ? PREFAB_VRAM_WP_BL : PREFAB_VRAM_WP_BR;
+    }
+    { // OW_FEAT_TOWN — 3×3 wall ring, grass centre
+        uint8_t edge_x = (lx == 0u || lx == (uint8_t)(w - 1u));
+        uint8_t edge_y = (ly == 0u || ly == (uint8_t)(h - 1u));
+        if (edge_x && edge_y) return PREFAB_VRAM_TOWN_CORNER;
+        if (edge_y)           return PREFAB_VRAM_TOWN_WALL_NS;
+        if (edge_x)           return PREFAB_VRAM_TOWN_WALL_EW;
+        return 0u; // interior courtyard
+    }
+}
+
+// Single per-cell classifier consumed by render.c (bank 2). Folds the desert/snow region test, the
+// water/tree split for WALL cells, and the coast lookup for FLOOR cells into one banked trampoline.
+// Returns the finished VRAM tile (0 = interior ground — render.c draws floor-deco using *region_out).
+// Future prefab-feature overlays (towns/waypoints/entrances) slot in at the marked point: a covered
+// cell returns its prefab tile + palette here, so the renderer stays one-trampoline-per-cell.
+BANKREF(overworld_cell_render)
+uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
+                              uint8_t *pal_out, uint8_t *region_out) BANKED {
+    uint8_t region;
+    ow_prepare();
+    if (ow_snow(mx, my))        region = OW_REGION_SNOW;   // NW corner takes priority (regions don't overlap)
+    else if (ow_desert(mx, my)) region = OW_REGION_DESERT; // SE corner
+    else                        region = OW_REGION_GRASS;
+    *region_out = region;
+
+    // Prefab-feature overlay: a covered cell returns its prefab tile before the procedural terrain below,
+    // so render stays one trampoline per cell. All feature cells are walkable (Part D triggers a sub-map
+    // when you step onto any of them); the town's interior cell returns 0 here so its courtyard draws as
+    // normal grass ground.
+    {
+        uint8_t fi;
+        for (fi = 0u; fi < ow_feature_count; fi++) {
+            uint8_t fx = ow_features[fi].x, fy = ow_features[fi].y;
+            const OwPrefabDef *d = &ow_prefab_defs[ow_features[fi].type];
+            if (mx >= fx && mx < (uint8_t)(fx + d->w) && my >= fy && my < (uint8_t)(fy + d->h)) {
+                uint8_t v = ow_prefab_vram(ow_features[fi].type, (uint8_t)(mx - fx), (uint8_t)(my - fy),
+                                           d->w, d->h);
+                if (v) { *pal_out = PAL_FLOOR_BG; return v; } // grey wall art over the green field (idx0)
+                break; // town courtyard centre → fall through to grass ground
+            }
+        }
+    }
+
+    if (base_tile == TILE_WALL) {
+        if (ow_water(mx, my)) { *pal_out = PAL_PILLAR_BG; return TILE_OVERWORLD_WATER_VRAM; } // open sea
+        *pal_out = (region == OW_REGION_SNOW)   ? PAL_WALL_BG    // frosted tree
+                 : (region == OW_REGION_DESERT) ? PAL_OW_ACCENT  // sandy mound
+                 :                                PAL_OW_FOLIAGE; // green pine
+        return TILE_OVERWORLD_WALL_VRAM;
+    }
+    if (base_tile == TILE_FLOOR) {
+        uint8_t coast = ow_coast(mx, my); // shore tile when this land cell borders water
+        if (coast) { *pal_out = PAL_PILLAR_BG; return coast; } // green land bulk + blue shore edge
+    }
+    return 0u; // interior ground (or a visible pit/other tile) — caller draws via its own path
 }

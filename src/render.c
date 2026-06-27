@@ -100,10 +100,10 @@ void apply_field_palette(void) { // slot 0 (blank field) + floor-deco, per biome
     wall_palette_hw_iw = wall_palette_hw_ip = wall_palette_hw_biome = 255u;
 }
 
-// The hub terrain helpers — overworld_water_at / overworld_coast_vram / overworld_is_desert /
-// overworld_is_snow — all live in bank 22 (biome_overworld.c) and are called here as BANKED entries,
-// keeping their arithmetic out of the pinned (and nearly full) bank-2 render code. They're only
-// reached on the hub (callers guard with `ow &&`), so dungeons pay no trampoline cost.
+// Hub cells are classified by one banked call, overworld_cell_render (bank 22, biome_overworld.c):
+// it folds the water/tree split, coast lookup, and desert/snow region test into a single trampoline
+// (was 3–4 per cell). Its arithmetic stays out of the pinned, nearly-full bank-2 render code, and it
+// is only reached on the hub, so dungeons pay no trampoline cost.
 
 static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t my) { // floor/wall/pit/corpse; no actors on BG
     if (!lighting_is_revealed(mx, my)) {
@@ -127,46 +127,41 @@ static void draw_cell_terrain_only(uint8_t sx, uint8_t sy, uint8_t mx, uint8_t m
     {
         uint8_t t = tile_at(mx, my);
         gotoxy(sx, sy);
-        uint8_t ow     = (floor_biome == BIOME_OVERWORLD);
-        uint8_t desert = ow && overworld_is_desert(mx, my);
-        uint8_t snow   = ow && overworld_is_snow(mx, my);
+        uint8_t snow = 0u, desert = 0u;
+        if (floor_biome == BIOME_OVERWORLD) {
+            // One banked call resolves the hub cell. Water / tree / coast (and, later, prefab feature
+            // tiles) come back as a finished VRAM tile we draw immediately; interior land returns 0 with
+            // a region code that drives the floor-deco palette below. OW wall cells always resolve here,
+            // so the dungeon wall branch never sees them.
+            uint8_t ow_pal, region;
+            uint8_t ow_vram = overworld_cell_render(mx, my, t, &ow_pal, &region);
+            if (ow_vram) {
+                set_bkg_tiles(sx, sy, 1, 1, &ow_vram);
+                set_bkg_attribute_xy(sx, sy, ow_pal);
+                VBK_REG = 0;
+                return;
+            }
+            snow   = (region == OW_REGION_SNOW);
+            desert = (region == OW_REGION_DESERT);
+        }
         uint8_t ground_pal = snow ? PAL_WALL_BG : (desert ? PAL_OW_ACCENT : PAL_FLOOR_BG); // hub ground by region
         if (t == TILE_FLOOR || (t == TILE_PIT && tile_vram_index(t) == 0u)) { // hidden boss/miniboss pit renders as plain floor — no ASCII fallback tell
-            uint8_t coast = (ow && t == TILE_FLOOR) ? overworld_coast_vram(mx, my) : 0u; // shore tile when this land cell borders water
-            if (coast) {
-                set_bkg_tiles(sx, sy, 1, 1, &coast);
-                set_bkg_attribute_xy(sx, sy, PAL_PILLAR_BG); // green land bulk (idx0) + blue shore edge
+            uint8_t off = floor_tile_sheet_offset(mx, my);
+            uint8_t pal;
+            if (off == 255u) {
+                setchar(' ');
+                pal = snow ? PAL_WALL_BG : (desert ? PAL_OW_ACCENT : 0u); // blank snow/sand vs green field
             } else {
-                uint8_t off = floor_tile_sheet_offset(mx, my);
-                uint8_t pal;
-                if (off == 255u) {
-                    setchar(' ');
-                    pal = snow ? PAL_WALL_BG : (desert ? PAL_OW_ACCENT : 0u); // blank snow/sand vs green field
-                } else {
-                    uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + off);
-                    set_bkg_tiles(sx, sy, 1, 1, &vram);
-                    // Palette is deterministic from offset — no second brazier/item scan needed
-                    if      (off == TILE_STAIRS_UP_1)  pal = 0u;
-                    else if ((off & 15u) == 2u)        pal = PAL_LADDER;  // TILE_LIGHT_1..4 (col C rows 1-4: 2,18,34,50)
-                    else if (off == TILE_ITEM_4)        pal = PAL_ITEM_GOLD_BG; // true orange-gold (slot 6), not the fire ramp
-                    else if (off == TILE_TEST)          pal = PAL_LADDER;  // single non-overworld floor deco tile, torch-tinted
-                    else                               pal = ground_pal;   // snow / sand / grey ground deco by region
-                }
-                set_bkg_attribute_xy(sx, sy, pal);
-            }
-        } else if (t == TILE_WALL && floor_biome == BIOME_OVERWORLD) {
-            // Hub non-floor cells split by the continent water mask: water (ocean/river/lake) draws
-            // open sea (the coastline lives on the bordering land floor cells); land obstacles draw a
-            // green tree. Neighbor-count pillar logic is bypassed so the blue slot never leaks onto trees.
-            if (overworld_water_at(mx, my)) {
-                uint8_t vram = TILE_OVERWORLD_WATER_VRAM; // open sea
+                uint8_t vram = (uint8_t)(TILESET_VRAM_OFFSET + off);
                 set_bkg_tiles(sx, sy, 1, 1, &vram);
-                set_bkg_attribute_xy(sx, sy, PAL_PILLAR_BG);
-            } else {
-                uint8_t vram = TILE_OVERWORLD_WALL_VRAM; // tree; frosted (snow) or sandy mounds (desert)
-                set_bkg_tiles(sx, sy, 1, 1, &vram);
-                set_bkg_attribute_xy(sx, sy, snow ? PAL_WALL_BG : (desert ? PAL_OW_ACCENT : PAL_OW_FOLIAGE));
+                // Palette is deterministic from offset — no second brazier/item scan needed
+                if      (off == TILE_STAIRS_UP_1)  pal = 0u;
+                else if ((off & 15u) == 2u)        pal = PAL_LADDER;  // TILE_LIGHT_1..4 (col C rows 1-4: 2,18,34,50)
+                else if (off == TILE_ITEM_4)        pal = PAL_ITEM_GOLD_BG; // true orange-gold (slot 6), not the fire ramp
+                else if (off == TILE_TEST)          pal = PAL_LADDER;  // single non-overworld floor deco tile, torch-tinted
+                else                               pal = ground_pal;   // snow / sand / grey ground deco by region
             }
+            set_bkg_attribute_xy(sx, sy, pal);
         } else if (t == TILE_WALL) {
             uint8_t n = wall_ortho_wall_count_xy(mx, my); // computed from floor_bits at draw-time to save WRAM
             uint8_t off = wall_tileset_index;

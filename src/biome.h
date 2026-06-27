@@ -54,4 +54,13 @@ uint8_t overworld_coast_vram(uint8_t mx, uint8_t my) BANKED; // coast tile for a
 uint8_t overworld_is_desert(uint8_t mx, uint8_t my) BANKED;  // hub SE sand region
 uint8_t overworld_is_snow(uint8_t mx, uint8_t my) BANKED;    // hub NW snow region
 
+// One-call hub cell classifier: folds water/tree/coast/region (+ future prefab features) into a
+// single banked entry so render.c does one trampoline per cell instead of 3–4. Returns the VRAM tile
+// to draw (0 = interior ground: caller draws its own floor-deco using *region_out for the palette).
+// *pal_out is the palette attr for the returned tile (valid only when the return value is non-zero).
+// *region_out is always set to OW_REGION_GRASS/DESERT/SNOW. base_tile is tile_at(mx,my).
+BANKREF_EXTERN(overworld_cell_render)
+uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
+                              uint8_t *pal_out, uint8_t *region_out) BANKED;
+
 #endif

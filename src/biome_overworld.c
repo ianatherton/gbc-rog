@@ -81,12 +81,18 @@ static const uint16_t ow_sq[80] = {
 };
 #define OW_SQ(n) ow_sq[(n) < 80u ? (n) : 79u]
 
+// Coast tiles only exist in the grass-green palette (no free CRAM slot for desert/snow coast art), so
+// keep desert and snow back from every shoreline: any land within OW_COAST_GRASS_BAND tiles of water
+// is forced to grassland. Used by ow_near_water() and pre-banded into ow_lake_rb2[] by ow_prepare().
+#define OW_COAST_GRASS_BAND 2
+
 // Per-preset invariants, computed once by ow_prepare() instead of being re-derived (with a modulo)
 // for every one of the ~8.8k cells. ow_water() then reads these — no multiplies, no modulo.
 static uint8_t  ow_prep_preset = 0xFFu, ow_prep_w = 0u, ow_prep_h = 0u;
 static uint8_t  ow_cx, ow_cy, ow_land_thresh, ow_nlakes, ow_nrivers;
 static uint8_t  ow_lake_x[3], ow_lake_y[3];
 static uint16_t ow_lake_r2[3];
+static uint16_t ow_lake_rb2[3]; // (rad + OW_COAST_GRASS_BAND)^2 — banded radius for ow_near_water()
 static uint8_t  ow_river_col[3];
 static int8_t   ow_lobe[6][6]; // coast undulation per 16×16 block — 36 values, indexed [x>>4][y>>4]
 
@@ -107,6 +113,7 @@ static void ow_prepare(void) {
         ow_lake_x[i]  = (uint8_t)((active_map_w >> 2) + (ow_hash8((uint8_t)(100u + i), (uint8_t)(overworld_preset + 7u)) % (active_map_w >> 1)));
         ow_lake_y[i]  = (uint8_t)((active_map_h >> 2) + (ow_hash8((uint8_t)(110u + i), (uint8_t)(overworld_preset + 9u)) % (active_map_h >> 1)));
         ow_lake_r2[i] = OW_SQ(rad);
+        ow_lake_rb2[i] = OW_SQ((uint8_t)(rad + OW_COAST_GRASS_BAND)); // (rad+2)^2 for the near-water band test
     }
     for (i = 0u; i < ow_nrivers; i++)
         ow_river_col[i] = (uint8_t)((active_map_w >> 2) + (ow_hash8((uint8_t)(200u + i), (uint8_t)(overworld_preset + 50u)) % (active_map_w >> 1)));
@@ -157,15 +164,40 @@ void overworld_carve(void) BANKED {
             if (!ow_water(x, y)) BIT_SET(floor_bits, TILE_IDX(x, y));
 }
 
-// Coast tiles only exist in the grass-green palette (no free CRAM slot for desert/snow coast art), so
-// keep desert and snow back from every shoreline: any land within OW_COAST_GRASS_BAND tiles of water
-// is forced to grassland. Only cells already inside the desert/snow region run this scan.
-#define OW_COAST_GRASS_BAND 2
+// 1 if any water lies within OW_COAST_GRASS_BAND tiles of land cell (x,y) — drives the grass coast band
+// that keeps desert/snow off shorelines. Instead of sampling the 5×5 neighbourhood (25 ow_water() calls,
+// the overworld scroll hot path near snow/sand), test each water source analytically with its threshold
+// relaxed outward by BAND. Mirrors ow_water()'s source set (lines below); the caller's cell is land, so
+// every test asks "is water within BAND". Only cells already inside the desert/snow region run this.
 static uint8_t ow_near_water(uint8_t x, uint8_t y) {
-    int8_t dx, dy;
-    for (dy = -OW_COAST_GRASS_BAND; dy <= OW_COAST_GRASS_BAND; dy++)
-        for (dx = -OW_COAST_GRASS_BAND; dx <= OW_COAST_GRASS_BAND; dx++)
-            if (ow_water((uint8_t)((int16_t)x + dx), (uint8_t)((int16_t)y + dy))) return 1u;
+    uint8_t w = active_map_w, h = active_map_h;
+    uint8_t i, adx, ady;
+    const uint8_t margin = (uint8_t)(OVERWORLD_BORDER_BAND + OW_COAST_GRASS_BAND);
+    if (x < margin || y < margin || x >= (uint8_t)(w - margin) || y >= (uint8_t)(h - margin))
+        return 1u; // within BAND of the forced ocean margin
+    {
+        uint16_t d2;
+        int16_t  lobe = ow_lobe[x >> 4][y >> 4];                                  // same coast undulation as ow_water
+        uint8_t  jit  = (uint8_t)(((uint8_t)(x * 7u) ^ (uint8_t)(y * 13u)) & 3u); // same ragged per-tile edge
+        int16_t  r    = (int16_t)ow_land_thresh + lobe + (int16_t)jit;
+        adx = (x > ow_cx) ? (uint8_t)(x - ow_cx) : (uint8_t)(ow_cx - x);
+        ady = (y > ow_cy) ? (uint8_t)(y - ow_cy) : (uint8_t)(ow_cy - y);
+        d2  = (uint16_t)(OW_SQ(adx) + OW_SQ(ady));
+        if (r < 6) r = 6;
+        r -= OW_COAST_GRASS_BAND; if (r < 0) r = 0;
+        if (d2 >= OW_SQ((uint8_t)r)) return 1u; // within BAND of the continent coast (land side)
+    }
+    for (i = 0u; i < ow_nlakes; i++) {
+        adx = (x > ow_lake_x[i]) ? (uint8_t)(x - ow_lake_x[i]) : (uint8_t)(ow_lake_x[i] - x);
+        ady = (y > ow_lake_y[i]) ? (uint8_t)(y - ow_lake_y[i]) : (uint8_t)(ow_lake_y[i] - y);
+        if ((uint16_t)(OW_SQ(adx) + OW_SQ(ady)) <= ow_lake_rb2[i]) return 1u; // within BAND of a lake
+    }
+    for (i = 0u; i < ow_nrivers; i++) {
+        uint8_t wob = (uint8_t)(ow_hash8((uint8_t)(y >> 2), (uint8_t)(30u + i)) & 7u);
+        uint8_t col = (uint8_t)(ow_river_col[i] + wob - 3u);
+        adx = (x > col) ? (uint8_t)(x - col) : (uint8_t)(col - x);
+        if (adx <= (uint8_t)(1u + OW_COAST_GRASS_BAND)) return 1u; // within BAND of the 3-wide river
+    }
     return 0u;
 }
 

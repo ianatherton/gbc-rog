@@ -88,6 +88,21 @@ uint8_t ground_item_index_at(uint8_t x, uint8_t y) BANKED { // linear scan; pool
     return 255u;
 }
 
+BANKREF(map_tile_is_stairs_or_ladder)
+uint8_t map_tile_is_stairs_or_ladder(uint8_t x, uint8_t y) BANKED { // stairs-up (player spawn) or down-ladder pit
+    if (x == player_spawn_x && y == player_spawn_y) return 1u;
+    if (pit_present && x == pit_x && y == pit_y) return 1u;
+    return 0u;
+}
+
+BANKREF(map_tile_blocks_gravestone)
+uint8_t map_tile_blocks_gravestone(uint8_t x, uint8_t y) BANKED { // gravestones are low priority: yield to features/items
+    if (map_tile_is_stairs_or_ladder(x, y)) return 1u;
+    if (brazier_index_at(x, y) != 255u) return 1u;     // torch / brazier
+    if (ground_item_index_at(x, y) != 255u) return 1u; // dropped item
+    return 0u;
+}
+
 BANKREF(ground_item_kill)
 void ground_item_kill(uint8_t slot) BANKED {
     if (slot < MAX_GROUND_ITEMS) {
@@ -309,7 +324,7 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
                 if (enemy_type[_ei] == ENEMY_GORGON || enemy_type[_ei] == ENEMY_SLIME_BIG)
                     boss_alive = 0u;
                 if (num_corpses < MAX_CORPSES
-                        && ground_item_index_at(enemy_x[_ei], enemy_y[_ei]) == 255u) {
+                        && !map_tile_blocks_gravestone(enemy_x[_ei], enemy_y[_ei])) {
                     corpse_x[num_corpses] = enemy_x[_ei];
                     corpse_y[num_corpses] = enemy_y[_ei];
                     corpse_tile[num_corpses] = corpse_deco_random();

@@ -118,7 +118,11 @@ static uint8_t classify_cell(uint8_t mx, uint8_t my, uint8_t *attr_out) {
     if (!lighting_is_revealed(mx, my)) { *attr_out = 0u; return 0u; } // fog: blank field, pal 0
     {
         uint8_t coff = corpse_sheet_at(mx, my);
-        if (coff != 255) { *attr_out = PAL_CORPSE; return (uint8_t)(TILESET_VRAM_OFFSET + coff); }
+        // Gravestones are low priority: yield to a stair/ladder, torch, or item that shares the cell
+        // (e.g. an item dropped onto an old corpse). The feature scan only runs where a corpse exists.
+        if (coff != 255 && !map_tile_blocks_gravestone(mx, my)) {
+            *attr_out = PAL_CORPSE; return (uint8_t)(TILESET_VRAM_OFFSET + coff);
+        }
     }
     {
         uint8_t t = tile_at(mx, my);

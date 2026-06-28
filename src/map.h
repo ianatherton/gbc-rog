@@ -54,6 +54,8 @@ uint8_t map_pit_position(uint8_t *x, uint8_t *y) BANKED; // 1 when floor has a d
 
 uint8_t ground_item_index_at(uint8_t x, uint8_t y) BANKED; // ground_item_* slot at (x,y), 255 = none
 void    ground_item_kill(uint8_t slot) BANKED; // remove a ground item (pickup or discard)
+uint8_t map_tile_is_stairs_or_ladder(uint8_t x, uint8_t y) BANKED; // 1 if (x,y) is stairs-up or down-ladder pit
+uint8_t map_tile_blocks_gravestone(uint8_t x, uint8_t y) BANKED;   // 1 if no gravestone may be placed here (stairs/ladder, torch, or item)
 
 #endif // GAME_MAP_H
 

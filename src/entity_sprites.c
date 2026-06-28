@@ -610,10 +610,14 @@ void entity_sprites_vbl_tick(void) BANKED {
         // space; shares one OAM slot since all 40 are already spoken for.
         {
             uint8_t rex, rey, rtile;
-            if (debuff_icon_next(&rex, &rey, &rtile))
-                move_entity_oam(SP_DEBUFF_ICON, (int16_t)rex * 8, (int16_t)rey * 8, rtile, PAL_XP_UI);
-            else
+            if (debuff_icon_next(&rex, &rey, &rtile)) {
+                // Mace stun glyph rides the torch/brazier fire ramp: OCP PAL_WALL_BG is the gameplay
+                // fire-particle tint (pal_ladder = brazier fire tone = PAL_XP_UI_BG xp-gold). Root keeps OCP7 gold.
+                uint8_t pal = (rtile == TILE_STUN_ICON_VRAM) ? PAL_WALL_BG : PAL_XP_UI;
+                move_entity_oam(SP_DEBUFF_ICON, (int16_t)rex * 8, (int16_t)rey * 8, rtile, pal);
+            } else {
                 oam_hide(SP_DEBUFF_ICON);
+            }
         }
     }
 }

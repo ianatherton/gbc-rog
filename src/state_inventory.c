@@ -30,6 +30,7 @@ BANKREF_EXTERN(entity_sprites_inv_cursor_hide)
 
 #define INV_MODE_GRID 0u
 #define INV_MODE_DROP 1u
+#define INV_MODE_BELT_PICK 2u
 
 #define MAX_EQUIP_MARKS 8u // OAM slots SP_ENEMY_BASE .. SP_ENEMY_BASE+7; swept by entity_sprites on gameplay re-entry
 
@@ -49,6 +50,8 @@ static void put_stat_uint(uint8_t x, uint8_t y, uint8_t v, uint8_t width) {
 static uint8_t inv_prev_j;
 static uint8_t inv_cursor; // 0..29
 static uint8_t inv_mode;
+static uint8_t inv_swap_src;   // slot being moved onto the belt (INV_MODE_BELT_PICK)
+static uint8_t belt_pick_idx;  // 0..BELT_ITEM_SLOT_COUNT-1 candidate belt slot
 
 static char    desc_buf[48];   // description text
 static uint8_t desc_base_len;  // strlen(desc_buf)
@@ -88,6 +91,43 @@ static void draw_cell(uint8_t slot) {
 static void draw_grid(void) {
     uint8_t i;
     for (i = 0u; i < INVENTORY_MAX_SLOTS; i++) draw_cell(i);
+}
+
+/* "BELT" spelled in the spacer row beneath the first BELT_ITEM_SLOT_COUNT slots
+   (slots 0..3 are the gameplay quick-use belt). Top-row spacer is BG row INV_GRID_Y+1. */
+static void draw_belt_label(void) {
+    static const char letters[BELT_ITEM_SLOT_COUNT] = { 'B', 'E', 'L', 'T' };
+    uint8_t s, x, y = (uint8_t)(INV_GRID_Y + 1u);
+    for (s = 0u; s < BELT_ITEM_SLOT_COUNT; s++) {
+        x = (uint8_t)(INV_GRID_X + s * INV_CELL_DX);
+        gotoxy(x, y);
+        setchar(letters[s]);
+        set_bkg_attribute_xy(x, y, PAL_UI);
+        VBK_REG = VBK_TILES;
+    }
+}
+
+/* True when the cursor item can be sent to the belt: a usable (non-equipment) item
+   that is not already sitting in a belt slot. */
+static uint8_t cursor_can_send_to_belt(void) {
+    uint8_t kind = inventory_kind[inv_cursor];
+    return (kind != ITEM_KIND_NONE &&
+            items_kind_category(kind) != ITEM_CAT_EQUIPMENT &&
+            inv_cursor >= BELT_ITEM_SLOT_COUNT) ? 1u : 0u;
+}
+
+/* Exchange both items across all four parallel inventory arrays. */
+static void swap_slots(uint8_t a, uint8_t b) {
+    uint8_t tk = inventory_kind[a], te = inventory_equipped[a], tc = inventory_count[a];
+    int8_t  tm = inventory_mod_level[a];
+    inventory_kind[a]      = inventory_kind[b];
+    inventory_equipped[a]  = inventory_equipped[b];
+    inventory_count[a]     = inventory_count[b];
+    inventory_mod_level[a] = inventory_mod_level[b];
+    inventory_kind[b]      = tk;
+    inventory_equipped[b]  = te;
+    inventory_count[b]     = tc;
+    inventory_mod_level[b] = tm;
 }
 
 static uint8_t is_kind_equipped(uint8_t kind) {
@@ -240,6 +280,10 @@ static void draw_cursor_and_name(void) {
     } else {
         gotoxy(2, INV_NAME_ROW); printf("(empty)");
     }
+    /* contextual action hint: usable items off the belt can be sent to it */
+    gotoxy(1, 16);
+    if (cursor_can_send_to_belt()) printf("A:to belt B:drop");
+    else                           printf("A:equip  B:drop ");
     reset_desc_ticker(inv_kind);
 }
 
@@ -260,11 +304,11 @@ static void draw_grid_screen(void) {
     lcd_clear_display();
     draw_menu_tabs_inv();
     draw_grid();
+    draw_belt_label();
     draw_equipped_marks();
     draw_equip_panel();
     draw_stats_panel();
-    draw_cursor_and_name();
-    gotoxy(1, 16); printf("A:equip  B:drop");
+    draw_cursor_and_name(); // also paints the contextual A:... help line (row 16)
     gotoxy(1, 17); printf("START resume");
     VBK_REG = VBK_ATTRIBUTES;
     fill_bkg_rect(0u, INV_DESC_ROW, INV_DESC_DRAW_W, 1u, PAL_XP_UI_BG);
@@ -285,6 +329,24 @@ static void draw_drop_confirm(void) {
     VBK_REG = VBK_TILES;
     gotoxy(5, 6); printf("%s", namebuf);
     gotoxy(3, 9); printf("A:Yes  B:Cancel");
+}
+
+static void draw_belt_pick(void) {
+    uint8_t cx, cy, xi;
+    char name[INV_NAME_LEN + 1u];
+    /* highlight the candidate belt slot with the inventory cursor sprite */
+    cell_origin(belt_pick_idx, &cx, &cy);
+    entity_sprites_inv_cursor_show(cx, cy);
+    /* name row: "To belt: <item>" */
+    for (xi = 2u; xi < 20u; xi++) set_bkg_attribute_xy(xi, INV_NAME_ROW, PAL_UI);
+    gotoxy(2, INV_NAME_ROW);
+    printf("                  "); // 18 spaces to clear name area
+    items_kind_display_name_copy(inventory_kind[inv_swap_src], inventory_mod_level[inv_swap_src],
+                                 name, (uint8_t)sizeof name);
+    gotoxy(2, INV_NAME_ROW); printf("%s", name);
+    /* help rows: pick instructions */
+    gotoxy(1, 16); printf("<> pick slot   ");
+    gotoxy(1, 17); printf("A:ok  B:cancel ");
 }
 
 BANKREF(state_inventory_enter)
@@ -333,6 +395,30 @@ void state_inventory_tick(void) BANKED {
         goto out;
     }
 
+    if (inv_mode == INV_MODE_BELT_PICK) {
+        if (e & J_LEFT) {
+            belt_pick_idx = (belt_pick_idx == 0u) ? (uint8_t)(BELT_ITEM_SLOT_COUNT - 1u)
+                                                  : (uint8_t)(belt_pick_idx - 1u);
+            wait_vbl_done();
+            draw_belt_pick();
+        } else if (e & J_RIGHT) {
+            belt_pick_idx = (uint8_t)((belt_pick_idx + 1u) % BELT_ITEM_SLOT_COUNT);
+            wait_vbl_done();
+            draw_belt_pick();
+        } else if (e & J_A) {
+            swap_slots(inv_swap_src, belt_pick_idx);
+            inv_cursor = belt_pick_idx; // cursor follows the item onto the belt
+            inv_mode = INV_MODE_GRID;
+            wait_vbl_done();
+            draw_grid_screen();
+        } else if (e & J_B) {
+            inv_mode = INV_MODE_GRID;
+            wait_vbl_done();
+            draw_grid_screen();
+        }
+        goto out;
+    }
+
     if (e & J_START)  { inv_desc_scx = 0u; entity_sprites_inv_cursor_hide(); entity_sprites_equip_marks_hide(); next_state = STATE_GAMEPLAY; goto out; }
     if (e & J_SELECT) { inv_desc_scx = 0u; entity_sprites_inv_cursor_hide(); entity_sprites_equip_marks_hide(); next_state = STATE_STATS;    goto out; }
 
@@ -359,6 +445,13 @@ void state_inventory_tick(void) BANKED {
             draw_equipped_marks();
             draw_equip_panel();
             draw_stats_panel();
+        } else if (cursor_can_send_to_belt()) {
+            inv_swap_src  = inv_cursor;
+            belt_pick_idx = 0u;
+            inv_mode      = INV_MODE_BELT_PICK;
+            inv_desc_scx  = 0u;
+            wait_vbl_done();
+            draw_belt_pick();
         }
         goto out;
     }

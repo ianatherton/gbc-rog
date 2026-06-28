@@ -9,6 +9,7 @@
 #include "render.h"
 #include "entity_sprites.h"
 #include "music.h"
+#include "map.h"
 #include "camera.h"
 #include "perf.h"
 #include <gb/gb.h>
@@ -68,7 +69,7 @@ uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage, uint8_t from_shield_burn
         dy = enemy_y[ei];
         {
             uint8_t dropped = enemy_try_drop_item(dx, dy);
-            if (!dropped && num_corpses < MAX_CORPSES) {
+            if (!dropped && num_corpses < MAX_CORPSES && !map_tile_blocks_gravestone(dx, dy)) {
                 corpse_x[num_corpses] = dx;
                 corpse_y[num_corpses] = dy;
                 corpse_tile[num_corpses] = corpse_deco_random();

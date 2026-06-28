@@ -2,6 +2,7 @@
 
 #include "items.h"
 #include "globals.h"
+#include "map.h"
 #include "ui.h"
 #include "scroll_blast.h"
 #include "scroll_root.h"
@@ -422,6 +423,7 @@ uint8_t ring_roll_kind(void) BANKED {
 uint8_t enemy_try_drop_item(uint8_t dx, uint8_t dy) BANKED {
     uint8_t gi;
     uint8_t kind;
+    if (map_tile_is_stairs_or_ladder(dx, dy)) return 0u; // never block stairs/ladders with loot
     if ((rand() % 20u) >= 3u) return 0u;
     for (gi = 0u; gi < MAX_GROUND_ITEMS; gi++) {
         if (ground_item_kind[gi] == ITEM_KIND_NONE) {

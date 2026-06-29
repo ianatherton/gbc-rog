@@ -12,8 +12,9 @@
 #define BIOME_BOSS    3u
 #define BIOME_OVERWORLD 4u // top-level hub (floor 0); never appears in the random rotation
 #define BIOME_MINIBOSS 5u // elite floor: normal fodder roster + one guaranteed 2x Slime; fixed at MINIBOSS_FLOOR_NUM
-#define BIOME_COUNT   6u
-#define BIOME_RANDOM_COUNT 3u // random floors pick from dungeon/crypt/cavern only (excludes BIOME_BOSS/OVERWORLD/MINIBOSS)
+#define BIOME_BOSS2   6u // second boss (Sphinx); fixed at BOSS2_FLOOR_NUM
+#define BIOME_COUNT   7u
+#define BIOME_RANDOM_COUNT 3u // random floors pick from dungeon/crypt/cavern only (excludes BOSS/BOSS2/OVERWORLD/MINIBOSS)
 
 // HOME-resident roster cache; populated by biome_load_active() at floor-gen time.
 // enemy.c / entity_sprites.c read this directly without bank switching.
@@ -36,10 +37,21 @@ void biome_cavern_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_cou
 void biome_boss_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 void biome_overworld_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 void biome_miniboss_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
+void biome_boss2_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 
 typedef void (*BiomeLoadPalettesFn)(void);
 void biome_boss_load_palettes(void); // overrides OCP4 with green+tan ramp for gorgon body/feet
+void biome_boss2_load_palettes(void); // OCP4 (PAL_SPHINX_BODY) sphinx ramp
 void biome_overworld_load_palettes(void); // dark-green field (BG slot 0 + floor-deco color 0)
+
+// Sphinx boss (bank 24, co-located with bosses.c art). sphinx_load_initial(): reset anim + upload
+// frame 0 (called from biome_load_active on floor entry). sphinx_anim_tick(): per gameplay frame on
+// BIOME_BOSS2 — two DIV timers re-upload the body/wing tiles (set_sprite_data, in VBlank) for a
+// slow leg cycle + faster wingbeat. OAM layout is fixed (entity_sprites), so animation is pure pixel-swap.
+BANKREF_EXTERN(sphinx_load_initial)
+BANKREF_EXTERN(sphinx_anim_tick)
+void sphinx_load_initial(void) BANKED;
+void sphinx_anim_tick(void) BANKED;
 
 // Hub continent water mask (bank 22) — generate_level carves land from it; render draws coast tiles.
 // BANKED so they can be called from bank 2 (render) and bank 10 (map_gen) without manual SWITCH_ROM.

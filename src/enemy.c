@@ -235,7 +235,8 @@ void spawn_enemies(void) { // random placement with collision checks
     boss_alive = 0u;
     for (i = 0; i < MAX_ENEMIES; i++) { enemy_force_active[i] = 0u; enemy_status[i] = 0u; enemy_stun[i] = 0u; enemy_persistent[i] = 0u; }
     if (floor_num == 1u || floor_biome == BIOME_OVERWORLD) return; // hub + entry floor are safe no-monster zones (empty roster → guard rand() % 0)
-    if (floor_biome == BIOME_BOSS) {
+    if (floor_biome == BIOME_BOSS || floor_biome == BIOME_BOSS2) {
+        uint8_t btype = (floor_biome == BIOME_BOSS2) ? ENEMY_SPHINX : ENEMY_GORGON; // both: 2-tile footprint, 3-high sprite
         uint8_t attempts, gx = 1u, gy = 3u; // fallback position
         boss_alive = 1u;
         for (attempts = 0u; attempts < 100u; attempts++) {
@@ -250,8 +251,8 @@ void spawn_enemies(void) { // random placement with collision checks
             }
         }
         enemy_x[0] = gx; enemy_y[0] = gy;
-        enemy_type[0]        = ENEMY_GORGON;
-        enemy_hp[0]          = enemy_effective_max_hp(ENEMY_GORGON);
+        enemy_type[0]        = btype;
+        enemy_hp[0]          = enemy_effective_max_hp(btype);
         enemy_alive[0]       = 1u;
         enemy_status[0]      = 0u;
         enemy_stun[0]        = 0u;
@@ -502,7 +503,7 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
             uint8_t occ = enemy_at(nx, ny);
             if (occ != ENEMY_DEAD && occ != (uint8_t)i) continue; // don't stack enemies
         }
-        if (enemy_type[i] == ENEMY_GORGON || enemy_type[i] == ENEMY_SLIME_BIG) { // right tile must also be free
+        if (enemy_type[i] == ENEMY_GORGON || enemy_type[i] == ENEMY_SLIME_BIG || enemy_type[i] == ENEMY_SPHINX) { // right tile must also be free
             uint8_t rocc = enemy_at((uint8_t)(nx+1u), ny);
             if (rocc != ENEMY_DEAD && rocc != (uint8_t)i) continue;
         }
@@ -513,10 +514,10 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
         }
 
         if (!is_walkable(nx, ny)) continue; // wall blocked proposed step
-        if ((enemy_type[i] == ENEMY_GORGON || enemy_type[i] == ENEMY_SLIME_BIG) && !is_walkable((uint8_t)(nx+1u), ny)) continue;
+        if ((enemy_type[i] == ENEMY_GORGON || enemy_type[i] == ENEMY_SLIME_BIG || enemy_type[i] == ENEMY_SPHINX) && !is_walkable((uint8_t)(nx+1u), ny)) continue;
 
         enemy_clear_slot(sx, sy);
-        if (enemy_type[i] == ENEMY_GORGON || enemy_type[i] == ENEMY_SLIME_BIG) enemy_clear_slot((uint8_t)(sx+1u), sy);
+        if (enemy_type[i] == ENEMY_GORGON || enemy_type[i] == ENEMY_SLIME_BIG || enemy_type[i] == ENEMY_SPHINX) enemy_clear_slot((uint8_t)(sx+1u), sy);
         enemy_x[i] = nx;
         enemy_y[i] = ny;
         if (tile_at(nx, ny) == TILE_PIT && !boss_alive) {
@@ -528,7 +529,7 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
                 dead_enemy_pool[dead_enemy_pool_count++] = i;
         } else {
             enemy_place_slot(i, nx, ny);
-            if (enemy_type[i] == ENEMY_GORGON || enemy_type[i] == ENEMY_SLIME_BIG) enemy_place_slot(i, (uint8_t)(nx+1u), ny);
+            if (enemy_type[i] == ENEMY_GORGON || enemy_type[i] == ENEMY_SLIME_BIG || enemy_type[i] == ENEMY_SPHINX) enemy_place_slot(i, (uint8_t)(nx+1u), ny);
         }
     }
     perf_record(PERF_ENEMY_MOVE, perf_stamp_elapsed(&perf_stamp));

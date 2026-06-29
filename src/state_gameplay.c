@@ -261,6 +261,12 @@ void state_gameplay_tick(void) BANKED {
             ability_dispatch_cast_belt(selected_belt_slot, g_player_x, g_player_y, &ar);
         else
             items_use_belt((uint8_t)(selected_belt_slot - BELT_SLOT_COUNT), &ar);
+        if (pending_transition != TRANS_NONE) { // Port scroll: leave this floor now, before any enemy turn
+            next_state = STATE_TRANSITION;
+            g_prev_j   = j;
+            wait_vbl_done();
+            return;
+        }
         if (ar.did_kill) {
             wait_vbl_done();
             draw_enemy_cells(g_player_x, g_player_y);
@@ -515,4 +521,5 @@ void state_gameplay_tick(void) BANKED {
     g_prev_j = j;
     wait_vbl_done();
     if (floor_biome == BIOME_OVERWORLD) water_anim_tick(); // fresh in VBlank: one 16-byte VRAM write drifts all sea
+    else if (floor_biome == BIOME_BOSS2) sphinx_anim_tick(); // fresh in VBlank: re-upload sphinx body/wing frames
 }

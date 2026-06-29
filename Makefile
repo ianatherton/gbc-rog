@@ -43,6 +43,8 @@ TILESET_C   = src/tileset.c
 # biome's own bank). Add a biome: new res/enemies_<biome>.png + a rule below.
 ENEMIES_MINIBOSS_PNG = res/enemies_miniboss.png
 ENEMIES_MINIBOSS_C   = src/enemies_miniboss.c
+BOSSES_PNG = res/bosses.png       # indexed 24x64 (3 cols x 8 rows): sphinx body x2 frames + wings x2 frames
+BOSSES_C   = src/bosses.c
 
 -include $(DEPS)
 
@@ -52,7 +54,7 @@ all: assets $(TARGETS)
 sameboy:
 	bash "$(CURDIR)/emu/build-sameboy.sh"
 
-assets: $(TILESET_C) $(ENEMIES_MINIBOSS_C)
+assets: $(TILESET_C) $(ENEMIES_MINIBOSS_C) $(BOSSES_C)
 
 $(TILESET_C): $(TILESET_PNG)
 	$(PNG2ASSET) $< -o $@ -map -keep_duplicate_tiles -noflip
@@ -65,6 +67,12 @@ $(ENEMIES_MINIBOSS_C): $(ENEMIES_MINIBOSS_PNG)
 	$(PNG2ASSET) $< -o $@ -map -keep_duplicate_tiles -noflip -keep_palette_order
 	@sed -i '/#pragma bank /d' $@
 	@sed -i '2a #pragma bank 27' $@
+
+# Sphinx boss (BIOME_BOSS2): tiles row-major, 3 per row → tile N = row*3 + col (see TILE_SPHINX_* in defs.h).
+$(BOSSES_C): $(BOSSES_PNG)
+	$(PNG2ASSET) $< -o $@ -map -keep_duplicate_tiles -noflip -keep_palette_order
+	@sed -i '/#pragma bank /d' $@
+	@sed -i '2a #pragma bank 24' $@
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.c
 	$(LCC) $(CFLAGS) -c -o $@ $<

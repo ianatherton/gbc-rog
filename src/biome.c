@@ -18,6 +18,8 @@ BANKREF_EXTERN(biome_boss_load_palettes)
 BANKREF_EXTERN(biome_overworld_copy_defs)
 BANKREF_EXTERN(biome_overworld_load_palettes)
 BANKREF_EXTERN(biome_miniboss_copy_defs)
+BANKREF_EXTERN(biome_boss2_copy_defs)
+BANKREF_EXTERN(biome_boss2_load_palettes)
 
 // Dispatch table indexed by biome ID — adding a biome is one new bank file plus one row here
 // (and BIOME_*/BIOME_COUNT in biome.h). Rows hold plain fn pointers; we map the bank ourselves.
@@ -29,6 +31,7 @@ static const BiomeEntry biome_table[BIOME_COUNT] = {
     /* BIOME_BOSS    */ { BANK(biome_boss_copy_defs),    biome_boss_copy_defs,    biome_boss_load_palettes },
     /* BIOME_OVERWORLD */ { BANK(biome_overworld_copy_defs), biome_overworld_copy_defs, biome_overworld_load_palettes },
     /* BIOME_MINIBOSS */ { BANK(biome_miniboss_copy_defs), biome_miniboss_copy_defs, NULL },
+    /* BIOME_BOSS2   */ { BANK(biome_boss2_copy_defs),   biome_boss2_copy_defs,   biome_boss2_load_palettes },
 };
 
 void biome_load_active(uint8_t biome_id) {
@@ -83,6 +86,11 @@ void biome_load_active(uint8_t biome_id) {
         set_bkg_data(PREFAB_VRAM_WP_TR,        1u, tileset_tiles + (uint16_t)TILE_PREFAB_WP_TR * 16u);
         set_bkg_data(PREFAB_VRAM_WP_BL,        1u, tileset_tiles + (uint16_t)TILE_PREFAB_WP_BL * 16u);
         set_bkg_data(PREFAB_VRAM_WP_BR,        1u, tileset_tiles + (uint16_t)TILE_PREFAB_WP_BR * 16u);
+    } else if (biome_id == BIOME_BOSS2) {
+        // Sphinx: upload frame-0 art into the 10 scratch slots (gorgon + skel/rat/big-skull slots,
+        // free here). sphinx_anim_tick re-uploads per frame; the else-branch restores those slots
+        // on every other floor. BANKED call — its trampoline maps bank 24 (bosses art + code).
+        sphinx_load_initial();
     } else {
         SWITCH_ROM(BANK(tileset));
         set_sprite_data(TILE_SKEL_1_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SKEL_ROM_1 * 16u);
@@ -114,6 +122,7 @@ uint8_t biome_pick_for_floor(uint8_t floor_n, uint16_t seed) {
     if (floor_n <= 1u)                 return BIOME_DUNGEON;
     if (floor_n == MINIBOSS_FLOOR_NUM) return BIOME_MINIBOSS;
     if (floor_n == BOSS_FLOOR_NUM)     return BIOME_BOSS;
+    if (floor_n == BOSS2_FLOOR_NUM)    return BIOME_BOSS2;
     h = (uint16_t)(seed ^ (uint16_t)((uint16_t)floor_n * 2053u));
     h ^= (uint16_t)(h >> 8);
     h ^= (uint16_t)((uint16_t)floor_n * 6361u);

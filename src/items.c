@@ -39,6 +39,7 @@ static const uint8_t kind_cat[ITEM_KIND_COUNT] = {
     ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, // Hunter
     ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, // Mystic
     ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, // Storm
+    ITEM_CAT_CONSUMABLE, // SCROLL_PORT6 (Port: Flr6)
 };
 
 static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
@@ -67,6 +68,7 @@ static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
     TILE_RING_OFF, TILE_RING_OFF, TILE_RING_OFF, // Hunter
     TILE_RING_OFF, TILE_RING_OFF, TILE_RING_OFF, // Mystic
     TILE_RING_OFF, TILE_RING_OFF, TILE_RING_OFF, // Storm
+    TILE_SCROLL_BELT_OFF, // SCROLL_PORT6 — reuses the scroll art
 };
 
 static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
@@ -97,6 +99,7 @@ static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
     PAL_WALL_BG, PAL_CORPSE, PAL_XP_UI_BG, // Hunter
     PAL_WALL_BG, PAL_CORPSE, PAL_XP_UI_BG, // Mystic
     PAL_WALL_BG, PAL_CORPSE, PAL_XP_UI_BG, // Storm
+    PAL_ENEMY_SNAKE, // SCROLL_PORT6 — green tint to read apart from the gold Death Scroll
 };
 
 static const char *const kind_name[ITEM_KIND_COUNT] = {
@@ -114,6 +117,7 @@ static const char *const kind_name[ITEM_KIND_COUNT] = {
     "Hunter Ring", "Hunter Ring", "Hunter Ring",
     "Mystic Ring", "Mystic Ring", "Mystic Ring",
     "Storm Ring",  "Storm Ring",  "Storm Ring",
+    "Port: Flr6",
 };
 
 static const char *const kind_desc[ITEM_KIND_COUNT] = {
@@ -162,6 +166,7 @@ static const char *const kind_desc[ITEM_KIND_COUNT] = {
     "+1 atk, +4% dodge. A breezy ring.",    // Storm T1
     "+2 atk, +8% dodge. A gale ring.",      // Storm T2
     "+3 atk, +12% dodge. A tempest ring.",  // Storm T3
+    "Warps you to floor 6. A torn travel scroll.", // SCROLL_PORT6
 };
 
 uint8_t items_kind_category(uint8_t kind) BANKED {
@@ -377,6 +382,11 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
         if ((uint16_t)player_hp + heal >= (uint16_t)player_hp_max) player_hp = player_hp_max;
         else player_hp = (uint8_t)((uint16_t)player_hp + heal);
         book_heal_cooldown_turns = 5u;
+    } else if (kind == ITEM_KIND_SCROLL_PORT6) {
+        // Warp to floor 6. State_gameplay sees pending_transition set after the belt use and bounces
+        // to STATE_TRANSITION (TRANS_FLOOR_PORT) before any enemy turn runs on the floor we're leaving.
+        pending_port_floor = BOSS2_FLOOR_NUM;
+        pending_transition = TRANS_FLOOR_PORT;
     }
     if (items_kind_category(kind) != ITEM_CAT_REUSABLE)
         inventory_remove(item_idx);

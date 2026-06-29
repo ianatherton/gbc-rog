@@ -56,6 +56,7 @@ extern uint8_t gameplay_soft_reenter;
 extern uint8_t level_is_revisit;
 extern uint8_t deepest_floor;       // deepest floor_num reached this run; floor_num <= deepest_floor => revisit
 extern uint8_t entered_from_below;  // 1 = arrived via stairs-up (ascend) => spawn at pit; 0 = descend/fresh => spawn at stairs-up
+extern uint8_t pending_port_floor;  // target floor for TRANS_FLOOR_PORT (Witch's Port scroll warps here)
 
 extern uint8_t inventory_kind[INVENTORY_MAX_SLOTS];     // ITEM_KIND_NONE = empty
 extern uint8_t inventory_equipped[INVENTORY_MAX_SLOTS]; // 1=equipped, 0=not; parallel to inventory_kind

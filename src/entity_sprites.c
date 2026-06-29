@@ -359,6 +359,11 @@ static void refresh_enemy_oam(uint8_t slot) {
             oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 1u));
             oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 2u));
         }
+        if (enemy_type[slot] == ENEMY_SPHINX) {
+            // hide the 9 extra sphinx tiles (OAM 4..12) on death/poof; primary slot 3 shows the poof
+            uint8_t k;
+            for (k = 1u; k <= 9u; k++) oam_hide((uint8_t)(SP_ENEMY_BASE + k));
+        }
         if (enemy_poof_ttl[slot] > 0u) {
             uint8_t mx = enemy_x[slot], my = enemy_y[slot];
             if (mx < g_cam_tx || mx >= g_cam_tx_end
@@ -443,6 +448,43 @@ static void refresh_enemy_oam(uint8_t slot) {
                 oam_hide((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 3u));
                 oam_hide(SP_GORGON_HEAD_R);
             }
+        }
+        return;
+    }
+    // Custom 10-tile OAM render for ENEMY_SPHINX (BIOME_BOSS2 only). The boss is the floor's only
+    // enemy (num_enemies==1), so the idle enemy-run slots are free: primary slot 3 + the contiguous
+    // 4..12 (the hide sweep's lower bound is raised to 13 on this floor). 3×2 body in slots 7..12,
+    // 2×2 wings in slots 3..6 (lower OAM index = drawn on top). Frame animation is a pure VRAM pixel
+    // swap (sphinx_anim_tick re-uploads the body/wing tiles), so the OAM layout here is fixed.
+    if (enemy_type[slot] == ENEMY_SPHINX) {
+        int16_t ewx = (int16_t)enemy_x[slot] * 8 + en_ofs_x[slot];
+        int16_t ewy = (int16_t)enemy_y[slot] * 8 + en_ofs_y[slot];
+        if (enemy_x[slot] < g_cam_tx || enemy_x[slot] >= g_cam_tx_end
+                || enemy_y[slot] < g_cam_ty || enemy_y[slot] >= g_cam_ty_end
+                || !lighting_is_revealed(enemy_x[slot], enemy_y[slot])) {
+            uint8_t k;
+            for (k = 0u; k <= 9u; k++) oam_hide((uint8_t)(SP_ENEMY_BASE + k)); // primary + 9 extra
+            return;
+        }
+        {
+            uint8_t pal = PAL_SPHINX_BODY;
+            uint8_t h = en_hit_flash_age[slot];
+            if (h > 0u && h <= ENEMY_HIT_FLASH_VBL) {
+                uint8_t age0 = (uint8_t)(h - 1u);
+                if (((age0 >> 1) & 1u) == 0u) pal = 0u; // OCP0 grey hit pulse
+            }
+            // body 3×2: top row at ewy-8, legs row (footprint) at ewy; cols ewx, +8, +16
+            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 4u), ewx,                (int16_t)(ewy - 8), TILE_SPHINX_B0_VRAM, pal);
+            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 5u), (int16_t)(ewx + 8), (int16_t)(ewy - 8), TILE_SPHINX_B1_VRAM, pal);
+            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 6u), (int16_t)(ewx + 16),(int16_t)(ewy - 8), TILE_SPHINX_B2_VRAM, pal);
+            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 7u), ewx,                ewy,                TILE_SPHINX_B3_VRAM, pal);
+            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 8u), (int16_t)(ewx + 8), ewy,                TILE_SPHINX_B4_VRAM, pal);
+            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 9u), (int16_t)(ewx + 16),ewy,                TILE_SPHINX_B5_VRAM, pal);
+            // wings 2×2 above the back (slots 3..6 = on top): rows ewy-24 / ewy-16, cols ewx / +8
+            move_entity_oam(sp,                            ewx,                (int16_t)(ewy - 24), TILE_SPHINX_W0_VRAM, pal);
+            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 1u), (int16_t)(ewx + 8), (int16_t)(ewy - 24), TILE_SPHINX_W1_VRAM, pal);
+            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 2u), ewx,                (int16_t)(ewy - 16), TILE_SPHINX_W2_VRAM, pal);
+            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 3u), (int16_t)(ewx + 8), (int16_t)(ewy - 16), TILE_SPHINX_W3_VRAM, pal);
         }
         return;
     }
@@ -684,6 +726,9 @@ void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) BANKED {
     // Hide unused enemy body slots — guarded so this only runs when num_enemies changes (once per floor)
     {
         uint8_t new_mark = (uint8_t)(SP_ENEMY_BASE + num_enemies);
+        // The Sphinx boss draws into the idle enemy-run slots 3..12; keep the sweep above them.
+        if (floor_biome == BIOME_BOSS2 && new_mark < (uint8_t)(SP_ENEMY_BASE + 10u))
+            new_mark = (uint8_t)(SP_ENEMY_BASE + 10u);
         if (oam_enemy_hide_mark != new_mark) {
             for (i = new_mark; i < SP_BIG_SKELL_HEAD_BASE; i++) oam_hide(i);
             oam_enemy_hide_mark = new_mark;

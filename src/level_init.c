@@ -27,6 +27,14 @@ void level_init_display(uint8_t from_pit) BANKED {
         ui_loading_screen_begin(1);
         floor_num--;
         entered_from_below = 1u; // ascended via stairs — land at pit
+    } else if (from_pit == 3u) {
+        lcd_gameplay_active = 0u;
+        window_ui_hide();
+        wait_vbl_done();
+        lcd_clear_display();
+        ui_loading_screen_begin(0);
+        floor_num = pending_port_floor; // Witch Port scroll warps straight to this floor
+        entered_from_below = 0u;        // land at the stairs-up like a descent
     } else {
         lcd_gameplay_active = 0u;
         window_ui_hide();
@@ -47,6 +55,7 @@ void level_init_display(uint8_t from_pit) BANKED {
         else                          { player_armor = 15u; player_magdef =  5u; player_dodge =  0u; } // KNIGHT — armored
         player_hp = player_hp_max;
         inventory_clear_all(); // fresh run wipes any items from a previous attempt
+        if (player_class == 2u) inventory_add(ITEM_KIND_SCROLL_PORT6, 0); // WITCH starts with the Port: Flr6 scroll
         {
             uint8_t fi;
             for (fi = 0u; fi < MAX_FLOORS; fi++) {

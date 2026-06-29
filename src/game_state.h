@@ -21,6 +21,7 @@ typedef enum {
     TRANS_NONE = 0,
     TRANS_FLOOR_PIT,    // next floor via pit; runs level_init_display(1)+generate
     TRANS_FLOOR_UP,     // previous floor via stairs up; runs level_init_display(2)+generate with revisit flag
+    TRANS_FLOOR_PORT,   // warp to pending_port_floor (Witch's Port scroll); runs level_init_display(3)+generate
     TRANS_TO_GAME_OVER, // defer to STATE_GAME_OVER enter (reliable far-call path)
 } TransitionKind;
 

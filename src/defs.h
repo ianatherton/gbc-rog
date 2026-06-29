@@ -105,7 +105,8 @@ typedef struct {
 #define WALK_STEPS 4000   // scaled up from 350 to match the larger 64×64 map
 #define NUM_PITS     1    // single descent tile per floor
 #define MINIBOSS_FLOOR_NUM 3u // floor 3 always generates the miniboss biome
-#define BOSS_FLOOR_NUM      5u // floor 5 always generates the boss biome
+#define BOSS_FLOOR_NUM      5u // floor 5 always generates the boss biome (Gorgon)
+#define BOSS2_FLOOR_NUM     6u // floor 6 always generates the second boss biome (Sphinx)
 #define MAX_FLOORS     50u // hard cap; floor MAX_FLOORS pit ends the run
 
 /* ── Enemy roster ────────────────────────────────────────────────────────── */
@@ -146,7 +147,8 @@ typedef struct {
 #define ENEMY_GORGON    7
 #define ENEMY_SLIME_BIG 8 // 2x-scaled Slime miniboss; reuses Slime AI; 2-tile Gorgon-style footprint;
                           // animated 2-frame; guaranteed ~10-slime spawn on death (enemy_extras.c)
-#define NUM_ENEMY_TYPES 9
+#define ENEMY_SPHINX    9 // floor-6 boss; 3x2 body + flapping wings, 10 OAM tiles; 2-tile Gorgon-style footprint
+#define NUM_ENEMY_TYPES 10
 
 /* ── Animation ───────────────────────────────────────────────────────────── */
 // DIV_REG runs at 16384 Hz; 1638 ticks ≈ 0.10s between frame flips
@@ -448,6 +450,27 @@ typedef struct {
 #define TILE_GORGON_BODY_R_OFF  101u
 #define TILE_GORGON_FEET_L_OFF  102u
 #define TILE_GORGON_FEET_R_OFF  103u
+
+/* ── Sphinx boss (BIOME_BOSS2, floor 6) ──────────────────────────────────────
+   10 sprite-VRAM scratch slots, all free on the sphinx floor (gorgon + skel/rat/big-skull
+   never spawn here; biome_load_active's else-branch restores their art on every other floor).
+   Layout = 3x2 body (B0..B5) + 2x2 wings (W0..W3, drawn on top). Pixel data is re-uploaded
+   per animation frame from bosses_tiles[] (bank 24) — OAM/positions stay fixed (water-style swap). */
+#define TILE_SPHINX_B0_VRAM 225u /* body top-left  (col A) — reuses gorgon head-L */
+#define TILE_SPHINX_B1_VRAM 226u /* body top-mid   (col B) — gorgon head-R */
+#define TILE_SPHINX_B2_VRAM 228u /* body top-right (col C) — gorgon body-L */
+#define TILE_SPHINX_B3_VRAM 229u /* body bot-left  (col A) — gorgon body-R */
+#define TILE_SPHINX_B4_VRAM 230u /* body bot-mid   (col B) — gorgon feet-L */
+#define TILE_SPHINX_B5_VRAM 231u /* body bot-right (col C) — gorgon feet-R */
+#define TILE_SPHINX_W0_VRAM 237u /* wing top-left  — reuses skeleton-1 */
+#define TILE_SPHINX_W1_VRAM 238u /* wing top-right — skeleton-2 */
+#define TILE_SPHINX_W2_VRAM 239u /* wing bot-left  — rat */
+#define TILE_SPHINX_W3_VRAM 234u /* wing bot-right — big-skull body (blank tile during wing_up) */
+/* bosses_tiles[] source indices (3 cols/row → N = row*3 + col): */
+#define SPHINX_TILE_LEGSUP    0u  /* A1,B1,C1,A2,B2,C2 = 0..5 */
+#define SPHINX_TILE_LEGSDN    6u  /* A3,B3,C3,A4,B4,C4 = 6..11 */
+/* wing frames are non-contiguous (skip empty C col): A5,B5,A6,B6 and A7,B7,A8,B8 */
+#define PAL_SPHINX_BODY PAL_GORGON_BODY /* OCP slot 4 — gorgon's slot, free on the sphinx floor */
 
 /* ── Active-biome enemy sprite scratch ────────────────────────────────────────
    The 2x-scaled Slime miniboss (2×2 tiles, animated 2-frame) is the first user of the

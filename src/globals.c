@@ -12,6 +12,7 @@ uint8_t player_light_radius(void) {
 volatile GameState       current_state        = STATE_NONE;
 volatile GameState       next_state           = STATE_TITLE; // must not rely on BSS — random WRAM skips title enter
 volatile TransitionKind  pending_transition; // 0 = TRANS_NONE — omit ROM slot so .data stays below 0x4000 (BankPack overlap fix)
+uint8_t                  pending_port_floor;  // target floor for TRANS_FLOOR_PORT (Witch Port scroll)
 uint8_t                  gameplay_soft_reenter; // 0 — set by transition only
 uint8_t                  level_is_revisit;      // 0 — set in level_init_display from deepest_floor (direction-independent)
 uint8_t                  deepest_floor;         // deepest floor reached this run; reset to 1 on new run

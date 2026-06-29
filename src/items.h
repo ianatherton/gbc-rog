@@ -26,7 +26,8 @@
    All share the I16 tile; tier shown by palette tint (T1 bronze / T2 silver / T3 gold). */
 #define ITEM_KIND_RING_FIRST 14u
 #define ITEM_KIND_RING_COUNT 30u
-#define ITEM_KIND_COUNT      44u
+#define ITEM_KIND_SCROLL_PORT6 44u // "Port: Flr6" — Witch starting scroll; warps the player to floor 6. Not in the drop table
+#define ITEM_KIND_COUNT      45u
 #define ITEM_KIND_NONE      255u
 
 #define ITEM_BOW_STACK_QTY   20u  // arrows granted per bow pickup

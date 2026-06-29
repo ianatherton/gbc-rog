@@ -42,6 +42,17 @@ void state_transition_enter(void) BANKED {
         current_state = STATE_NONE;
         next_state    = STATE_GAMEPLAY;
         break;
+    case TRANS_FLOOR_PORT:
+        BANK_DBG("TR_port");
+        wait_vbl_done();
+        lcd_clear_display();
+        load_palettes();
+        level_init_display(3); // sets floor_num = pending_port_floor
+        level_generate_and_spawn(&g_player_x, &g_player_y);
+        gameplay_soft_reenter = 1u;
+        current_state = STATE_NONE;
+        next_state    = STATE_GAMEPLAY;
+        break;
     case TRANS_TO_GAME_OVER:
         BANK_DBG("TR_death");
         next_state = STATE_GAME_OVER;

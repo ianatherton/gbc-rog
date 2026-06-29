@@ -480,11 +480,15 @@ static void refresh_enemy_oam(uint8_t slot) {
             move_entity_oam((uint8_t)(SP_ENEMY_BASE + 7u), ewx,                ewy,                TILE_SPHINX_B3_VRAM, pal);
             move_entity_oam((uint8_t)(SP_ENEMY_BASE + 8u), (int16_t)(ewx + 8), ewy,                TILE_SPHINX_B4_VRAM, pal);
             move_entity_oam((uint8_t)(SP_ENEMY_BASE + 9u), (int16_t)(ewx + 16),ewy,                TILE_SPHINX_B5_VRAM, pal);
-            // wings 2×2 above the back (slots 3..6 = on top): rows ewy-24 / ewy-16, cols ewx / +8
-            move_entity_oam(sp,                            ewx,                (int16_t)(ewy - 24), TILE_SPHINX_W0_VRAM, pal);
-            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 1u), (int16_t)(ewx + 8), (int16_t)(ewy - 24), TILE_SPHINX_W1_VRAM, pal);
-            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 2u), ewx,                (int16_t)(ewy - 16), TILE_SPHINX_W2_VRAM, pal);
-            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 3u), (int16_t)(ewx + 8), (int16_t)(ewy - 16), TILE_SPHINX_W3_VRAM, pal);
+            // wings 2×2 attached as a child of body tile B1 (top-middle, slots 3..6 = on top):
+            // the wing's bottom-left corner is pinned to B1's bottom-left corner (ewx+8, ewy) —
+            // the "b1/b3" corner — so the wing extends up & right over the upper-center/right body.
+            int16_t wing_bl_x = (int16_t)(ewx + 8); // B1 bottom-left corner X
+            int16_t wing_bl_y = ewy;                // B1 bottom-left corner Y
+            move_entity_oam(sp,                            wing_bl_x,                (int16_t)(wing_bl_y - 16), TILE_SPHINX_W0_VRAM, pal);
+            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 1u), (int16_t)(wing_bl_x + 8), (int16_t)(wing_bl_y - 16), TILE_SPHINX_W1_VRAM, pal);
+            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 2u), wing_bl_x,                (int16_t)(wing_bl_y - 8),  TILE_SPHINX_W2_VRAM, pal);
+            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 3u), (int16_t)(wing_bl_x + 8), (int16_t)(wing_bl_y - 8),  TILE_SPHINX_W3_VRAM, pal);
         }
         return;
     }

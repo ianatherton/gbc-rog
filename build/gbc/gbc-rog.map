@@ -141,7 +141,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00000EDF  l__CODE_1 |    00001108  l__CODE_1 |    000011DD  l__CODE_1
      000014B5  l__CODE_1 |    00001554  l__CODE_1 |    00001AF7  l__DATA  
      00001EB4  l__CODE_3 |    00002000  _rROMB0   |    00002C02  l__CODE  
-     00002E02  s__HOME   |    00002E0B  l__CODE_1 |    00003000  _rROMB1  
+     00002E02  s__HOME   |    00002E06  l__CODE_1 |    00003000  _rROMB1  
      000030CC  l__CODE_5 |    000039C3  s__BASE   |    000039C3  s__CODE_0
      000039C3  s__INITIA |    000039C3  s__LIT    |    000039E3  s__GSINIT
      000039F4  s__GSFINA |    00003F9E  l__CODE_2 |    00004000  _rMBC7_SR
@@ -763,7 +763,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_17               00114000    00002E0B =       11787. bytes (REL,CON)
+_CODE_17               00114000    00002E06 =       11782. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -771,22 +771,22 @@ _CODE_17               00114000    00002E0B =       11787. bytes (REL,CON)
      0011436D  _entity_s |    00114388  ___func_e |    00114388  _entity_s
      0011442F  ___func_e |    0011442F  _entity_s |    00114457  ___func_e
      00114457  _entity_s |    0011445D  ___func_e |    0011445D  _entity_s
-     00114FB3  ___func_e |    00114FB3  _entity_s |    0011527A  ___func_e
-     0011527A  _entity_s |    001152AB  ___func_e |    001152AB  _entity_s
-     001152CC  ___func_e |    001152CC  _entity_s |    001152DB  ___func_e
-     001152DB  _entity_s |    0011531D  ___func_e |    0011531D  _entity_s
-     00115402  ___func_e |    00115402  _entity_s |    00115427  ___func_e
-     00115427  _entity_s |    00115443  ___func_e |    00115443  _entity_s
-     001154EA  ___func_e |    001154EA  _entity_s |    00115571  ___func_e
-     00115571  _entity_s |    0011574F  ___func_e |    0011574F  _entity_s
-     00115968  ___func_e |    00115968  _entity_s |    00115C5F  ___func_e
-     00115C5F  _entity_s |    00115E59  ___func_e |    00115E59  _entity_s
-     00115F75  ___func_e |    00115F75  _entity_s |    0011615F  ___func_e
-     0011615F  _entity_s |    0011629D  ___func_e |    0011629D  _entity_s
-     001162C9  ___func_e |    001162C9  _entity_s |    001162D2  ___func_e
-     001162D2  _entity_s |    001162E6  ___func_e |    001162E6  _entity_s
-     001166F9  ___func_a |    001166F9  _ally_fox |    0011686F  ___func_a
-     0011686F  _ally_fox |    00116A3D  ___func_a |    00116A3D  _ally_fox
+     00114FAE  ___func_e |    00114FAE  _entity_s |    00115275  ___func_e
+     00115275  _entity_s |    001152A6  ___func_e |    001152A6  _entity_s
+     001152C7  ___func_e |    001152C7  _entity_s |    001152D6  ___func_e
+     001152D6  _entity_s |    00115318  ___func_e |    00115318  _entity_s
+     001153FD  ___func_e |    001153FD  _entity_s |    00115422  ___func_e
+     00115422  _entity_s |    0011543E  ___func_e |    0011543E  _entity_s
+     001154E5  ___func_e |    001154E5  _entity_s |    0011556C  ___func_e
+     0011556C  _entity_s |    0011574A  ___func_e |    0011574A  _entity_s
+     00115963  ___func_e |    00115963  _entity_s |    00115C5A  ___func_e
+     00115C5A  _entity_s |    00115E54  ___func_e |    00115E54  _entity_s
+     00115F70  ___func_e |    00115F70  _entity_s |    0011615A  ___func_e
+     0011615A  _entity_s |    00116298  ___func_e |    00116298  _entity_s
+     001162C4  ___func_e |    001162C4  _entity_s |    001162CD  ___func_e
+     001162CD  _entity_s |    001162E1  ___func_e |    001162E1  _entity_s
+     001166F4  ___func_a |    001166F4  _ally_fox |    0011686A  ___func_a
+     0011686A  _ally_fox |    00116A38  ___func_a |    00116A38  _ally_fox
 ASxxxx Linker V03.00/V05.40 + sdld,  page 48.
 Hexadecimal  [32-Bits]
 

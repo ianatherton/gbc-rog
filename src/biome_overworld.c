@@ -305,7 +305,7 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
     }
 
     if (base_tile == TILE_WALL) {
-        if (ow_water(mx, my)) { *pal_out = PAL_PILLAR_BG; return TILE_OVERWORLD_WATER_VRAM; } // open sea
+        if (ow_water(mx, my)) { *pal_out = PAL_PILLAR_BG; return TILE_OVERWORLD_WATER_VRAM; } // open sea (sparkle overlay flips a few cells per step — render.c)
         *pal_out = (region == OW_REGION_SNOW)   ? PAL_WALL_BG    // frosted tree
                  : (region == OW_REGION_DESERT) ? PAL_OW_ACCENT  // sandy mound
                  :                                PAL_OW_FOLIAGE; // green pine
@@ -351,4 +351,38 @@ void render_blit_strip_row(uint8_t vy, uint8_t vx0, uint8_t n) BANKED {
         set_bkg_attributes(0u, vy, rem, 1u, render_strip_attrs + first);
     }
     VBK_REG = 0;
+}
+
+// ── Open-sea animation ───────────────────────────────────────────────────────
+// All open sea shares one VRAM tile (TILE_OVERWORLD_WATER_VRAM), so rewriting that tile's 16 bytes of
+// pixel data animates EVERY water cell on screen at once — O(1), independent of how much sea is visible,
+// no per-cell map writes, no slowdown. Each tick we horizontally barrel-scroll the base F10 art by one
+// pixel (bits wrap, so the 8px tile still tiles seamlessly): the wave specks drift sideways like a current,
+// continuously, even while standing still. water_anim_base[] is the captured base tile (filled in main.c
+// while the tileset bank is paged in — reading the ROM array from this bank would need a SWITCH_ROM).
+uint8_t water_anim_base[16];     // base F10 pixels, snapshotted at boot
+#define WATER_ANIM_DIV_TICKS 1100u // ~0.067s per 1px drift step (DIV_REG @16384Hz)
+static uint8_t  wanim_last_div;
+static uint16_t wanim_acc;
+static uint8_t  wanim_shift;     // 0..7 current horizontal pixel offset
+
+BANKREF(water_anim_reset)
+void water_anim_reset(void) BANKED { wanim_last_div = DIV_REG; wanim_acc = 0u; wanim_shift = 0u; }
+
+BANKREF(water_anim_tick)
+void water_anim_tick(void) BANKED { // call every gameplay frame on the overworld; cheap (DIV math) until it crosses
+    uint8_t div = DIV_REG;
+    wanim_acc += (uint8_t)(div - wanim_last_div); // unsigned 8-bit delta wraps correctly
+    wanim_last_div = div;
+    if (wanim_acc < WATER_ANIM_DIV_TICKS) return;
+    wanim_acc -= WATER_ANIM_DIV_TICKS;
+    wanim_shift = (uint8_t)((wanim_shift + 1u) & 7u);
+    {
+        uint8_t buf[16], r, s = wanim_shift;
+        for (r = 0u; r < 16u; r++) { // rotate each row's bits = scroll the tile 1px horizontally, with wrap
+            uint8_t b = water_anim_base[r];
+            buf[r] = s ? (uint8_t)((b << s) | (b >> (uint8_t)(8u - s))) : b;
+        }
+        set_bkg_data(TILE_OVERWORLD_WATER_VRAM, 1u, buf); // one 16-byte VRAM write repaints all sea (caller in VBlank)
+    }
 }

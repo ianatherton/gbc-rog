@@ -514,4 +514,5 @@ void state_gameplay_tick(void) BANKED {
     if (pending_pickup_slot != 255u) next_state = STATE_PICKUP; // turn fully resolved — open modal next frame
     g_prev_j = j;
     wait_vbl_done();
+    if (floor_biome == BIOME_OVERWORLD) water_anim_tick(); // fresh in VBlank: one 16-byte VRAM write drifts all sea
 }

@@ -20,6 +20,7 @@ extern uint16_t run_seed;
 extern uint8_t  player_class; // 0=KNIGHT 1=SCOUNDREL 2=WITCH 3=ZERKER (char create)
 extern uint8_t  floor_biome;  // BIOME_* — set by level_init before spawn; selects bank 10/11/12 enemy roster
 extern uint8_t  overworld_preset; // 0..OVERWORLD_PRESET_COUNT-1 — hub continent layout, picked from run_seed
+extern uint8_t  water_anim_base[16]; // base F10 water tile pixels, snapshotted at boot for the sea-scroll animation
 extern uint8_t  boss_alive;   // 1 while Gorgon (BIOME_BOSS) or the 2x Slime elite (BIOME_MINIBOSS) lives; suppresses stairs/pit until cleared
 
 extern uint8_t  g_player_x, g_player_y, g_prev_j;

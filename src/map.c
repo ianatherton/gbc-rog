@@ -234,6 +234,7 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     }
     enemy_anim_toggle = 0;
     enemy_anim_reset();
+    water_anim_reset(); // sync the open-sea scroll timer on level load (no-op visually off the overworld)
     wall_tileset_index = TILE_WALL_FIRST;
     {
         uint32_t m = (uint32_t)floor_seed * 2246523629u ^ (uint32_t)floor_seed << 11; // no rand() before generate_level

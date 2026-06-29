@@ -62,6 +62,7 @@ int main(void) {
             tileset_tiles + (uint16_t)TILE_C10 * 16u);
         set_bkg_data(TILE_OVERWORLD_WATER_VRAM, 1u, // overworld water border ← f10 art (title-safe G6 slot 214)
             tileset_tiles + (uint16_t)TILE_F10 * 16u);
+        memcpy(water_anim_base, tileset_tiles + (uint16_t)TILE_F10 * 16u, 16u); // snapshot base for the sea-scroll anim (tileset bank paged in here)
         set_sprite_data(TILE_LEVELUP_SMILE_VRAM, 1u, // L10 smile — level-up aura (sheet past first 128)
             tileset_tiles + (uint16_t)TILE_SMILE_L10 * 16u);
         set_bkg_data(TILE_SCROLL_I11_VRAM, 1u, // I11 scroll — ROM past first VRAM pack

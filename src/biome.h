@@ -63,4 +63,13 @@ BANKREF_EXTERN(overworld_cell_render)
 uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
                               uint8_t *pal_out, uint8_t *region_out) BANKED;
 
+// Open-sea animation (bank 22): the whole sea shares one VRAM tile, so rewriting that tile's 16 pixel bytes
+// each tick scrolls EVERY water cell at once — O(1), no per-cell map writes. water_anim_tick() runs per
+// gameplay frame on the overworld (caller must be in VBlank); water_anim_reset() syncs the timer on entry.
+// water_anim_base[] (globals.h) holds the base F10 pixels, captured in main.c while the tileset is paged in.
+BANKREF_EXTERN(water_anim_tick)
+BANKREF_EXTERN(water_anim_reset)
+void water_anim_tick(void) BANKED;
+void water_anim_reset(void) BANKED;
+
 #endif

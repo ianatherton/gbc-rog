@@ -28,6 +28,16 @@ BANKREF_EXTERN(map_pit_position)
                                        // while enemy OAM is being refreshed — see entity_sprites.h
 #define BRAZIER_FIRE_TTL_VBL 12u
 
+// Hub-only waypoint fx: a copy of the player's foot aura (same M15/M16 A/B flicker via
+// player_aura_tile_vram()) hovers over each waypoint's two bottom tiles, recolored. Borrows
+// the bottom of the idle enemy OAM run (floor 0 spawns no enemies; the guarded hide-sweep in
+// refresh_oam_only clears 3..26 once on hub entry, this VBL tick repaints every frame).
+// Off-hub these slots belong to enemies. PAL: hub OCP4 = blue flag ramp, distinct from the
+// player aura's gold OCP7 (swap to PAL_ENEMY_RAT=red / PAL_ENEMY_GOBLIN=green to retint).
+#define SP_WAYPOINT_FX_BASE    SP_ENEMY_BASE
+#define MAX_WAYPOINT_FX        2u  // OW_FEATURE_PLAN places at most 2 OW_FEAT_WAYPOINT
+#define WAYPOINT_FX_PAL        PAL_LADDER
+
 static uint8_t brazier_fire_active;
 static uint8_t brazier_fire_ttl;
 static int16_t brazier_fire_wx, brazier_fire_wy;
@@ -695,6 +705,30 @@ void entity_sprites_vbl_tick(void) BANKED {
             } else {
                 oam_hide(SP_DEBUFF_ICON);
             }
+        }
+        // Hub waypoint fx: a recolored copy of the player's foot aura centered on the seam of
+        // each waypoint's two bottom tiles. Floor-0 only — off-hub SP_WAYPOINT_FX_BASE.. are live
+        // enemy slots, leave them. The A/B flicker rides player_aura_ab_idx (updated just above),
+        // so it animates in sync with the hero's aura.
+        if (floor_num == 0u) {
+            uint8_t fi, p = 0u;
+            uint8_t tile = player_aura_tile_vram();
+            for (fi = 0u; fi < ow_feature_count && p < MAX_WAYPOINT_FX; fi++) {
+                uint8_t fx, fy;
+                if (ow_features[fi].type != OW_FEAT_WAYPOINT) continue;
+                fx = ow_features[fi].x;
+                fy = (uint8_t)(ow_features[fi].y + 1u); // bottom row
+                if (fx >= CAM_TX && fx < (uint8_t)(CAM_TX + GRID_W)
+                        && fy >= CAM_TY && fy < (uint8_t)(CAM_TY + GRID_H)) {
+                    move_entity_oam((uint8_t)(SP_WAYPOINT_FX_BASE + p),
+                                    (int16_t)fx * 8 + 4, (int16_t)fy * 8 - 3,
+                                    tile, WAYPOINT_FX_PAL);
+                } else {
+                    oam_hide((uint8_t)(SP_WAYPOINT_FX_BASE + p));
+                }
+                p++;
+            }
+            for (; p < MAX_WAYPOINT_FX; p++) oam_hide((uint8_t)(SP_WAYPOINT_FX_BASE + p));
         }
     }
 }

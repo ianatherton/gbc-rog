@@ -120,6 +120,7 @@ typedef struct {
 #define SP_PLAYER_AURA_OAM    0u // M15/M16 gold flicker — slot also drives bolt/fireball FX (same index = above hero)
 #define SP_PLAYER             1u // hero body
 #define SP_ENEMY_BASE         3u // enemies use OAM [SP_ENEMY_BASE .. SP_ENEMY_BASE + MAX_ENEMIES - 1] = 3..26
+                                  // (Sphinx boss borrows 3..12; the hub borrows 3..4 for waypoint stun-fx — no enemies on floor 0)
 #define SP_BIG_SKELL_HEAD_BASE 27u // big skell head overlays (up to MAX_BIG_SKELL_HEADS concurrent visible heads)
 #define MAX_BIG_SKELL_HEADS    4u // head slots 27..30; must fit before SP_ALLY_BASE (31)
 #define MAX_ALLIES            4u // parallel ally slots — OAM SP_ALLY_BASE .. SP_ALLY_BASE+MAX_ALLIES-1 (above enemy run)

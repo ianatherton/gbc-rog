@@ -31,6 +31,7 @@ void state_map_enter(void) BANKED {
         for (x = 11u; x <= 15u; x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI_BG);  // SPELL
         VBK_REG = VBK_TILES;
     }
+    ui_map_put_seed_line(0u, 1u); // full seed name under the tab bar
     gotoxy(2, 6); printf("MAP");
     gotoxy(1, 12); printf("START resume");
 }

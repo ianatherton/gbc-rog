@@ -649,21 +649,21 @@ uint8_t ui_combat_log_tick_quiet_turn(void) BANKED {
 
 const char *const seed_words_desc[SEED_WORDS_N] = { // first word line (adjective-ish)
     "ASHEN","BLEAK","BLIND","BLOOD","BLUNT","BONED","BURNT","COLD","CRUEL","CURST",
-    "DARK","DEAD","DEEP","DENSE","DIRE","DREAD","DREAR","DULL","DUSK","DUSTY",
-    "EMBER","FELL","FETID","FOUL","GAUNT","GRIM","IRON","LOST","LUNAR","MURKY",
-    "PALE","ROT","SHADE","SHORN","STARK","STILL","SUNK","TOXIC","VILE","VOID"
+    "DANK","DARK","DEAD","DEEP","DENSE","DIRE","DREAD","DULL","DUSK","FELL",
+    "FETID","FOUL","GRAND","GRIM","HEXED","IRON","LOST","LUNAR","MURKY","PALE",
+    "ROT","SHADE","SOGGY","STARK","STILL","SUNK","TOXIC","VILE","VOID",""
 };
 const char *const seed_words_noun[SEED_WORDS_N] = { // second word on row 1
-    "ASH","BANE","BLOT","BONE","BRIAR","BRIER","COIL","CROW","CRYPT","DUST",
-    "EMBER","FANG","FLAME","FROND","FROST","FUNGI","HORN","IRON","LARVA","MIRE",
-    "MIST","MOSS","MOTH","MURK","PITH","ROOT","RUIN","SHADE","SKULL","SLIME",
-    "SMOKE","SPINE","SPORE","STONE","THORN","TIDE","TOMB","VENOM","WILT","WORM"
+    "ANGEL","AXE","BANE","BLADE","BONE","BRIAR","CLAW","COIL","CROW","EMBER",
+    "FANG","FLAME","FROST","FUNGI","GORE","GRAVE","HORN","IRON","LARK","LARVA",
+    "MIRE","MIST","MOSS","MOTH","NOBLE","PYRE","ROOT","RUIN","SHADE","SKULL",
+    "SLIME","SMOKE","SPINE","SPORE","STONE","THORN","TIDE","VENOM","WILT","WORM"
 };
 const char *const seed_words_place[SEED_WORDS_N] = { // row 2 place name
-    "ABYSS","BOG","BRINK","CAIRN","CAVES","CHASM","CRAGS","CRYPT","DEEP","DELL",
-    "DELVE","DUNES","FELLS","FLATS","GORGE","GULCH","HEATH","KEEP","MARSH","MIRE",
-    "MOORS","MOUND","NOOK","PEAKS","PITS","RIFT","RUINS","SANDS","SHELF","SHORE",
-    "SLOPE","SPIRE","STEPS","TOMB","VALE","VAULT","WASTE","WEALD","WILDS","WOOD"
+    "ABYSS","BAREN","BOGS","CAVES","CHASM","CRAGS","CRYPT","DEEP","DELVE","DUNES",
+    "FLATS","GORGE","GROVE","GULCH","KEEP","LAIR","MARSH","MINES","MIRE","MOORS",
+    "MOUND","NOOK","PEAKS","PITS","PLAIN","RIFT","RUINS","SANDS","SHORE","SLOPE",
+    "SPIRE","STEPS","SWAMP","TOMB","TOWER","VALE","VAULT","WASTE","WILDS","WOOD"
 };
 
 static void set_win_attribute_xy(uint8_t x, uint8_t y, uint8_t a) { // CGB palette for window map
@@ -991,6 +991,12 @@ void run_seed_to_triple(uint16_t seed, uint8_t *d, uint8_t *n, uint8_t *p) BANKE
     *p = (uint8_t)((s / 1600u) % 40u);
 }
 
+void ui_map_put_seed_line(uint8_t x, uint8_t y) BANKED { // map subscreen: full seed name on one BKG row; runs in bank(ui) so seed string ROM is mapped
+    uint8_t d, n, p;
+    run_seed_to_triple(run_seed, &d, &n, &p);
+    gotoxy(x, y); printf("%s %s %s", seed_words_desc[d], seed_words_noun[n], seed_words_place[p]);
+}
+
 void ui_game_over_put_seed_words(uint8_t d, uint8_t n, uint8_t p) BANKED { // BKG rows 9–10; must run in bank(ui) so seed string ROM is mapped
     put_word5(0u, 9u, seed_words_desc[d]);
     put_word5(6u, 9u, seed_words_noun[n]);
@@ -1144,14 +1150,14 @@ static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t entropy_
             if (edge & J_LEFT)  word_pos = (word_pos == 0) ? 2 : (uint8_t)(word_pos-1); // wrap caret
             if (edge & J_RIGHT) word_pos = (uint8_t)((word_pos+1) % 3);
             if (edge & J_UP) {
-                if      (word_pos == 0) d = (uint8_t)((d+1) % SEED_WORDS_N);
-                else if (word_pos == 1) n = (uint8_t)((n+1) % SEED_WORDS_N);
-                else                    p = (uint8_t)((p+1) % SEED_WORDS_N);
-            }
-            if (edge & J_DOWN) {
                 if      (word_pos == 0) d = (uint8_t)(d == 0 ? SEED_WORDS_N-1 : d-1);
                 else if (word_pos == 1) n = (uint8_t)(n == 0 ? SEED_WORDS_N-1 : n-1);
                 else                    p = (uint8_t)(p == 0 ? SEED_WORDS_N-1 : p-1);
+            }
+            if (edge & J_DOWN) {
+                if      (word_pos == 0) d = (uint8_t)((d+1) % SEED_WORDS_N);
+                else if (word_pos == 1) n = (uint8_t)((n+1) % SEED_WORDS_N);
+                else                    p = (uint8_t)((p+1) % SEED_WORDS_N);
             }
             prev_j = j;
         }

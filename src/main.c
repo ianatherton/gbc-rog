@@ -65,6 +65,10 @@ int main(void) {
         memcpy(water_anim_base, tileset_tiles + (uint16_t)TILE_F10 * 16u, 16u); // snapshot base for the sea-scroll anim (tileset bank paged in here)
         set_sprite_data(TILE_LEVELUP_SMILE_VRAM, 1u, // L10 smile — level-up aura (sheet past first 128)
             tileset_tiles + (uint16_t)TILE_SMILE_L10 * 16u);
+        set_sprite_data(TILE_FLAG_F1_VRAM, 1u, // B7/C7 town-flag frames → permanently-free OBJ slots (hub-only, no per-floor restore)
+            tileset_tiles + (uint16_t)TILE_SHEET_FLAG_1 * 16u);
+        set_sprite_data(TILE_FLAG_F2_VRAM, 1u,
+            tileset_tiles + (uint16_t)TILE_SHEET_FLAG_2 * 16u);
         set_bkg_data(TILE_SCROLL_I11_VRAM, 1u, // I11 scroll — ROM past first VRAM pack
             tileset_tiles + (uint16_t)TILE_ITEM_11 * 16u);
         set_bkg_data(TILE_BIGHEAL_I12_VRAM, 1u, // I12 BigHeal potion

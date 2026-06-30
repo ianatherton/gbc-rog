@@ -543,6 +543,14 @@ typedef struct {
 #define TILE_KNIGHT_SHIELD_VRAM 251u // copied from TILE_ITEM_9 (I9) at boot for knight shield UI icon + corner buff sprite
 #define TILE_SHEET_M14     220u  /* M14 — empty belt slot (ROM); (14-1)*16+12, past VRAM 0..127 pack */
 
+/* Overworld town flag (hub only) — 2-frame animated OBJ in the town courtyard center. Art lives at
+   sheet cells B7/C7 (ROM 97/98, otherwise blank — the gorgon-head borrow uses VRAM 225/226 but gets
+   its art from a different ROM cell). Boot-copied into permanently-free OBJ slots 253/254. */
+#define TILE_SHEET_FLAG_1  97u   /* B7 — flag anim frame 1 */
+#define TILE_SHEET_FLAG_2  98u   /* C7 — flag anim frame 2 */
+#define TILE_FLAG_F1_VRAM 253u   /* free OBJ slot — boot-copied from B7 */
+#define TILE_FLAG_F2_VRAM 254u   /* free OBJ slot — boot-copied from C7 */
+
 /* ── N+O col — HUD / UI tiles ───────────────────────────────────────────── */
 #define TILE_UI_FLOOR_L     13   /* N1  - left portion of "FLOOR" word     */
 #define TILE_UI_FLOOR_R     14   /* O1  - right portion of "FLOOR" word    */

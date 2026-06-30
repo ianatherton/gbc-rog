@@ -203,6 +203,37 @@ static void refresh_allies_oam(void) {
     }
 }
 
+#define SP_TOWN_FLAG SP_INV_CURSOR // slot 38 — idle on the hub (inv cursor / gorgon head own it elsewhere)
+
+static uint8_t town_flag_pal(void) { // seed-stable pick from the 4 enemy OBJ ramps
+    static const uint8_t pals[4] = { PAL_LADDER, PAL_ENEMY_RAT, PAL_ENEMY_GOBLIN, PAL_XP_UI };
+    return pals[(uint8_t)(run_seed & 3u)];
+}
+
+// Town flag: a 2-frame animated OBJ in the courtyard center of the hub's town. Hub-only — off the hub,
+// slot 38 belongs to the inventory cursor / gorgon head, so we never touch it there. Frame swaps on the
+// shared enemy_anim_toggle (this runs from draw_enemy_cells on each toggle, so the flag animates for free).
+static void refresh_town_flag_oam(void) {
+    uint8_t i;
+    if (floor_biome != BIOME_OVERWORLD) return;
+    for (i = 0u; i < ow_feature_count; i++) {
+        if (ow_features[i].type != OW_FEAT_TOWN) continue;
+        {
+            uint8_t mx = (uint8_t)(ow_features[i].x + 1u); // 3x3 town → courtyard center cell
+            uint8_t my = (uint8_t)(ow_features[i].y + 1u);
+            if (mx < g_cam_tx || mx >= g_cam_tx_end || my < g_cam_ty || my >= g_cam_ty_end
+                    || !lighting_is_revealed(mx, my)) {
+                oam_hide(SP_TOWN_FLAG);
+                return;
+            }
+            move_entity_oam(SP_TOWN_FLAG, (int16_t)mx * 8, (int16_t)my * 8,
+                    enemy_anim_toggle ? TILE_FLAG_F2_VRAM : TILE_FLAG_F1_VRAM, town_flag_pal());
+            return;
+        }
+    }
+    oam_hide(SP_TOWN_FLAG); // no town placed
+}
+
 BANKREF(entity_sprites_poof_clear_all)
 void entity_sprites_poof_clear_all(void) BANKED {
     memset(enemy_poof_ttl, 0, sizeof enemy_poof_ttl);
@@ -712,6 +743,7 @@ void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) BANKED {
     refresh_allies_oam();
     refresh_belt_selector_oam();
     refresh_buff_icon_oam();
+    refresh_town_flag_oam();
     // Clear all head OAM slots so stale heads from dead skeletons don't linger
     {
         uint8_t hi;

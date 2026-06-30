@@ -29,11 +29,25 @@ static const palette_color_t pal_overworld_accent[] = {
     RGB(29, 24, 13), RGB(20, 15, 7), RGB(26, 21, 11), RGB(31, 29, 20),
 };
 
+// Hub town-flag colors: the flag art is drawn in the OBJ palette's mid tone (index 2). The hub has no
+// enemies, so we repurpose the four enemy OBJ ramps (4/5/6/7) here, brightening only index 2 to a
+// saturated primary (blue/red/green/yellow) so the flag reads as a bold banner. Indices 1 (dark outline)
+// and 3 (highlight) keep the original enemy ramp so the art's shading still holds. load_palettes()
+// restores the true enemy ramps on every dungeon floor, so this override is hub-only.
+static const palette_color_t pal_flag_skeleton[] = { RGB(0,0,0), RGB(8,6,20),  RGB(6,12,31),  RGB(22,16,31) }; // OCP4 → bright blue mid
+static const palette_color_t pal_flag_rat[]      = { RGB(0,0,0), RGB(22,6,10), RGB(31,2,2),   RGB(31,18,22) }; // OCP5 → bright red mid
+static const palette_color_t pal_flag_goblin[]   = { RGB(0,0,0), RGB(18,4,18), RGB(4,31,6),   RGB(31,14,28) }; // OCP6 → bright green mid
+static const palette_color_t pal_flag_bat[]      = { RGB(0,0,0), RGB(23,9,0),  RGB(31,31,2),  RGB(31,27,1)  }; // OCP7 → bright yellow mid
+
 BANKREF(biome_overworld_load_palettes)
 void biome_overworld_load_palettes(void) {
     set_bkg_palette(0, 1u, pal_overworld_field);
     set_bkg_palette(PAL_FLOOR_BG, 1u, pal_overworld_floor_deco);
     set_bkg_palette(PAL_OW_ACCENT, 1u, pal_overworld_accent); // slot 6 (foliage) is set by apply_wall_palette
+    set_sprite_palette(PAL_LADDER, 1u, pal_flag_skeleton);     // OCP4 — enemy-less on the hub; flag uses these
+    set_sprite_palette(PAL_ENEMY_RAT, 1u, pal_flag_rat);       // OCP5
+    set_sprite_palette(PAL_ENEMY_GOBLIN, 1u, pal_flag_goblin); // OCP6
+    set_sprite_palette(PAL_XP_UI, 1u, pal_flag_bat);           // OCP7 (also the player gold aura — stays gold-ish)
 }
 
 BANKREF(biome_overworld_copy_defs)

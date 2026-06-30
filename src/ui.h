@@ -38,6 +38,7 @@ void     ui_panel_show_inspect(uint8_t enemy_slot) BANKED;
 uint8_t  ui_panel_inspect_slot(void) BANKED;
 
 void     ui_game_over_put_seed_words(uint8_t d, uint8_t n, uint8_t p) BANKED;
+void     ui_map_put_seed_line(uint8_t x, uint8_t y) BANKED;
 
 void     ui_loading_screen_begin(uint8_t ascending) BANKED;
 void     ui_loading_screen_end(void) BANKED;

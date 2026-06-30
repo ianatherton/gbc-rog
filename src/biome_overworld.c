@@ -275,6 +275,10 @@ static uint8_t ow_prefab_vram(uint8_t type, uint8_t lx, uint8_t ly, uint8_t w, u
         if (ly == 0u) return (lx == 0u) ? PREFAB_VRAM_WP_TL : PREFAB_VRAM_WP_TR;
         return (lx == 0u) ? PREFAB_VRAM_WP_BL : PREFAB_VRAM_WP_BR;
     }
+    if (type == OW_FEAT_BOSSDOOR) {
+        if (ly == 0u) return (lx == 0u) ? PREFAB_VRAM_DOOR_TL : PREFAB_VRAM_DOOR_TR;
+        return (lx == 0u) ? PREFAB_VRAM_DOOR_BL : PREFAB_VRAM_DOOR_BR;
+    }
     { // OW_FEAT_TOWN — 3×3 wall ring, grass centre
         uint8_t edge_x = (lx == 0u || lx == (uint8_t)(w - 1u));
         uint8_t edge_y = (ly == 0u || ly == (uint8_t)(h - 1u));
@@ -320,9 +324,15 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
 
     if (base_tile == TILE_WALL) {
         if (ow_water(mx, my)) { *pal_out = PAL_PILLAR_BG; return TILE_OVERWORLD_WATER_VRAM; } // open sea (sparkle overlay flips a few cells per step — render.c)
-        *pal_out = (region == OW_REGION_SNOW)   ? PAL_WALL_BG    // frosted tree
-                 : (region == OW_REGION_DESERT) ? PAL_OW_ACCENT  // sandy mound
-                 :                                PAL_OW_FOLIAGE; // green pine
+        if (region == OW_REGION_SNOW) { // snow → 2-wide mountains (B9 on even cols, C9 on odd, forming a range)
+            *pal_out = PAL_WALL_BG;
+            return (mx & 1u) ? PREFAB_VRAM_MTN_R : PREFAB_VRAM_MTN_L;
+        }
+        if (region == OW_REGION_DESERT) { // desert → sparse D6 palms (already boot-loaded at VRAM 211)
+            *pal_out = PAL_OW_ACCENT;
+            return (uint8_t)(TILESET_VRAM_OFFSET + TILE_COLUMN_6);
+        }
+        *pal_out = PAL_OW_FOLIAGE; // grassland → green pine
         return TILE_OVERWORLD_WALL_VRAM;
     }
     if (base_tile == TILE_FLOOR) {

@@ -86,6 +86,14 @@ void biome_load_active(uint8_t biome_id) {
         set_bkg_data(PREFAB_VRAM_WP_TR,        1u, tileset_tiles + (uint16_t)TILE_PREFAB_WP_TR * 16u);
         set_bkg_data(PREFAB_VRAM_WP_BL,        1u, tileset_tiles + (uint16_t)TILE_PREFAB_WP_BL * 16u);
         set_bkg_data(PREFAB_VRAM_WP_BR,        1u, tileset_tiles + (uint16_t)TILE_PREFAB_WP_BR * 16u);
+        // Final-dungeon boss door into 4 permanently-free row-7 OBJ slots — no per-floor restore needed.
+        set_bkg_data(PREFAB_VRAM_DOOR_TL,      1u, tileset_tiles + (uint16_t)TILE_PREFAB_DOOR_TL * 16u);
+        set_bkg_data(PREFAB_VRAM_DOOR_TR,      1u, tileset_tiles + (uint16_t)TILE_PREFAB_DOOR_TR * 16u);
+        set_bkg_data(PREFAB_VRAM_DOOR_BL,      1u, tileset_tiles + (uint16_t)TILE_PREFAB_DOOR_BL * 16u);
+        set_bkg_data(PREFAB_VRAM_DOOR_BR,      1u, tileset_tiles + (uint16_t)TILE_PREFAB_DOOR_BR * 16u);
+        // Snow-biome mountains (B9/C9) borrow the stun/root overlay slots — restored on the non-hub branch.
+        set_bkg_data(PREFAB_VRAM_MTN_L,        1u, tileset_tiles + (uint16_t)TILE_PREFAB_MTN_L * 16u);
+        set_bkg_data(PREFAB_VRAM_MTN_R,        1u, tileset_tiles + (uint16_t)TILE_PREFAB_MTN_R * 16u);
     } else if (biome_id == BIOME_BOSS2) {
         // Sphinx: upload frame-0 art into the 10 scratch slots (gorgon + skel/rat/big-skull slots,
         // free here). sphinx_anim_tick re-uploads per frame; the else-branch restores those slots
@@ -108,6 +116,11 @@ void biome_load_active(uint8_t biome_id) {
         set_sprite_data(TILE_GORGON_FEET_R_VRAM, 1u, tileset_tiles + (uint16_t)TILE_GORGON_FEET_R_ROM * 16u);
         set_sprite_data(TILE_SLIME_1_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SLIME_ROM_1 * 16u);
         set_sprite_data(TILE_SLIME_2_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SLIME_ROM_2 * 16u);
+        // Restore the stun/root overlay art the hub's snow mountains stomp (PREFAB_VRAM_MTN_L/R = 197/242).
+        set_sprite_data(TILE_STUN_ICON_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SHEET_M13 * 16u);
+        set_sprite_data(TILE_ROOT_ICON_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SHEET_L11 * 16u);
+        // Restore the enemy death-poof art the hub's boss door stomps (PREFAB_VRAM_DOOR_BR = M7 = VRAM 236).
+        set_sprite_data((uint8_t)(TILESET_VRAM_OFFSET + TILE_POOF_CLOUD), 1u, tileset_tiles + (uint16_t)TILE_POOF_CLOUD * 16u);
     }
     SWITCH_ROM(sb);
 }

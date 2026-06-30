@@ -232,16 +232,14 @@ static void refresh_town_flag_oam(void) {
             uint8_t mx = (uint8_t)(ow_features[i].x + 1u); // 3x3 town → courtyard center cell
             uint8_t my = (uint8_t)(ow_features[i].y + 1u);
             if (mx < g_cam_tx || mx >= g_cam_tx_end || my < g_cam_ty || my >= g_cam_ty_end
-                    || !lighting_is_revealed(mx, my)) {
-                oam_hide(SP_TOWN_FLAG);
-                return;
-            }
+                    || !lighting_is_revealed(mx, my))
+                continue; // off-screen/unrevealed town — check the others (towns are ≥1 screen apart)
             move_entity_oam(SP_TOWN_FLAG, (int16_t)mx * 8, (int16_t)my * 8,
                     enemy_anim_toggle ? TILE_FLAG_F2_VRAM : TILE_FLAG_F1_VRAM, town_flag_pal());
             return;
         }
     }
-    oam_hide(SP_TOWN_FLAG); // no town placed
+    oam_hide(SP_TOWN_FLAG); // no town on-screen (only one fits at a time → single flag OAM slot suffices)
 }
 
 BANKREF(entity_sprites_poof_clear_all)

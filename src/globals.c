@@ -80,6 +80,7 @@ const OwPrefabDef ow_prefab_defs[OW_FEAT_COUNT] = {
     { 3u, 3u, 1u, 2u, OW_FEAT_TOWN },     // TOWN     3x3, door bottom-centre
     { 2u, 2u, 0u, 1u, OW_FEAT_WAYPOINT }, // WAYPOINT 2x2, entrance bottom-left
     { 1u, 1u, 0u, 0u, OW_FEAT_ENTRANCE }, // ENTRANCE 1x1, the cell itself
+    { 2u, 2u, 0u, 1u, OW_FEAT_BOSSDOOR }, // BOSSDOOR 2x2, enter from bottom-left
 };
 OwFeature ow_features[MAX_OW_FEATURES]; // BSS — filled by generate_level on the hub
 uint8_t   ow_feature_count;             // BSS 0

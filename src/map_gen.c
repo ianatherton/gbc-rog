@@ -103,13 +103,9 @@ static void build_nav_graph(void) { // run after floor/pit layout is final
 
 // ── Overworld prefab feature placement ─────────────────────────────────────────────────────────
 // Seed-stable (hashed from run_seed, NOT rand()) so the hub regenerates the same towns/waypoints/
-// entrances when the player returns from a sub-map. Footprints are stamped blocking except the
-// walkable entrance cell; overworld_cell_render (bank 22) draws the prefab art over them.
-static const uint8_t OW_FEATURE_PLAN[] = { // fixed order = deterministic placement
-    OW_FEAT_TOWN, OW_FEAT_WAYPOINT, OW_FEAT_WAYPOINT,
-    OW_FEAT_ENTRANCE, OW_FEAT_ENTRANCE, OW_FEAT_ENTRANCE,
-};
-
+// entrances when the player returns from a sub-map. Each of the three hub regions (grass/desert/snow)
+// receives 1 town + 3 entrances; then a waypoint is seated within 1 screen of every town and entrance.
+// Footprints stay walkable land; overworld_cell_render (bank 22) draws the prefab art over them.
 static uint8_t ow_feat_hash(uint8_t a, uint8_t b) { // run_seed-keyed, position-independent
     uint8_t h = (uint8_t)((uint8_t)(a * 73u) ^ (uint8_t)(b * 151u)
               ^ (uint8_t)(run_seed & 0xFFu) ^ (uint8_t)((uint8_t)(run_seed >> 8) * 89u));
@@ -117,6 +113,14 @@ static uint8_t ow_feat_hash(uint8_t a, uint8_t b) { // run_seed-keyed, position-
     h = (uint8_t)(h * 17u);
     h ^= (uint8_t)(h >> 5);
     return h;
+}
+
+static uint8_t ow_abs_diff(uint8_t a, uint8_t b) { return (a > b) ? (uint8_t)(a - b) : (uint8_t)(b - a); }
+
+static uint8_t ow_region_at(uint8_t cx, uint8_t cy) { // OW_REGION_* for a hub cell (banked region tests, bank 22)
+    if (overworld_is_snow(cx, cy))   return OW_REGION_SNOW;
+    if (overworld_is_desert(cx, cy)) return OW_REGION_DESERT;
+    return OW_REGION_GRASS;
 }
 
 static uint8_t ow_footprint_clear(uint8_t fx, uint8_t fy, uint8_t w, uint8_t h) {
@@ -134,6 +138,14 @@ static uint8_t ow_footprint_clear(uint8_t fx, uint8_t fy, uint8_t w, uint8_t h) 
     return 1u;
 }
 
+static uint8_t ow_footprint_in_region(uint8_t fx, uint8_t fy, uint8_t w, uint8_t h, uint8_t region) {
+    uint8_t dx, dy;
+    for (dy = 0u; dy < h; dy++)
+        for (dx = 0u; dx < w; dx++)
+            if (ow_region_at((uint8_t)(fx + dx), (uint8_t)(fy + dy)) != region) return 0u;
+    return 1u;
+}
+
 static uint8_t ow_overlaps_feature(uint8_t fx, uint8_t fy, uint8_t w, uint8_t h) { // 1-tile margin between features
     uint8_t i;
     for (i = 0u; i < ow_feature_count; i++) {
@@ -145,27 +157,132 @@ static uint8_t ow_overlaps_feature(uint8_t fx, uint8_t fy, uint8_t w, uint8_t h)
     return 0u;
 }
 
+// True if a town footprint at (fx,fy) would sit closer than `sep` tiles (Manhattan, centre-to-centre) to
+// an already-placed town. Keeps the three region towns spread across the map.
+static uint8_t ow_town_too_close(uint8_t fx, uint8_t fy, uint8_t w, uint8_t h, uint8_t sep) {
+    const OwPrefabDef *td = &ow_prefab_defs[OW_FEAT_TOWN];
+    uint8_t cx = (uint8_t)(fx + w / 2u), cy = (uint8_t)(fy + h / 2u);
+    uint8_t i;
+    for (i = 0u; i < ow_feature_count; i++) {
+        if (ow_features[i].type != OW_FEAT_TOWN) continue;
+        uint8_t ox = (uint8_t)(ow_features[i].x + td->w / 2u);
+        uint8_t oy = (uint8_t)(ow_features[i].y + td->h / 2u);
+        if ((uint8_t)(ow_abs_diff(cx, ox) + ow_abs_diff(cy, oy)) < sep) return 1u;
+    }
+    return 0u;
+}
+
+// Try to seat one feature of `type`. region_mode: 0 = whole footprint in `region`, 1 = center cell in
+// `region`, 2 = any open land (region ignored). min_town_sep > 0 also rejects positions within that
+// Manhattan distance of an existing town (towns only). `salt` distinguishes each feature's deterministic
+// position sequence. Returns 1 if placed. The footprint stays walkable (validated open) — the player
+// enters by stepping onto a feature cell (Part D); overworld_cell_render draws the prefab art over it.
+static uint8_t ow_place_one(uint8_t type, uint8_t region, uint8_t region_mode, uint8_t min_town_sep, uint8_t salt) {
+    const OwPrefabDef *d = &ow_prefab_defs[type];
+    uint8_t spanx = (uint8_t)(active_map_w - d->w - 4u);
+    uint8_t spany = (uint8_t)(active_map_h - d->h - 4u);
+    uint8_t attempt;
+    if (ow_feature_count >= MAX_OW_FEATURES) return 0u;
+    for (attempt = 0u; attempt < 64u; attempt++) {
+        uint8_t fx = (uint8_t)(2u + (ow_feat_hash((uint8_t)(salt + 1u), (uint8_t)(attempt * 2u + 1u)) % spanx));
+        uint8_t fy = (uint8_t)(2u + (ow_feat_hash((uint8_t)(attempt * 2u + 2u), (uint8_t)(salt + 10u)) % spany));
+        if (!ow_footprint_clear(fx, fy, d->w, d->h)) continue;
+        if (ow_overlaps_feature(fx, fy, d->w, d->h)) continue;
+        if (region_mode == 0u) {
+            if (!ow_footprint_in_region(fx, fy, d->w, d->h, region)) continue;
+        } else if (region_mode == 1u) {
+            if (ow_region_at((uint8_t)(fx + d->w / 2u), (uint8_t)(fy + d->h / 2u)) != region) continue;
+        }
+        if (min_town_sep && ow_town_too_close(fx, fy, d->w, d->h, min_town_sep)) continue;
+        ow_features[ow_feature_count].x = fx;
+        ow_features[ow_feature_count].y = fy;
+        ow_features[ow_feature_count].type = type;
+        ow_feature_count++;
+        return 1u;
+    }
+    return 0u;
+}
+
+// Seat a feature in `region`, relaxing the region constraint in graceful steps so a tight desert/snow
+// corner never hangs generation: whole-footprint-in-region → center-in-region → any open land.
+static void ow_place_feature(uint8_t type, uint8_t region, uint8_t salt) {
+    if (ow_place_one(type, region, 0u, 0u, salt)) return;
+    if (ow_place_one(type, region, 1u, 0u, salt)) return;
+    ow_place_one(type, region, 2u, 0u, salt);
+}
+
+// Towns also stay ≥ MIN_TOWN_SEP_TILES from each other. Escalate region relaxation while holding the
+// separation; only as an absolute last resort drop the separation so a town is always placed.
+static void ow_place_town(uint8_t region, uint8_t salt) {
+    if (ow_place_one(OW_FEAT_TOWN, region, 0u, MIN_TOWN_SEP_TILES, salt)) return;
+    if (ow_place_one(OW_FEAT_TOWN, region, 1u, MIN_TOWN_SEP_TILES, salt)) return;
+    if (ow_place_one(OW_FEAT_TOWN, region, 2u, MIN_TOWN_SEP_TILES, salt)) return;
+    ow_place_feature(OW_FEAT_TOWN, region, salt); // separation infeasible this seed — place anyway
+}
+
+// Seat a feature of `type` whose entrance cell lands within (rdx,rdy) tiles of anchor (ax,ay). Candidate
+// top-lefts are drawn (hashed) from a box around the anchor, clamped to the valid map range. Used to
+// cluster dungeon entrances around their town and to drop a waypoint beside a town / the final dungeon.
+static uint8_t ow_place_near(uint8_t type, uint8_t ax, uint8_t ay, uint8_t rdx, uint8_t rdy, uint8_t salt) {
+    const OwPrefabDef *d = &ow_prefab_defs[type];
+    uint8_t max_x = (uint8_t)(active_map_w - d->w - 2u);
+    uint8_t max_y = (uint8_t)(active_map_h - d->h - 2u);
+    uint8_t lo_x = (ax > (uint8_t)(rdx + 2u)) ? (uint8_t)(ax - rdx) : 2u;
+    uint8_t lo_y = (ay > (uint8_t)(rdy + 2u)) ? (uint8_t)(ay - rdy) : 2u;
+    uint8_t hi_x = (uint8_t)(ax + rdx); if (hi_x > max_x) hi_x = max_x;
+    uint8_t hi_y = (uint8_t)(ay + rdy); if (hi_y > max_y) hi_y = max_y;
+    uint8_t spanx = (hi_x >= lo_x) ? (uint8_t)(hi_x - lo_x + 1u) : 1u;
+    uint8_t spany = (hi_y >= lo_y) ? (uint8_t)(hi_y - lo_y + 1u) : 1u;
+    uint8_t attempt;
+    if (ow_feature_count >= MAX_OW_FEATURES) return 0u;
+    for (attempt = 0u; attempt < 64u; attempt++) {
+        uint8_t fx = (uint8_t)(lo_x + (ow_feat_hash((uint8_t)(salt + 3u), (uint8_t)(attempt * 2u + 1u)) % spanx));
+        uint8_t fy = (uint8_t)(lo_y + (ow_feat_hash((uint8_t)(attempt * 2u + 2u), (uint8_t)(salt + 7u)) % spany));
+        if (!ow_footprint_clear(fx, fy, d->w, d->h)) continue;
+        if (ow_overlaps_feature(fx, fy, d->w, d->h)) continue;
+        if (ow_abs_diff((uint8_t)(fx + d->ent_dx), ax) > rdx) continue;
+        if (ow_abs_diff((uint8_t)(fy + d->ent_dy), ay) > rdy) continue;
+        ow_features[ow_feature_count].x = fx;
+        ow_features[ow_feature_count].y = fy;
+        ow_features[ow_feature_count].type = type;
+        ow_feature_count++;
+        return 1u;
+    }
+    return 0u;
+}
+
+// Anchor (walkable entrance cell) of an already-placed feature.
+static void ow_feature_anchor(uint8_t i, uint8_t *ax, uint8_t *ay) {
+    const OwPrefabDef *d = &ow_prefab_defs[ow_features[i].type];
+    *ax = (uint8_t)(ow_features[i].x + d->ent_dx);
+    *ay = (uint8_t)(ow_features[i].y + d->ent_dy);
+}
+
+// Hub feature layout: per region a town (kept far from other towns) ringed by 3 dungeon entrances with
+// one waypoint beside it; then a single "final dungeon" — a 2x2 boss door placed anywhere — with its own
+// waypoint. Waypoints total 1 per town + 1 for the final dungeon (= 4).
 static void place_overworld_features(void) {
-    uint8_t fi;
+    static const uint8_t regions[3] = { OW_REGION_GRASS, OW_REGION_DESERT, OW_REGION_SNOW };
+    uint8_t r, e, salt = 0u, ax, ay;
     ow_feature_count = 0u;
-    for (fi = 0u; fi < (uint8_t)sizeof OW_FEATURE_PLAN && ow_feature_count < MAX_OW_FEATURES; fi++) {
-        uint8_t type = OW_FEATURE_PLAN[fi];
-        const OwPrefabDef *d = &ow_prefab_defs[type];
-        uint8_t spanx = (uint8_t)(active_map_w - d->w - 4u);
-        uint8_t spany = (uint8_t)(active_map_h - d->h - 4u);
-        uint8_t attempt;
-        for (attempt = 0u; attempt < 24u; attempt++) {
-            uint8_t fx = (uint8_t)(2u + (ow_feat_hash((uint8_t)(fi + 1u), (uint8_t)(attempt * 2u + 1u)) % spanx));
-            uint8_t fy = (uint8_t)(2u + (ow_feat_hash((uint8_t)(attempt * 2u + 2u), (uint8_t)(fi + 10u)) % spany));
-            if (!ow_footprint_clear(fx, fy, d->w, d->h)) continue;
-            if (ow_overlaps_feature(fx, fy, d->w, d->h)) continue;
-            ow_features[ow_feature_count].x = fx;
-            ow_features[ow_feature_count].y = fy;
-            ow_features[ow_feature_count].type = type;
-            ow_feature_count++;
-            // Footprint stays walkable land (validated open above): the player enters by stepping onto any
-            // feature cell (Part D). overworld_cell_render draws the prefab art over these floor cells.
-            break;
+    for (r = 0u; r < 3u; r++) {
+        uint8_t before = ow_feature_count;
+        ow_place_town(regions[r], salt++);
+        if (ow_feature_count == before) continue; // town couldn't be placed (degenerate seed) — skip region
+        ow_feature_anchor((uint8_t)(ow_feature_count - 1u), &ax, &ay);
+        for (e = 0u; e < 3u; e++) { // 3 dungeon entrances ringed around the town
+            if (!ow_place_near(OW_FEAT_ENTRANCE, ax, ay, DUNGEON_CLUSTER_DX, DUNGEON_CLUSTER_DY, salt))
+                ow_place_feature(OW_FEAT_ENTRANCE, regions[r], salt); // fall back to anywhere in-region
+            salt++;
+        }
+        ow_place_near(OW_FEAT_WAYPOINT, ax, ay, WAYPOINT_NEAR_DX, WAYPOINT_NEAR_DY, salt++); // 1 waypoint per town
+    }
+    { // Final dungeon: a lone 2x2 boss door somewhere random, with a waypoint within 1 screen of it.
+        uint8_t before = ow_feature_count;
+        ow_place_one(OW_FEAT_BOSSDOOR, OW_REGION_GRASS, 2u, 0u, salt++); // region_mode 2 = any open land
+        if (ow_feature_count > before) {
+            ow_feature_anchor((uint8_t)(ow_feature_count - 1u), &ax, &ay);
+            ow_place_near(OW_FEAT_WAYPOINT, ax, ay, WAYPOINT_NEAR_DX, WAYPOINT_NEAR_DY, salt++);
         }
     }
 }
@@ -225,17 +342,25 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
                     }
             }
         }
-        for (t = 0u; t < 600u; t++) { // scatter tree clumps on land only
+        for (t = 0u; t < 900u; t++) { // scatter tree/mountain clumps on land only
             uint8_t tx = (uint8_t)(1u + (uint8_t)(rand() % (uint8_t)(active_map_w - 2u)));
             uint8_t ty = (uint8_t)(1u + (uint8_t)(rand() % (uint8_t)(active_map_h - 2u)));
             uint8_t adx = (tx > player_spawn_x) ? (uint8_t)(tx - player_spawn_x) : (uint8_t)(player_spawn_x - tx);
             uint8_t ady = (ty > player_spawn_y) ? (uint8_t)(ty - player_spawn_y) : (uint8_t)(player_spawn_y - ty);
+            uint8_t region;
             if (adx <= 2u && ady <= 2u) continue;               // clearing around spawn
-            if (!BIT_GET(floor_bits, TILE_IDX(tx, ty))) continue; // skip water — trees only on land
+            if (!BIT_GET(floor_bits, TILE_IDX(tx, ty))) continue; // skip water — walls only on land
+            // Per-region density (out of 16): snow mountains densest, desert palms sparsest, grass between.
+            region = ow_region_at(tx, ty);
+            {
+                uint8_t keep = (region == OW_REGION_SNOW) ? 16u : (region == OW_REGION_DESERT) ? 5u : 11u;
+                if ((uint8_t)(rand() & 0x0Fu) >= keep) continue;
+            }
             BIT_CLR(floor_bits, TILE_IDX(tx, ty));
-            if ((rand() & 0x40u) && (uint8_t)(tx + 1u) < (uint8_t)(active_map_w - 1u)
+            // Snow always grows the clump (solid 2-wide ranges); elsewhere ~50% for scattered 2-tile clumps.
+            if ((region == OW_REGION_SNOW || (rand() & 0x40u)) && (uint8_t)(tx + 1u) < (uint8_t)(active_map_w - 1u)
                     && BIT_GET(floor_bits, TILE_IDX((uint8_t)(tx + 1u), ty)))
-                BIT_CLR(floor_bits, TILE_IDX((uint8_t)(tx + 1u), ty)); // grow into a 2-tile clump
+                BIT_CLR(floor_bits, TILE_IDX((uint8_t)(tx + 1u), ty));
         }
         set_floor(player_spawn_x, player_spawn_y); // guarantee spawn open after scatter
     } else {

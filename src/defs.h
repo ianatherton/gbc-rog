@@ -277,8 +277,24 @@ typedef struct {
 #define OW_FEAT_TOWN      0u  /* 3x3 */
 #define OW_FEAT_WAYPOINT  1u  /* 2x2 */
 #define OW_FEAT_ENTRANCE  2u  /* 1x1 cave/dungeon mouth */
-#define OW_FEAT_COUNT     3u
-#define MAX_OW_FEATURES   12u
+#define OW_FEAT_BOSSDOOR  3u  /* 2x2 final-dungeon door (O15/P15/O16/P16) */
+#define OW_FEAT_COUNT     4u
+#define MAX_OW_FEATURES   28u /* 3 towns + 9 entrances (1 town + 3 entrances per region) + up to 12 waypoints, +headroom */
+
+/* A waypoint must sit "within 1 screen" of the town/entrance it serves. Use a conservative co-visibility
+   box (smaller than the GRID_W×GRID_H viewport) so the waypoint and its feature can share the screen. */
+#define WAYPOINT_NEAR_DX  (GRID_W - 3u) /* 17 */
+#define WAYPOINT_NEAR_DY  (GRID_H - 2u) /* 11 */
+
+/* Towns must sit far apart: each region's town must be ≥ this many tiles (Manhattan, centre-to-centre)
+   from every other town. ~3 screens-wide. The 96-tile map is only ~5 screens across, so this is near the
+   geometric max for 3 diagonally-spread towns — placement drops the rule as a last resort (see map_gen). */
+#define MIN_TOWN_SEP_TILES  (3u * GRID_W) /* 60 */
+
+/* The 3 dungeon entrances of a region cluster within this many tiles of their town (entrance-cell to
+   town anchor), so each town is ringed by its own dungeons. ~1 screen. */
+#define DUNGEON_CLUSTER_DX  GRID_W /* 20 */
+#define DUNGEON_CLUSTER_DY  GRID_H /* 13 */
 
 /* Prefab feature art (hub only). Sheet sources (offset = (row-1)*16 + col). Like coast, these are
    uploaded by biome_load_active(BIOME_OVERWORLD) into idle hub OBJ slots and the borrowed enemy art is
@@ -291,6 +307,12 @@ typedef struct {
 #define TILE_PREFAB_WP_TR         101u /* F7 — waypoint top-right */
 #define TILE_PREFAB_WP_BL         116u /* E8 — waypoint bot-left  */
 #define TILE_PREFAB_WP_BR         117u /* F8 — waypoint bot-right */
+#define TILE_PREFAB_DOOR_TL       238u /* O15 — boss door top-left  */
+#define TILE_PREFAB_DOOR_TR       239u /* P15 — boss door top-right */
+#define TILE_PREFAB_DOOR_BL       254u /* O16 — boss door bot-left  */
+#define TILE_PREFAB_DOOR_BR       255u /* P16 — boss door bot-right */
+#define TILE_PREFAB_MTN_L         129u /* B9 — snow mountain, left half  */
+#define TILE_PREFAB_MTN_R         130u /* C9 — snow mountain, right half */
 
 /* Borrowed hub VRAM slots (all idle on the enemy-less hub):
    194/195/196/198 = C5/D5/E5/G5 dead cells (miniboss re-uploads its big-slime there; no restore needed);
@@ -304,6 +326,20 @@ typedef struct {
 #define PREFAB_VRAM_WP_TR         231u
 #define PREFAB_VRAM_WP_BL         217u
 #define PREFAB_VRAM_WP_BR         218u
+/* Boss door uses 3 dead sheet cells — wall variants 4/5/7 (A5/A6/A8), never placed by any map code
+   (confirmed zero refs) and owned by no sprite, so like the C5/D5/E5/G5 dead cells they need no restore —
+   plus the enemy death-poof slot (M7), which IS live on combat floors, so biome.c restores TILE_POOF_CLOUD
+   on the first non-hub floor (else branch). (An earlier version wrongly used A7/D7/I7/J7 — live content:
+   WALL_F/COLUMN_7/boots/skull.) */
+#define PREFAB_VRAM_DOOR_TL       192u /* A5 = TILE_WALL_D (dead)                  */
+#define PREFAB_VRAM_DOOR_TR       208u /* A6 = TILE_WALL_E (dead)                  */
+#define PREFAB_VRAM_DOOR_BL       240u /* A8 = TILE_WALL_G (dead)                  */
+#define PREFAB_VRAM_DOOR_BR       236u /* M7 = TILE_POOF_CLOUD (borrowed; restored off-hub) */
+/* Snow-biome mountains borrow the stun/root enemy-overlay slots: those icons are only ever drawn ON
+   enemies (debuff_icon.c), so they are never on screen on the enemy-less hub. biome.c restores them when
+   leaving to floor 1 (else branch) — same borrow-and-restore mechanism as the gorgon/slime coast tiles. */
+#define PREFAB_VRAM_MTN_L         197u /* = TILE_STUN_ICON_VRAM */
+#define PREFAB_VRAM_MTN_R         242u /* = TILE_ROOT_ICON_VRAM */
 
 /* Overworld coastline tiles — sheet cells D11..G12 (rows 11-12 are past the first-128 VRAM upload,
    so biome_load_active() boot-copies them into borrowed VRAM slots when floor 0 loads). ROM offset

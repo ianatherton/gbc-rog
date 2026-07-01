@@ -105,6 +105,104 @@ __endasm;
 }
 #endif // FEATURE_MAP_FOG
 
+// ── hub water mask lives in CGB WRAM bank 2 at 0xD480..0xD8FF (1,152 B) ──────
+// Independent of the fog bits (0xD000..0xD47F): the overworld never reads fog and dungeons never
+// read this, so the two never alias. overworld_carve() fills it once; render.c's coast lookup reads
+// it (4 bits per land cell) instead of re-evaluating ow_water(). Same __naked/SVBK discipline as the
+// exp2_* accessors above (see docs/BANKS.md): nothing may touch the stack while SVBK != 1, di/ei
+// guards each switch. Not fog-gated — this is a distinct dataset, but still CGB-only (cart is -Wm-yC).
+uint8_t overworld_water_bit(uint16_t tile_idx) __naked { // 1 = water, 0 = land (BIT_GET at 0xD480)
+    tile_idx;
+__asm
+    ld   a, e
+    and  #0x07
+    ld   b, a          ; b = bit index
+    srl  d
+    rr   e
+    srl  d
+    rr   e
+    srl  d
+    rr   e             ; de = byte offset
+    di
+    ld   a, #0x02
+    ldh  (_SVBK_REG + 0), a
+    ld   hl, #0xD480
+    add  hl, de
+    ld   a, (hl)
+    ld   e, a          ; stash byte before restoring the bank
+    ld   a, #0x01
+    ldh  (_SVBK_REG + 0), a
+    ei
+    ld   a, e
+    inc  b
+40$:
+    dec  b
+    jr   Z, 41$
+    srl  a
+    jr   40$
+41$:
+    and  #0x01
+    ret
+__endasm;
+}
+
+void overworld_water_set(uint16_t tile_idx) __naked { // mark cell as water (BIT_SET at 0xD480)
+    tile_idx;
+__asm
+    ld   a, e
+    and  #0x07
+    ld   b, a
+    ld   a, #0x01
+    inc  b
+50$:
+    dec  b
+    jr   Z, 51$
+    rlca
+    jr   50$
+51$:
+    ld   c, a          ; c = bit mask
+    srl  d
+    rr   e
+    srl  d
+    rr   e
+    srl  d
+    rr   e
+    ld   hl, #0xD480
+    add  hl, de
+    di
+    ld   a, #0x02
+    ldh  (_SVBK_REG + 0), a
+    ld   a, (hl)
+    or   c
+    ld   (hl), a
+    ld   a, #0x01
+    ldh  (_SVBK_REG + 0), a
+    ei
+    ret
+__endasm;
+}
+
+void overworld_water_clear_all(void) __naked { // zero all 1,152 bytes — called once at hub carve
+__asm
+    di
+    ld   a, #0x02
+    ldh  (_SVBK_REG + 0), a
+    ld   hl, #0xD480
+    ld   bc, #1152
+60$:
+    xor  a
+    ld   (hl+), a
+    dec  bc
+    ld   a, b
+    or   c
+    jr   NZ, 60$
+    ld   a, #0x01
+    ldh  (_SVBK_REG + 0), a
+    ei
+    ret
+__endasm;
+}
+
 static uint8_t lighting_dirty_x[LIGHTING_DIRTY_MAX];
 static uint8_t lighting_dirty_y[LIGHTING_DIRTY_MAX];
 static uint8_t lighting_dirty_n;
@@ -132,7 +230,7 @@ uint8_t lighting_dirty_overflow(void) { return lighting_dirty_ovf; }
 void lighting_reset(void) {
     lighting_dirty_clear();
 #if FEATURE_MAP_FOG
-    exp2_clear_all();
+    if (floor_biome != BIOME_OVERWORLD) exp2_clear_all(); // hub never reads fog — skip the ~5 ms clear
 #endif
 }
 

@@ -48,6 +48,12 @@ void lighting_dirty_tile(uint8_t i, uint8_t *x, uint8_t *y); // i < lighting_dir
 uint8_t lighting_dirty_overflow(void); // 1 if last reveal exceeded buffer — use full draw_screen
 void lighting_dirty_clear(void); // after painting dirty cells (optional hygiene between reveals)
 
+// Hub water mask: CGB WRAM bank 2, 0xD480..0xD8FF (distinct from fog at 0xD000). overworld_carve()
+// fills it; render.c's coast lookup reads it instead of re-running ow_water(). HOME (no trampoline).
+uint8_t overworld_water_bit(uint16_t tile_idx); // 1 = water cell, 0 = land
+void    overworld_water_set(uint16_t tile_idx); // mark a water cell during carve
+void    overworld_water_clear_all(void);        // zero the whole mask (start of carve)
+
 uint8_t nearest_nav_node(uint8_t x, uint8_t y); // for mapping entity tiles to graph
 void    nav_fill_hops_from(uint8_t player_node, uint8_t *hop_out); // single BFS; hop_out[n] = first hop from n toward player_node
 uint8_t map_pit_position(uint8_t *x, uint8_t *y) BANKED; // 1 when floor has a down-ladder pit coordinate

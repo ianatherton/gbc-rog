@@ -173,9 +173,18 @@ BANKREF(overworld_carve)
 void overworld_carve(void) BANKED {
     uint8_t x, y;
     ow_prepare();
-    for (y = 1u; y < (uint8_t)(active_map_h - 1u); y++)
-        for (x = 1u; x < (uint8_t)(active_map_w - 1u); x++)
-            if (!ow_water(x, y)) BIT_SET(floor_bits, TILE_IDX(x, y));
+    // Record every cell's water/land into the hub water mask (bank-2 WRAM) as we go, reusing the
+    // ow_water() calls we already make for the landmass. Render reads these bits — for the coast lookup
+    // (4 neighbours per land cell) and for the open-sea test — instead of re-running ow_water(). Iterate
+    // the FULL map, not just the interior: the outermost ring (the forced-ocean border band) is rendered
+    // directly, so its own water bit must be set or it draws as land. clear_all first so land cells read 0.
+    overworld_water_clear_all();
+    for (y = 0u; y < active_map_h; y++)
+        for (x = 0u; x < active_map_w; x++) {
+            uint16_t idx = TILE_IDX(x, y);
+            if (ow_water(x, y)) overworld_water_set(idx); // includes the forced-ocean border ring
+            else                BIT_SET(floor_bits, idx);
+        }
 }
 
 // 1 if any water lies within OW_COAST_GRASS_BAND tiles of land cell (x,y) — drives the grass coast band
@@ -247,11 +256,11 @@ uint8_t overworld_is_snow(uint8_t mx, uint8_t my) BANKED { ow_prepare(); return 
 // (caller then draws normal ground). The 8 sheet tiles give top/bottom edges + 4 corners only, so
 // E/W shores reuse the corner art. Land never touches the map edge (border band is forced ocean), so
 // neighbours are always in-bounds.
-static uint8_t ow_coast(uint8_t mx, uint8_t my) { // assumes ow_prepare() ran
-    uint8_t wn = ow_water(mx, (uint8_t)(my - 1u)); // water to the north?
-    uint8_t ws = ow_water(mx, (uint8_t)(my + 1u));
-    uint8_t we = ow_water((uint8_t)(mx + 1u), my);
-    uint8_t ww = ow_water((uint8_t)(mx - 1u), my);
+static uint8_t ow_coast(uint8_t mx, uint8_t my) { // assumes the water mask was built by overworld_carve
+    uint8_t wn = overworld_water_bit(TILE_IDX(mx, (uint8_t)(my - 1u))); // water to the north?
+    uint8_t ws = overworld_water_bit(TILE_IDX(mx, (uint8_t)(my + 1u)));
+    uint8_t we = overworld_water_bit(TILE_IDX((uint8_t)(mx + 1u), my));
+    uint8_t ww = overworld_water_bit(TILE_IDX((uint8_t)(mx - 1u), my));
     if (wn && we) return COAST_VRAM_NE;
     if (wn && ww) return COAST_VRAM_NW;
     if (ws && we) return COAST_VRAM_SE;
@@ -323,7 +332,7 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
     }
 
     if (base_tile == TILE_WALL) {
-        if (ow_water(mx, my)) { *pal_out = PAL_PILLAR_BG; return TILE_OVERWORLD_WATER_VRAM; } // open sea (sparkle overlay flips a few cells per step — render.c)
+        if (overworld_water_bit(TILE_IDX(mx, my))) { *pal_out = PAL_PILLAR_BG; return TILE_OVERWORLD_WATER_VRAM; } // open sea (sparkle overlay flips a few cells per step — render.c)
         if (region == OW_REGION_SNOW) { // snow → 2-wide mountains (B9 on even cols, C9 on odd, forming a range)
             *pal_out = PAL_WALL_BG;
             return (mx & 1u) ? PREFAB_VRAM_MTN_R : PREFAB_VRAM_MTN_L;

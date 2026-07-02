@@ -6,8 +6,8 @@
 void load_palettes(void) BANKED;   // upload 8 CGB background palette slots (wall slot from table[0])
 void render_sprite_palette_player_default(void) NONBANKED; // OCP PAL_PLAYER — class ramp from class_palettes (after hurt flash)
 void render_sprite_palette_player_hurt(void) NONBANKED;    // OCP PAL_PLAYER — saturated red tint
-void apply_wall_palette(void); // PAL_WALL_BG + PAL_PILLAR_BG from wall_palette_index / pillar_palette_index
-void apply_field_palette(void); // slot 0 (blank field) + PAL_FLOOR_BG per biome — restore after a menu blanks slot 0
+void apply_wall_palette(void) BANKED;  // bank 22 (render_palettes.c): PAL_WALL_BG + PAL_PILLAR_BG from wall/pillar index
+void apply_field_palette(void) BANKED; // bank 22: slot 0 (blank field) + PAL_FLOOR_BG per biome — restore after a menu blanks slot 0
 void draw_screen(uint8_t px, uint8_t py); // full BG redraw + sprite refresh
 void draw_gameplay_overlays(uint8_t px, uint8_t py); // WIN/HUD + sprites only — skip BKG dungeon ring when unchanged
 void draw_gameplay_overlays_profiled(uint8_t px, uint8_t py); // overlay-only metric path; excludes draw_screen()
@@ -15,6 +15,10 @@ void draw_gameplay_overlays_profiled_far(uint8_t px, uint8_t py) BANKED; // cros
 void draw_cell(uint8_t mx, uint8_t my); // single map cell if visible (terrain only)
 void draw_col_strip(uint8_t mx); // one world column for horizontal scroll
 void draw_row_strip(uint8_t my); // one world row for vertical scroll
+// Classify-only (no blit) into render_strip_* — camera_scroll_to pre-fills the revealed strip before
+// the glide, then blits it (render_blit_strip_col/row) on the tile-cross frame. cam_ty/cam_tx = target.
+void classify_col_strip(uint8_t mx, uint8_t cam_ty);
+void classify_row_strip(uint8_t my, uint8_t cam_tx);
 
 // Strip blit scratch + helpers. render.c (bank 2) fills the buffers via classify_cell, then calls one
 // of these to bulk-blit a column/row, splitting at the 32-tile ring wrap. The helpers live in bank 22

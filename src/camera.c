@@ -62,6 +62,26 @@ void camera_scroll_to(uint8_t target_tx, uint8_t target_ty,
         return;
     }
 
+    // Pre-classify (CPU only, into render_strip_*) the strip this move will reveal, BEFORE the glide, so
+    // the tile-cross frame only has to BLIT (a VBlank-safe VRAM write) — no per-cell classification on
+    // any scroll frame, and even pacing across all directions. Only the pure 1-tile axis move (the
+    // common case) is prepped; diagonal / multi-tile scrolls fall back to classify+blit at the cross.
+    uint8_t prep_kind = 0u; // 0 = none, 1 = column, 2 = row
+    uint8_t prep_idx  = 0u; // map column/row index the buffer was classified for
+    {
+        int8_t dtx = (int8_t)((int16_t)target_tx - (int16_t)(uint8_t)(camera_px >> 3));
+        int8_t dty = (int8_t)((int16_t)target_ty - (int16_t)(uint8_t)(camera_py >> 3));
+        if (dty == 0 && (dtx == 1 || dtx == -1)) {
+            prep_kind = 1u;
+            prep_idx  = (dtx == 1) ? (uint8_t)(target_tx + GRID_W) : target_tx;
+            classify_col_strip(prep_idx, target_ty);
+        } else if (dtx == 0 && (dty == 1 || dty == -1)) {
+            prep_kind = 2u;
+            prep_idx  = (dty == 1) ? (uint8_t)(target_ty + GRID_H) : target_ty;
+            classify_row_strip(prep_idx, target_tx);
+        }
+    }
+
     while (camera_px != target_px || camera_py != target_py) {
         if (++guard_steps > 2048u) { camera_px = target_px; camera_py = target_py; entity_sprites_clear_player_world(); entity_sprites_refresh_all(px, py); break; }
         uint8_t old_ctx = (uint8_t)(camera_px >> 3);
@@ -94,11 +114,19 @@ void camera_scroll_to(uint8_t target_tx, uint8_t target_ty,
             uint8_t new_cty = (uint8_t)(camera_py >> 3);
             uint8_t drew_strip = 0u;
             if (new_ctx != old_ctx) {
-                draw_col_strip(new_ctx > old_ctx ? (uint8_t)(new_ctx + GRID_W) : new_ctx);
+                uint8_t col = new_ctx > old_ctx ? (uint8_t)(new_ctx + GRID_W) : new_ctx;
+                if (prep_kind == 1u && col == prep_idx) { // pre-classified at entry — blit only
+                    render_blit_strip_col((uint8_t)(col & 31u), (uint8_t)(CAM_TY & 31u), (uint8_t)(GRID_H + 1u));
+                    prep_kind = 0u;
+                } else draw_col_strip(col);
                 drew_strip = 1u;
             }
             if (new_cty != old_cty) {
-                draw_row_strip(new_cty > old_cty ? (uint8_t)(new_cty + GRID_H) : new_cty);
+                uint8_t row = new_cty > old_cty ? (uint8_t)(new_cty + GRID_H) : new_cty;
+                if (prep_kind == 2u && row == prep_idx) {
+                    render_blit_strip_row((uint8_t)(row & 31u), (uint8_t)(CAM_TX & 31u), (uint8_t)(GRID_W + 1u));
+                    prep_kind = 0u;
+                } else draw_row_strip(row);
                 drew_strip = 1u;
             }
             if (drew_strip) draw_ui_rows();

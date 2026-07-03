@@ -170,6 +170,7 @@ uint8_t enemy_effective_max_hp(uint8_t type) BANKED {
 
 uint8_t enemy_effective_damage(uint8_t type) BANKED {
     uint8_t scale_floor;
+    if (type == ENEMY_SPHINX) return 1u; // TEMP(testing): sphinx melee + ranged bolt do 1 dmg — revert for real balance
     if (type >= NUM_ENEMY_TYPES) return 1u;
     scale_floor = (floor_num > 1u) ? (uint8_t)(floor_num - 1u) : 1u; // keep damage curve aligned with HP scaling
     { uint16_t v = (uint16_t)enemy_defs[type].damage * (uint16_t)scale_floor;
@@ -480,6 +481,18 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
         }
 #endif
 
+        // Sphinx boss: the 5-grounded / 5-flying state machine lives in bank 24 (sphinx_ai_decide,
+        // co-located with the sphinx art/anim) so bank 2's gameplay kernel stays lean. It updates
+        // g_sphinx_mode / sphinx_fire_pending and hands back only the movement verb.
+        if (enemy_type[i] == ENEMY_SPHINX) {
+            uint8_t act = sphinx_ai_decide(sx, sy, px, py);
+            if (act == SPHINX_ACT_FLY) {                   // flying: blink toward the player, never melee
+                step_blink(sx, sy, px, py, def->param ? def->param : BLINK_RANGE_DEFAULT, &nx, &ny);
+                goto sphinx_place;                          // reuse the generic 2-tile placement
+            }
+            // SPHINX_ACT_GROUNDED: fall through to the normal MOVE_BLINK chase + melee path below.
+        }
+
         switch (def->move_style) {
             case MOVE_CHASE:
                 step_nav_chase(sx, sy, px, py, player_node, next_hop_cache, &nx, &ny);
@@ -498,6 +511,7 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
             }
         }
 
+sphinx_place:
         if (nx == sx && ny == sy)              continue; // AI chose stay
         {
             uint8_t occ = enemy_at(nx, ny);
@@ -509,7 +523,10 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
         }
 
         if (nx == px && ny == py) { // combat on player's tile — every adjacent step-in can connect same turn
-            if (enemy_attack_count < MAX_ENEMIES) enemy_attack_slots[enemy_attack_count++] = i;
+            // flying Sphinx never melees (it uses the ranged bolt); only grounded/other enemies record a strike
+            if ((enemy_type[i] != ENEMY_SPHINX || g_sphinx_mode == SPHINX_GROUNDED)
+                    && enemy_attack_count < MAX_ENEMIES)
+                enemy_attack_slots[enemy_attack_count++] = i;
             continue; // do not move onto player tile; main applies HP + UI per hit before lunge
         }
 

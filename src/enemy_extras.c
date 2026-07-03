@@ -12,7 +12,7 @@ BANKREF_EXTERN(enemy_effective_max_hp)
 BANKREF(enemy_type_short_name_copy)
 void enemy_type_short_name_copy(uint8_t t, char *out, uint8_t cap) BANKED {
     static const char *const n[NUM_ENEMY_TYPES] = {
-        "SNAKE", "SLIME", "RAT", "BAT", "BIG SKELL", "IMP", "SKELETON", "GORGON", "BIG SLIME"
+        "SNAKE", "SLIME", "RAT", "BAT", "BIG SKELL", "IMP", "SKELETON", "GORGON", "BIG SLIME", "SPHINX"
     };
     const char *s = (t < NUM_ENEMY_TYPES) ? n[t] : "?";
     uint8_t i = 0u;

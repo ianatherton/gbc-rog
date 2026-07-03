@@ -278,8 +278,17 @@ typedef struct {
 #define OW_FEAT_WAYPOINT  1u  /* 2x2 */
 #define OW_FEAT_ENTRANCE  2u  /* 1x1 cave/dungeon mouth */
 #define OW_FEAT_BOSSDOOR  3u  /* 2x2 final-dungeon door (O15/P15/O16/P16) */
-#define OW_FEAT_COUNT     4u
-#define MAX_OW_FEATURES   28u /* 3 towns + 9 entrances (1 town + 3 entrances per region) + up to 12 waypoints, +headroom */
+#define OW_FEAT_SIGNPOST  4u  /* 1x1 readable marker (tile B8); step on it to print its label to the chat box */
+#define OW_FEAT_COUNT     5u
+#define MAX_OW_FEATURES   44u /* 17 structures (3 towns + 9 entrances + 4 waypoints + 1 boss) + a signpost beside each */
+#define TILE_SHEET_B8        113u /* B8 signpost art (row 8, col B; directly below flag tile B7=97) */
+#define PREFAB_VRAM_SIGNPOST 205u /* dedicated free slot (blank sheet cell N5, ≥182 so title restore won't blank it); B8 boot-copied here in main.c */
+
+/* Signpost label code packed into OwFeature.aux: high nibble = kind, low nibble = index/direction. */
+#define SIGN_KIND_TOWN     0x00u /* low = town index 0..2 */
+#define SIGN_KIND_WAYPOINT 0x10u /* low = quadrant 0=NE 1=NW 2=SE 3=SW */
+#define SIGN_KIND_DUNGEON  0x20u /* low = entrance index 0..8 */
+#define SIGN_KIND_BOSS     0x30u /* final dungeon */
 
 /* A waypoint must sit "within 1 screen" of the town/entrance it serves. Use a conservative co-visibility
    box (smaller than the GRID_W×GRID_H viewport) so the waypoint and its feature can share the screen. */
@@ -508,6 +517,12 @@ typedef struct {
 #define SPHINX_TILE_LEGSDN    6u  /* A3,B3,C3,A4,B4,C4 = 6..11 */
 /* wing frames are non-contiguous (skip empty C col): A5,B5,A6,B6 and A7,B7,A8,B8 */
 #define PAL_SPHINX_BODY PAL_GORGON_BODY /* OCP slot 4 — gorgon's slot, free on the sphinx floor */
+/* Sphinx behavioral states (g_sphinx_mode): grounded chases+melees & is hittable normally;
+   flying is melee-immune (ranged-only), repositions toward the player and pelts a stun-glyph bolt. */
+#define SPHINX_GROUNDED     0u
+#define SPHINX_FLYING       1u
+#define SPHINX_PHASE_TURNS  5u   /* 5 grounded turns, then 5 flying turns, repeating */
+#define SPHINX_RANGED_RANGE 5u   /* Chebyshev reach of the flying ranged bolt */
 
 /* ── Active-biome enemy sprite scratch ────────────────────────────────────────
    The 2x-scaled Slime miniboss (2×2 tiles, animated 2-frame) is the first user of the

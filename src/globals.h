@@ -24,6 +24,7 @@ extern uint8_t  water_anim_base[16]; // base F10 water tile pixels, snapshotted 
 extern uint8_t  boss_alive;   // 1 while Gorgon (BIOME_BOSS) or the 2x Slime elite (BIOME_MINIBOSS) lives; suppresses stairs/pit until cleared
 
 extern uint8_t  g_player_x, g_player_y, g_prev_j;
+extern uint8_t  g_sphinx_mode, sphinx_fire_pending;
 extern uint16_t g_run_entropy;
 
 extern uint8_t  look_cx, look_cy;
@@ -77,7 +78,7 @@ extern uint8_t pending_pickup_slot; // ground_item_* index queued for STATE_PICK
 // Kept in HOME (globals.c) so map_gen (bank 10, places them) and biome_overworld (bank 22, draws/
 // classifies them) both read the tables with no bank switch.
 typedef struct { uint8_t w, h, ent_dx, ent_dy, dest_kind; } OwPrefabDef; // dims + entrance cell + sub-map id
-typedef struct { uint8_t x, y, type; } OwFeature;                        // top-left tile + OW_FEAT_* id
+typedef struct { uint8_t x, y, type, aux; } OwFeature;                   // top-left tile + OW_FEAT_* id; aux = signpost label code (SIGN_KIND_*)
 extern const OwPrefabDef ow_prefab_defs[OW_FEAT_COUNT]; // indexed by OW_FEAT_* type
 extern OwFeature ow_features[MAX_OW_FEATURES];          // placed this floor (hub only)
 extern uint8_t   ow_feature_count;                      // 0 on non-hub floors

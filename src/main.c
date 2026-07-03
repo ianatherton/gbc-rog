@@ -107,6 +107,8 @@ int main(void) {
             tileset_tiles + (uint16_t)TILE_SHEET_M13 * 16u);
         set_sprite_data(TILE_EQUIP_MARK_VRAM, 1u, // M11 equipped indicator — borrows unused B8 VRAM slot (tile 113)
             tileset_tiles + (uint16_t)TILE_EQUIP_MARK * 16u);
+        set_bkg_data(PREFAB_VRAM_SIGNPOST, 1u, // B8 signpost art into its own free BG slot (equip mark took the B8 boot slot)
+            tileset_tiles + (uint16_t)TILE_SHEET_B8 * 16u);
         set_sprite_data(TILE_BIG_SKELL_BODY_VRAM, 1u, // J8 big skell body — borrows unused K7 slot (J8 ROM maps to aura VRAM 249)
             tileset_tiles + (uint16_t)TILE_BIG_SKELL_BODY_ROM * 16u);
         set_sprite_data(TILE_SKEL_1_VRAM, 1u, // J10 small skel frame 1 — borrows unused N7 slot

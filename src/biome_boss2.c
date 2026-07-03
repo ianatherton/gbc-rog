@@ -3,6 +3,7 @@
 #include "biome.h"
 #include "enemy.h"
 #include "defs.h"
+#include "globals.h" // g_sphinx_mode
 #include <gb/gb.h>
 #include <gb/cgb.h>
 
@@ -56,12 +57,30 @@ static void upload_wing(uint8_t frame) { // frame 0 = wing_up, 1 = wing_down (+6
 static uint8_t  s_div_last;
 static uint16_t s_bacc, s_wacc;
 static uint8_t  s_body_frame, s_wing_frame;
+static uint8_t  s_phase_ctr; // counts sphinx turns to drive the 5-grounded / 5-flying cadence
 
 BANKREF(sphinx_load_initial)
-void sphinx_load_initial(void) BANKED { // floor entry: sync timers + upload frame 0
-    s_div_last = DIV_REG; s_bacc = 0u; s_wacc = 0u; s_body_frame = 0u; s_wing_frame = 0u;
-    upload_body(0u);
-    upload_wing(0u);
+void sphinx_load_initial(void) BANKED { // floor entry: start grounded (grounded body + wings-down pose)
+    s_div_last = DIV_REG; s_bacc = 0u; s_wacc = 0u; s_body_frame = 0u; s_wing_frame = 1u;
+    g_sphinx_mode = SPHINX_GROUNDED; sphinx_fire_pending = 0u; s_phase_ctr = 0u;
+    upload_body(0u); // grounded body frame
+    upload_wing(1u); // wings-down (resting) pose
+}
+
+BANKREF(sphinx_ai_decide)
+uint8_t sphinx_ai_decide(uint8_t sx, uint8_t sy, uint8_t px, uint8_t py) BANKED {
+    if (++s_phase_ctr >= SPHINX_PHASE_TURNS) {          // flip grounded<->flying every 5 turns
+        s_phase_ctr = 0u;
+        g_sphinx_mode = (g_sphinx_mode == SPHINX_GROUNDED) ? SPHINX_FLYING : SPHINX_GROUNDED;
+    }
+    if (g_sphinx_mode != SPHINX_FLYING) return SPHINX_ACT_GROUNDED;
+    // Flying: reposition every turn (the caller blinks it toward the player but suppresses melee), so
+    // it stays on-screen and engaged — no vanish state, the boss is always visible while airborne.
+    // Fire the ranged bolt when the player is within reach of the current tile.
+    { uint8_t apx = (px > sx) ? (uint8_t)(px - sx) : (uint8_t)(sx - px);
+      uint8_t apy = (py > sy) ? (uint8_t)(py - sy) : (uint8_t)(sy - py);
+      if (((apx > apy) ? apx : apy) <= SPHINX_RANGED_RANGE) sphinx_fire_pending = 1u; }
+    return SPHINX_ACT_FLY;
 }
 
 BANKREF(sphinx_anim_tick)
@@ -69,8 +88,13 @@ void sphinx_anim_tick(void) BANKED { // per gameplay frame on the boss floor; ca
     uint8_t d = DIV_REG;
     uint8_t delta = (uint8_t)(d - s_div_last);
     s_div_last = d;
-    s_bacc += delta;
+    if (g_sphinx_mode == SPHINX_GROUNDED) { // grounded body + wings-down (resting), no flapping
+        if (s_body_frame != 0u) { s_body_frame = 0u; upload_body(0u); }
+        if (s_wing_frame != 1u) { s_wing_frame = 1u; upload_wing(1u); }
+        return;
+    }
+    // FLYING / AWAY: airborne body frame, wings flap on the wingbeat timer
+    if (s_body_frame != 1u) { s_body_frame = 1u; upload_body(1u); }
     s_wacc += delta;
-    if (s_bacc >= SPHINX_BODY_DIV_TICKS) { s_bacc -= SPHINX_BODY_DIV_TICKS; s_body_frame ^= 1u; upload_body(s_body_frame); }
     if (s_wacc >= SPHINX_WING_DIV_TICKS) { s_wacc -= SPHINX_WING_DIV_TICKS; s_wing_frame ^= 1u; upload_wing(s_wing_frame); }
 }

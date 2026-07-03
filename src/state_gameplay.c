@@ -448,6 +448,10 @@ void state_gameplay_tick(void) BANKED {
                 return;
             } else {
                 uint8_t opx = g_player_x, opy = g_player_y;
+                if (floor_biome == BIOME_OVERWORLD) { // signpost on the hub → print its label to the chat box
+                    uint8_t sa = overworld_signpost_aux_at(nx, ny);
+                    if (sa != 255u) overworld_signpost_read(sa);
+                }
                 consumed_turn = 1u;
                 wait_vbl_done();
                 draw_cell(g_player_x, g_player_y);

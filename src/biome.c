@@ -99,6 +99,11 @@ void biome_load_active(uint8_t biome_id) {
         // free here). sphinx_anim_tick re-uploads per frame; the else-branch restores those slots
         // on every other floor. BANKED call — its trampoline maps bank 24 (bosses art + code).
         sphinx_load_initial();
+        // Upload the stun glyph — the flying Sphinx flings it as its ranged bolt. VRAM 197 is not one
+        // of the Sphinx's 10 borrowed slots, but this branch skips the else-branch that normally
+        // restores it, so re-upload it explicitly to be safe.
+        SWITCH_ROM(BANK(tileset));
+        set_sprite_data(TILE_STUN_ICON_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SHEET_M13 * 16u);
     } else {
         SWITCH_ROM(BANK(tileset));
         set_sprite_data(TILE_SKEL_1_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SKEL_ROM_1 * 16u);

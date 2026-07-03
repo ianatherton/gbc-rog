@@ -127,6 +127,15 @@ BANKREF(combat_player_attacks)
 uint8_t combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, uint8_t ny) BANKED {
     int8_t adx = (nx > px) ? 1 : (nx < px ? -1 : 0);
     int8_t ady = (ny > py) ? 1 : (ny < py ? -1 : 0);
+    if (enemy_type[ei] == ENEMY_SPHINX && g_sphinx_mode != SPHINX_GROUNDED) {
+        entity_sprites_run_player_lunge(px, py, adx, ady, ei); // lunge whiffs — flyer is out of melee reach
+        sfx_dodge_woosh();
+        { // copy the literal into RAM first — a bank-19 ROM literal garbles across the banked ui call
+          char msg[18]; const char *s = "SPHINX IS FLYING!"; uint8_t k = 0u;
+          while ((msg[k] = s[k]) != 0) k++;
+          ui_combat_log_push(msg); }
+        return 0u; // not killed; ranged attacks (range >= 2) can still hit it
+    }
     entity_sprites_run_player_lunge(px, py, adx, ady, ei);
     sfx_lunge_hit();
     {
@@ -141,6 +150,16 @@ uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) BANKED {
     uint8_t perf_stamp = perf_stamp_now();
     uint8_t a;
     uint8_t any_landed = 0u;
+    if (sphinx_fire_pending) { // flying Sphinx pelts the player with the stun-glyph bolt (slot 0 = boss)
+        sphinx_fire_pending = 0u;
+        player_hp_prev = player_hp;
+        entity_sprites_run_projectile(enemy_x[0], enemy_y[0], px, py,
+            (uint8_t)(TILE_STUN_ICON_VRAM - TILESET_VRAM_OFFSET), PAL_WALL_BG);
+        if (!enemy_resolve_hit(0)) { entity_sprites_player_hurt_flash(); camera_shake(); } // else dodged
+        wait_vbl_done();
+        draw_gameplay_overlays_profiled_far(px, py);
+        if (player_hp == 0u) return 2u;
+    }
     if (!enemy_attack_count) return 0;
     player_hp_prev = player_hp;
     for (a = 0; a < enemy_attack_count; a++) {

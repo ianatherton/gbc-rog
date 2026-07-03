@@ -6,6 +6,7 @@
 #include "globals.h" // overworld_preset
 #include "map.h"     // active_map_w / active_map_h
 #include "render.h"  // render_strip_* buffers + render_blit_strip_* (placed here to relieve bank 2)
+#include "ui.h"      // ui_combat_log_push — signpost labels print to the chat box
 #include <gb/cgb.h>
 
 // Top-level hub floor (floor 0). No enemy roster, no items (the item scatter loop in
@@ -290,10 +291,46 @@ uint8_t overworld_trigger_at(uint8_t x, uint8_t y) BANKED {
     return 255u;
 }
 
+// If a signpost sits at (x,y), return its packed label code (SIGN_KIND_* | index); else 255.
+BANKREF(overworld_signpost_aux_at)
+uint8_t overworld_signpost_aux_at(uint8_t x, uint8_t y) BANKED {
+    uint8_t i;
+    for (i = 0u; i < ow_feature_count; i++)
+        if (ow_features[i].type == OW_FEAT_SIGNPOST && ow_features[i].x == x && ow_features[i].y == y)
+            return ow_features[i].aux;
+    return 255u;
+}
+
+// Build the signpost's label from its aux code and print it to the chat box. The label text is composed
+// into a RAM buffer before the cross-bank ui_combat_log_push (bank 5) — passing a bank-22 ROM literal
+// straight into a call in another bank garbles it (see project_cross_bank_string_literal_gotcha).
+BANKREF(overworld_signpost_read)
+void overworld_signpost_read(uint8_t aux) BANKED {
+    char buf[16];
+    uint8_t kind = (uint8_t)(aux & 0xF0u), num = (uint8_t)(aux & 0x0Fu), i;
+    if (kind == SIGN_KIND_TOWN) {
+        const char *s = "TOWN "; for (i = 0u; s[i]; i++) buf[i] = s[i];
+        buf[i] = (char)('1' + num); buf[i + 1u] = 0;
+    } else if (kind == SIGN_KIND_WAYPOINT) {
+        static const char dirs[4][3] = { "NE", "NW", "SE", "SW" };
+        const char *s = " WAYPOINT";
+        if (num > 3u) num = 0u;
+        buf[0] = dirs[num][0]; buf[1] = dirs[num][1];
+        for (i = 0u; s[i]; i++) buf[2u + i] = s[i]; buf[2u + i] = 0;
+    } else if (kind == SIGN_KIND_DUNGEON) {
+        const char *s = "DUNGEON "; for (i = 0u; s[i]; i++) buf[i] = s[i];
+        buf[i] = (char)('1' + num); buf[i + 1u] = 0;
+    } else { // SIGN_KIND_BOSS
+        const char *s = "FINAL DUNGEON"; for (i = 0u; s[i]; i++) buf[i] = s[i]; buf[i] = 0;
+    }
+    ui_combat_log_push(buf);
+}
+
 // Prefab tile lookup: which VRAM tile to draw for local cell (lx,ly) of a w×h feature of the given type.
 // Returns 0 for the town's interior cell (a grass courtyard — caller draws normal ground). Town wall ring
 // uses corner / E-W / N-S art; waypoint is a 2×2 of distinct quadrants; entrance is its single mouth tile.
 static uint8_t ow_prefab_vram(uint8_t type, uint8_t lx, uint8_t ly, uint8_t w, uint8_t h) {
+    if (type == OW_FEAT_SIGNPOST) return PREFAB_VRAM_SIGNPOST;
     if (type == OW_FEAT_ENTRANCE) return PREFAB_VRAM_ENTRANCE;
     if (type == OW_FEAT_WAYPOINT) {
         if (ly == 0u) return (lx == 0u) ? PREFAB_VRAM_WP_TL : PREFAB_VRAM_WP_TR;

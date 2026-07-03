@@ -35,6 +35,8 @@ uint8_t  overworld_preset;                   // 0..OVERWORLD_PRESET_COUNT-1; gen
 
 uint8_t  g_player_x, g_player_y, g_prev_j;
 uint16_t g_run_entropy;
+uint8_t  g_sphinx_mode;                      // SPHINX_GROUNDED/FLYING/AWAY — floor-6 boss state machine
+uint8_t  sphinx_fire_pending;                // set by move_enemies, consumed by resolve to fire the ranged bolt
 
 uint8_t  look_cx, look_cy;
 uint8_t  selected_belt_slot;                 // BSS 0 = slot 0 — gameplay_enter clears belt vars
@@ -81,6 +83,7 @@ const OwPrefabDef ow_prefab_defs[OW_FEAT_COUNT] = {
     { 2u, 2u, 0u, 1u, OW_FEAT_WAYPOINT }, // WAYPOINT 2x2, entrance bottom-left
     { 1u, 1u, 0u, 0u, OW_FEAT_ENTRANCE }, // ENTRANCE 1x1, the cell itself
     { 2u, 2u, 0u, 1u, OW_FEAT_BOSSDOOR }, // BOSSDOOR 2x2, enter from bottom-left
+    { 1u, 1u, 0u, 0u, OW_FEAT_SIGNPOST }, // SIGNPOST 1x1, the cell itself is the trigger
 };
 OwFeature ow_features[MAX_OW_FEATURES]; // BSS — filled by generate_level on the hub
 uint8_t   ow_feature_count;             // BSS 0

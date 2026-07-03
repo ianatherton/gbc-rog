@@ -53,6 +53,14 @@ BANKREF_EXTERN(sphinx_anim_tick)
 void sphinx_load_initial(void) BANKED;
 void sphinx_anim_tick(void) BANKED;
 
+// sphinx_ai_decide(): per-turn boss AI (bank 24) — advances the 5-grounded / 5-flying cadence,
+// updates g_sphinx_mode + sphinx_fire_pending, and returns the movement verb below.
+// Keeping the body out of bank 2 (move_enemies) avoids overflowing that chronically-full bank.
+#define SPHINX_ACT_GROUNDED 0u  // run the normal MOVE_BLINK chase + melee path
+#define SPHINX_ACT_FLY      1u  // flying: caller blinks it toward the player but suppresses melee
+BANKREF_EXTERN(sphinx_ai_decide)
+uint8_t sphinx_ai_decide(uint8_t sx, uint8_t sy, uint8_t px, uint8_t py) BANKED;
+
 // Hub continent water mask (bank 22) — generate_level carves land from it; render draws coast tiles.
 // BANKED so they can be called from bank 2 (render) and bank 10 (map_gen) without manual SWITCH_ROM.
 BANKREF_EXTERN(overworld_water_at)
@@ -61,8 +69,12 @@ BANKREF_EXTERN(overworld_is_desert)
 BANKREF_EXTERN(overworld_is_snow)
 BANKREF_EXTERN(overworld_carve)
 BANKREF_EXTERN(overworld_trigger_at)
+BANKREF_EXTERN(overworld_signpost_aux_at)
+BANKREF_EXTERN(overworld_signpost_read)
 void    overworld_carve(void) BANKED;                    // floor-0: fill floor_bits with the landmass (one banked call)
 uint8_t overworld_trigger_at(uint8_t x, uint8_t y) BANKED; // OW_FEAT_* of the feature whose trigger cell is (x,y), else 255
+uint8_t overworld_signpost_aux_at(uint8_t x, uint8_t y) BANKED; // signpost label code at (x,y), else 255
+void    overworld_signpost_read(uint8_t aux) BANKED;     // print the signpost's label to the chat box
 uint8_t overworld_water_at(uint8_t x, uint8_t y) BANKED;  // 1 = water (ocean/river/lake), 0 = land
 uint8_t overworld_coast_vram(uint8_t mx, uint8_t my) BANKED; // coast tile for a land cell bordering water, 0 = interior land
 uint8_t overworld_is_desert(uint8_t mx, uint8_t my) BANKED;  // hub SE sand region

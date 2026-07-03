@@ -317,6 +317,40 @@ static void place_overworld_roads(void) {
     }
 }
 
+// Signposts: place a readable B8 marker on an open cell just outside each structure, tagged with a
+// label code (SIGN_KIND_*) that overworld_signpost_read() turns into chat-box text on step.
+static uint8_t ow_add_signpost(uint8_t sx, uint8_t sy, uint8_t aux) {
+    if (ow_feature_count >= MAX_OW_FEATURES) return 0u;
+    if (!ow_footprint_clear(sx, sy, 1u, 1u)) return 0u; // open land, not pit, off the spawn clearing
+    ow_features[ow_feature_count].x = sx;
+    ow_features[ow_feature_count].y = sy;
+    ow_features[ow_feature_count].type = OW_FEAT_SIGNPOST;
+    ow_features[ow_feature_count].aux = aux;
+    ow_feature_count++;
+    return 1u;
+}
+
+static void place_overworld_signposts(void) {
+    uint8_t n = ow_feature_count; // snapshot: only label the structures already placed, not new signposts
+    uint8_t i, townc = 0u, dungc = 0u;
+    uint8_t cx = (uint8_t)(active_map_w >> 1), cy = (uint8_t)(active_map_h >> 1);
+    for (i = 0u; i < n; i++) {
+        uint8_t t = ow_features[i].type, fx = ow_features[i].x, fy = ow_features[i].y, aux;
+        const OwPrefabDef *d = &ow_prefab_defs[t];
+        if (t == OW_FEAT_TOWN)          { aux = (uint8_t)(SIGN_KIND_TOWN | (townc & 0x0Fu)); townc++; }
+        else if (t == OW_FEAT_WAYPOINT) { aux = (uint8_t)(SIGN_KIND_WAYPOINT | ((fx >= cx) ? 0u : 1u) | ((fy >= cy) ? 2u : 0u)); }
+        else if (t == OW_FEAT_ENTRANCE) { aux = (uint8_t)(SIGN_KIND_DUNGEON | (dungc & 0x0Fu)); dungc++; }
+        else if (t == OW_FEAT_BOSSDOOR) { aux = SIGN_KIND_BOSS; }
+        else continue;
+        // Try a few cells around the footprint for an open spot to stand the sign.
+        if (ow_add_signpost(fx, (uint8_t)(fy + d->h), aux)) continue;                       // below-left
+        if (ow_add_signpost((uint8_t)(fx + d->w - 1u), (uint8_t)(fy + d->h), aux)) continue; // below-right
+        if (fy >= 1u && ow_add_signpost(fx, (uint8_t)(fy - 1u), aux)) continue;              // above
+        if (ow_add_signpost((uint8_t)(fx + d->w), fy, aux)) continue;                        // right
+        if (fx >= 1u) ow_add_signpost((uint8_t)(fx - 1u), fy, aux);                          // left
+    }
+}
+
 // Hub continent shape lives in overworld_water_at (bank 22, biome_overworld.c); generate_level calls
 // it as a BANKED entry to carve land. overworld_preset (set below) selects one of 5 seeded layouts.
 
@@ -480,7 +514,7 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
 
     // Hub prefab structures: placed after the landmass, trees, pit and spawn are final so footprints
     // only land on clear open land away from the down-ladder and the spawn clearing.
-    if (floor_num == 0u) { place_overworld_features(); place_overworld_roads(); } // roads connect entrances to towns
+    if (floor_num == 0u) { place_overworld_features(); place_overworld_roads(); place_overworld_signposts(); }
 
     // The hub has no enemies, so its nav graph is never consulted — skip the ~9k banked is_walkable
     // probes (a big chunk of floor-0 load) and just present an empty graph to any nav consumer.

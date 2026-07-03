@@ -54,6 +54,12 @@ uint8_t overworld_water_bit(uint16_t tile_idx); // 1 = water cell, 0 = land
 void    overworld_water_set(uint16_t tile_idx); // mark a water cell during carve
 void    overworld_water_clear_all(void);        // zero the whole mask (start of carve)
 
+// Hub road mask: CGB WRAM bank 2, 0xD900 (distinct from fog 0xD000 / water 0xD480). generate_level
+// carves roads; overworld_cell_render reads it (floor cells) and renders a road as open sand. HOME.
+uint8_t road_bit(uint16_t tile_idx); // 1 = road cell, 0 = not
+void    road_set(uint16_t tile_idx); // mark a road cell during generation
+void    road_clear_all(void);        // zero the whole road mask (start of hub gen)
+
 uint8_t nearest_nav_node(uint8_t x, uint8_t y); // for mapping entity tiles to graph
 void    nav_fill_hops_from(uint8_t player_node, uint8_t *hop_out); // single BFS; hop_out[n] = first hop from n toward player_node
 uint8_t map_pit_position(uint8_t *x, uint8_t *y) BANKED; // 1 when floor has a down-ladder pit coordinate

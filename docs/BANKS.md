@@ -95,7 +95,8 @@ Top consumers:
 | 1 (default) | 0xD000–0xDFFF | tail of `_DATA` + stack — SVBK must always be restored to 1 |
 | 2 | 0xD000–0xD47F | explored/fog bits (1,152 B) — access ONLY via `lighting.c` |
 | 2 | 0xD480–0xD8FF | hub water mask (1,152 B) — `overworld_water_*` in `lighting.c`; hub-only, never aliases fog |
-| 2 | 0xD900–0xDFFF | free (~1.75 KB) |
+| 2 | 0xD900–0xDD7F | hub road mask (1,152 B) — `road_*` in `lighting.c`; hub-only, rendered as open sand |
+| 2 | 0xDD80–0xDFFF | free (~640 B; keep data below ~0xDF00) |
 | 3–7 | — | free (20 KB) — future per-floor data, bigger maps, more creature stats |
 
 Rules for adding banked-WRAM data (the `exp2_*` accessors in `src/lighting.c` are the template):

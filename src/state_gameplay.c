@@ -434,6 +434,18 @@ void state_gameplay_tick(void) BANKED {
                 g_prev_j           = j;
                 wait_vbl_done();
                 return;
+            } else if (floor_biome == BIOME_OVERWORLD && overworld_trigger_at(nx, ny) == OW_FEAT_ENTRANCE) {
+                // Part D: stepping onto an overworld cave-mouth enters the dungeon — reuses the hub
+                // ladder's descent path (floor 0 -> 1). Returning via floor-1 stairs lands at the hub
+                // pit as usual. Towns/waypoints/boss-door/encounters route here later via their own dest.
+                if (player_hp < player_hp_max) player_hp++;
+                wait_vbl_done();
+                draw_cell(g_player_x, g_player_y);
+                pending_transition = TRANS_FLOOR_PIT;
+                next_state         = STATE_TRANSITION;
+                g_prev_j           = j;
+                wait_vbl_done();
+                return;
             } else {
                 uint8_t opx = g_player_x, opy = g_player_y;
                 consumed_turn = 1u;

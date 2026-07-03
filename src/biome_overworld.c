@@ -275,6 +275,21 @@ static uint8_t ow_coast(uint8_t mx, uint8_t my) { // assumes the water mask was 
 BANKREF(overworld_coast_vram)
 uint8_t overworld_coast_vram(uint8_t mx, uint8_t my) BANKED { ow_prepare(); return ow_coast(mx, my); }
 
+// Part D: if (x,y) is the walkable trigger cell of a placed hub feature, return its OW_FEAT_* type,
+// else 255. The trigger cell is the footprint's top-left plus the prefab's ent_dx/ent_dy (globals.c).
+// state_gameplay uses this on the hub to route entrances (and, later, towns/waypoints/encounters) into
+// a sub-map transition. Cheap: called once per player step, not per frame.
+BANKREF(overworld_trigger_at)
+uint8_t overworld_trigger_at(uint8_t x, uint8_t y) BANKED {
+    uint8_t i;
+    for (i = 0u; i < ow_feature_count; i++) {
+        const OwPrefabDef *d = &ow_prefab_defs[ow_features[i].type];
+        if ((uint8_t)(ow_features[i].x + d->ent_dx) == x && (uint8_t)(ow_features[i].y + d->ent_dy) == y)
+            return ow_features[i].type;
+    }
+    return 255u;
+}
+
 // Prefab tile lookup: which VRAM tile to draw for local cell (lx,ly) of a w×h feature of the given type.
 // Returns 0 for the town's interior cell (a grass courtyard — caller draws normal ground). Town wall ring
 // uses corner / E-W / N-S art; waypoint is a 2×2 of distinct quadrants; entrance is its single mouth tile.
@@ -347,6 +362,7 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
     if (base_tile == TILE_FLOOR) {
         uint8_t coast = ow_coast(mx, my); // shore tile when this land cell borders water
         if (coast) { *pal_out = PAL_PILLAR_BG; return coast; } // green land bulk + blue shore edge
+        if (road_bit(TILE_IDX(mx, my))) *region_out = OW_REGION_DESERT; // road → open sand look (no new art)
     }
     return 0u; // interior ground (or a visible pit/other tile) — caller draws via its own path
 }

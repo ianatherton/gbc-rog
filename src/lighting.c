@@ -203,6 +203,102 @@ __asm
 __endasm;
 }
 
+// ── hub road mask: CGB WRAM bank 2, 0xD900..0xDD7F (1,152 B) ──────────────────
+// Same __naked/SVBK discipline as the fog + water masks above (docs/BANKS.md). Hub-only, distinct
+// range from fog (0xD000) and water (0xD480). generate_level carves roads into it; overworld_cell_render
+// reads it (floor cells only) and renders a road as open sand (PAL_OW_ACCENT).
+uint8_t road_bit(uint16_t tile_idx) __naked { // 1 = road cell, 0 = not (BIT_GET at 0xD900)
+    tile_idx;
+__asm
+    ld   a, e
+    and  #0x07
+    ld   b, a
+    srl  d
+    rr   e
+    srl  d
+    rr   e
+    srl  d
+    rr   e
+    di
+    ld   a, #0x02
+    ldh  (_SVBK_REG + 0), a
+    ld   hl, #0xD900
+    add  hl, de
+    ld   a, (hl)
+    ld   e, a
+    ld   a, #0x01
+    ldh  (_SVBK_REG + 0), a
+    ei
+    ld   a, e
+    inc  b
+70$:
+    dec  b
+    jr   Z, 71$
+    srl  a
+    jr   70$
+71$:
+    and  #0x01
+    ret
+__endasm;
+}
+
+void road_set(uint16_t tile_idx) __naked { // mark cell as road (BIT_SET at 0xD900)
+    tile_idx;
+__asm
+    ld   a, e
+    and  #0x07
+    ld   b, a
+    ld   a, #0x01
+    inc  b
+80$:
+    dec  b
+    jr   Z, 81$
+    rlca
+    jr   80$
+81$:
+    ld   c, a
+    srl  d
+    rr   e
+    srl  d
+    rr   e
+    srl  d
+    rr   e
+    ld   hl, #0xD900
+    add  hl, de
+    di
+    ld   a, #0x02
+    ldh  (_SVBK_REG + 0), a
+    ld   a, (hl)
+    or   c
+    ld   (hl), a
+    ld   a, #0x01
+    ldh  (_SVBK_REG + 0), a
+    ei
+    ret
+__endasm;
+}
+
+void road_clear_all(void) __naked { // zero all 1,152 bytes — called once at hub carve
+__asm
+    di
+    ld   a, #0x02
+    ldh  (_SVBK_REG + 0), a
+    ld   hl, #0xD900
+    ld   bc, #1152
+90$:
+    xor  a
+    ld   (hl+), a
+    dec  bc
+    ld   a, b
+    or   c
+    jr   NZ, 90$
+    ld   a, #0x01
+    ldh  (_SVBK_REG + 0), a
+    ei
+    ret
+__endasm;
+}
+
 static uint8_t lighting_dirty_x[LIGHTING_DIRTY_MAX];
 static uint8_t lighting_dirty_y[LIGHTING_DIRTY_MAX];
 static uint8_t lighting_dirty_n;

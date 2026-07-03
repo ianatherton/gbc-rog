@@ -60,7 +60,9 @@ BANKREF_EXTERN(overworld_coast_vram)
 BANKREF_EXTERN(overworld_is_desert)
 BANKREF_EXTERN(overworld_is_snow)
 BANKREF_EXTERN(overworld_carve)
+BANKREF_EXTERN(overworld_trigger_at)
 void    overworld_carve(void) BANKED;                    // floor-0: fill floor_bits with the landmass (one banked call)
+uint8_t overworld_trigger_at(uint8_t x, uint8_t y) BANKED; // OW_FEAT_* of the feature whose trigger cell is (x,y), else 255
 uint8_t overworld_water_at(uint8_t x, uint8_t y) BANKED;  // 1 = water (ocean/river/lake), 0 = land
 uint8_t overworld_coast_vram(uint8_t mx, uint8_t my) BANKED; // coast tile for a land cell bordering water, 0 = interior land
 uint8_t overworld_is_desert(uint8_t mx, uint8_t my) BANKED;  // hub SE sand region

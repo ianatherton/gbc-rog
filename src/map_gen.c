@@ -287,6 +287,36 @@ static void place_overworld_features(void) {
     }
 }
 
+// Roads (rendered as open sand by overworld_cell_render, so no new art). Carve an L-shaped path —
+// horizontal then vertical — setting road_bit only on floor cells, so the road gaps naturally at rivers
+// and tree clumps instead of paving over them.
+static void carve_road_seg(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1) {
+    uint8_t x = x0, y = y0;
+    while (x != x1) { if (BIT_GET(floor_bits, TILE_IDX(x, y))) road_set(TILE_IDX(x, y)); x = (uint8_t)((x < x1) ? x + 1u : x - 1u); }
+    while (y != y1) { if (BIT_GET(floor_bits, TILE_IDX(x, y))) road_set(TILE_IDX(x, y)); y = (uint8_t)((y < y1) ? y + 1u : y - 1u); }
+    if (BIT_GET(floor_bits, TILE_IDX(x1, y1))) road_set(TILE_IDX(x1, y1));
+}
+
+// Connect each dungeon entrance to its nearest town's door. Called on the hub after features are placed.
+static void place_overworld_roads(void) {
+    uint8_t i, j;
+    const OwPrefabDef *td = &ow_prefab_defs[OW_FEAT_TOWN];
+    road_clear_all();
+    for (i = 0u; i < ow_feature_count; i++) {
+        if (ow_features[i].type != OW_FEAT_ENTRANCE) continue;
+        uint8_t ex = ow_features[i].x, ey = ow_features[i].y; // entrance is 1x1: its cell is the trigger
+        uint8_t best = 255u, bestd = 0u, btx = 0u, bty = 0u;
+        for (j = 0u; j < ow_feature_count; j++) {
+            if (ow_features[j].type != OW_FEAT_TOWN) continue;
+            uint8_t tx = (uint8_t)(ow_features[j].x + td->ent_dx), ty = (uint8_t)(ow_features[j].y + td->ent_dy);
+            uint8_t dx = (uint8_t)((ex > tx) ? ex - tx : tx - ex), dy = (uint8_t)((ey > ty) ? ey - ty : ty - ey);
+            uint8_t dd = (uint8_t)((dx > dy) ? dx : dy);
+            if (best == 255u || dd < bestd) { bestd = dd; best = j; btx = tx; bty = ty; }
+        }
+        if (best != 255u) carve_road_seg(ex, ey, btx, bty);
+    }
+}
+
 // Hub continent shape lives in overworld_water_at (bank 22, biome_overworld.c); generate_level calls
 // it as a BANKED entry to carve land. overworld_preset (set below) selects one of 5 seeded layouts.
 
@@ -450,7 +480,7 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
 
     // Hub prefab structures: placed after the landmass, trees, pit and spawn are final so footprints
     // only land on clear open land away from the down-ladder and the spawn clearing.
-    if (floor_num == 0u) place_overworld_features();
+    if (floor_num == 0u) { place_overworld_features(); place_overworld_roads(); } // roads connect entrances to towns
 
     // The hub has no enemies, so its nav graph is never consulted — skip the ~9k banked is_walkable
     // probes (a big chunk of floor-0 load) and just present an empty graph to any nav consumer.

@@ -133,6 +133,10 @@ int main(void) {
             tileset_tiles + (uint16_t)TILE_GORGON_FEET_L_ROM * 16u);
         set_sprite_data(TILE_GORGON_FEET_R_VRAM, 1u, // O12 gorgon feet-right
             tileset_tiles + (uint16_t)TILE_GORGON_FEET_R_ROM * 16u);
+        // 2-tile-tall hero art (K13 head + K14/K15 body + K12 helmet) lives in the now-freed B1–B4 class
+        // VRAM slots 129/145/161/177. It is NOT boot-loaded here: 129/145/161 are in the title-logo VRAM
+        // table (title_logo.c), so the title restore would stomp them back to the class glyphs. It is
+        // (re)uploaded on every floor entry in biome_load_active() instead — see biome.c.
         // Elite miniboss art is not boot-loaded — dungeon_elite_load_art (bank 28) pixel-doubles
         // the elite's base sprite from ROM at floor gen on FLOORKIND_MINIBOSS floors.
         {

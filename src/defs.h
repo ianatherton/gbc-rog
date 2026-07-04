@@ -108,17 +108,19 @@ typedef struct {
 #define MAX_FLOORS     50u // persistence-array size; floors 1-36 = dungeons, 37-45 = guardroom keys
 
 /* ── Enemy roster ────────────────────────────────────────────────────────── */
-#define MAX_ENEMIES    24 // OAM layout: 24 body slots + 4 skeleton-head slots fit before ally base
-#define NUM_ENEMIES    24
+#define MAX_ENEMIES    23 // OAM: 23 body slots (3..25) + head slot 26 + 4 skeleton-head slots (27..30) before ally base
+#define NUM_ENEMIES    23 // was 24; capped to free OAM slot 26 for the hero head (2-tile player)
 #define ENEMY_DEAD    255
 
 /* OAM draw order: lower index = in front (hardware). Aura must be < player or the 8×8 hero covers it completely.
    Flight FX (witch bolt, shield fireball) borrow SP_PLAYER_AURA_OAM during entity_sprites_run_projectile so bolts sit above the hero.
    Big Skell heads use SP_BIG_SKELL_HEAD_BASE..+MAX_BIG_SKELL_HEADS-1 (27..30) — managed by entity_sprites, excluded from hide sweep. */
-#define SP_PLAYER_AURA_OAM    0u // M15/M16 gold flicker — slot also drives bolt/fireball FX (same index = above hero)
-#define SP_PLAYER             1u // hero body
-#define SP_ENEMY_BASE         3u // enemies use OAM [SP_ENEMY_BASE .. SP_ENEMY_BASE + MAX_ENEMIES - 1] = 3..26
+#define SP_PLAYER_AURA_OAM    0u // M15/M16 gold flicker — slot also drives bolt/fireball + weapon-lunge FX (same index = above hero)
+#define SP_PLAYER             1u // hero body — bottom tile of the 2-tile-tall hero
+#define SP_ENEMY_BASE         3u // enemies use OAM [SP_ENEMY_BASE .. SP_ENEMY_BASE + MAX_ENEMIES - 1] = 3..25
                                   // (Sphinx boss borrows 3..12; the hub borrows 3..4 for waypoint stun-fx — no enemies on floor 0)
+#define SP_PLAYER_HEAD        26u // hero head — top tile of the 2-tile hero; freed by capping enemies to 23.
+                                  // Above the enemy run so a north-adjacent enemy may overlap it (body/slot 1 always in front).
 #define SP_BIG_SKELL_HEAD_BASE 27u // big skell head overlays (up to MAX_BIG_SKELL_HEADS concurrent visible heads)
 #define MAX_BIG_SKELL_HEADS    4u // head slots 27..30; must fit before SP_ALLY_BASE (31)
 #define MAX_ALLIES            4u // parallel ally slots — OAM SP_ALLY_BASE .. SP_ALLY_BASE+MAX_ALLIES-1 (above enemy run)
@@ -200,11 +202,26 @@ typedef struct {
 #define TILE_WALL_COUNT    7
 
 /* ── B col — player class sprites ───────────────────────────────────────── */
-#define TILE_CLASS_KNIGHT    1   /* B1  */
+#define TILE_CLASS_KNIGHT    1   /* B1 — legacy class glyph, no longer the gameplay hero sprite (see below) */
 #define TILE_CLASS_BERSERKER 17  /* B2 — Zerker in-game */
 #define TILE_CLASS_WITCH     33  /* B3  */
 #define TILE_CLASS_SCOUNDREL 49  /* B4 — Scoundrel / rogue */
 #define TILE_B6              81  /* B6 — unused placeholder (ladder/fence); reused as torch-frame decor on the title screen */
+
+/* ── 2-tile-tall hero sprite (shared by all classes; one fixed grey/dark-blue/gold palette) ──
+   Head (top OAM = SP_PLAYER_HEAD) + body (bottom OAM = SP_PLAYER). Body animates between a
+   standing and a mid-stride frame while walking; the head swaps to a helmet graphic when a
+   HEAD-slot item is worn. ROM sources are column-K rows 13–15 (sheet index > 127, so NOT in the
+   boot bulk upload) — main.c boot-copies each into the now-freed B1–B4 class VRAM slots. */
+#define TILE_SHEET_K13     202u /* K13 — bare head        ROM (13-1)*16+10 */
+#define TILE_SHEET_K14     218u /* K14 — body standing    ROM (14-1)*16+10 */
+#define TILE_SHEET_K15     234u /* K15 — body mid-stride  ROM (15-1)*16+10 */
+#define TILE_SHEET_HELMET1 TILE_ITEM_5 /* helmeted head = I5 helmet item art for now; K12 (ROM 186) is
+                                          still blank — repoint here when dedicated head art is drawn */
+#define TILE_PLAYER_BODY_STAND_VRAM  ((uint8_t)(TILESET_VRAM_OFFSET + TILE_CLASS_KNIGHT))    /* 129 — freed B1 slot */
+#define TILE_PLAYER_BODY_STRIDE_VRAM ((uint8_t)(TILESET_VRAM_OFFSET + TILE_CLASS_BERSERKER)) /* 145 — freed B2 slot */
+#define TILE_PLAYER_HEAD_VRAM        ((uint8_t)(TILESET_VRAM_OFFSET + TILE_CLASS_WITCH))     /* 161 — freed B3 slot */
+#define TILE_PLAYER_HELMET_VRAM      ((uint8_t)(TILESET_VRAM_OFFSET + TILE_CLASS_SCOUNDREL)) /* 177 — freed B4 slot */
 
 /* Class emblems on sheet: each is 2×2 (row 15–16 1-based). Knight = A15 B15 / A16 B16 → VRAM order TL,TR,BL,BR */
 /* TL index below is A15 for Knight; Scoundrel C15; Witch E15; Zerker G15 (16-wide sheet: BR = TL+17).          */
@@ -619,9 +636,6 @@ typedef struct {
 #define PLAYER_LEVEL_XP_BASE 45u
 #define PLAYER_LEVEL_XP_STEP 15u
 #define LIFE_BAR_LEN   5
-
-/* Sheet-relative tile for hero — see entity_sprites player_tile_offset_for_class */
-#define PLAYER_TILE_OFFSET TILE_CLASS_KNIGHT
 
 /* ── CGB palette slot assignments (0–7) ─────────────────────────────────── */
 #define PAL_PILLAR_BG 1 // BKG only: column/pillar wall cells; OCP slot 1 is enemy snake (separate CRAM)

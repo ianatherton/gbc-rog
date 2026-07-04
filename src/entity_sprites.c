@@ -11,6 +11,8 @@
 #include "ally.h"
 #include "debuff_icon.h"
 #include "dungeon.h"
+#include "equipment.h" // equipped_kind_in_slot — head/weapon lookup for the 2-tile hero + weapon pop-out
+#include "items.h"     // items_kind_tile / items_kind_palette — equipped weapon graphic
 #include <gb/cgb.h>
 #include <string.h>
 
@@ -60,6 +62,7 @@ static int16_t player_override_wy = -1;
 static int16_t player_override_aura_wx = -1; // glide only — world pos for aura (no walk bob on Y)
 static int16_t player_override_aura_wy = -1;
 static uint8_t player_flip_x;
+static uint8_t player_walk_sub;   // advances each refresh while gliding; drives the k14/k15 walk gait (0 when idle)
 static uint8_t player_hurt_flash_ttl;
 static uint8_t player_hurt_flash_restore_needed; // 1 after flash until OCP2 restored to gold
 static uint8_t player_cache_tx, player_cache_ty; // last refresh tile — VBL hurt blink repaints without full refresh
@@ -126,13 +129,6 @@ static void refresh_belt_selector_oam(void) { // M3 arrow on dungeon row GRID_H-
     move_sprite(SP_BELT_SELECTOR, sx, sy);
 }
 
-static uint8_t player_tile_offset_for_class(void) {
-    if (player_class == 1u) return TILE_CLASS_SCOUNDREL; // rogue — B4
-    if (player_class == 2u) return TILE_CLASS_WITCH; // B3
-    if (player_class == 3u) return TILE_CLASS_BERSERKER; // Zerker — B2
-    return TILE_CLASS_KNIGHT;
-}
-
 static uint8_t pick_next_visible_light_source(uint8_t *mx, uint8_t *my) {
     uint8_t i;
     if (brazier_count == 0u) return 0u;
@@ -173,7 +169,7 @@ static void move_entity_oam(uint8_t sp, int16_t wx, int16_t wy, uint8_t tile, ui
     set_sprite_tile(sp, tile);
     {
         uint8_t prop = (uint8_t)(pal & 7u); // CGB palette index matches BG slot 0..7
-        if (sp == SP_PLAYER && player_flip_x) prop |= S_FLIPX;
+        if ((sp == SP_PLAYER || sp == SP_PLAYER_HEAD) && player_flip_x) prop |= S_FLIPX;
         if (sp == SP_PLAYER_AURA_OAM && player_flip_x && !projectile_overrides_aura) prop |= S_FLIPX;
         if (sp >= SP_ALLY_BASE && sp < (uint8_t)(SP_ALLY_BASE + MAX_ALLIES) && ally_flip_x[sp - SP_ALLY_BASE])
             prop |= S_FLIPX;
@@ -273,6 +269,7 @@ void entity_sprites_init(void) BANKED {
     player_override_aura_wx = -1;
     player_override_aura_wy = -1;
     player_flip_x = 0u;
+    player_walk_sub = 0u;
     player_hurt_flash_ttl = 0u;
     player_hurt_flash_restore_needed = 0u;
     oam_enemy_hide_mark = 255u;
@@ -351,6 +348,20 @@ static void refresh_player_aura_oam_vbl(void) { // position every VBL; M15/M16 s
     move_entity_oam(SP_PLAYER_AURA_OAM, ax, player_aura_oam_y(ay), player_aura_oam_tile(), PAL_XP_UI);
 }
 
+// Head tile: helmet graphic when a HEAD-slot item is worn, else the bare head. All classes share one head.
+static uint8_t player_head_tile_vram(void) {
+    return (equipped_kind_in_slot(EQUIP_SLOT_HEAD) != ITEM_KIND_NONE)
+        ? TILE_PLAYER_HELMET_VRAM : TILE_PLAYER_HEAD_VRAM;
+}
+
+// Body tile: alternate standing/mid-stride while the hero is gliding (a move step is in flight → override set);
+// hold standing when idle. player_walk_sub advances one per refresh so a single tile step reads stand→stride.
+static uint8_t player_body_tile_vram(void) {
+    if (player_override_wx < 0) { player_walk_sub = 0u; return TILE_PLAYER_BODY_STAND_VRAM; }
+    player_walk_sub++;
+    return ((player_walk_sub >> 2) & 1u) ? TILE_PLAYER_BODY_STRIDE_VRAM : TILE_PLAYER_BODY_STAND_VRAM;
+}
+
 static void refresh_player_oam_from_cache(void) { // player only — same math as entity_sprites_refresh player block
     int16_t pwx, pwy;
     uint8_t player_pal = PAL_PLAYER;
@@ -371,8 +382,8 @@ static void refresh_player_oam_from_cache(void) { // player only — same math a
     } else if (!lcd_gameplay_active) {
         oam_hide(SP_PLAYER_AURA_OAM);
     }
-    move_entity_oam(SP_PLAYER, pwx, pwy,
-            (uint8_t)(TILESET_VRAM_OFFSET + player_tile_offset_for_class()), player_pal);
+    move_entity_oam(SP_PLAYER, pwx, pwy, player_body_tile_vram(), player_pal);       // bottom tile
+    move_entity_oam(SP_PLAYER_HEAD, pwx, (int16_t)(pwy - 8), player_head_tile_vram(), player_pal); // top tile
 }
 
 static void refresh_enemy_oam(uint8_t slot) {
@@ -799,7 +810,9 @@ void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) BANKED {
         if (floor_kind == FLOORKIND_BOSS && floor_boss_type == ENEMY_SPHINX && new_mark < (uint8_t)(SP_ENEMY_BASE + 10u))
             new_mark = (uint8_t)(SP_ENEMY_BASE + 10u);
         if (oam_enemy_hide_mark != new_mark) {
-            for (i = new_mark; i < SP_BIG_SKELL_HEAD_BASE; i++) oam_hide(i);
+            // Stop at SP_PLAYER_HEAD (26): the enemy run now ends at 25, and slot 26 is the hero head
+            // (owned by refresh_player_oam_from_cache) — never sweep it here.
+            for (i = new_mark; i < SP_PLAYER_HEAD; i++) oam_hide(i);
             oam_enemy_hide_mark = new_mark;
         }
     }
@@ -821,14 +834,32 @@ void entity_sprites_enemy_hit_flash_clear(uint8_t slot) BANKED {
 }
 
 BANKREF(entity_sprites_run_player_lunge)
+#define WEAPON_LUNGE_SIDE_PX 6 // held weapon sits this many px to the facing side of the hero during a swing
+
 void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t dy, uint8_t hit_enemy_slot) BANKED {
     uint8_t t;
     uint8_t mid_t = (uint8_t)(ENTITY_LUNGE_FRAMES >> 1); // strike read lands halfway through lunge arc
+    // Equipped weapon "pops out" beside the hero and rides the lunge, borrowing the fx/aura slot (0).
+    // Bow keeps its own shoot/arrow animation, so it draws nothing here.
+    uint8_t wk = equipped_kind_in_slot(EQUIP_SLOT_WEAPON);
+    uint8_t show_weapon = (uint8_t)(wk != ITEM_KIND_NONE && wk != ITEM_KIND_BOW);
+    uint8_t wtile = 0u, wpal = 0u;
+    if (show_weapon) {
+        wtile = (uint8_t)(TILESET_VRAM_OFFSET + items_kind_tile(wk));
+        wpal  = items_kind_palette(wk);
+        projectile_overrides_aura = 1u; // suppress the foot aura so slot 0 is free for the weapon
+    }
     for (t = 0; t < ENTITY_LUNGE_FRAMES; t++) {
         uint8_t a = lunge_amt_for_frame(t);
         pl_ofs_x = (int8_t)((int16_t)dx * (int16_t)a);
         pl_ofs_y = (int8_t)((int16_t)dy * (int16_t)a);
         entity_sprites_refresh_player_only(px, py);
+        if (show_weapon) { // beside the hero on the facing side, riding the lunge offset
+            int16_t wwx = (int16_t)px * 8 + pl_ofs_x + (player_flip_x ? -WEAPON_LUNGE_SIDE_PX : WEAPON_LUNGE_SIDE_PX);
+            int16_t wwy = (int16_t)py * 8 + pl_ofs_y;
+            move_entity_oam(SP_PLAYER_AURA_OAM, wwx, wwy, wtile, wpal);
+            if (player_flip_x) set_sprite_prop(SP_PLAYER_AURA_OAM, (uint8_t)((wpal & 7u) | S_FLIPX));
+        }
         if (hit_enemy_slot < MAX_ENEMIES && enemy_alive[hit_enemy_slot] && t == mid_t) {
             if (!en_hit_flash_age[hit_enemy_slot]) enemy_effects_count++;
             en_hit_flash_age[hit_enemy_slot] = 1u;
@@ -837,6 +868,7 @@ void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t d
         wait_vbl_done();
     }
     pl_ofs_x = pl_ofs_y = 0;
+    if (show_weapon) projectile_overrides_aura = 0u; // release slot 0; the refresh below repaints the aura over the weapon
     entity_sprites_refresh_player_only(px, py);
 }
 

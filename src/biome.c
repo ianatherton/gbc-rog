@@ -105,6 +105,14 @@ void biome_load_active(uint8_t biome_id) {
         // Restore the enemy death-poof art the hub's boss door stomps (PREFAB_VRAM_DOOR_BR = M7 = VRAM 236).
         set_sprite_data((uint8_t)(TILESET_VRAM_OFFSET + TILE_POOF_CLOUD), 1u, tileset_tiles + (uint16_t)TILE_POOF_CLOUD * 16u);
     }
+    // 2-tile hero art (all biomes). Uploaded here, not at boot, because the title-logo VRAM restore stomps
+    // slots 129/145/161 (they're in title_logo_bkg_vram_slot[]) back to the ROM class glyphs when leaving
+    // the title. K13/K14/K15/K12 are sheet rows 12–15 (> first-128 upload) → copy from ROM each floor.
+    SWITCH_ROM(BANK(tileset));
+    set_sprite_data(TILE_PLAYER_BODY_STAND_VRAM,  1u, tileset_tiles + (uint16_t)TILE_SHEET_K14 * 16u);
+    set_sprite_data(TILE_PLAYER_BODY_STRIDE_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SHEET_K15 * 16u);
+    set_sprite_data(TILE_PLAYER_HEAD_VRAM,        1u, tileset_tiles + (uint16_t)TILE_SHEET_K13 * 16u);
+    set_sprite_data(TILE_PLAYER_HELMET_VRAM,      1u, tileset_tiles + (uint16_t)TILE_SHEET_HELMET1 * 16u);
     SWITCH_ROM(sb);
 }
 

@@ -10,6 +10,7 @@
 #include "biome.h"
 #include "ally.h"
 #include "debuff_icon.h"
+#include "dungeon.h"
 #include <gb/cgb.h>
 #include <string.h>
 
@@ -531,14 +532,14 @@ static void refresh_enemy_oam(uint8_t slot) {
         }
         return;
     }
-    // Custom 2×2 OAM render for ENEMY_SLIME_BIG (miniboss floor only): 4 quadrants of a
-    // nearest-neighbor 2x upscale of the regular Slime sprite, centered on the enemy's
-    // primary logical tile (occupies 2 tiles for collision/attack — see ENEMY_GORGON-style
-    // checks in enemy.c/combat.c/map.c). Animated: toggles to a 2nd quadrant set on
-    // enemy_anim_toggle, temporarily uploaded into Skeleton/Rat/BigSkell's VRAM slots by
-    // biome_load_active() since none of those types spawn on this biome (see defs.h).
-    // Borrows SP_BIG_SKELL_HEAD_BASE+0..2 (slots 27-29), safe because no BIG_SKELL spawns
-    // on this biome.
+    // Custom 2×2 OAM render for ENEMY_SLIME_BIG — the miniboss-floor elite: 4 quadrants of
+    // a nearest-neighbor 2x upscale of its base fodder sprite (elite_base_type), built at
+    // floor gen by dungeon_elite_load_art (bank 28). Centered on the enemy's primary logical
+    // tile (occupies 2 tiles for collision/attack — see ENEMY_GORGON-style checks in
+    // enemy.c/combat.c/map.c). Frame 1 lives in the dead cells 194-198; frame 2 borrows the
+    // Gorgon slots 225-229 (no Gorgon on miniboss floors; restored on every other floor).
+    // Borrows SP_BIG_SKELL_HEAD_BASE+0..2 (slots 27-29) — spawn_enemies rerolls BIG_SKELL
+    // fodder on miniboss floors so those OAM slots stay free.
     if (enemy_type[slot] == ENEMY_SLIME_BIG) {
         int16_t ewx = (int16_t)enemy_x[slot] * 8 + en_ofs_x[slot];
         int16_t ewy = (int16_t)enemy_y[slot] * 8 + en_ofs_y[slot];
@@ -552,7 +553,7 @@ static void refresh_enemy_oam(uint8_t slot) {
             return;
         }
         {
-            uint8_t pal = PAL_ENEMY_SNAKE;
+            uint8_t pal = enemy_defs[ENEMY_SLIME_BIG].palette; // inherited from the elite's base type
             uint8_t h = en_hit_flash_age[slot];
             uint8_t tl, tr, bl, br;
             if (h > 0u && h <= ENEMY_HIT_FLASH_VBL) {
@@ -560,10 +561,10 @@ static void refresh_enemy_oam(uint8_t slot) {
                 if (((age0 >> 1) & 1u) == 0u) pal = 0u; // OCP0 grey ramp vs native enemy ramp
             }
             // centered on the logical tile: ±4px from tile origin per quadrant
-            tl = enemy_anim_toggle ? TILE_SKEL_1_OFF     : TILE_SLIMEBIG_TL_OFF;
-            tr = enemy_anim_toggle ? TILE_SKEL_2_OFF     : TILE_SLIMEBIG_TR_OFF;
-            bl = enemy_anim_toggle ? TILE_RAT_OFF        : TILE_SLIMEBIG_BL_OFF;
-            br = enemy_anim_toggle ? TILE_BIG_SKELL_BODY : TILE_SLIMEBIG_BR_OFF;
+            tl = enemy_anim_toggle ? TILE_GORGON_HEAD_L_OFF : TILE_SLIMEBIG_TL_OFF;
+            tr = enemy_anim_toggle ? TILE_GORGON_HEAD_R_OFF : TILE_SLIMEBIG_TR_OFF;
+            bl = enemy_anim_toggle ? TILE_GORGON_BODY_L_OFF : TILE_SLIMEBIG_BL_OFF;
+            br = enemy_anim_toggle ? TILE_GORGON_BODY_R_OFF : TILE_SLIMEBIG_BR_OFF;
             move_entity_oam(sp, ewx - 4, ewy - 4,
                 (uint8_t)(TILESET_VRAM_OFFSET + tl), pal);
             move_entity_oam((uint8_t)(SP_BIG_SKELL_HEAD_BASE + 0u), ewx + 4, ewy - 4,
@@ -625,7 +626,7 @@ void entity_sprites_vbl_tick(void) BANKED {
         brazier_fire_try_spawn();
     }
     if (lcd_gameplay_active && ladder_cache_valid
-            && !((floor_biome == BIOME_BOSS || floor_biome == BIOME_MINIBOSS) && boss_alive)) {
+            && !boss_alive) {
         uint8_t mx = ladder_cache_mx, my = ladder_cache_my;
         if (my > 0u
                 && mx >= CAM_TX && mx < (uint8_t)(CAM_TX + GRID_W)
@@ -795,7 +796,7 @@ void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) BANKED {
     {
         uint8_t new_mark = (uint8_t)(SP_ENEMY_BASE + num_enemies);
         // The Sphinx boss draws into the idle enemy-run slots 3..12; keep the sweep above them.
-        if (floor_biome == BIOME_BOSS2 && new_mark < (uint8_t)(SP_ENEMY_BASE + 10u))
+        if (floor_kind == FLOORKIND_BOSS && floor_boss_type == ENEMY_SPHINX && new_mark < (uint8_t)(SP_ENEMY_BASE + 10u))
             new_mark = (uint8_t)(SP_ENEMY_BASE + 10u);
         if (oam_enemy_hide_mark != new_mark) {
             for (i = new_mark; i < SP_BIG_SKELL_HEAD_BASE; i++) oam_hide(i);

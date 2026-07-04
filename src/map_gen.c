@@ -3,6 +3,7 @@
 #include "map.h"
 #include "globals.h"
 #include "biome.h" // overworld_water_at (bank 22, BANKED) — hub continent carve
+#include "dungeon.h"
 #include <rand.h>
 
 BANKREF_EXTERN(is_walkable) // build_nav_graph traces corridors via is_walkable (bank 2, BANKED)
@@ -360,12 +361,15 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
     uint32_t mix = (uint32_t)floor_seed * 2654435761u ^ (uint32_t)floor_seed << 13;
     mix ^= mix >> 17;
     mix *= 2246523629u;
-    if (floor_num == 1u || floor_num == MINIBOSS_FLOOR_NUM || floor_num == BOSS_FLOOR_NUM || floor_num == BOSS2_FLOOR_NUM) {
-        active_map_w = 20u; // entry floor (1), miniboss, both bosses: fixed compact arena
-        active_map_h = 20u;
-    } else {
-        active_map_w = MAP_W;
-        active_map_h = MAP_H;
+    {
+        uint8_t lk = FLOOR_KIND_FOR(floor_num);
+        if (lk == FLOORKIND_GUARD || lk == FLOORKIND_MINIBOSS || lk == FLOORKIND_BOSS) {
+            active_map_w = 20u; // guardroom, miniboss and boss floors: fixed compact arena
+            active_map_h = 20u;
+        } else {
+            active_map_w = MAP_W; // hub + normal dungeon floors
+            active_map_h = MAP_H;
+        }
     }
     {
         uint8_t span_x = (uint8_t)(active_map_w - 2u), span_y = (uint8_t)(active_map_h - 2u);
@@ -440,57 +444,41 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
         }
     }
 
-    uint8_t placed = 0;
-    for (uint8_t attempts = 0; attempts < 200 && placed < NUM_PITS; attempts++) { // random floor tile, not spawn
-        uint8_t tx = (uint8_t)(rand() % active_map_w);
-        uint8_t ty = (uint8_t)(rand() % active_map_h);
-        if ((tx != player_spawn_x || ty != player_spawn_y) // never ladder on spawn
-                && BIT_GET(floor_bits, TILE_IDX(tx, ty))
-                && !BIT_GET(pit_bits,  TILE_IDX(tx, ty))) {
-            set_pit(tx, ty);
-            placed++;
+    if (floor_num != 0u) { // hub has no pit — dungeons are entered via their cave-mouth features
+        uint8_t placed = 0;
+        for (uint8_t attempts = 0; attempts < 200 && placed < NUM_PITS; attempts++) { // random floor tile, not spawn
+            uint8_t tx = (uint8_t)(rand() % active_map_w);
+            uint8_t ty = (uint8_t)(rand() % active_map_h);
+            if ((tx != player_spawn_x || ty != player_spawn_y) // never ladder on spawn
+                    && BIT_GET(floor_bits, TILE_IDX(tx, ty))
+                    && !BIT_GET(pit_bits,  TILE_IDX(tx, ty))) {
+                set_pit(tx, ty);
+                placed++;
+            }
         }
-    }
-    if (placed < NUM_PITS) { // guarantee NUM_PITS ladders if RNG never hit an open tile
-        uint8_t fx, fy;
-        for (fy = 0; fy < active_map_h && placed < NUM_PITS; fy++) {
-            for (fx = 0; fx < active_map_w && placed < NUM_PITS; fx++) {
-                uint16_t idx = TILE_IDX(fx, fy);
-                if ((fx != player_spawn_x || fy != player_spawn_y)
-                        && BIT_GET(floor_bits, idx)
-                        && !BIT_GET(pit_bits, idx)) {
-                    set_pit(fx, fy);
-                    placed++;
+        if (placed < NUM_PITS) { // guarantee NUM_PITS ladders if RNG never hit an open tile
+            uint8_t fx, fy;
+            for (fy = 0; fy < active_map_h && placed < NUM_PITS; fy++) {
+                for (fx = 0; fx < active_map_w && placed < NUM_PITS; fx++) {
+                    uint16_t idx = TILE_IDX(fx, fy);
+                    if ((fx != player_spawn_x || fy != player_spawn_y)
+                            && BIT_GET(floor_bits, idx)
+                            && !BIT_GET(pit_bits, idx)) {
+                        set_pit(fx, fy);
+                        placed++;
+                    }
                 }
             }
         }
-    }
-    if (floor_num == 0u && pit_present) {
-        // Put the player a few tiles off the ladder, on a land cell of the same landmass (so the
-        // ladder stays reachable even when a river splits the continent). Scan rings 2..6 around it.
-        uint8_t rad, placed2 = 0u;
-        for (rad = 2u; rad <= 6u && !placed2; rad++) {
-            int8_t ox, oy;
-            for (oy = -(int8_t)rad; oy <= (int8_t)rad && !placed2; oy++)
-                for (ox = -(int8_t)rad; ox <= (int8_t)rad && !placed2; ox++) {
-                    if (ox > -(int8_t)rad && ox < (int8_t)rad && oy > -(int8_t)rad && oy < (int8_t)rad) continue; // ring only
-                    int16_t cx2 = (int16_t)pit_x + ox, cy2 = (int16_t)pit_y + oy;
-                    if (cx2 < 1 || cy2 < 1 || cx2 >= (int16_t)(active_map_w - 1u) || cy2 >= (int16_t)(active_map_h - 1u)) continue;
-                    if (BIT_GET(floor_bits, TILE_IDX((uint8_t)cx2, (uint8_t)cy2))
-                            && !BIT_GET(pit_bits, TILE_IDX((uint8_t)cx2, (uint8_t)cy2))) {
-                        player_spawn_x = (uint8_t)cx2; player_spawn_y = (uint8_t)cy2; placed2 = 1u;
-                    }
-                }
-        }
-        set_floor(player_spawn_x, player_spawn_y);
     }
 
     {
         uint8_t target_count;
         uint16_t attempts = 0u;
-        if (floor_num == 0u) target_count = 0u; // hub: no braziers
-        else if (floor_num == 1u) target_count = 4u;
-        else if (floor_num == BOSS_FLOOR_NUM) target_count = 0u; // unlit boss arena
+        uint8_t lk = FLOOR_KIND_FOR(floor_num);
+        if (lk == FLOORKIND_HUB) target_count = 0u; // hub: no braziers
+        else if (lk == FLOORKIND_GUARD) target_count = 4u; // guardroom: well-lit safe room
+        else if (lk == FLOORKIND_BOSS) target_count = 0u; // unlit boss arena
         else {
             uint8_t base = (uint8_t)(10u + (uint8_t)(rand() % 11u)); // 10..20
             target_count = (floor_num >= base) ? 0u : (uint8_t)(base - floor_num);

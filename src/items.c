@@ -2,6 +2,7 @@
 
 #include "items.h"
 #include "globals.h"
+#include "dungeon.h"
 #include "map.h"
 #include "ui.h"
 #include "scroll_blast.h"
@@ -117,7 +118,7 @@ static const char *const kind_name[ITEM_KIND_COUNT] = {
     "Hunter Ring", "Hunter Ring", "Hunter Ring",
     "Mystic Ring", "Mystic Ring", "Mystic Ring",
     "Storm Ring",  "Storm Ring",  "Storm Ring",
-    "Port: Flr6",
+    "Port: Boss",
 };
 
 static const char *const kind_desc[ITEM_KIND_COUNT] = {
@@ -166,7 +167,7 @@ static const char *const kind_desc[ITEM_KIND_COUNT] = {
     "+1 atk, +4% dodge. A breezy ring.",    // Storm T1
     "+2 atk, +8% dodge. A gale ring.",      // Storm T2
     "+3 atk, +12% dodge. A tempest ring.",  // Storm T3
-    "Warps you to floor 6. A torn travel scroll.", // SCROLL_PORT6
+    "Warps to this dungeon's boss floor.", // SCROLL_PORT6
 };
 
 uint8_t items_kind_category(uint8_t kind) BANKED {
@@ -383,9 +384,19 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
         else player_hp = (uint8_t)((uint16_t)player_hp + heal);
         book_heal_cooldown_turns = 5u;
     } else if (kind == ITEM_KIND_SCROLL_PORT6) {
-        // Warp to floor 6. State_gameplay sees pending_transition set after the belt use and bounces
-        // to STATE_TRANSITION (TRANS_FLOOR_PORT) before any enemy turn runs on the floor we're leaving.
-        pending_port_floor = BOSS2_FLOOR_NUM;
+        // Warp to the current dungeon's boss floor. State_gameplay sees pending_transition set after
+        // the belt use and bounces to STATE_TRANSITION (TRANS_FLOOR_PORT) before any enemy turn runs.
+        // No-ops on the hub/guardroom (no counted floor to warp within) — scroll is kept.
+        uint8_t d = FLOOR_DUNGEON_ID(floor_num);
+        if (d == DUNGEON_NONE || floor_num >= GUARD_FLOOR_BASE) {
+            char nbuf[16]; // RAM copy — bank-13 ROM literal would garble in the bank-5 log push
+            nbuf[0]='N';nbuf[1]='O';nbuf[2]=' ';nbuf[3]='E';nbuf[4]='F';nbuf[5]='F';
+            nbuf[6]='E';nbuf[7]='C';nbuf[8]='T';nbuf[9]=' ';nbuf[10]='H';nbuf[11]='E';
+            nbuf[12]='R';nbuf[13]='E';nbuf[14]=0;
+            ui_combat_log_push(nbuf);
+            return; // not consumed, no turn spent
+        }
+        pending_port_floor = DUNGEON_BOSS_FLOOR(d);
         pending_transition = TRANS_FLOOR_PORT;
     }
     if (items_kind_category(kind) != ITEM_CAT_REUSABLE)

@@ -104,10 +104,8 @@ typedef struct {
 /* ── Level generation ────────────────────────────────────────────────────── */
 #define WALK_STEPS 4000   // scaled up from 350 to match the larger 64×64 map
 #define NUM_PITS     1    // single descent tile per floor
-#define MINIBOSS_FLOOR_NUM 3u // floor 3 always generates the miniboss biome
-#define BOSS_FLOOR_NUM      5u // floor 5 always generates the boss biome (Gorgon)
-#define BOSS2_FLOOR_NUM     6u // floor 6 always generates the second boss biome (Sphinx)
-#define MAX_FLOORS     50u // hard cap; floor MAX_FLOORS pit ends the run
+/* Miniboss/boss floors are per-dungeon now — locals 2/4 of each dungeon (see dungeon.h). */
+#define MAX_FLOORS     50u // persistence-array size; floors 1-36 = dungeons, 37-45 = guardroom keys
 
 /* ── Enemy roster ────────────────────────────────────────────────────────── */
 #define MAX_ENEMIES    24 // OAM layout: 24 body slots + 4 skeleton-head slots fit before ally base
@@ -524,24 +522,26 @@ typedef struct {
 #define SPHINX_PHASE_TURNS  5u   /* 5 grounded turns, then 5 flying turns, repeating */
 #define SPHINX_RANGED_RANGE 5u   /* Chebyshev reach of the flying ranged bolt */
 
-/* ── Active-biome enemy sprite scratch ────────────────────────────────────────
-   The 2x-scaled Slime miniboss (2×2 tiles, animated 2-frame) is the first user of the
-   per-biome enemy-art scheme: its 8 quadrant tiles live in res/enemies_miniboss.png
-   (src/enemies_miniboss.c, bank 27) and are uploaded into VRAM by biome_load_active()
-   on entry to BIOME_MINIBOSS — NOT baked into the shared tileset.png anymore. It occupies
-   2 logical map tiles (like Gorgon) so both are attackable — see ENEMY_GORGON checks in
-   enemy.c/combat.c/map.c, mirrored for ENEMY_SLIME_BIG.
+/* ── Miniboss elite quadrant scratch ────────────────────────────────────────
+   The 2x elite (ENEMY_SLIME_BIG id; 2×2 tiles, animated 2-frame) spawns on every dungeon's
+   miniboss floor (FLOORKIND_MINIBOSS, dungeon.h). Its 8 quadrant tiles are BUILT AT RUNTIME:
+   dungeon_elite_load_art (bank 28, dungeon_floors.c) pixel-doubles the two frames of
+   elite_base_type's regular sprite from the ROM tileset — no dedicated PNG (the old
+   res/enemies_miniboss.png / bank-27 sheet is retired). It occupies 2 logical map tiles
+   (like Gorgon) so both are attackable — see ENEMY_GORGON checks in enemy.c/combat.c/map.c,
+   mirrored for ENEMY_SLIME_BIG.
 
    VRAM slots reused (proven safe; no permanent baking):
    • Frame 1 (TL/TR/BL/BR) → 4 dead background cells C5/D5/E5/G5 (TILE_LIGHT_5/COLUMN_5/
      GROUND_E/SHRINE_OFF — never placed by any map code, confirmed zero refs). Dead cells
      have no owner, so they need no restore on leaving the floor.
-   • Frame 2 (TL/TR/BL/BR) → Skeleton/Rat/BigSkell sprite slots (TILE_SKEL_1/2_VRAM,
-     TILE_RAT_VRAM, TILE_BIG_SKELL_BODY_VRAM). Those enemies never spawn on BIOME_MINIBOSS,
-     so biome_load_active() repurposes the slots while floor 3 is loaded and restores their
-     normal art on every other floor.
+   • Frame 2 (TL/TR/BL/BR) → the Gorgon slots (TILE_GORGON_HEAD_L/R_VRAM,
+     TILE_GORGON_BODY_L/R_VRAM = 225/226/228/229). The Gorgon never spawns on a miniboss
+     floor, and biome_load_active()'s else-branch restores those slots from ROM on every
+     dungeon/crypt/cavern load — which runs BEFORE the elite overlay (ordering matters).
+     Skeleton/Rat/BigSkell slots (the old frame-2 borrow) are live fodder art now.
    The renderer (entity_sprites.c) toggles frame 1 (the _OFF constants below) vs frame 2
-   (TILE_SKEL_1_OFF/SKEL_2_OFF/RAT_OFF/BIG_SKELL_BODY) on enemy_anim_toggle.
+   (TILE_GORGON_HEAD_L/R_OFF, TILE_GORGON_BODY_L/R_OFF) on enemy_anim_toggle.
    NOTE: an earlier version borrowed A7/D7/I7/J7, which turned out to be live content
    (TILE_WALL_F, TILE_COLUMN_7, TILE_ITEM_7, TILE_LOADING_SKULL/TILE_BIG_SKELL_HEAD) — do not
    reuse those for anything. */

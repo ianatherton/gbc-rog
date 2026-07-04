@@ -291,6 +291,64 @@ uint8_t overworld_trigger_at(uint8_t x, uint8_t y) BANKED {
     return 255u;
 }
 
+// Ordinal (0..8) of the OW_FEAT_ENTRANCE at (x,y) — the dungeon id. Placement order is
+// grass x3, desert x3, snow x3 (place_overworld_features), so ordinals are seed-stable
+// and match the signpost numbering. 255 if no entrance sits there.
+BANKREF(overworld_entrance_id_at)
+uint8_t overworld_entrance_id_at(uint8_t x, uint8_t y) BANKED {
+    uint8_t i, ord = 0u;
+    for (i = 0u; i < ow_feature_count; i++) {
+        if (ow_features[i].type != OW_FEAT_ENTRANCE) continue; // entrance is 1x1: its cell is the trigger
+        if (ow_features[i].x == x && ow_features[i].y == y) return ord;
+        ord++;
+    }
+    return 255u;
+}
+
+// 1 if (x,y) lands inside any placed feature's footprint (town walls, waypoints, signs, mouths).
+static uint8_t ow_cell_in_footprint(uint8_t x, uint8_t y) {
+    uint8_t i;
+    for (i = 0u; i < ow_feature_count; i++) {
+        const OwPrefabDef *d = &ow_prefab_defs[ow_features[i].type];
+        if (x >= ow_features[i].x && x < (uint8_t)(ow_features[i].x + d->w)
+                && y >= ow_features[i].y && y < (uint8_t)(ow_features[i].y + d->h))
+            return 1u;
+    }
+    return 0u;
+}
+
+// Returning from dungeon k: override the hub spawn to an open land cell ringing entrance k,
+// so the player pops out beside the cave mouth they used instead of the continent centre.
+// Called by level_generate_and_spawn after generate_level (features are already placed).
+BANKREF(overworld_place_player_near_entrance)
+void overworld_place_player_near_entrance(uint8_t id) BANKED {
+    uint8_t i, ord = 0u, ex = 0u, ey = 0u, found = 0u;
+    for (i = 0u; i < ow_feature_count; i++) {
+        if (ow_features[i].type != OW_FEAT_ENTRANCE) continue;
+        if (ord == id) { ex = ow_features[i].x; ey = ow_features[i].y; found = 1u; break; }
+        ord++;
+    }
+    if (!found) return; // degenerate seed placed fewer entrances — keep the default spawn
+    {
+        uint8_t rad;
+        for (rad = 1u; rad <= 4u; rad++) {
+            int8_t ox, oy;
+            for (oy = -(int8_t)rad; oy <= (int8_t)rad; oy++)
+                for (ox = -(int8_t)rad; ox <= (int8_t)rad; ox++) {
+                    int16_t cx, cy;
+                    if (ox > -(int8_t)rad && ox < (int8_t)rad && oy > -(int8_t)rad && oy < (int8_t)rad) continue; // ring only
+                    cx = (int16_t)ex + ox; cy = (int16_t)ey + oy;
+                    if (cx < 1 || cy < 1 || cx >= (int16_t)(active_map_w - 1u) || cy >= (int16_t)(active_map_h - 1u)) continue;
+                    if (!BIT_GET(floor_bits, TILE_IDX((uint8_t)cx, (uint8_t)cy))) continue; // water/tree
+                    if (ow_cell_in_footprint((uint8_t)cx, (uint8_t)cy)) continue;           // don't spawn inside a structure
+                    player_spawn_x = (uint8_t)cx;
+                    player_spawn_y = (uint8_t)cy;
+                    return;
+                }
+        }
+    }
+}
+
 // If a signpost sits at (x,y), return its packed label code (SIGN_KIND_* | index); else 255.
 BANKREF(overworld_signpost_aux_at)
 uint8_t overworld_signpost_aux_at(uint8_t x, uint8_t y) BANKED {
@@ -318,8 +376,16 @@ void overworld_signpost_read(uint8_t aux) BANKED {
         buf[0] = dirs[num][0]; buf[1] = dirs[num][1];
         for (i = 0u; s[i]; i++) buf[2u + i] = s[i]; buf[2u + i] = 0;
     } else if (kind == SIGN_KIND_DUNGEON) {
-        const char *s = "DUNGEON "; for (i = 0u; s[i]; i++) buf[i] = s[i];
-        buf[i] = (char)('1' + num); buf[i + 1u] = 0;
+        // "DNG3 F09-12" — fixed depth band of dungeon `num` (dungeon.h); '*' suffix once completed
+        uint8_t fb = (uint8_t)(num * 4u + 1u), fe = (uint8_t)(num * 4u + 4u);
+        buf[0] = 'D'; buf[1] = 'N'; buf[2] = 'G'; buf[3] = (char)('1' + num);
+        buf[4] = ' '; buf[5] = 'F';
+        buf[6] = (char)('0' + fb / 10u); buf[7] = (char)('0' + fb % 10u);
+        buf[8] = '-';
+        buf[9] = (char)('0' + fe / 10u); buf[10] = (char)('0' + fe % 10u);
+        i = 11u;
+        if (dungeon_complete_mask & (uint16_t)((uint16_t)1u << num)) buf[i++] = '*';
+        buf[i] = 0;
     } else { // SIGN_KIND_BOSS
         const char *s = "FINAL DUNGEON"; for (i = 0u; s[i]; i++) buf[i] = s[i]; buf[i] = 0;
     }
@@ -370,16 +436,20 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
     // when you step onto any of them); the town's interior cell returns 0 here so its courtyard draws as
     // normal grass ground.
     {
-        uint8_t fi;
+        uint8_t fi, ent_ord = 0u;
         for (fi = 0u; fi < ow_feature_count; fi++) {
             uint8_t fx = ow_features[fi].x, fy = ow_features[fi].y;
+            uint8_t is_ent = (ow_features[fi].type == OW_FEAT_ENTRANCE);
             const OwPrefabDef *d = &ow_prefab_defs[ow_features[fi].type];
             if (mx >= fx && mx < (uint8_t)(fx + d->w) && my >= fy && my < (uint8_t)(fy + d->h)) {
                 uint8_t v = ow_prefab_vram(ow_features[fi].type, (uint8_t)(mx - fx), (uint8_t)(my - fy),
                                            d->w, d->h);
+                if (is_ent && (dungeon_complete_mask & (uint16_t)((uint16_t)1u << ent_ord)))
+                    v = PREFAB_VRAM_TOWN_CORNER; // completed dungeon: mouth drawn as a bricked-up grey block
                 if (v) { *pal_out = PAL_FLOOR_BG; return v; } // grey wall art over the green field (idx0)
                 break; // town courtyard centre → fall through to grass ground
             }
+            if (is_ent) ent_ord++; // ordinal = dungeon id (same counting as overworld_entrance_id_at)
         }
     }
 

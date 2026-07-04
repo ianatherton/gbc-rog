@@ -21,7 +21,7 @@ extern uint8_t  player_class; // 0=KNIGHT 1=SCOUNDREL 2=WITCH 3=ZERKER (char cre
 extern uint8_t  floor_biome;  // BIOME_* — set by level_init before spawn; selects bank 10/11/12 enemy roster
 extern uint8_t  overworld_preset; // 0..OVERWORLD_PRESET_COUNT-1 — hub continent layout, picked from run_seed
 extern uint8_t  water_anim_base[16]; // base F10 water tile pixels, snapshotted at boot for the sea-scroll animation
-extern uint8_t  boss_alive;   // 1 while Gorgon (BIOME_BOSS) or the 2x Slime elite (BIOME_MINIBOSS) lives; suppresses stairs/pit until cleared
+extern uint8_t  boss_alive;   // 1 while the boss (FLOORKIND_BOSS) or 2x elite (FLOORKIND_MINIBOSS) lives; suppresses stairs/pit until cleared
 
 extern uint8_t  g_player_x, g_player_y, g_prev_j;
 extern uint8_t  g_sphinx_mode, sphinx_fire_pending;
@@ -55,9 +55,16 @@ extern uint8_t floor_enemy_dead[MAX_FLOORS * 3u];  // bitmask: 24 bits per floor
 extern uint8_t gameplay_soft_reenter;
 /* Set before level_generate_and_spawn when entering a previously-visited floor (either direction); triggers permanence restoration */
 extern uint8_t level_is_revisit;
-extern uint8_t deepest_floor;       // deepest floor_num reached this run; floor_num <= deepest_floor => revisit
+extern uint8_t floor_visited[6];    // bitmask, bit f = floor f generated before this run (46 floors used)
 extern uint8_t entered_from_below;  // 1 = arrived via stairs-up (ascend) => spawn at pit; 0 = descend/fresh => spawn at stairs-up
 extern uint8_t pending_port_floor;  // target floor for TRANS_FLOOR_PORT (Witch's Port scroll warps here)
+
+/* ── Per-dungeon state (see dungeon.h for the floor-number scheme) ── */
+extern uint8_t  floor_kind;            // FLOORKIND_* — set alongside floor_biome each floor load
+extern uint8_t  floor_boss_type;       // ENEMY_GORGON or ENEMY_SPHINX on FLOORKIND_BOSS floors
+extern uint8_t  elite_base_type;       // fodder type the 2x elite was built from (FLOORKIND_MINIBOSS)
+extern uint16_t dungeon_complete_mask; // bit k = dungeon k boss beaten + exited; entrance sealed
+extern uint8_t  hub_landing_dungeon;   // DUNGEON_NONE = spawn as usual; else land beside entrance k on next hub gen
 
 extern uint8_t inventory_kind[INVENTORY_MAX_SLOTS];     // ITEM_KIND_NONE = empty
 extern uint8_t inventory_equipped[INVENTORY_MAX_SLOTS]; // 1=equipped, 0=not; parallel to inventory_kind

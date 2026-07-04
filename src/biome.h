@@ -11,10 +11,10 @@
 #define BIOME_CAVERN  2u
 #define BIOME_BOSS    3u
 #define BIOME_OVERWORLD 4u // top-level hub (floor 0); never appears in the random rotation
-#define BIOME_MINIBOSS 5u // elite floor: normal fodder roster + one guaranteed 2x Slime; fixed at MINIBOSS_FLOOR_NUM
-#define BIOME_BOSS2   6u // second boss (Sphinx); fixed at BOSS2_FLOOR_NUM
+#define BIOME_MINIBOSS 5u // RETIRED as a floor biome — miniboss is FLOORKIND_MINIBOSS now (dungeon.h); id kept for table stability
+#define BIOME_BOSS2   6u // Sphinx roster/palette bank row — loaded via biome_apply_floor_kind on boss floors, never a floor biome
 #define BIOME_COUNT   7u
-#define BIOME_RANDOM_COUNT 3u // random floors pick from dungeon/crypt/cavern only (excludes BOSS/BOSS2/OVERWORLD/MINIBOSS)
+#define BIOME_RANDOM_COUNT 3u // per-dungeon biome picks from dungeon/crypt/cavern only
 
 // HOME-resident roster cache; populated by biome_load_active() at floor-gen time.
 // enemy.c / entity_sprites.c read this directly without bank switching.
@@ -24,6 +24,13 @@ extern uint8_t  enemy_active_count;
 
 void biome_load_active(uint8_t biome_id); // HOME — fills enemy_defs[] from the biome bank
 uint8_t biome_pick_for_floor(uint8_t floor_n, uint16_t seed); // HOME — deterministic biome per floor
+void biome_apply_floor_kind(void); // HOME — miniboss/boss roster+art overlay after biome_load_active (reads floor_kind)
+
+// Miniboss elite art builder (bank 28, dungeon_floors.c): pixel-doubles elite_base_type's two
+// frames from the ROM tileset into the quadrant slots (frame 1: 194-198 dead cells; frame 2:
+// the Gorgon slots 225-229, restored by biome_load_active's else-branch every floor).
+BANKREF_EXTERN(dungeon_elite_load_art)
+void dungeon_elite_load_art(void) BANKED;
 
 // Entry points exposed by the per-biome ROM banks. Plain (non-BANKED) so they can sit in the
 // dispatch table in biome.c — biome_load_active() SWITCH_ROMs to the entry's bank before the
@@ -36,7 +43,6 @@ void biome_crypt_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_coun
 void biome_cavern_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 void biome_boss_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 void biome_overworld_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
-void biome_miniboss_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 void biome_boss2_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 
 typedef void (*BiomeLoadPalettesFn)(void);
@@ -71,8 +77,12 @@ BANKREF_EXTERN(overworld_carve)
 BANKREF_EXTERN(overworld_trigger_at)
 BANKREF_EXTERN(overworld_signpost_aux_at)
 BANKREF_EXTERN(overworld_signpost_read)
+BANKREF_EXTERN(overworld_entrance_id_at)
+BANKREF_EXTERN(overworld_place_player_near_entrance)
 void    overworld_carve(void) BANKED;                    // floor-0: fill floor_bits with the landmass (one banked call)
 uint8_t overworld_trigger_at(uint8_t x, uint8_t y) BANKED; // OW_FEAT_* of the feature whose trigger cell is (x,y), else 255
+uint8_t overworld_entrance_id_at(uint8_t x, uint8_t y) BANKED; // dungeon id (entrance ordinal 0..8) at (x,y), else 255
+void    overworld_place_player_near_entrance(uint8_t id) BANKED; // hub spawn override: open cell ringing entrance id
 uint8_t overworld_signpost_aux_at(uint8_t x, uint8_t y) BANKED; // signpost label code at (x,y), else 255
 void    overworld_signpost_read(uint8_t aux) BANKED;     // print the signpost's label to the chat box
 uint8_t overworld_water_at(uint8_t x, uint8_t y) BANKED;  // 1 = water (ocean/river/lake), 0 = land

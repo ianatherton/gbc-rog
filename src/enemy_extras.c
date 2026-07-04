@@ -61,9 +61,9 @@ void enemy_slime_split(uint8_t type, uint8_t dx, uint8_t dy, uint8_t px, uint8_t
 
 #define ENEMY_SLIME_BIG_SPAWN_CAP 10u
 
-// Guaranteed pop on SLIME_BIG death (any kill method — see combat.c's combat_damage_enemy):
+// Guaranteed pop on the elite's death (any kill method — see combat.c's combat_damage_enemy):
 // ring-searches outward (Chebyshev radius 1..3) for free/walkable/non-player tiles and fills
-// up to ENEMY_SLIME_BIG_SPAWN_CAP with transient regular Slimes.
+// up to ENEMY_SLIME_BIG_SPAWN_CAP with transient copies of its base type (elite_base_type).
 BANKREF(enemy_slime_big_death_spawn)
 void enemy_slime_big_death_spawn(uint8_t dx, uint8_t dy) BANKED {
     uint8_t r, ni, tx, ty, spawned = 0u;
@@ -89,8 +89,8 @@ void enemy_slime_big_death_spawn(uint8_t dx, uint8_t dy) BANKED {
                     if (ni >= MAX_ENEMIES) return;
                 }
                 enemy_x[ni] = tx; enemy_y[ni] = ty;
-                enemy_type[ni] = ENEMY_SLIME;
-                enemy_hp[ni] = enemy_effective_max_hp(ENEMY_SLIME);
+                enemy_type[ni] = elite_base_type;
+                enemy_hp[ni] = enemy_effective_max_hp(elite_base_type);
                 enemy_status[ni] = 0u; enemy_force_active[ni] = 0u; enemy_alive[ni] = 1u;
                 enemy_persistent[ni] = 0u; // transient: vanishes on revisit, no gravestone
                 enemy_place_slot_far(ni, tx, ty);
@@ -99,7 +99,15 @@ void enemy_slime_big_death_spawn(uint8_t dx, uint8_t dy) BANKED {
             }
         }
     }
-    if (spawned > 0u) ui_combat_log_push("SLIME EXPLODES!");
+    if (spawned > 0u) { // "<BASE> SWARM!" — RAM buffer: this bank's literal would garble in the bank-5 push
+        char buf[16];
+        uint8_t i;
+        enemy_type_short_name_copy(elite_base_type, buf, 9u);
+        for (i = 0u; buf[i]; i++) ;
+        buf[i++] = ' '; buf[i++] = 'S'; buf[i++] = 'W'; buf[i++] = 'A';
+        buf[i++] = 'R'; buf[i++] = 'M'; buf[i++] = '!'; buf[i] = 0;
+        ui_combat_log_push(buf);
+    }
 }
 
 BANKREF(enemy_gorgon_summon)

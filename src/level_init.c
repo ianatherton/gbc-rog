@@ -2,6 +2,7 @@
 
 #include "ability_dispatch.h"
 #include "defs.h"
+#include "dungeon.h"
 #include "globals.h"
 #include "items.h"
 #include "lcd.h"
@@ -17,7 +18,12 @@ void level_init_display(uint8_t from_pit) BANKED {
         wait_vbl_done();
         lcd_clear_display();
         ui_loading_screen_begin(0);
-        floor_num++;
+        if (floor_num >= GUARD_FLOOR_BASE) { // guardroom pit drops into the dungeon's first counted floor
+            uint8_t d = (uint8_t)(floor_num - GUARD_FLOOR_BASE);
+            floor_num = DUNGEON_BASE_FLOOR(d);
+        } else {
+            floor_num++;
+        }
         entered_from_below = 0u; // descended via pit — land at stairs-up
     } else if (from_pit == 2u) {
         lcd_gameplay_active = 0u;
@@ -25,8 +31,31 @@ void level_init_display(uint8_t from_pit) BANKED {
         wait_vbl_done();
         lcd_clear_display();
         ui_loading_screen_begin(1);
-        floor_num--;
-        entered_from_below = 1u; // ascended via stairs — land at pit
+        if (floor_num >= GUARD_FLOOR_BASE) { // guardroom stairs exit to the hub, beside the entrance used
+            hub_landing_dungeon = (uint8_t)(floor_num - GUARD_FLOOR_BASE);
+            floor_num = 0u;
+            entered_from_below = 0u; // hub has no pit — spawn at the (overridden) spawn point
+        } else {
+            uint8_t lo = FLOOR_LOCAL(floor_num);
+            if (lo == 1u) { // first counted floor climbs back to its guardroom
+                uint8_t d = FLOOR_DUNGEON_ID(floor_num);
+                floor_num = DUNGEON_GUARD_FLOOR(d);
+            } else {
+                floor_num--;
+            }
+            entered_from_below = 1u; // ascended via stairs — land at pit
+        }
+    } else if (from_pit == 4u) { // boss-floor exit portal — dungeon complete, return to hub
+        uint8_t d = FLOOR_DUNGEON_ID(floor_num);
+        lcd_gameplay_active = 0u;
+        window_ui_hide();
+        wait_vbl_done();
+        lcd_clear_display();
+        ui_loading_screen_begin(1);
+        dungeon_complete_mask |= (uint16_t)((uint16_t)1u << d);
+        hub_landing_dungeon = d;
+        floor_num = 0u;
+        entered_from_below = 0u;
     } else if (from_pit == 3u) {
         lcd_gameplay_active = 0u;
         window_ui_hide();
@@ -39,8 +68,14 @@ void level_init_display(uint8_t from_pit) BANKED {
         lcd_gameplay_active = 0u;
         window_ui_hide();
         floor_num = 0;            // new run starts on the overworld hub (floor 0)
-        deepest_floor = 0u;       // hub is the shallowest; floor 1+ are "deeper"
         entered_from_below = 0u;
+        dungeon_complete_mask = 0u;
+        hub_landing_dungeon   = DUNGEON_NONE;
+        floor_kind            = FLOORKIND_HUB;
+        {
+            uint8_t vi;
+            for (vi = 0u; vi < 6u; vi++) floor_visited[vi] = 0u;
+        }
         player_hp_max = PLAYER_HP_BASE_MAX;
         player_level = 1;
         player_damage = 1;
@@ -55,7 +90,7 @@ void level_init_display(uint8_t from_pit) BANKED {
         else                          { player_armor = 15u; player_magdef =  5u; player_dodge =  0u; } // KNIGHT — armored
         player_hp = player_hp_max;
         inventory_clear_all(); // fresh run wipes any items from a previous attempt
-        if (player_class == 2u) inventory_add(ITEM_KIND_SCROLL_PORT6, 0); // WITCH starts with the Port: Flr6 scroll
+        if (player_class == 2u) inventory_add(ITEM_KIND_SCROLL_PORT6, 0); // WITCH starts with the Port: Boss scroll
         {
             uint8_t fi;
             for (fi = 0u; fi < MAX_FLOORS; fi++) {
@@ -67,15 +102,9 @@ void level_init_display(uint8_t from_pit) BANKED {
         wait_vbl_done();
         ui_loading_screen_begin(0);
     }
-    // Direction-independent revisit: any floor at or above the deepest reached
-    // has been visited before, whether we arrived by descending or ascending.
-    if (from_pit == 0u) {
-        level_is_revisit = 0u; // fresh run, floor 1
-    } else if (floor_num > deepest_floor) {
-        level_is_revisit = 0u; // first time this deep
-        deepest_floor = floor_num;
-    } else {
-        level_is_revisit = 1u; // been here before — restore permanence
-    }
+    // Direction-independent revisit: each floor tracks its own visited bit —
+    // with 9 independent dungeon branches a "deepest floor" watermark is meaningless.
+    level_is_revisit = BIT_GET(floor_visited, floor_num);
+    BIT_SET(floor_visited, floor_num);
     ui_combat_log_clear();
 }

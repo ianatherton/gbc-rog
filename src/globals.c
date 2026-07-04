@@ -14,9 +14,15 @@ volatile GameState       next_state           = STATE_TITLE; // must not rely on
 volatile TransitionKind  pending_transition; // 0 = TRANS_NONE — omit ROM slot so .data stays below 0x4000 (BankPack overlap fix)
 uint8_t                  pending_port_floor;  // target floor for TRANS_FLOOR_PORT (Witch Port scroll)
 uint8_t                  gameplay_soft_reenter; // 0 — set by transition only
-uint8_t                  level_is_revisit;      // 0 — set in level_init_display from deepest_floor (direction-independent)
-uint8_t                  deepest_floor;         // deepest floor reached this run; reset to 1 on new run
+uint8_t                  level_is_revisit;      // 0 — set in level_init_display from floor_visited (direction-independent)
+uint8_t                  floor_visited[6];      // bit f = floor f generated before; cleared on fresh run
 uint8_t                  entered_from_below;    // 1 = ascended via stairs-up (spawn at pit); 0 = descend/fresh (spawn at stairs-up)
+
+uint8_t  floor_kind;            // FLOORKIND_* — see dungeon.h
+uint8_t  floor_boss_type;       // boss enemy type on FLOORKIND_BOSS floors
+uint8_t  elite_base_type;       // base fodder type of the 2x elite on FLOORKIND_MINIBOSS floors
+uint16_t dungeon_complete_mask; // bit k = dungeon k complete (level_init clears on fresh run)
+uint8_t  hub_landing_dungeon;   // DUNGEON_NONE unless returning from dungeon k
 
 uint8_t  player_hp  = PLAYER_HP_BASE_MAX;
 uint8_t  player_hp_max = PLAYER_HP_BASE_MAX;

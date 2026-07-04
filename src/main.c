@@ -133,8 +133,8 @@ int main(void) {
             tileset_tiles + (uint16_t)TILE_GORGON_FEET_L_ROM * 16u);
         set_sprite_data(TILE_GORGON_FEET_R_VRAM, 1u, // O12 gorgon feet-right
             tileset_tiles + (uint16_t)TILE_GORGON_FEET_R_ROM * 16u);
-        // Big-slime miniboss art is no longer boot-loaded here — it lives in res/enemies_miniboss.png
-        // (bank 27) and is uploaded per-floor by biome_load_active() on entry to BIOME_MINIBOSS.
+        // Elite miniboss art is not boot-loaded — dungeon_elite_load_art (bank 28) pixel-doubles
+        // the elite's base sprite from ROM at floor gen on FLOORKIND_MINIBOSS floors.
         {
             uint8_t buf[16];
             memcpy(buf, tileset_tiles + (uint16_t)TILE_PLAYER_AURA_ROM_A * 16u, 16u); // sheet uses idx0 as clear; 0→3 remaps made a solid 8×8

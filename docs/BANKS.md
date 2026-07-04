@@ -35,9 +35,9 @@ SRAM (battery RAM) is currently unused — free for saves later.
 | 20 | — | — | equipment (`EquipStatDef` table, `items_equip_apply`, `items_equip_slot`, `equipped_kind_in_slot`) |
 | 21 | 132 | 1% | biome_boss |
 | 22 | ~140 | 1% | biome_overworld (top-level hub, floor 0; no enemies/items, dark-green field, c10 walls) |
-| 24 | ~600 | 4% | biome_boss2 (Sphinx, fixed at floor 6) + bosses (png2asset sphinx sheet, res/bosses.png). 10-tile sprite uploaded to VRAM scratch + re-uploaded per frame by sphinx_anim_tick for a 2-frame leg cycle + faster wingbeat |
-| 27 | ~300 | 2% | biome_miniboss (fixed at floor 3: normal fodder roster + one guaranteed 2x Slime) + enemies_miniboss (png2asset enemy sprite sheet; big-slime art uploaded to VRAM scratch per floor by biome_load_active) |
-| 23, 25, 26, 28–31 | 0 | 0% | empty — ~145 KB free |
+| 24 | ~600 | 4% | biome_boss2 (Sphinx roster/art; overlaid onto any dungeon's boss floor by biome_apply_floor_kind) + bosses (png2asset sphinx sheet, res/bosses.png). 10-tile sprite uploaded to VRAM scratch + re-uploaded per frame by sphinx_anim_tick for a 2-frame leg cycle + faster wingbeat |
+| 28 | ~460 | 3% | dungeon_floors (miniboss elite art: runtime 2x pixel-doubler of elite_base_type's sprite → quadrant VRAM slots; floor-kind scheme in src/dungeon.h) |
+| 23, 25–27, 29–31 | 0 | 0% | empty — ~145 KB free (27 freed 2026-07: biome_miniboss + enemies_miniboss retired — miniboss/boss are floor kinds now, one biome per dungeon) |
 
 Total ROM used ≈ 76 KB of 512 KB (~15%). ROM is not the constraint. If it ever is,
 MBC5 goes to 8 MB: bump `-Wl-yo32` in the Makefile (64/128/…), nothing else changes.
@@ -45,7 +45,7 @@ MBC5 goes to 8 MB: bump `-Wl-yo32` in the Makefile (64/128/…), nothing else ch
 ## Bank allocation policy (where new content goes)
 
 - **6–9** class abilities/spells (one bank per class, each ~99% free)
-- **10–12, 21 (boss), 22 (overworld), 24 (boss2/sphinx), 27 (miniboss); reserve 28+** biomes + map gen (a new
+- **10–12, 21 (boss), 22 (overworld), 24 (boss2/sphinx), 28 (dungeon_floors); reserve 29+** biomes + map gen (a new
   biome is one bank file + one row in `biome_table` in `src/biome.c` + a `BIOME_*` id in
   `src/biome.h`)
 - **13, reserve 23** items (consumables, inventory management) + affixes

@@ -19,6 +19,7 @@
 #include "perf.h"
 #include "ability_dispatch.h"
 #include "biome.h"
+#include "dungeon.h"
 #include "ally.h"
 #include "items.h"
 #include "story_ui.h"
@@ -410,23 +411,19 @@ void state_gameplay_tick(void) BANKED {
             uint8_t t = tile_at(nx, ny);
             if (t == TILE_WALL) {
             } else if (t == TILE_PIT && !(boss_alive)) {
-                if (floor_num >= MAX_FLOORS) {
-                    pending_transition = TRANS_TO_GAME_OVER;
-                    next_state = STATE_TRANSITION;
-                    wait_vbl_done();
-                    return;
-                }
                 if (player_hp < player_hp_max) player_hp++;
                 wait_vbl_done();
                 draw_cell(g_player_x, g_player_y);
-                pending_transition = TRANS_FLOOR_PIT;
+                // Boss floor renders its pit as the exit portal once the boss is dead (boss_alive
+                // gates it above): stepping on it completes the dungeon and returns to the hub.
+                pending_transition = (floor_kind == FLOORKIND_BOSS) ? TRANS_DUNGEON_EXIT : TRANS_FLOOR_PIT;
                 next_state         = STATE_TRANSITION;
                 g_prev_j           = j;
                 wait_vbl_done();
                 return;
             } else if (nx == player_spawn_x && ny == player_spawn_y
                        && floor_num > 0u
-                       && !((floor_biome == BIOME_BOSS || floor_biome == BIOME_MINIBOSS) && boss_alive)) {
+                       && !boss_alive) { // boss_alive is only ever set on boss/miniboss floors
                 wait_vbl_done();
                 draw_cell(g_player_x, g_player_y);
                 pending_transition = TRANS_FLOOR_UP;
@@ -435,17 +432,25 @@ void state_gameplay_tick(void) BANKED {
                 wait_vbl_done();
                 return;
             } else if (floor_biome == BIOME_OVERWORLD && overworld_trigger_at(nx, ny) == OW_FEAT_ENTRANCE) {
-                // Part D: stepping onto an overworld cave-mouth enters the dungeon — reuses the hub
-                // ladder's descent path (floor 0 -> 1). Returning via floor-1 stairs lands at the hub
-                // pit as usual. Towns/waypoints/boss-door/encounters route here later via their own dest.
-                if (player_hp < player_hp_max) player_hp++;
-                wait_vbl_done();
-                draw_cell(g_player_x, g_player_y);
-                pending_transition = TRANS_FLOOR_PIT;
-                next_state         = STATE_TRANSITION;
-                g_prev_j           = j;
-                wait_vbl_done();
-                return;
+                // Stepping onto an overworld cave-mouth enters that dungeon's guardroom via the
+                // port path. Each of the 9 entrances is its own dungeon (dungeon.h floor scheme).
+                uint8_t did = overworld_entrance_id_at(nx, ny);
+                if (did < DUNGEON_COUNT && (dungeon_complete_mask & (uint16_t)((uint16_t)1u << did))) {
+                    char sealed_buf[8]; // RAM copy — bank-2 ROM literal would garble in bank-5 log push
+                    sealed_buf[0]='S';sealed_buf[1]='E';sealed_buf[2]='A';sealed_buf[3]='L';
+                    sealed_buf[4]='E';sealed_buf[5]='D';sealed_buf[6]=0;
+                    ui_combat_log_push(sealed_buf);
+                } else if (did < DUNGEON_COUNT) {
+                    if (player_hp < player_hp_max) player_hp++;
+                    wait_vbl_done();
+                    draw_cell(g_player_x, g_player_y);
+                    pending_port_floor = DUNGEON_GUARD_FLOOR(did);
+                    pending_transition = TRANS_FLOOR_PORT;
+                    next_state         = STATE_TRANSITION;
+                    g_prev_j           = j;
+                    wait_vbl_done();
+                    return;
+                }
             } else {
                 uint8_t opx = g_player_x, opy = g_player_y;
                 if (floor_biome == BIOME_OVERWORLD) { // signpost on the hub → print its label to the chat box
@@ -537,5 +542,5 @@ void state_gameplay_tick(void) BANKED {
     g_prev_j = j;
     wait_vbl_done();
     if (floor_biome == BIOME_OVERWORLD) water_anim_tick(); // fresh in VBlank: one 16-byte VRAM write drifts all sea
-    else if (floor_biome == BIOME_BOSS2) sphinx_anim_tick(); // fresh in VBlank: re-upload sphinx body/wing frames
+    else if (floor_kind == FLOORKIND_BOSS && floor_boss_type == ENEMY_SPHINX) sphinx_anim_tick(); // fresh in VBlank: re-upload sphinx body/wing frames
 }

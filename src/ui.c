@@ -16,6 +16,7 @@ BANKREF(ui)
 #include "title_logo.h"  // title_logo_* — tileset ROM read in HOME (not bank 5) to avoid MBC mismatch crashes
 #include "tileset_io.h"  // tileset_read_tiles — true L6/L7/L8 art (their native VRAM slots are borrowed by other icons)
 #include "items.h"       // items_kind_tile/palette — belt right-half mirrors inventory_kind[0..3]
+#include "dungeon.h"     // GUARD_FLOOR_BASE — HUD shows "<k>G" on guardroom floors
 #include "ally.h"
 
 BANKREF_EXTERN(load_palettes)
@@ -839,8 +840,13 @@ static void ui_draw_top_hud(void) { // bottom window row: L:♥×5 HP% XP% FLOOR
     vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_FLOOR_R);
     set_win_tile_xy(tx, hy, vram);
     set_win_attribute_xy(tx++, hy, PAL_UI);
-    win_putc_pal(tx++, hy, (char)('0' + floor_num / 10u), PAL_UI);
-    win_putc_pal(tx++, hy, (char)('0' + floor_num % 10u), PAL_UI);
+    if (floor_num >= GUARD_FLOOR_BASE) { // guardroom key 37..45 → show "<dungeon#>G" instead
+        win_putc_pal(tx++, hy, (char)('1' + (uint8_t)(floor_num - GUARD_FLOOR_BASE)), PAL_UI);
+        win_putc_pal(tx++, hy, 'G', PAL_UI);
+    } else {
+        win_putc_pal(tx++, hy, (char)('0' + floor_num / 10u), PAL_UI);
+        win_putc_pal(tx++, hy, (char)('0' + floor_num % 10u), PAL_UI);
+    }
     while (tx < GRID_W) win_put_space(tx++, hy);
 }
 

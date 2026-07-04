@@ -12,6 +12,7 @@
 #include "biome.h"
 #include "ally.h"
 #include "items.h"
+#include "dungeon.h"
 #include <gbdk/platform.h>
 #include <rand.h>
 
@@ -130,7 +131,9 @@ char tile_char(uint8_t t) { // ASCII fallback when not using custom tile in VRAM
 uint8_t tile_vram_index(uint8_t t) { // non-zero → set_bkg_tiles uses ROM tile data
     if (t == TILE_WALL) return (uint8_t)(TILESET_VRAM_OFFSET + wall_tileset_index);
     if (t == TILE_PIT) {
-        if ((floor_biome == BIOME_BOSS || floor_biome == BIOME_MINIBOSS) && boss_alive) return 0u; // hidden until boss/miniboss dies
+        if (boss_alive) return 0u; // hidden until boss/miniboss dies (boss_alive only set on those floors)
+        if (floor_kind == FLOORKIND_BOSS) // boss floor's pit is the dungeon exit portal, revealed on the kill
+            return (uint8_t)(TILESET_VRAM_OFFSET + TILE_SHRINE_ON_1);
         return (uint8_t)(TILESET_VRAM_OFFSET + TILE_LADDER_DOWN);
     }
     if (t == TILE_FLOOR) return 0; // 0 = use setchar(tile_char(t)) for plain floor
@@ -151,8 +154,7 @@ void floor_ground_init(uint16_t floor_seed) { // deterministic floor visuals fro
 
 uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; overworld random E3/E4, else single A1 tile
     if (x == player_spawn_x && y == player_spawn_y) {
-        if (floor_num > 0u
-                && ((floor_biome != BIOME_BOSS && floor_biome != BIOME_MINIBOSS) || !boss_alive))
+        if (floor_num > 0u && !boss_alive)
             return TILE_STAIRS_UP_1;
         // floor 0 hub (nothing above) or boss/miniboss alive: fall through to normal floor rendering
     }
@@ -260,6 +262,8 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     }
     ally_clear_all();
     biome_load_active(biome_pick_for_floor(floor_num, run_seed)); // fills HOME enemy_defs[] from coral bank before spawn
+    floor_kind = FLOOR_KIND_FOR(floor_num); // orthogonal to floor_biome — miniboss/boss are kinds now (dungeon.h)
+    biome_apply_floor_kind(); // HOME: boss def/art + elite def overlays on miniboss/boss kinds
     if (floor_biome == BIOME_CAVERN) wall_tileset_index = TILE_WALL_F;
     if (floor_biome == BIOME_OVERWORLD) {
         // Hub uses c10 for both bulk walls and isolated pillars. Future areas would also
@@ -268,6 +272,10 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
         floor_column_off   = TILE_OVERWORLD_WALL_OFF;
     }
     generate_level(floor_seed);
+    if (floor_num == 0u && hub_landing_dungeon != DUNGEON_NONE) {
+        overworld_place_player_near_entrance(hub_landing_dungeon); // land beside the entrance just exited
+        hub_landing_dungeon = DUNGEON_NONE;
+    }
     lighting_reset();
     if (pit_present) lighting_reveal_radius(pit_x, pit_y, LIGHT_RADIUS_LADDER_DOWN);
     {

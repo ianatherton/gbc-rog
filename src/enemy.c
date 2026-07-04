@@ -3,6 +3,7 @@
 #include "enemy.h"
 #include "globals.h"
 #include "biome.h"
+#include "dungeon.h"
 #include "map.h"
 #include "ui.h"
 #include "entity_sprites.h"
@@ -170,7 +171,6 @@ uint8_t enemy_effective_max_hp(uint8_t type) BANKED {
 
 uint8_t enemy_effective_damage(uint8_t type) BANKED {
     uint8_t scale_floor;
-    if (type == ENEMY_SPHINX) return 1u; // TEMP(testing): sphinx melee + ranged bolt do 1 dmg — revert for real balance
     if (type >= NUM_ENEMY_TYPES) return 1u;
     scale_floor = (floor_num > 1u) ? (uint8_t)(floor_num - 1u) : 1u; // keep damage curve aligned with HP scaling
     { uint16_t v = (uint16_t)enemy_defs[type].damage * (uint16_t)scale_floor;
@@ -235,9 +235,9 @@ void spawn_enemies(void) { // random placement with collision checks
     num_enemies = 0;
     boss_alive = 0u;
     for (i = 0; i < MAX_ENEMIES; i++) { enemy_force_active[i] = 0u; enemy_status[i] = 0u; enemy_stun[i] = 0u; enemy_persistent[i] = 0u; }
-    if (floor_num == 1u || floor_biome == BIOME_OVERWORLD) return; // hub + entry floor are safe no-monster zones (empty roster → guard rand() % 0)
-    if (floor_biome == BIOME_BOSS || floor_biome == BIOME_BOSS2) {
-        uint8_t btype = (floor_biome == BIOME_BOSS2) ? ENEMY_SPHINX : ENEMY_GORGON; // both: 2-tile footprint, 3-high sprite
+    if (floor_kind == FLOORKIND_HUB || floor_kind == FLOORKIND_GUARD) return; // hub + guardrooms are safe no-monster zones (empty roster → guard rand() % 0)
+    if (floor_kind == FLOORKIND_BOSS) {
+        uint8_t btype = floor_boss_type; // Gorgon or Sphinx (biome_apply_floor_kind) — both: 2-tile footprint, 3-high sprite
         uint8_t attempts, gx = 1u, gy = 3u; // fallback position
         boss_alive = 1u;
         for (attempts = 0u; attempts < 100u; attempts++) {
@@ -264,7 +264,7 @@ void spawn_enemies(void) { // random placement with collision checks
         num_enemies = 1u;
         return;
     }
-    if (floor_biome == BIOME_MINIBOSS) fodder_cap = (uint8_t)(rand() % 6u); // 0-5 small slimes alongside the guaranteed elite below
+    if (floor_kind == FLOORKIND_MINIBOSS) fodder_cap = (uint8_t)(rand() % 6u); // 0-5 fodder alongside the guaranteed elite below
     for (i = 0; i < fodder_cap; i++) {
         uint8_t attempts;
         for (attempts = 0; attempts < 100; attempts++) {
@@ -276,6 +276,8 @@ void spawn_enemies(void) { // random placement with collision checks
                 enemy_x[num_enemies]    = tx;
                 enemy_y[num_enemies]    = ty;
                 enemy_type[num_enemies] = enemy_active_types[rand() % (enemy_active_count ? enemy_active_count : 1u)];
+                if (floor_kind == FLOORKIND_MINIBOSS && enemy_type[num_enemies] == ENEMY_BIG_SKELL)
+                    enemy_type[num_enemies] = elite_base_type; // BIG_SKELL's overlay head shares OAM 27-29 with the elite
                 enemy_hp[num_enemies]   = enemy_effective_max_hp(enemy_type[num_enemies]);
                 enemy_alive[num_enemies] = 1u;
                 enemy_force_active[num_enemies] = 0u;
@@ -286,7 +288,7 @@ void spawn_enemies(void) { // random placement with collision checks
             }
         }
     }
-    if (floor_biome == BIOME_MINIBOSS) { // one guaranteed 2x Slime elite — Gorgon-style 2-tile footprint
+    if (floor_kind == FLOORKIND_MINIBOSS) { // one guaranteed 2x elite — Gorgon-style 2-tile footprint
         uint8_t attempts;
         for (attempts = 0; attempts < 100; attempts++) {
             uint8_t tx = (uint8_t)(rand() % active_map_w);

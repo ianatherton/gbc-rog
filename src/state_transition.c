@@ -36,7 +36,7 @@ void state_transition_enter(void) BANKED {
         wait_vbl_done();
         lcd_clear_display();
         load_palettes();
-        level_init_display(2); // decrements floor_num; sets level_is_revisit from deepest_floor
+        level_init_display(2); // ascend: local 1 → guardroom → hub; sets level_is_revisit from floor_visited
         level_generate_and_spawn(&g_player_x, &g_player_y);
         gameplay_soft_reenter = 1u;
         current_state = STATE_NONE;
@@ -48,6 +48,17 @@ void state_transition_enter(void) BANKED {
         lcd_clear_display();
         load_palettes();
         level_init_display(3); // sets floor_num = pending_port_floor
+        level_generate_and_spawn(&g_player_x, &g_player_y);
+        gameplay_soft_reenter = 1u;
+        current_state = STATE_NONE;
+        next_state    = STATE_GAMEPLAY;
+        break;
+    case TRANS_DUNGEON_EXIT:
+        BANK_DBG("TR_dexit");
+        wait_vbl_done();
+        lcd_clear_display();
+        load_palettes();
+        level_init_display(4); // marks dungeon complete, floor_num = 0, lands beside the entrance
         level_generate_and_spawn(&g_player_x, &g_player_y);
         gameplay_soft_reenter = 1u;
         current_state = STATE_NONE;

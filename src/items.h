@@ -27,7 +27,8 @@
 #define ITEM_KIND_RING_FIRST 14u
 #define ITEM_KIND_RING_COUNT 30u
 #define ITEM_KIND_SCROLL_PORT6 44u // "Port: Flr6" — Witch starting scroll; warps the player to floor 6. Not in the drop table
-#define ITEM_KIND_COUNT      45u
+#define ITEM_KIND_WITCH_HAT  45u  // Witch Hat — equipment (HEAD); Witch starts with it equipped. Not in the drop table
+#define ITEM_KIND_COUNT      46u
 #define ITEM_KIND_NONE      255u
 
 #define ITEM_BOW_STACK_QTY   20u  // arrows granted per bow pickup

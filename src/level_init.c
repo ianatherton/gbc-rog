@@ -3,6 +3,7 @@
 #include "ability_dispatch.h"
 #include "defs.h"
 #include "dungeon.h"
+#include "equipment.h" // items_equip_apply — witch starts with her hat worn
 #include "globals.h"
 #include "items.h"
 #include "lcd.h"
@@ -90,7 +91,18 @@ void level_init_display(uint8_t from_pit) BANKED {
         else                          { player_armor = 15u; player_magdef =  5u; player_dodge =  0u; } // KNIGHT — armored
         player_hp = player_hp_max;
         inventory_clear_all(); // fresh run wipes any items from a previous attempt
-        if (player_class == 2u) inventory_add(ITEM_KIND_SCROLL_PORT6, 0); // WITCH starts with the Port: Boss scroll
+        if (player_class == 2u) { // WITCH starts with the Port: Boss scroll + her hat (worn)
+            uint8_t s;
+            inventory_add(ITEM_KIND_SCROLL_PORT6, 0);
+            inventory_add(ITEM_KIND_WITCH_HAT, 0);
+            for (s = 0u; s < INVENTORY_MAX_SLOTS; s++) { // equip it — same steps as the inventory toggle
+                if (inventory_kind[s] == ITEM_KIND_WITCH_HAT) {
+                    inventory_equipped[s] = 1u;
+                    items_equip_apply(ITEM_KIND_WITCH_HAT, s, 1u);
+                    break;
+                }
+            }
+        }
         {
             uint8_t fi;
             for (fi = 0u; fi < MAX_FLOORS; fi++) {

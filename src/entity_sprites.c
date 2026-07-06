@@ -13,6 +13,7 @@
 #include "dungeon.h"
 #include "equipment.h" // equipped_kind_in_slot — head/weapon lookup for the 2-tile hero + weapon pop-out
 #include "items.h"     // items_kind_tile / items_kind_palette — equipped weapon graphic
+#include "music.h"     // sfx_lunge_hit — impact sound fires at the swing's contact frame
 #include <gb/cgb.h>
 #include <string.h>
 
@@ -348,10 +349,12 @@ static void refresh_player_aura_oam_vbl(void) { // position every VBL; M15/M16 s
     move_entity_oam(SP_PLAYER_AURA_OAM, ax, player_aura_oam_y(ay), player_aura_oam_tile(), PAL_XP_UI);
 }
 
-// Head tile: helmet graphic when a HEAD-slot item is worn, else the bare head. All classes share one head.
+// Head tile: the worn HEAD-slot item picks the graphic (witch hat / helm), else the bare head.
 static uint8_t player_head_tile_vram(void) {
-    return (equipped_kind_in_slot(EQUIP_SLOT_HEAD) != ITEM_KIND_NONE)
-        ? TILE_PLAYER_HELMET_VRAM : TILE_PLAYER_HEAD_VRAM;
+    uint8_t hk = equipped_kind_in_slot(EQUIP_SLOT_HEAD);
+    if (hk == ITEM_KIND_WITCH_HAT) return TILE_WITCH_HAT_VRAM;
+    if (hk != ITEM_KIND_NONE) return TILE_PLAYER_HELMET_VRAM;
+    return TILE_PLAYER_HEAD_VRAM;
 }
 
 // Body tile: alternate standing/mid-stride while the hero is gliding (a move step is in flight → override set);
@@ -834,29 +837,37 @@ void entity_sprites_enemy_hit_flash_clear(uint8_t slot) BANKED {
 }
 
 BANKREF(entity_sprites_run_player_lunge)
-#define WEAPON_LUNGE_SIDE_PX 6 // held weapon sits this many px to the facing side of the hero during a swing
+#define WEAPON_LUNGE_SIDE_PX 6 // held weapon pops out this many px to the facing side of the hero
+#define WEAPON_SWING_FRAMES 20u // ~333ms at 60Hz — weapon flies to the target and back
 
 void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t dy, uint8_t hit_enemy_slot) BANKED {
     uint8_t t;
-    uint8_t mid_t = (uint8_t)(ENTITY_LUNGE_FRAMES >> 1); // strike read lands halfway through lunge arc
-    // Equipped weapon "pops out" beside the hero and rides the lunge, borrowing the fx/aura slot (0).
-    // Bow keeps its own shoot/arrow animation, so it draws nothing here.
+    uint8_t swing_last = (uint8_t)(WEAPON_SWING_FRAMES - 1u);
+    uint8_t mid_t = (uint8_t)(swing_last >> 1); // strike read lands halfway through the swing
+    // Equipped weapon "pops out" beside the hero and tweens out to the attacked tile and back,
+    // borrowing the fx/aura slot (0). Bow keeps its own shoot/arrow animation, so it draws nothing here.
     uint8_t wk = equipped_kind_in_slot(EQUIP_SLOT_WEAPON);
     uint8_t show_weapon = (uint8_t)(wk != ITEM_KIND_NONE && wk != ITEM_KIND_BOW);
     uint8_t wtile = 0u, wpal = 0u;
+    int16_t wsx = 0, wsy = 0, wtx = 0, wty = 0; // weapon tween endpoints: draw position <-> attacked tile
     if (show_weapon) {
         wtile = (uint8_t)(TILESET_VRAM_OFFSET + items_kind_tile(wk));
         wpal  = items_kind_palette(wk);
         projectile_overrides_aura = 1u; // suppress the foot aura so slot 0 is free for the weapon
+        wsx = (int16_t)((int16_t)px * 8 + (player_flip_x ? -WEAPON_LUNGE_SIDE_PX : WEAPON_LUNGE_SIDE_PX));
+        wsy = (int16_t)((int16_t)py * 8);
+        wtx = (int16_t)((int16_t)(px + dx) * 8); // melee only triggers on the adjacent tile
+        wty = (int16_t)((int16_t)(py + dy) * 8);
     }
-    for (t = 0; t < ENTITY_LUNGE_FRAMES; t++) {
-        uint8_t a = lunge_amt_for_frame(t);
+    for (t = 0; t < WEAPON_SWING_FRAMES; t++) {
+        uint8_t p = (t > mid_t) ? (uint8_t)(swing_last - t) : t; // 0..mid..0 triangle ramp
+        uint8_t a = (uint8_t)((4u * p) / mid_t);                 // body arc peaks with weapon impact
         pl_ofs_x = (int8_t)((int16_t)dx * (int16_t)a);
         pl_ofs_y = (int8_t)((int16_t)dy * (int16_t)a);
         entity_sprites_refresh_player_only(px, py);
-        if (show_weapon) { // beside the hero on the facing side, riding the lunge offset
-            int16_t wwx = (int16_t)px * 8 + pl_ofs_x + (player_flip_x ? -WEAPON_LUNGE_SIDE_PX : WEAPON_LUNGE_SIDE_PX);
-            int16_t wwy = (int16_t)py * 8 + pl_ofs_y;
+        if (show_weapon) { // lerp between the hero's side and the attacked tile
+            int16_t wwx = (int16_t)(wsx + (int16_t)((wtx - wsx) * (int16_t)p) / (int16_t)mid_t);
+            int16_t wwy = (int16_t)(wsy + (int16_t)((wty - wsy) * (int16_t)p) / (int16_t)mid_t);
             move_entity_oam(SP_PLAYER_AURA_OAM, wwx, wwy, wtile, wpal);
             if (player_flip_x) set_sprite_prop(SP_PLAYER_AURA_OAM, (uint8_t)((wpal & 7u) | S_FLIPX));
         }
@@ -864,6 +875,7 @@ void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t d
             if (!en_hit_flash_age[hit_enemy_slot]) enemy_effects_count++;
             en_hit_flash_age[hit_enemy_slot] = 1u;
             refresh_enemy_oam(hit_enemy_slot);
+            sfx_lunge_hit(); // sound on contact, not after the swing settles
         }
         wait_vbl_done();
     }

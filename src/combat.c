@@ -128,7 +128,7 @@ uint8_t combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, ui
     int8_t adx = (nx > px) ? 1 : (nx < px ? -1 : 0);
     int8_t ady = (ny > py) ? 1 : (ny < py ? -1 : 0);
     if (enemy_type[ei] == ENEMY_SPHINX && g_sphinx_mode != SPHINX_GROUNDED) {
-        entity_sprites_run_player_lunge(px, py, adx, ady, ei); // lunge whiffs — flyer is out of melee reach
+        entity_sprites_run_player_lunge(px, py, adx, ady, ENTITY_LUNGE_HIT_FLASH_NONE); // lunge whiffs — flyer is out of melee reach, no hit flash/sfx
         sfx_dodge_woosh();
         { // copy the literal into RAM first — a bank-19 ROM literal garbles across the banked ui call
           char msg[18]; const char *s = "SPHINX IS FLYING!"; uint8_t k = 0u;
@@ -136,8 +136,7 @@ uint8_t combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, ui
           ui_combat_log_push(msg); }
         return 0u; // not killed; ranged attacks (range >= 2) can still hit it
     }
-    entity_sprites_run_player_lunge(px, py, adx, ady, ei);
-    sfx_lunge_hit();
+    entity_sprites_run_player_lunge(px, py, adx, ady, ei); // plays sfx_lunge_hit at the contact frame
     {
         uint8_t killed = combat_damage_enemy(ei, combat_crit_roll(player_damage), 0u);
         if (killed) enemy_slime_split(enemy_type[ei], enemy_x[ei], enemy_y[ei], px, py);

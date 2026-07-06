@@ -218,6 +218,14 @@ typedef struct {
 #define TILE_SHEET_K15     234u /* K15 — body mid-stride  ROM (15-1)*16+10 */
 #define TILE_SHEET_HELMET1 TILE_ITEM_5 /* helmeted head = I5 helmet item art for now; K12 (ROM 186) is
                                           still blank — repoint here when dedicated head art is drawn */
+
+/* Witch hat (H6): item icon + worn-head art in one tile. H6's natural VRAM slot (215) is taken by
+   the boot-copied ring icon, so the art borrows the unused M6 slot instead (sheet 92, never placed;
+   N6/O6 next door are the ITEM label — verified in use, don't touch). Slot ≥182 and outside the
+   title-logo table → a single boot upload survives (same as ring/bow/book icons). */
+#define TILE_SHEET_H6          87u  /* H6 — witch hat art, ROM (6-1)*16+7 */
+#define TILE_WITCH_HAT_VRAM   220u  /* borrows unused M6 VRAM slot — BG belt/floor icon + OBJ worn head */
+#define TILE_WITCHHAT_BELT_OFF ((uint8_t)(TILE_WITCH_HAT_VRAM - TILESET_VRAM_OFFSET)) // items_kind_tile(WITCH_HAT)
 #define TILE_PLAYER_BODY_STAND_VRAM  ((uint8_t)(TILESET_VRAM_OFFSET + TILE_CLASS_KNIGHT))    /* 129 — freed B1 slot */
 #define TILE_PLAYER_BODY_STRIDE_VRAM ((uint8_t)(TILESET_VRAM_OFFSET + TILE_CLASS_BERSERKER)) /* 145 — freed B2 slot */
 #define TILE_PLAYER_HEAD_VRAM        ((uint8_t)(TILESET_VRAM_OFFSET + TILE_CLASS_WITCH))     /* 161 — freed B3 slot */

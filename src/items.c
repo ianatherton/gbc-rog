@@ -41,6 +41,7 @@ static const uint8_t kind_cat[ITEM_KIND_COUNT] = {
     ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, // Mystic
     ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, // Storm
     ITEM_CAT_CONSUMABLE, // SCROLL_PORT6 (Port: Flr6)
+    ITEM_CAT_EQUIPMENT,  // WITCH_HAT
 };
 
 static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
@@ -70,6 +71,7 @@ static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
     TILE_RING_OFF, TILE_RING_OFF, TILE_RING_OFF, // Mystic
     TILE_RING_OFF, TILE_RING_OFF, TILE_RING_OFF, // Storm
     TILE_SCROLL_BELT_OFF, // SCROLL_PORT6 — reuses the scroll art
+    TILE_WITCHHAT_BELT_OFF, // WITCH_HAT — H6 art at TILE_WITCH_HAT_VRAM
 };
 
 static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
@@ -101,6 +103,7 @@ static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
     PAL_WALL_BG, PAL_CORPSE, PAL_XP_UI_BG, // Mystic
     PAL_WALL_BG, PAL_CORPSE, PAL_XP_UI_BG, // Storm
     PAL_ENEMY_SNAKE, // SCROLL_PORT6 — green tint to read apart from the gold Death Scroll
+    PAL_XP_UI_BG,    // WITCH_HAT — blue/arcane, same ramp as the heal book
 };
 
 static const char *const kind_name[ITEM_KIND_COUNT] = {
@@ -119,6 +122,7 @@ static const char *const kind_name[ITEM_KIND_COUNT] = {
     "Mystic Ring", "Mystic Ring", "Mystic Ring",
     "Storm Ring",  "Storm Ring",  "Storm Ring",
     "Port: Boss",
+    "Witch Hat",
 };
 
 static const char *const kind_desc[ITEM_KIND_COUNT] = {
@@ -168,6 +172,7 @@ static const char *const kind_desc[ITEM_KIND_COUNT] = {
     "+2 atk, +8% dodge. A gale ring.",      // Storm T2
     "+3 atk, +12% dodge. A tempest ring.",  // Storm T3
     "Warps to this dungeon's boss floor.", // SCROLL_PORT6
+    "+5% magic def. A crooked pointed hat.", // WITCH_HAT
 };
 
 uint8_t items_kind_category(uint8_t kind) BANKED {

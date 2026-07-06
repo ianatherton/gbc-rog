@@ -50,6 +50,8 @@ const EquipStatDef equip_stat_defs[ITEM_KIND_COUNT] = {
     /* Storm  (damage + dodge%)*/{ EQUIP_SLOT_RING, 0,  1, 0,  0,  0,  0,  4 },
     /*                        */ { EQUIP_SLOT_RING, 0,  2, 0,  0,  0,  0,  8 },
     /*                        */ { EQUIP_SLOT_RING, 0,  3, 0,  0,  0,  0, 12 },
+    /* ITEM_KIND_SCROLL_PORT6 */ { EQUIP_SLOT_NONE,  0,  0, 0,  0, 0, 0, 0 },
+    /* ITEM_KIND_WITCH_HAT   */ { EQUIP_SLOT_HEAD,   0,  0, 0,  0, 0, 5, 0 }, /* +5% magic def */
 };
 
 /* Adds the item's "+N" mod_level to a nonzero base stat, clamped so a nonzero base stat

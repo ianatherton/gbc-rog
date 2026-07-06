@@ -108,19 +108,19 @@ typedef struct {
 #define MAX_FLOORS     50u // persistence-array size; floors 1-36 = dungeons, 37-45 = guardroom keys
 
 /* ── Enemy roster ────────────────────────────────────────────────────────── */
-#define MAX_ENEMIES    23 // OAM: 23 body slots (3..25) + head slot 26 + 4 skeleton-head slots (27..30) before ally base
-#define NUM_ENEMIES    23 // was 24; capped to free OAM slot 26 for the hero head (2-tile player)
+#define MAX_ENEMIES    23 // OAM: 23 body slots (4..26) + 4 skeleton-head slots (27..30) before ally base
+#define NUM_ENEMIES    23 // was 24; capped when the hero went 2-tile (hero now owns OAM 1..2, debuff icon 3)
 #define ENEMY_DEAD    255
 
 /* OAM draw order: lower index = in front (hardware). Aura must be < player or the 8×8 hero covers it completely.
    Flight FX (witch bolt, shield fireball) borrow SP_PLAYER_AURA_OAM during entity_sprites_run_projectile so bolts sit above the hero.
    Big Skell heads use SP_BIG_SKELL_HEAD_BASE..+MAX_BIG_SKELL_HEADS-1 (27..30) — managed by entity_sprites, excluded from hide sweep. */
 #define SP_PLAYER_AURA_OAM    0u // M15/M16 gold flicker — slot also drives bolt/fireball + weapon-lunge FX (same index = above hero)
-#define SP_PLAYER             1u // hero body — bottom tile of the 2-tile-tall hero
-#define SP_ENEMY_BASE         3u // enemies use OAM [SP_ENEMY_BASE .. SP_ENEMY_BASE + MAX_ENEMIES - 1] = 3..25
-                                  // (Sphinx boss borrows 3..12; the hub borrows 3..4 for waypoint stun-fx — no enemies on floor 0)
-#define SP_PLAYER_HEAD        26u // hero head — top tile of the 2-tile hero; freed by capping enemies to 23.
-                                  // Above the enemy run so a north-adjacent enemy may overlap it (body/slot 1 always in front).
+#define SP_PLAYER_HEAD        1u // hero head — top tile of the 2-tile hero; below only the weapon/FX slot so
+                                  // nothing (body, enemies, allies) ever draws over the hero's face.
+#define SP_PLAYER             2u // hero body — bottom tile of the 2-tile-tall hero; head overlaps it by 2px.
+#define SP_ENEMY_BASE         4u // enemies use OAM [SP_ENEMY_BASE .. SP_ENEMY_BASE + MAX_ENEMIES - 1] = 4..26
+                                  // (Sphinx boss borrows the first 10; the hub borrows the first 2 for waypoint stun-fx — no enemies on floor 0)
 #define SP_BIG_SKELL_HEAD_BASE 27u // big skell head overlays (up to MAX_BIG_SKELL_HEADS concurrent visible heads)
 #define MAX_BIG_SKELL_HEADS    4u // head slots 27..30; must fit before SP_ALLY_BASE (31)
 #define MAX_ALLIES            4u // parallel ally slots — OAM SP_ALLY_BASE .. SP_ALLY_BASE+MAX_ALLIES-1 (above enemy run)

@@ -26,7 +26,7 @@ BANKREF_EXTERN(map_pit_position)
 #define SP_LADDER_ARROW 36u
 #define SP_BRAZIER_FIRE 37u
 #define SP_BELT_SELECTOR 35u // fixed screen-space OAM; excluded from post-enemy hide sweep
-#define SP_DEBUFF_ICON   2u  // shared root/stun indicator — below SP_ENEMY_BASE (3) so it draws on top of enemies
+#define SP_DEBUFF_ICON   3u  // shared root/stun indicator — below SP_ENEMY_BASE (4) so it draws on top of enemies
 #define SP_GORGON_HEAD_R SP_INV_CURSOR // boss-floor-only 6th gorgon tile; shares slot 38 with the
                                        // inventory cursor + loading skulls, none of which ever render
                                        // while enemy OAM is being refreshed — see entity_sprites.h
@@ -35,7 +35,7 @@ BANKREF_EXTERN(map_pit_position)
 // Hub-only waypoint fx: a copy of the player's foot aura (same M15/M16 A/B flicker via
 // player_aura_tile_vram()) hovers over each waypoint's two bottom tiles, recolored. Borrows
 // the bottom of the idle enemy OAM run (floor 0 spawns no enemies; the guarded hide-sweep in
-// refresh_oam_only clears 3..26 once on hub entry, this VBL tick repaints every frame).
+// refresh_oam_only clears the enemy run once on hub entry, this VBL tick repaints every frame).
 // Off-hub these slots belong to enemies. PAL: hub OCP4 = blue flag ramp, distinct from the
 // player aura's gold OCP7 (swap to PAL_ENEMY_RAT=red / PAL_ENEMY_GOBLIN=green to retint).
 #define SP_WAYPOINT_FX_BASE    SP_ENEMY_BASE
@@ -386,7 +386,7 @@ static void refresh_player_oam_from_cache(void) { // player only — same math a
         oam_hide(SP_PLAYER_AURA_OAM);
     }
     move_entity_oam(SP_PLAYER, pwx, pwy, player_body_tile_vram(), player_pal);       // bottom tile
-    move_entity_oam(SP_PLAYER_HEAD, pwx, (int16_t)(pwy - 8), player_head_tile_vram(), player_pal); // top tile
+    move_entity_oam(SP_PLAYER_HEAD, pwx, (int16_t)(pwy - 8), player_head_tile_vram(), player_pal); // top tile, flush above the body
 }
 
 static void refresh_enemy_oam(uint8_t slot) {
@@ -508,7 +508,7 @@ static void refresh_enemy_oam(uint8_t slot) {
     // Custom 10-tile OAM render for ENEMY_SPHINX (BIOME_BOSS2 only). The boss is the floor's only
     // enemy (num_enemies==1), so the idle enemy-run slots are free: primary slot 3 + the contiguous
     // 4..12 (the hide sweep's lower bound is raised to 13 on this floor). 3×2 body in slots 7..12,
-    // 2×2 wings in slots 3..6 (lower OAM index = drawn on top). Frame animation is a pure VRAM pixel
+    // 2×2 wings in the first 4 enemy-run slots (lower OAM index = drawn on top). Frame animation is a pure VRAM pixel
     // swap (sphinx_anim_tick re-uploads the body/wing tiles), so the OAM layout here is fixed.
     if (enemy_type[slot] == ENEMY_SPHINX) {
         int16_t ewx = (int16_t)enemy_x[slot] * 8 + en_ofs_x[slot];
@@ -534,7 +534,7 @@ static void refresh_enemy_oam(uint8_t slot) {
             move_entity_oam((uint8_t)(SP_ENEMY_BASE + 7u), ewx,                ewy,                TILE_SPHINX_B3_VRAM, pal);
             move_entity_oam((uint8_t)(SP_ENEMY_BASE + 8u), (int16_t)(ewx + 8), ewy,                TILE_SPHINX_B4_VRAM, pal);
             move_entity_oam((uint8_t)(SP_ENEMY_BASE + 9u), (int16_t)(ewx + 16),ewy,                TILE_SPHINX_B5_VRAM, pal);
-            // wings 2×2 attached as a child of body tile B1 (top-middle, slots 3..6 = on top):
+            // wings 2×2 attached as a child of body tile B1 (top-middle, first enemy-run slots = on top):
             // the wing's bottom-left corner is pinned to B1's bottom-left corner (ewx+8, ewy) —
             // the "b1/b3" corner — so the wing extends up & right over the upper-center/right body.
             int16_t wing_bl_x = (int16_t)(ewx + 8); // B1 bottom-left corner X
@@ -809,13 +809,12 @@ void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) BANKED {
     // Hide unused enemy body slots — guarded so this only runs when num_enemies changes (once per floor)
     {
         uint8_t new_mark = (uint8_t)(SP_ENEMY_BASE + num_enemies);
-        // The Sphinx boss draws into the idle enemy-run slots 3..12; keep the sweep above them.
+        // The Sphinx boss draws into the first 10 idle enemy-run slots; keep the sweep above them.
         if (floor_kind == FLOORKIND_BOSS && floor_boss_type == ENEMY_SPHINX && new_mark < (uint8_t)(SP_ENEMY_BASE + 10u))
             new_mark = (uint8_t)(SP_ENEMY_BASE + 10u);
         if (oam_enemy_hide_mark != new_mark) {
-            // Stop at SP_PLAYER_HEAD (26): the enemy run now ends at 25, and slot 26 is the hero head
-            // (owned by refresh_player_oam_from_cache) — never sweep it here.
-            for (i = new_mark; i < SP_PLAYER_HEAD; i++) oam_hide(i);
+            // Sweep only the enemy run; slots past it (skell heads etc.) have their own owners.
+            for (i = new_mark; i < (uint8_t)(SP_ENEMY_BASE + MAX_ENEMIES); i++) oam_hide(i);
             oam_enemy_hide_mark = new_mark;
         }
     }

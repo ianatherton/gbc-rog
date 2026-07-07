@@ -486,6 +486,14 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
         // permanent boot copies.
         uint8_t fi;
         *region_out = OW_REGION_GRASS;
+        // NPC body tile: one cell below the head
+        for (fi = 0u; fi < ow_feature_count; fi++) {
+            if (ow_features[fi].type == OW_FEAT_SIGNPOST
+                    && (uint8_t)(ow_features[fi].aux & 0xF0u) == SIGN_KIND_NPC
+                    && ow_features[fi].x == mx && (uint8_t)(ow_features[fi].y + 1u) == my) {
+                *pal_out = PAL_PILLAR_BG; return TILE_PLAYER_BODY_STAND_VRAM;
+            }
+        }
         for (fi = 0u; fi < ow_feature_count; fi++) {
             if (ow_features[fi].x != mx || ow_features[fi].y != my) continue; // town features are all 1×1
             if (ow_features[fi].type == OW_FEAT_TREE) {

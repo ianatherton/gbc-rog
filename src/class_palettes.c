@@ -33,13 +33,38 @@ static const palette_color_t s_bkg_emblem_zerker[] = {
     RGB(30, 4, 4),    // red
 };
 
-/* OCP PAL_PLAYER: the 2-tile hero shares ONE ramp across all classes — grey / dark-blue / gold. */
-static const palette_color_t s_ocp_player_shared[] = {
-    RGB(0, 0, 0),     // outline / shadow black
-    RGB(6, 10, 18),   // dark blue
-    RGB(18, 19, 22),  // grey
-    RGB(28, 24, 6),   // gold
+/* OCP PAL_PLAYER: one hardware slot; pick one of four ramps from player_class */
+static const palette_color_t s_ocp_player_knight[] = {
+    RGB(0, 0, 0),
+    RGB(6, 10, 18),   // steel shadow
+    RGB(18, 20, 24),  // plate mid
+    RGB(31, 28, 8),   // gold crest
 };
+static const palette_color_t s_ocp_player_scoundrel[] = {
+    RGB(0, 0, 0),
+    RGB(18, 10, 4),   // brown
+    RGB(28, 22, 14),  // tan
+    RGB(10, 22, 8),   // green
+};
+static const palette_color_t s_ocp_player_witch[] = {
+    RGB(0, 0, 0),
+    RGB(20, 8, 24),   // purple
+    RGB(29, 24, 16),  // beige
+    RGB(8, 22, 10),   // green
+};
+static const palette_color_t s_ocp_player_zerker[] = {
+    RGB(0, 0, 0),
+    RGB(31, 31, 31),  // white
+    RGB(14, 14, 14),  // grey
+    RGB(30, 4, 4),    // red
+};
+
+static const palette_color_t *sprite_player_pal_ptr(uint8_t c) {
+    if (c == 1u) return s_ocp_player_scoundrel;
+    if (c == 2u) return s_ocp_player_witch;
+    if (c == 3u) return s_ocp_player_zerker;
+    return s_ocp_player_knight;
+}
 
 BANKREF(class_palettes)
 
@@ -53,5 +78,5 @@ void class_palettes_bkg_emblem_init(void) BANKED {
 
 void class_palettes_sprite_player_apply(void) BANKED {
     if (!DEVICE_SUPPORTS_COLOR) return;
-    set_sprite_palette(PAL_PLAYER, 1u, s_ocp_player_shared); // shared hero ramp — class no longer changes it
+    set_sprite_palette(PAL_PLAYER, 1u, sprite_player_pal_ptr(player_class));
 }

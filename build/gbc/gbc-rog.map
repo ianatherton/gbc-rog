@@ -150,8 +150,8 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000045A  l__CODE_2 |    0000072C  l__CODE_2 |    000007A6  l__CODE_1
      00000B71  l__HOME   |    00000B9B  l__CODE_4 |    00000EDF  l__CODE_1
      00001108  l__CODE_1 |    00001267  l__CODE_1 |    00001554  l__CODE_1
-     00001BE6  l__DATA   |    00001ED3  l__CODE_3 |    00001F05  l__CODE_1
-     00002000  _rROMB0   |    00002662  l__CODE_2 |    00003000  _rROMB1  
+     00001BE6  l__DATA   |    00001F05  l__CODE_1 |    00001F0A  l__CODE_3
+     00002000  _rROMB0   |    000026B8  l__CODE_2 |    00003000  _rROMB1  
      000030E0  l__CODE   |    000031FB  l__CODE_1 |    000032C8  l__CODE_5
      000032E0  s__HOME   |    00003E51  s__BASE   |    00003E51  s__CODE_0
      00003E51  s__INITIA |    00003E51  s__LIT    |    00003E71  s__GSINIT
@@ -612,7 +612,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_3                00034000    00001ED3 =        7891. bytes (REL,CON)
+_CODE_3                00034000    00001F0A =        7946. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -624,9 +624,9 @@ _CODE_3                00034000    00001ED3 =        7891. bytes (REL,CON)
      000359F6  _state_ab |    00035AFF  ___func_s |    00035AFF  _state_ab
      00035B21  ___func_s |    00035B21  _state_tr |    00035C47  ___func_s
      00035C47  _state_ma |    00035D43  ___func_s |    00035D43  _state_ma
-     00035D65  ___func_s |    00035D65  _state_ga |    00035E11  ___func_c
-     00035E11  _class_pa |    00035E74  _class_pa |    00035E88  ___func_s
-     00035E88  _state_ti
+     00035DC1  ___func_c |    00035DC1  _class_pa |    00035DFC  _class_pa
+     00035E13  ___func_s |    00035E13  _state_ga |    00035EBF  ___func_s
+     00035EBF  _state_ti
 ASxxxx Linker V03.00/V05.40 + sdld,  page 34.
 Hexadecimal  [32-Bits]
 
@@ -856,7 +856,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_22               00164000    00002662 =        9826. bytes (REL,CON)
+_CODE_22               00164000    000026B8 =        9912. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -870,12 +870,12 @@ _CODE_22               00164000    00002662 =        9826. bytes (REL,CON)
      00164C71  _overworl |    00164D65  ___func_o |    00164D65  _overworl
      00164FED  ___func_o |    00164FED  _overworl |    00165025  ___func_o
      00165025  _overworl |    0016535C  ___func_o |    0016535C  _overworl
-     00165B64  ___func_o |    00165B64  _overworl |    00165DDF  ___func_o
-     00165DDF  _overworl |    00166082  ___func_r |    00166082  _render_b
-     0016612E  ___func_r |    0016612E  _render_b |    001661DC  ___func_w
-     001661DC  _water_an |    001661EC  ___func_w |    001661EC  _water_an
-     0016629C  ___func_a |    0016629C  _apply_wa |    00166515  ___func_a
-     00166515  _apply_fi |    0016659B  ___func_l |    0016659B  _load_pal
+     00165BBA  ___func_o |    00165BBA  _overworl |    00165E35  ___func_o
+     00165E35  _overworl |    001660D8  ___func_r |    001660D8  _render_b
+     00166184  ___func_r |    00166184  _render_b |    00166232  ___func_w
+     00166232  _water_an |    00166242  ___func_w |    00166242  _water_an
+     001662F2  ___func_a |    001662F2  _apply_wa |    0016656B  ___func_a
+     0016656B  _apply_fi |    001665F1  ___func_l |    001665F1  _load_pal
 ASxxxx Linker V03.00/V05.40 + sdld,  page 53.
 Hexadecimal  [32-Bits]
 
@@ -964,8 +964,8 @@ obj/gbc/state_stats.rel                   [ state_stats ]
 obj/gbc/state_ability.rel                 [ state_ability ]
 obj/gbc/state_transition.rel              [ state_transition ]
 obj/gbc/state_map.rel                     [ state_map ]
-obj/gbc/state_game_over.rel               [ state_game_over ]
 obj/gbc/class_palettes.rel                [ class_palettes ]
+obj/gbc/state_game_over.rel               [ state_game_over ]
 obj/gbc/state_title.rel                   [ state_title ]
 obj/gbc/bwv1043_music.rel                 [ bwv1043_music ]
 obj/gbc/ui.rel                            [ ui ]

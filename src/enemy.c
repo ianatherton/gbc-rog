@@ -235,7 +235,7 @@ void spawn_enemies(void) { // random placement with collision checks
     num_enemies = 0;
     boss_alive = 0u;
     for (i = 0; i < MAX_ENEMIES; i++) { enemy_force_active[i] = 0u; enemy_status[i] = 0u; enemy_stun[i] = 0u; enemy_persistent[i] = 0u; }
-    if (floor_kind == FLOORKIND_HUB || floor_kind == FLOORKIND_GUARD) return; // hub + guardrooms are safe no-monster zones (empty roster → guard rand() % 0)
+    if (floor_kind == FLOORKIND_HUB || floor_kind == FLOORKIND_GUARD || floor_kind == FLOORKIND_TOWN) return; // hub + guardrooms + towns are safe no-monster zones (empty roster → guard rand() % 0)
     if (floor_kind == FLOORKIND_BOSS) {
         uint8_t btype = floor_boss_type; // Gorgon or Sphinx (biome_apply_floor_kind) — both: 2-tile footprint, 3-high sprite
         uint8_t attempts, gx = 1u, gy = 3u; // fallback position

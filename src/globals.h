@@ -55,7 +55,7 @@ extern uint8_t floor_enemy_dead[MAX_FLOORS * 3u];  // bitmask: 24 bits per floor
 extern uint8_t gameplay_soft_reenter;
 /* Set before level_generate_and_spawn when entering a previously-visited floor (either direction); triggers permanence restoration */
 extern uint8_t level_is_revisit;
-extern uint8_t floor_visited[6];    // bitmask, bit f = floor f generated before this run (46 floors used)
+extern uint8_t floor_visited[7];    // bitmask, bit f = floor f generated before this run (49 floors used; towns 46-48)
 extern uint8_t entered_from_below;  // 1 = arrived via stairs-up (ascend) => spawn at pit; 0 = descend/fresh => spawn at stairs-up
 extern uint8_t pending_port_floor;  // target floor for TRANS_FLOOR_PORT (Witch's Port scroll warps here)
 

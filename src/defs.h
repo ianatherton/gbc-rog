@@ -164,6 +164,17 @@ typedef struct {
 #define ALLY_GLIDE_SPEED  1u // px/frame for fox slide; offset capped to 8px in glide_begin so always converges in 8 scroll frames
 #define TURN_DELAY_MS 0 // extra ms after each resolved turn; 0 = only VBlank/scroll pacing (see main.c guard)
 
+/* ── Zone-confirm gate (state_gameplay armed-latch; prompts built in ui.c) ── */
+// Stepping toward a transition tile arms a latch + prints a prompt instead of zoning
+// instantly; the next A rising-edge fires the stored transition. Walking away cancels.
+#define CONFIRM_NONE      0u
+#define CONFIRM_PIT       1u // pit / down-ladder            → TRANS_FLOOR_PIT
+#define CONFIRM_BOSS_EXIT 2u // boss exit portal (dead boss) → TRANS_DUNGEON_EXIT
+#define CONFIRM_UP        3u // stairs-up (spawn cell)       → TRANS_FLOOR_UP
+#define CONFIRM_ENTRANCE  4u // hub cave mouth, aux = dungeon id → TRANS_FLOOR_PORT
+#define CONFIRM_SEALED    5u // completed dungeon's mouth — message only, A does nothing
+#define CONFIRM_TOWN      6u // hub town door, aux = town id → TRANS_FLOOR_PORT to TOWN_FLOOR_BASE+aux
+
 /* ── Logical tile IDs (returned by tile_at() for render compatibility) ───── */
 // These are NOT stored in memory — tile_at() reconstructs them on-the-fly
 // from the two bitsets (floor_bits, pit_bits).
@@ -302,7 +313,8 @@ typedef struct {
 #define OW_FEAT_ENTRANCE  2u  /* 1x1 cave/dungeon mouth */
 #define OW_FEAT_BOSSDOOR  3u  /* 2x2 final-dungeon door (O15/P15/O16/P16) */
 #define OW_FEAT_SIGNPOST  4u  /* 1x1 readable marker (tile B8); step on it to print its label to the chat box */
-#define OW_FEAT_COUNT     5u
+#define OW_FEAT_FOUNTAIN  5u  /* 1x1 town-interior heal fountain; step on it to restore full HP */
+#define OW_FEAT_COUNT     6u
 #define MAX_OW_FEATURES   44u /* 17 structures (3 towns + 9 entrances + 4 waypoints + 1 boss) + a signpost beside each */
 #define TILE_SHEET_B8        113u /* B8 signpost art (row 8, col B; directly below flag tile B7=97) */
 #define PREFAB_VRAM_SIGNPOST 205u /* dedicated free slot (blank sheet cell N5, ≥182 so title restore won't blank it); B8 boot-copied here in main.c */
@@ -312,6 +324,7 @@ typedef struct {
 #define SIGN_KIND_WAYPOINT 0x10u /* low = quadrant 0=NE 1=NW 2=SE 3=SW */
 #define SIGN_KIND_DUNGEON  0x20u /* low = entrance index 0..8 */
 #define SIGN_KIND_BOSS     0x30u /* final dungeon */
+#define SIGN_KIND_NPC      0x40u /* town-interior NPC; low = canned dialogue line 0..3 */
 
 /* A waypoint must sit "within 1 screen" of the town/entrance it serves. Use a conservative co-visibility
    box (smaller than the GRID_W×GRID_H viewport) so the waypoint and its feature can share the screen. */

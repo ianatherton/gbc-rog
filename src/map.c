@@ -33,7 +33,7 @@ uint8_t active_map_h;
 uint8_t player_spawn_x;
 uint8_t player_spawn_y;
 uint8_t floor_column_off; // floor_ground_init sets before floor_tile_sheet_offset reads column art
-static uint16_t floor_visual_seed;        // deterministic seed for floor blank-scatter hash
+uint16_t floor_visual_seed;               // deterministic seed for floor blank-scatter hash (extern: bank-22 strip classifier replicates the hash)
 uint8_t brazier_count;
 uint8_t brazier_x[MAX_BRAZIERS];
 uint8_t brazier_y[MAX_BRAZIERS];
@@ -287,7 +287,7 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     }
     spawn_enemies();
     ground_items_clear();
-    if (floor_biome != BIOME_OVERWORLD) { // hub has no items (also avoids floor_items_picked[floor_num-1] underflow at floor 0)
+    if (floor_biome != BIOME_OVERWORLD && floor_kind != FLOORKIND_TOWN) { // hub and towns have no items (also avoids floor_items_picked[floor_num-1] underflow at floor 0)
         uint8_t target = (uint8_t)(2u + (uint8_t)(rand() & 3u)); // 2..5 items per floor
         uint8_t placed = 0u;
         uint16_t attempts = 0u;

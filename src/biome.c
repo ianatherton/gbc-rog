@@ -17,6 +17,7 @@ BANKREF_EXTERN(biome_overworld_copy_defs)
 BANKREF_EXTERN(biome_overworld_load_palettes)
 BANKREF_EXTERN(biome_boss2_copy_defs)
 BANKREF_EXTERN(biome_boss2_load_palettes)
+BANKREF_EXTERN(biome_town_copy_defs)
 
 // Dispatch table indexed by biome ID — adding a biome is one new bank file plus one row here
 // (and BIOME_*/BIOME_COUNT in biome.h). Rows hold plain fn pointers; we map the bank ourselves.
@@ -29,6 +30,7 @@ static const BiomeEntry biome_table[BIOME_COUNT] = {
     /* BIOME_OVERWORLD */ { BANK(biome_overworld_copy_defs), biome_overworld_copy_defs, biome_overworld_load_palettes },
     /* BIOME_MINIBOSS (retired — kind now; row kept for index stability) */ { BANK(biome_dungeon_copy_defs), biome_dungeon_copy_defs, NULL },
     /* BIOME_BOSS2   */ { BANK(biome_boss2_copy_defs),   biome_boss2_copy_defs,   biome_boss2_load_palettes },
+    /* BIOME_TOWN    */ { BANK(biome_town_copy_defs),    biome_town_copy_defs,    NULL },
 };
 
 void biome_load_active(uint8_t biome_id) {
@@ -170,6 +172,7 @@ uint8_t biome_pick_for_floor(uint8_t floor_n, uint16_t seed) {
     uint16_t h;
     uint8_t d;
     if (floor_n == 0u) return BIOME_OVERWORLD; // floor 0 is the top-level hub
+    if (floor_n >= TOWN_FLOOR_BASE) return BIOME_TOWN; // town interiors (46+)
     d = FLOOR_DUNGEON_ID(floor_n);
     h = (uint16_t)(seed ^ (uint16_t)((uint16_t)d * 2053u));
     h ^= (uint16_t)(h >> 8);

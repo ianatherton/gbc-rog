@@ -10,6 +10,7 @@ typedef enum {
     PERF_DRAW_SCREEN,
     PERF_DRAW_OVERLAY,
     PERF_HIT_RESOLVE,
+    PERF_CLASSIFY,
     PERF_METRIC_COUNT
 } PerfMetric;
 

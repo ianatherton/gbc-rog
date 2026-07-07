@@ -144,6 +144,47 @@ uint8_t combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, ui
     }
 }
 
+BANKREF(combat_player_melee_extras)
+uint8_t combat_player_melee_extras(uint8_t ei) BANKED {
+    uint8_t cleave_killed = 0u;
+    /* Axe cleave: if axe equipped, hit up to 2 more adjacent enemies */
+    {
+        uint8_t ck;
+        for (ck = 0u; ck < INVENTORY_MAX_SLOTS; ck++) {
+            if (inventory_kind[ck] == ITEM_KIND_AXE && inventory_equipped[ck]) {
+                uint8_t ci, hits = 0u;
+                for (ci = 0u; ci < num_enemies && hits < 2u; ci++) {
+                    uint8_t dx, dy;
+                    if (!enemy_alive[ci] || ci == ei) continue;
+                    dx = (enemy_x[ci] > g_player_x) ? (uint8_t)(enemy_x[ci] - g_player_x) : (uint8_t)(g_player_x - enemy_x[ci]);
+                    dy = (enemy_y[ci] > g_player_y) ? (uint8_t)(enemy_y[ci] - g_player_y) : (uint8_t)(g_player_y - enemy_y[ci]);
+                    if (dx > 1u || dy > 1u) continue;
+                    if (combat_damage_enemy(ci, combat_crit_roll(player_damage), 0u)) {
+                        enemy_try_drop_item(enemy_x[ci], enemy_y[ci]);
+                        cleave_killed = 1u;
+                    }
+                    hits++;
+                }
+                break;
+            }
+        }
+    }
+    /* Mace stun: if mace equipped and the struck enemy survived, chance to stun it.
+       (Axe cleave above never targets ei, so enemy_alive[ei] alone reflects whether
+       the primary attack killed it — cleave kills land on other enemies.) */
+    if (enemy_alive[ei]) {
+        uint8_t ck;
+        for (ck = 0u; ck < INVENTORY_MAX_SLOTS; ck++) {
+            if (inventory_kind[ck] == ITEM_KIND_MACE && inventory_equipped[ck]) {
+                if ((uint8_t)(DIV_REG % 100u) < MACE_STUN_CHANCE_PCT)
+                    enemy_stun[ei] = MACE_STUN_TURNS;
+                break;
+            }
+        }
+    }
+    return cleave_killed;
+}
+
 BANKREF(resolve_enemy_hits_and_animate)
 uint8_t resolve_enemy_hits_and_animate(uint8_t px, uint8_t py) BANKED {
     uint8_t perf_stamp = perf_stamp_now();

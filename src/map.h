@@ -24,6 +24,7 @@ extern uint8_t brazier_count; // number of active floor light sources
 extern uint8_t brazier_x[MAX_BRAZIERS];
 extern uint8_t brazier_y[MAX_BRAZIERS];
 extern uint8_t brazier_type[MAX_BRAZIERS]; // 0=brazier C3/C4, 1=torch C1/C2
+extern uint16_t floor_visual_seed; // blank-scatter hash seed (floor_ground_init); read by the bank-22 strip classifier
 
 uint8_t tile_at(uint8_t x, uint8_t y) BANKED; // TILE_WALL / TILE_FLOOR / TILE_PIT from bitsets
 uint8_t is_walkable(uint8_t x, uint8_t y) BANKED; // floor_bits only — BANKED: callers outside bank 2 (e.g. scoundrel_fox)
@@ -59,6 +60,10 @@ void    overworld_water_clear_all(void);        // zero the whole mask (start of
 uint8_t road_bit(uint16_t tile_idx); // 1 = road cell, 0 = not
 void    road_set(uint16_t tile_idx); // mark a road cell during generation
 void    road_clear_all(void);        // zero the whole road mask (start of hub gen)
+
+// Raw byte read from CGB WRAM bank 2 (0xD000+off) — batch primitive for the overworld strip
+// classifier: one SVBK round-trip per 8 mask bits. Water mask bytes at 0x480+, road at 0x900+.
+uint8_t wram2_read_byte(uint16_t off);
 
 uint8_t nearest_nav_node(uint8_t x, uint8_t y); // for mapping entity tiles to graph
 void    nav_fill_hops_from(uint8_t player_node, uint8_t *hop_out); // single BFS; hop_out[n] = first hop from n toward player_node

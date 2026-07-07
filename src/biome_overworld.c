@@ -305,6 +305,46 @@ uint8_t overworld_entrance_id_at(uint8_t x, uint8_t y) BANKED {
     return 255u;
 }
 
+// Ordinal (0..2) of the OW_FEAT_TOWN whose door trigger cell is (x,y) — the town id. Placement
+// order is one town per region (grass, desert, snow), so ordinals are seed-stable and match the
+// TOWN signpost numbering. 255 if no town door sits there.
+BANKREF(overworld_town_id_at)
+uint8_t overworld_town_id_at(uint8_t x, uint8_t y) BANKED {
+    uint8_t i, ord = 0u;
+    for (i = 0u; i < ow_feature_count; i++) {
+        if (ow_features[i].type != OW_FEAT_TOWN) continue;
+        if ((uint8_t)(ow_features[i].x + ow_prefab_defs[OW_FEAT_TOWN].ent_dx) == x
+                && (uint8_t)(ow_features[i].y + ow_prefab_defs[OW_FEAT_TOWN].ent_dy) == y)
+            return ord;
+        ord++;
+    }
+    return 255u;
+}
+
+// Walked onto (x,y): handle any 1×1 step feature there — signpost/NPC prints its line, a town
+// fountain restores full HP. One banked call replaces the old signpost aux_at+read pair.
+BANKREF(overworld_step_feature)
+void overworld_step_feature(uint8_t x, uint8_t y) BANKED {
+    uint8_t i;
+    for (i = 0u; i < ow_feature_count; i++) {
+        if (ow_features[i].x != x || ow_features[i].y != y) continue;
+        if (ow_features[i].type == OW_FEAT_SIGNPOST) {
+            overworld_signpost_read(ow_features[i].aux);
+            return;
+        }
+        if (ow_features[i].type == OW_FEAT_FOUNTAIN) {
+            char buf[8]; // RAM copy — bank-22 ROM literal would garble in the bank-5 log push
+            const char *s = "RESTED";
+            uint8_t k;
+            for (k = 0u; s[k]; k++) buf[k] = s[k];
+            buf[k] = 0;
+            player_hp = player_hp_max;
+            ui_combat_log_push(buf);
+            return;
+        }
+    }
+}
+
 // 1 if (x,y) lands inside any placed feature's footprint (town walls, waypoints, signs, mouths).
 static uint8_t ow_cell_in_footprint(uint8_t x, uint8_t y) {
     uint8_t i;
@@ -317,18 +357,25 @@ static uint8_t ow_cell_in_footprint(uint8_t x, uint8_t y) {
     return 0u;
 }
 
-// Returning from dungeon k: override the hub spawn to an open land cell ringing entrance k,
-// so the player pops out beside the cave mouth they used instead of the continent centre.
-// Called by level_generate_and_spawn after generate_level (features are already placed).
+// Returning from dungeon k (or town, id 0x80|k): override the hub spawn to an open land cell
+// ringing the feature's footprint, so the player pops out beside the mouth/door they used instead
+// of the continent centre. Called by level_generate_and_spawn after generate_level.
 BANKREF(overworld_place_player_near_entrance)
 void overworld_place_player_near_entrance(uint8_t id) BANKED {
     uint8_t i, ord = 0u, ex = 0u, ey = 0u, found = 0u;
+    uint8_t want_type = (id & 0x80u) ? OW_FEAT_TOWN : OW_FEAT_ENTRANCE;
+    uint8_t want_ord  = (uint8_t)(id & 0x7Fu);
     for (i = 0u; i < ow_feature_count; i++) {
-        if (ow_features[i].type != OW_FEAT_ENTRANCE) continue;
-        if (ord == id) { ex = ow_features[i].x; ey = ow_features[i].y; found = 1u; break; }
+        if (ow_features[i].type != want_type) continue;
+        if (ord == want_ord) { // towns are 3×3 — ring-scan from the door cell so radius 1 clears the walls
+            ex = (uint8_t)(ow_features[i].x + ow_prefab_defs[want_type].ent_dx);
+            ey = (uint8_t)(ow_features[i].y + ow_prefab_defs[want_type].ent_dy);
+            found = 1u;
+            break;
+        }
         ord++;
     }
-    if (!found) return; // degenerate seed placed fewer entrances — keep the default spawn
+    if (!found) return; // degenerate seed placed fewer features — keep the default spawn
     {
         uint8_t rad;
         for (rad = 1u; rad <= 4u; rad++) {
@@ -386,6 +433,11 @@ void overworld_signpost_read(uint8_t aux) BANKED {
         i = 11u;
         if (dungeon_complete_mask & (uint16_t)((uint16_t)1u << num)) buf[i++] = '*';
         buf[i] = 0;
+    } else if (kind == SIGN_KIND_NPC) { // town villager — canned line by index
+        static const char *const npc_lines[4] = { "WELCOME, HERO", "REST AT THE WELL", "SAFE INSIDE WALLS", "FINE DAY, NO?" };
+        const char *s = npc_lines[num & 3u];
+        for (i = 0u; s[i] && i < 15u; i++) buf[i] = s[i];
+        buf[i] = 0;
     } else { // SIGN_KIND_BOSS
         const char *s = "FINAL DUNGEON"; for (i = 0u; s[i]; i++) buf[i] = s[i]; buf[i] = 0;
     }
@@ -425,6 +477,28 @@ BANKREF(overworld_cell_render)
 uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
                               uint8_t *pal_out, uint8_t *region_out) BANKED {
     uint8_t region;
+    if (floor_biome == BIOME_TOWN) {
+        // Town interior: only the feature overlay resolves here (NPC / fountain / signpost);
+        // walls and floor return 0 so classify_cell's normal dungeon renderer draws them.
+        // All three tiles survive the title VRAM stomp: 161 is re-uploaded every floor by
+        // biome_load_active, the shrine is main-sheet art, 205 is a permanent boot copy.
+        uint8_t fi;
+        *region_out = OW_REGION_GRASS;
+        (void)base_tile;
+        for (fi = 0u; fi < ow_feature_count; fi++) {
+            if (ow_features[fi].x != mx || ow_features[fi].y != my) continue; // town features are all 1×1
+            if (ow_features[fi].type == OW_FEAT_FOUNTAIN) {
+                *pal_out = PAL_LADDER; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_SHRINE_ON_1);
+            }
+            if (ow_features[fi].type == OW_FEAT_SIGNPOST) {
+                if ((uint8_t)(ow_features[fi].aux & 0xF0u) == SIGN_KIND_NPC) {
+                    *pal_out = PAL_LADDER; return TILE_PLAYER_HEAD_VRAM; // villager: hero-head art, torch tint
+                }
+                *pal_out = PAL_FLOOR_BG; return PREFAB_VRAM_SIGNPOST;
+            }
+        }
+        return 0u;
+    }
     ow_prepare();
     if (ow_snow(mx, my))        region = OW_REGION_SNOW;   // NW corner takes priority (regions don't overlap)
     else if (ow_desert(mx, my)) region = OW_REGION_DESERT; // SE corner
@@ -472,6 +546,228 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
         if (road_bit(TILE_IDX(mx, my))) *region_out = OW_REGION_DESERT; // road → open sand look (no new art)
     }
     return 0u; // interior ground (or a visible pit/other tile) — caller draws via its own path
+}
+
+// ── Batched strip classification ─────────────────────────────────────────────
+// One BANKED entry classifies a whole camera strip (14/21 cells) instead of render.c paying a
+// bank-2→22 trampoline per cell. Water/road mask bits are fetched as BYTES via wram2_read_byte
+// (one SVBK round-trip per 8 bits) instead of 4-5 single-bit SVBK switches per floor cell.
+// Behavior is branch-for-branch identical to classify_cell + overworld_cell_render for hub cells;
+// the hub-only shortcuts (no corpses, no stairs-up glyph on floor 0) hold because the hub never
+// spawns enemies and floor_num==0 skips the spawn-cell art in floor_tile_sheet_offset.
+
+#define OW_MASK_WATER 0x480u          // wram2_read_byte offsets (lighting.c mask maps)
+#define OW_MASK_ROAD  0x900u
+#define OW_ROW_BYTES  ((uint8_t)(MAP_W >> 3))
+
+// Bit test via mask table, NOT variable shifts: SDCC 4.x miscompiled the dense
+// `(arr[i] >> (x & 7)) & 1` idiom here (it shifted the shift count and never loaded the byte —
+// found by the in-ROM parity sweep). The table is also faster on SM83 (no shift loop).
+static const uint8_t ow_bitmask[8] = { 1u, 2u, 4u, 8u, 16u, 32u, 64u, 128u };
+
+#define OWB_C    0x01u // packed neighbour water bits + road bit for one cell
+#define OWB_N    0x02u
+#define OWB_S    0x04u
+#define OWB_E    0x08u
+#define OWB_W    0x10u
+#define OWB_ROAD 0x20u
+
+// Features whose footprint intersects the current strip (pre-filtered once per strip so the
+// per-cell overlay test scans ≤ a handful instead of all ow_features). fl_ord preserves the
+// entrance ordinal counting of overworld_cell_render (= dungeon id for the SEALED brick-up).
+#define OW_FL_MAX 8u
+static uint8_t fl_x[OW_FL_MAX], fl_y[OW_FL_MAX], fl_w[OW_FL_MAX], fl_h[OW_FL_MAX];
+static uint8_t fl_type[OW_FL_MAX], fl_ord[OW_FL_MAX];
+static uint8_t fl_n;
+
+static void ow_filter_features(uint8_t x0, uint8_t y0, uint8_t x1, uint8_t y1) { // inclusive bbox
+    uint8_t i, ent_ord = 0u;
+    fl_n = 0u;
+    for (i = 0u; i < ow_feature_count; i++) {
+        const OwPrefabDef *d = &ow_prefab_defs[ow_features[i].type];
+        uint8_t fx = ow_features[i].x, fy = ow_features[i].y;
+        if (fx <= x1 && (uint8_t)(fx + d->w) > x0 && fy <= y1 && (uint8_t)(fy + d->h) > y0
+                && fl_n < OW_FL_MAX) {
+            fl_x[fl_n] = fx; fl_y[fl_n] = fy; fl_w[fl_n] = d->w; fl_h[fl_n] = d->h;
+            fl_type[fl_n] = ow_features[i].type; fl_ord[fl_n] = ent_ord;
+            fl_n++;
+        }
+        if (ow_features[i].type == OW_FEAT_ENTRANCE) ent_ord++;
+    }
+}
+
+static uint8_t owb_attr; // attr side-channel of ow_cell_batch (avoids a 5th call argument)
+
+// Classify one hub cell from pre-fetched mask bits. Mirrors overworld_cell_render + the hub arms of
+// classify_cell / floor_tile_sheet_offset, with the region tests reordered AFTER the water/coast/road
+// early-outs (region only affects the output of cells that reach the ground/tree branches, so ocean,
+// coast and road cells now skip the two ow_near_water-calling region tests entirely).
+static uint8_t ow_cell_batch(uint8_t mx, uint8_t my, uint8_t t, uint8_t wb) {
+    uint8_t i;
+    for (i = 0u; i < fl_n; i++) { // prefab overlay first, same order as overworld_cell_render
+        if (mx >= fl_x[i] && mx < (uint8_t)(fl_x[i] + fl_w[i])
+                && my >= fl_y[i] && my < (uint8_t)(fl_y[i] + fl_h[i])) {
+            uint8_t v = ow_prefab_vram(fl_type[i], (uint8_t)(mx - fl_x[i]), (uint8_t)(my - fl_y[i]),
+                                       fl_w[i], fl_h[i]);
+            if (fl_type[i] == OW_FEAT_ENTRANCE
+                    && (dungeon_complete_mask & (uint16_t)((uint16_t)1u << fl_ord[i])))
+                v = PREFAB_VRAM_TOWN_CORNER; // completed dungeon: bricked-up mouth
+            if (v) { owb_attr = PAL_FLOOR_BG; return v; }
+            break; // town courtyard centre → fall through to terrain
+        }
+    }
+    if (t == TILE_WALL) {
+        if (wb & OWB_C) { owb_attr = PAL_PILLAR_BG; return TILE_OVERWORLD_WATER_VRAM; } // open sea
+        if (ow_snow(mx, my)) { owb_attr = PAL_WALL_BG; return (mx & 1u) ? PREFAB_VRAM_MTN_R : PREFAB_VRAM_MTN_L; }
+        if (ow_desert(mx, my)) { owb_attr = PAL_OW_ACCENT; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_COLUMN_6); }
+        owb_attr = PAL_OW_FOLIAGE; return TILE_OVERWORLD_WALL_VRAM; // grassland pine
+    }
+    if (t == TILE_PIT) { // hub never places pits (map_gen), but keep classify_cell's fallback exact
+        owb_attr = PAL_LADDER; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_LADDER_DOWN);
+    }
+    { // TILE_FLOOR: coast stroke from the cached neighbour bits (same branch chain as ow_coast)
+        uint8_t coast = 0u;
+        uint8_t wn = (uint8_t)(wb & OWB_N), ws = (uint8_t)(wb & OWB_S);
+        uint8_t we = (uint8_t)(wb & OWB_E), ww = (uint8_t)(wb & OWB_W);
+        if      (wn && we) coast = COAST_VRAM_NE;
+        else if (wn && ww) coast = COAST_VRAM_NW;
+        else if (ws && we) coast = COAST_VRAM_SE;
+        else if (ws && ww) coast = COAST_VRAM_SW;
+        else if (wn) coast = (mx & 1u) ? COAST_VRAM_NA : COAST_VRAM_N;
+        else if (ws) coast = (mx & 1u) ? COAST_VRAM_SA : COAST_VRAM_S;
+        else if (we) coast = (my & 1u) ? COAST_VRAM_SE : COAST_VRAM_NE;
+        else if (ww) coast = (my & 1u) ? COAST_VRAM_SW : COAST_VRAM_NW;
+        if (coast) { owb_attr = PAL_PILLAR_BG; return coast; }
+    }
+    {
+        uint8_t snow = 0u, desert = 0u;
+        if (wb & OWB_ROAD) desert = 1u; // road → open sand look (overrides region)
+        else if (ow_snow(mx, my)) snow = 1u;
+        else if (ow_desert(mx, my)) desert = 1u;
+        for (i = 0u; i < brazier_count; i++) // hub target_count is 0 today; kept for parity
+            if (brazier_x[i] == mx && brazier_y[i] == my) {
+                uint8_t off = (brazier_type[i] == 0u)
+                    ? ((((uint8_t)(DIV_REG >> 3) + mx + my) & 1u) ? TILE_LIGHT_4 : TILE_LIGHT_3)
+                    : ((((uint8_t)(DIV_REG >> 3) + mx + my) & 1u) ? TILE_LIGHT_2 : TILE_LIGHT_1);
+                owb_attr = PAL_LADDER; // (off & 15) == 2 for all four light tiles
+                return (uint8_t)(TILESET_VRAM_OFFSET + off);
+            }
+        for (i = 0u; i < MAX_GROUND_ITEMS; i++)
+            if (ground_item_kind[i] != ITEM_KIND_NONE && ground_item_x[i] == mx && ground_item_y[i] == my) {
+                owb_attr = PAL_ITEM_GOLD_BG;
+                return (uint8_t)(TILESET_VRAM_OFFSET + TILE_ITEM_4);
+            }
+        { // blank-scatter hash — identical to map.c floor_tile_is_blank
+            uint16_t h = (uint16_t)mx * 2971u ^ (uint16_t)my * 1619u ^ floor_visual_seed;
+            h ^= (uint16_t)(h >> 5);
+            if ((uint8_t)((h & 7u) == 0u)) {
+                owb_attr = snow ? PAL_WALL_BG : (desert ? PAL_OW_ACCENT : 0u); // blank snow/sand vs green field
+                return 0u;
+            }
+        }
+        { // E3/E4 ground deco pick — identical to map.c floor_tile_sheet_offset (floor_num==0 → run_seed)
+            uint16_t h = (uint16_t)(run_seed ^ (uint16_t)((uint16_t)floor_num * 131u));
+            uint8_t mix;
+            h ^= (uint16_t)((uint16_t)mx * 911u ^ (uint16_t)my * 357u);
+            mix = (uint8_t)h ^ (uint8_t)(h >> 8);
+            owb_attr = snow ? PAL_WALL_BG : (desert ? PAL_OW_ACCENT : PAL_FLOOR_BG);
+            return (uint8_t)(TILESET_VRAM_OFFSET + ((mix & 1u) ? TILE_GROUND_D : TILE_GROUND_C));
+        }
+    }
+}
+
+static uint8_t owb_w3[GRID_H + 3u]; // col strip: per-row water bits (bit0=W col, bit1=mid, bit2=E col)
+static uint8_t owb_rd[GRID_H + 1u]; // col strip: per-row road bit of the mid column
+static uint8_t owb_wrow[3][4];      // row strip: 3 mask rows × byte span covering x0-1..x0+21
+static uint8_t owb_rrow[4];         // row strip: road bytes of the strip's own row
+
+BANKREF(overworld_classify_col_strip)
+void overworld_classify_col_strip(uint8_t mx, uint8_t cam_ty) BANKED {
+    const uint8_t n = (uint8_t)(GRID_H + 1u);
+    uint8_t xl = (mx > 0u) ? (uint8_t)(mx - 1u) : 0u;
+    uint8_t xr = (mx < (uint8_t)(MAP_W - 1u)) ? (uint8_t)(mx + 1u) : (uint8_t)(MAP_W - 1u);
+    uint8_t bl = (uint8_t)(xl >> 3), br = (uint8_t)(xr >> 3), bm = (uint8_t)(mx >> 3);
+    uint8_t r;
+    ow_prepare();
+    ow_filter_features(mx, cam_ty, mx, (uint8_t)(cam_ty + n - 1u));
+    for (r = 0u; r < (uint8_t)(n + 2u); r++) { // world rows cam_ty-1 .. cam_ty+n (N/S halo), edge-clamped
+        uint8_t y = (cam_ty == 0u && r == 0u) ? 0u : (uint8_t)(cam_ty - 1u + r);
+        uint16_t rowoff;
+        uint8_t b0, b1, w;
+        if (y > (uint8_t)(MAP_H - 1u)) y = (uint8_t)(MAP_H - 1u); // halo rows off-map: value unused (border is ocean)
+        rowoff = (uint16_t)y * OW_ROW_BYTES;
+        b0 = wram2_read_byte((uint16_t)(OW_MASK_WATER + rowoff + bl));
+        b1 = (br != bl) ? wram2_read_byte((uint16_t)(OW_MASK_WATER + rowoff + br)) : b0;
+        w = 0u;
+        if (b0 & ow_bitmask[xl & 7u])                     w |= 1u;
+        if (((bm == bl) ? b0 : b1) & ow_bitmask[mx & 7u]) w |= 2u;
+        if (b1 & ow_bitmask[xr & 7u])                     w |= 4u;
+        owb_w3[r] = w;
+    }
+    for (r = 0u; r < n; r++) {
+        uint8_t y = (uint8_t)(cam_ty + r);
+        owb_rd[r] = (uint8_t)(wram2_read_byte((uint16_t)(OW_MASK_ROAD + (uint16_t)y * OW_ROW_BYTES + bm))
+                              & ow_bitmask[mx & 7u]);
+    }
+    for (r = 0u; r < n; r++) {
+        uint8_t my = (uint8_t)(cam_ty + r);
+        uint16_t idx = TILE_IDX(mx, my);
+        uint8_t t = !BIT_GET(floor_bits, idx) ? TILE_WALL
+                  : (BIT_GET(pit_bits, idx) ? TILE_PIT : TILE_FLOOR);
+        uint8_t mid = owb_w3[r + 1u];
+        uint8_t wb = 0u;
+        if (mid & 2u)            wb |= OWB_C;
+        if (owb_w3[r] & 2u)      wb |= OWB_N;
+        if (owb_w3[r + 2u] & 2u) wb |= OWB_S;
+        if (mid & 4u)            wb |= OWB_E;
+        if (mid & 1u)            wb |= OWB_W;
+        if (owb_rd[r])           wb |= OWB_ROAD;
+        render_strip_tiles[r] = ow_cell_batch(mx, my, t, wb);
+        render_strip_attrs[r] = owb_attr;
+    }
+}
+
+BANKREF(overworld_classify_row_strip)
+void overworld_classify_row_strip(uint8_t my, uint8_t cam_tx) BANKED {
+    const uint8_t n = (uint8_t)(GRID_W + 1u);
+    uint8_t x0 = (cam_tx > 0u) ? (uint8_t)(cam_tx - 1u) : 0u;
+    uint8_t x1 = (uint8_t)(cam_tx + n); // E halo of the last cell
+    uint8_t base, nb, r, b;
+    if (x1 > (uint8_t)(MAP_W - 1u)) x1 = (uint8_t)(MAP_W - 1u);
+    base = (uint8_t)(x0 >> 3);
+    nb   = (uint8_t)((uint8_t)(x1 >> 3) - base + 1u); // ≤ 4 (23-column span)
+    ow_prepare();
+    ow_filter_features(cam_tx, my, (uint8_t)(cam_tx + n - 1u), my);
+    for (r = 0u; r < 3u; r++) { // mask rows my-1, my, my+1, edge-clamped
+        uint8_t y = (my == 0u && r == 0u) ? 0u : (uint8_t)(my - 1u + r);
+        uint16_t off;
+        if (y > (uint8_t)(MAP_H - 1u)) y = (uint8_t)(MAP_H - 1u);
+        off = (uint16_t)(OW_MASK_WATER + (uint16_t)y * OW_ROW_BYTES + base);
+        for (b = 0u; b < nb; b++) owb_wrow[r][b] = wram2_read_byte((uint16_t)(off + b));
+    }
+    {
+        uint16_t off = (uint16_t)(OW_MASK_ROAD + (uint16_t)my * OW_ROW_BYTES + base);
+        for (b = 0u; b < nb; b++) owb_rrow[b] = wram2_read_byte((uint16_t)(off + b));
+    }
+    for (r = 0u; r < n; r++) {
+        uint8_t mx = (uint8_t)(cam_tx + r);
+        uint8_t xw = (mx > 0u) ? (uint8_t)(mx - 1u) : 0u;
+        uint8_t xe = (mx < (uint8_t)(MAP_W - 1u)) ? (uint8_t)(mx + 1u) : mx;
+        uint8_t bm = (uint8_t)((uint8_t)(mx >> 3) - base);
+        uint16_t idx = TILE_IDX(mx, my);
+        uint8_t t = !BIT_GET(floor_bits, idx) ? TILE_WALL
+                  : (BIT_GET(pit_bits, idx) ? TILE_PIT : TILE_FLOOR);
+        uint8_t mkc = ow_bitmask[mx & 7u];
+        uint8_t wb = 0u;
+        if (owb_wrow[1][bm] & mkc) wb |= OWB_C;
+        if (owb_wrow[0][bm] & mkc) wb |= OWB_N;
+        if (owb_wrow[2][bm] & mkc) wb |= OWB_S;
+        if (owb_wrow[1][(uint8_t)((uint8_t)(xe >> 3) - base)] & ow_bitmask[xe & 7u]) wb |= OWB_E;
+        if (owb_wrow[1][(uint8_t)((uint8_t)(xw >> 3) - base)] & ow_bitmask[xw & 7u]) wb |= OWB_W;
+        if (owb_rrow[bm] & mkc) wb |= OWB_ROAD;
+        render_strip_tiles[r] = ow_cell_batch(mx, my, t, wb);
+        render_strip_attrs[r] = owb_attr;
+    }
 }
 
 // Strip blit helpers, placed in bank 22 to relieve the near-full render bank 2 (declared in render.h).

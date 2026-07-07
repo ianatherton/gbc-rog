@@ -13,7 +13,8 @@
 #define BIOME_OVERWORLD 4u // top-level hub (floor 0); never appears in the random rotation
 #define BIOME_MINIBOSS 5u // RETIRED as a floor biome — miniboss is FLOORKIND_MINIBOSS now (dungeon.h); id kept for table stability
 #define BIOME_BOSS2   6u // Sphinx roster/palette bank row — loaded via biome_apply_floor_kind on boss floors, never a floor biome
-#define BIOME_COUNT   7u
+#define BIOME_TOWN    7u // town interior (floors 46+, bank 29): safe zone with NPCs + heal fountain
+#define BIOME_COUNT   8u
 #define BIOME_RANDOM_COUNT 3u // per-dungeon biome picks from dungeon/crypt/cavern only
 
 // HOME-resident roster cache; populated by biome_load_active() at floor-gen time.
@@ -44,6 +45,7 @@ void biome_cavern_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_cou
 void biome_boss_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 void biome_overworld_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 void biome_boss2_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
+void biome_town_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 
 typedef void (*BiomeLoadPalettesFn)(void);
 void biome_boss_load_palettes(void); // overrides OCP4 with green+tan ramp for gorgon body/feet
@@ -98,6 +100,26 @@ uint8_t overworld_is_snow(uint8_t mx, uint8_t my) BANKED;    // hub NW snow regi
 BANKREF_EXTERN(overworld_cell_render)
 uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
                               uint8_t *pal_out, uint8_t *region_out) BANKED;
+
+// Batched hub strip classifiers: fill render_strip_tiles/attrs for one camera column/row in a single
+// banked entry (vs one overworld_cell_render trampoline per cell), fetching water/road mask bits as
+// bytes (wram2_read_byte) — one SVBK switch per 8 bits instead of 4-5 per floor cell. Output is
+// identical to looping classify_cell over the strip on the hub.
+BANKREF_EXTERN(overworld_classify_col_strip)
+BANKREF_EXTERN(overworld_classify_row_strip)
+void overworld_classify_col_strip(uint8_t mx, uint8_t cam_ty) BANKED;
+void overworld_classify_row_strip(uint8_t my, uint8_t cam_tx) BANKED;
+
+// Towns (floors TOWN_FLOOR_BASE+, biome_town.c bank 29). town_generate_interior carves the 20×20
+// interior (called by generate_level, bank 10). overworld_town_id_at = OW_FEAT_TOWN ordinal at a
+// hub door cell. overworld_step_feature handles walking onto a signpost/NPC (label/dialogue) or a
+// town fountain (full heal) — replaces the old two-call signpost hook in state_gameplay.
+BANKREF_EXTERN(town_generate_interior)
+BANKREF_EXTERN(overworld_town_id_at)
+BANKREF_EXTERN(overworld_step_feature)
+void    town_generate_interior(uint8_t town_id) BANKED;
+uint8_t overworld_town_id_at(uint8_t x, uint8_t y) BANKED;
+void    overworld_step_feature(uint8_t x, uint8_t y) BANKED;
 
 // Open-sea animation (bank 22): the whole sea shares one VRAM tile, so rewriting that tile's 16 pixel bytes
 // each tick scrolls EVERY water cell at once — O(1), no per-cell map writes. water_anim_tick() runs per

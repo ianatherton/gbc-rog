@@ -12,12 +12,12 @@ SRAM (battery RAM) is currently unused — free for saves later.
 
 | Bank | Used | % | Contents |
 |------|------|----|----------|
-| 0 (fixed) | ~12,270 | ~77% | main loop, ability_dispatch, ally, biome dispatch + `enemy_defs` HOME cache, enemy_extras, lcd, lighting (incl. SVBK fog accessors), music driver + SFX, perf, seed_entropy, targeting, tileset_io, title_logo, ui_loading_isr, wall_palettes, SDCC runtime. ~3.6 KB free — keep HOME lean |
+| 0 (fixed) | ~15,900 of 16,368 usable | ~97% | main loop, ability_dispatch, ally, biome dispatch + `enemy_defs` HOME cache, enemy_extras, lcd, lighting (incl. SVBK fog/water/road accessors + `wram2_read_byte` batch reader), music driver + SFX, perf, seed_entropy, targeting, tileset_io, title_logo, ui_loading_isr, wall_palettes, SDCC runtime. **~450 B free (2026-07-06) — keep HOME lean** |
 | 1 | 4,360 | 27% | tileset (png2asset output) |
-| 2 | 12,800 | 78% | gameplay kernel: state_gameplay, map, render, camera, enemy |
+| 2 | 16,189 | 99% | gameplay kernel: state_gameplay (incl. zone-confirm latch), map, render, camera, enemy. **~195 B free — chronically full; evict before adding (axe/mace extras went to bank 19 2026-07-06)** |
 | 3 | 6,077 | 37% | all 9 UI states (title → game_over) + class_palettes |
 | 4 | 2,971 | 18% | bwv1043 music data |
-| 5 | 9,489 | 58% | ui.c |
+| 5 | 13,000 | 79% | ui.c (incl. `ui_confirm_prompt_push` zone-confirm text) |
 | 6 | 122 | 1% | abilities_knight |
 | 7 | 89 | 1% | abilities_scoundrel |
 | 8 | 617 | 4% | abilities_witch |
@@ -31,13 +31,14 @@ SRAM (battery RAM) is currently unused — free for saves later.
 | 16 | 357 | 2% | scroll_root, debuff_icon, bow_shoot |
 | 17 | 10,184 | 62% | entity_sprites, scoundrel_fox |
 | 18 | 5,460 | 33% | bwv527 music data (moved out of bank 5) |
-| 19 | 1,037 | 6% | combat (moved out of bank 2; per-turn, far-call boundary is cheap) |
+| 19 | 1,958 | 12% | combat (moved out of bank 2; per-turn, far-call boundary is cheap) + `combat_player_melee_extras` (axe cleave / mace stun, evicted from bank 2) |
 | 20 | — | — | equipment (`EquipStatDef` table, `items_equip_apply`, `items_equip_slot`, `equipped_kind_in_slot`) |
 | 21 | 132 | 1% | biome_boss |
-| 22 | ~140 | 1% | biome_overworld (top-level hub, floor 0; no enemies/items, dark-green field, c10 walls) |
+| 22 | 9,650 | 59% | biome_overworld (top-level hub, floor 0; no enemies/items) + render_palettes + batched strip classifiers (`overworld_classify_col/row_strip` — one banked entry per camera strip, mask bytes via `wram2_read_byte`) + town render overlay/step features |
 | 24 | ~600 | 4% | biome_boss2 (Sphinx roster/art; overlaid onto any dungeon's boss floor by biome_apply_floor_kind) + bosses (png2asset sphinx sheet, res/bosses.png). 10-tile sprite uploaded to VRAM scratch + re-uploaded per frame by sphinx_anim_tick for a 2-frame leg cycle + faster wingbeat |
 | 28 | ~460 | 3% | dungeon_floors (miniboss elite art: runtime 2x pixel-doubler of elite_base_type's sprite → quadrant VRAM slots; floor-kind scheme in src/dungeon.h) |
-| 23, 25–27, 29–31 | 0 | 0% | empty — ~145 KB free (27 freed 2026-07: biome_miniboss + enemies_miniboss retired — miniboss/boss are floor kinds now, one biome per dungeon) |
+| 29 | 1,341 | 8% | biome_town (town interiors, floors 46–48 = `TOWN_FLOOR_BASE`+0..2: 20×20 safe zone, `town_generate_interior`, NPCs + heal fountain; enter/exit via the zone-confirm gate) |
+| 23, 25–27, 30–31 | 0 | 0% | empty — ~130 KB free (27 freed 2026-07: biome_miniboss + enemies_miniboss retired — miniboss/boss are floor kinds now, one biome per dungeon) |
 
 Total ROM used ≈ 76 KB of 512 KB (~15%). ROM is not the constraint. If it ever is,
 MBC5 goes to 8 MB: bump `-Wl-yo32` in the Makefile (64/128/…), nothing else changes.

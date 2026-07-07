@@ -37,6 +37,20 @@ BANKREF_EXTERN(entity_sprites_set_player_facing)
 
 static uint8_t turn_snap_ex[MAX_ENEMIES], turn_snap_ey[MAX_ENEMIES], turn_snap_ea[MAX_ENEMIES]; // enemy pos before AI — file static so SDCC does not stack three 28-byte arrays in one tick()
 
+// Zone-confirm latch (CONFIRM_* in defs.h): stepping toward a transition tile arms this + prints a
+// prompt instead of zoning; the next A rising-edge fires the stored transition. Any move to a
+// different target cell cancels silently. The player never steps onto the tile (matches the old
+// pre-commit behavior), and no enemy turn runs while armed, so there is no double-move risk.
+static uint8_t confirm_kind, confirm_aux, confirm_tx, confirm_ty;
+
+static void confirm_arm(uint8_t kind, uint8_t aux, uint8_t tx, uint8_t ty) {
+    if (confirm_kind == kind && confirm_tx == tx && confirm_ty == ty) return; // already armed — don't respam the prompt
+    confirm_kind = kind; confirm_aux = aux; confirm_tx = tx; confirm_ty = ty;
+    ui_confirm_prompt_push(kind, aux);
+    wait_vbl_done();
+    draw_gameplay_overlays_profiled(g_player_x, g_player_y); // render the prompt line now — arming consumes no turn, so nothing else redraws the HUD
+}
+
 static void tick_turn_cooldowns(void) {
     if (witch_shot_cooldown_turns > 0u) witch_shot_cooldown_turns--;
     if (zerker_whirlwind_cooldown_turns > 0u) zerker_whirlwind_cooldown_turns--;
@@ -138,6 +152,7 @@ static void push_selected_belt_description(void) {
 
 BANKREF(state_gameplay_enter)
 void state_gameplay_enter(void) BANKED {
+    confirm_kind = CONFIRM_NONE;
     if (gameplay_soft_reenter) {
         gameplay_soft_reenter = 0u;
         g_prev_j = 0;
@@ -321,6 +336,32 @@ void state_gameplay_tick(void) BANKED {
         return;
     }
 
+    if (confirm_kind != CONFIRM_NONE && confirm_kind != CONFIRM_SEALED
+            && (j & J_A) && !(g_prev_j & J_A)) { // fire the armed zone transition
+        uint8_t ck = confirm_kind;
+        confirm_kind = CONFIRM_NONE;
+        if (ck != CONFIRM_UP && player_hp < player_hp_max) player_hp++; // parity: old pit/entrance branches healed 1
+        wait_vbl_done();
+        draw_cell(g_player_x, g_player_y);
+        if (ck == CONFIRM_ENTRANCE) {
+            pending_port_floor = DUNGEON_GUARD_FLOOR(confirm_aux);
+            pending_transition = TRANS_FLOOR_PORT;
+        } else if (ck == CONFIRM_TOWN) {
+            pending_port_floor = (uint8_t)(TOWN_FLOOR_BASE + confirm_aux);
+            pending_transition = TRANS_FLOOR_PORT;
+        } else if (ck == CONFIRM_UP) {
+            pending_transition = TRANS_FLOOR_UP;
+        } else if (ck == CONFIRM_BOSS_EXIT) {
+            pending_transition = TRANS_DUNGEON_EXIT;
+        } else { // CONFIRM_PIT
+            pending_transition = TRANS_FLOOR_PIT;
+        }
+        next_state = STATE_TRANSITION;
+        g_prev_j   = j;
+        wait_vbl_done();
+        return;
+    }
+
     if (j & J_LEFT)  { nx = g_player_x > 0       ? (uint8_t)(g_player_x-1) : g_player_x; entity_sprites_set_player_facing(-1); }
     if (j & J_RIGHT) { nx = g_player_x < active_map_w-1 ? (uint8_t)(g_player_x+1) : g_player_x; entity_sprites_set_player_facing(1); }
     if (j & J_UP)    ny = g_player_y > 0         ? (uint8_t)(g_player_y-1) : g_player_y;
@@ -339,46 +380,14 @@ void state_gameplay_tick(void) BANKED {
         uint8_t result = 0;
         uint8_t consumed_turn = 0u;
 
+        if (confirm_kind != CONFIRM_NONE && (nx != confirm_tx || ny != confirm_ty))
+            confirm_kind = CONFIRM_NONE; // walked/attacked elsewhere — silent cancel
+
         if (ei != ENEMY_DEAD) {
             consumed_turn = 1u;
             {
                 uint8_t killed = combat_player_attacks(ei, g_player_x, g_player_y, nx, ny);
-                /* Axe cleave: if axe equipped, hit up to 2 more adjacent enemies */
-                {
-                    uint8_t ck;
-                    for (ck = 0u; ck < INVENTORY_MAX_SLOTS; ck++) {
-                        if (inventory_kind[ck] == ITEM_KIND_AXE && inventory_equipped[ck]) {
-                            uint8_t ci, hits = 0u;
-                            for (ci = 0u; ci < num_enemies && hits < 2u; ci++) {
-                                uint8_t dx, dy;
-                                if (!enemy_alive[ci] || ci == ei) continue;
-                                dx = (enemy_x[ci] > g_player_x) ? (uint8_t)(enemy_x[ci] - g_player_x) : (uint8_t)(g_player_x - enemy_x[ci]);
-                                dy = (enemy_y[ci] > g_player_y) ? (uint8_t)(enemy_y[ci] - g_player_y) : (uint8_t)(g_player_y - enemy_y[ci]);
-                                if (dx > 1u || dy > 1u) continue;
-                                if (combat_damage_enemy(ci, combat_crit_roll(player_damage), 0u)) {
-                                    enemy_try_drop_item(enemy_x[ci], enemy_y[ci]);
-                                    killed = 1u;
-                                }
-                                hits++;
-                            }
-                            break;
-                        }
-                    }
-                }
-                /* Mace stun: if mace equipped and the struck enemy survived, chance to stun it.
-                   (Axe cleave above never targets ei, so enemy_alive[ei] alone reflects whether
-                   the primary attack killed it — the shared `killed` flag may have been set by
-                   a cleave kill on a different enemy.) */
-                if (enemy_alive[ei]) {
-                    uint8_t ck;
-                    for (ck = 0u; ck < INVENTORY_MAX_SLOTS; ck++) {
-                        if (inventory_kind[ck] == ITEM_KIND_MACE && inventory_equipped[ck]) {
-                            if ((uint8_t)(DIV_REG % 100u) < MACE_STUN_CHANCE_PCT)
-                                enemy_stun[ei] = MACE_STUN_TURNS;
-                            break;
-                        }
-                    }
-                }
+                if (combat_player_melee_extras(ei)) killed = 1u; // axe cleave + mace stun (bank 19)
                 wait_vbl_done();
                 if (killed) draw_cell(nx, ny); // corpse BG only; non-kill leaves terrain unchanged (enemy is sprite)
                 draw_gameplay_overlays_profiled(g_player_x, g_player_y);
@@ -411,52 +420,29 @@ void state_gameplay_tick(void) BANKED {
             uint8_t t = tile_at(nx, ny);
             if (t == TILE_WALL) {
             } else if (t == TILE_PIT && !(boss_alive)) {
-                if (player_hp < player_hp_max) player_hp++;
-                wait_vbl_done();
-                draw_cell(g_player_x, g_player_y);
                 // Boss floor renders its pit as the exit portal once the boss is dead (boss_alive
-                // gates it above): stepping on it completes the dungeon and returns to the hub.
-                pending_transition = (floor_kind == FLOORKIND_BOSS) ? TRANS_DUNGEON_EXIT : TRANS_FLOOR_PIT;
-                next_state         = STATE_TRANSITION;
-                g_prev_j           = j;
-                wait_vbl_done();
-                return;
+                // gates it above). Arm the confirm latch — A zones, walking away cancels.
+                confirm_arm((floor_kind == FLOORKIND_BOSS) ? CONFIRM_BOSS_EXIT : CONFIRM_PIT, 0u, nx, ny);
             } else if (nx == player_spawn_x && ny == player_spawn_y
                        && floor_num > 0u
                        && !boss_alive) { // boss_alive is only ever set on boss/miniboss floors
-                wait_vbl_done();
-                draw_cell(g_player_x, g_player_y);
-                pending_transition = TRANS_FLOOR_UP;
-                next_state         = STATE_TRANSITION;
-                g_prev_j           = j;
-                wait_vbl_done();
-                return;
+                confirm_arm(CONFIRM_UP, 0u, nx, ny);
             } else if (floor_biome == BIOME_OVERWORLD && overworld_trigger_at(nx, ny) == OW_FEAT_ENTRANCE) {
-                // Stepping onto an overworld cave-mouth enters that dungeon's guardroom via the
-                // port path. Each of the 9 entrances is its own dungeon (dungeon.h floor scheme).
+                // Overworld cave-mouth: arm entry into that dungeon's guardroom via the port path.
+                // Each of the 9 entrances is its own dungeon (dungeon.h floor scheme).
                 uint8_t did = overworld_entrance_id_at(nx, ny);
                 if (did < DUNGEON_COUNT && (dungeon_complete_mask & (uint16_t)((uint16_t)1u << did))) {
-                    char sealed_buf[8]; // RAM copy — bank-2 ROM literal would garble in bank-5 log push
-                    sealed_buf[0]='S';sealed_buf[1]='E';sealed_buf[2]='A';sealed_buf[3]='L';
-                    sealed_buf[4]='E';sealed_buf[5]='D';sealed_buf[6]=0;
-                    ui_combat_log_push(sealed_buf);
+                    confirm_arm(CONFIRM_SEALED, 0u, nx, ny); // message only (deduped); A does nothing
                 } else if (did < DUNGEON_COUNT) {
-                    if (player_hp < player_hp_max) player_hp++;
-                    wait_vbl_done();
-                    draw_cell(g_player_x, g_player_y);
-                    pending_port_floor = DUNGEON_GUARD_FLOOR(did);
-                    pending_transition = TRANS_FLOOR_PORT;
-                    next_state         = STATE_TRANSITION;
-                    g_prev_j           = j;
-                    wait_vbl_done();
-                    return;
+                    confirm_arm(CONFIRM_ENTRANCE, did, nx, ny);
                 }
+            } else if (floor_biome == BIOME_OVERWORLD && overworld_trigger_at(nx, ny) == OW_FEAT_TOWN) {
+                uint8_t tid = overworld_town_id_at(nx, ny);
+                if (tid < TOWN_COUNT) confirm_arm(CONFIRM_TOWN, tid, nx, ny); // A → TOWN_FLOOR_BASE+tid via the port path
             } else {
                 uint8_t opx = g_player_x, opy = g_player_y;
-                if (floor_biome == BIOME_OVERWORLD) { // signpost on the hub → print its label to the chat box
-                    uint8_t sa = overworld_signpost_aux_at(nx, ny);
-                    if (sa != 255u) overworld_signpost_read(sa);
-                }
+                if (floor_biome == BIOME_OVERWORLD || floor_biome == BIOME_TOWN)
+                    overworld_step_feature(nx, ny); // signpost label / NPC line / town fountain heal
                 consumed_turn = 1u;
                 wait_vbl_done();
                 draw_cell(g_player_x, g_player_y);

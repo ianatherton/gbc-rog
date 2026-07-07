@@ -32,7 +32,11 @@ void level_init_display(uint8_t from_pit) BANKED {
         wait_vbl_done();
         lcd_clear_display();
         ui_loading_screen_begin(1);
-        if (floor_num >= GUARD_FLOOR_BASE) { // guardroom stairs exit to the hub, beside the entrance used
+        if (floor_num >= TOWN_FLOOR_BASE) { // town door exits to the hub, beside the town (0x80 flags a town id)
+            hub_landing_dungeon = (uint8_t)(0x80u | (uint8_t)(floor_num - TOWN_FLOOR_BASE));
+            floor_num = 0u;
+            entered_from_below = 0u;
+        } else if (floor_num >= GUARD_FLOOR_BASE) { // guardroom stairs exit to the hub, beside the entrance used
             hub_landing_dungeon = (uint8_t)(floor_num - GUARD_FLOOR_BASE);
             floor_num = 0u;
             entered_from_below = 0u; // hub has no pit — spawn at the (overridden) spawn point
@@ -75,7 +79,7 @@ void level_init_display(uint8_t from_pit) BANKED {
         floor_kind            = FLOORKIND_HUB;
         {
             uint8_t vi;
-            for (vi = 0u; vi < 6u; vi++) floor_visited[vi] = 0u;
+            for (vi = 0u; vi < 7u; vi++) floor_visited[vi] = 0u;
         }
         player_hp_max = PLAYER_HP_BASE_MAX;
         player_level = 1;

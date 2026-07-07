@@ -25,6 +25,7 @@ void     ui_combat_log_clear(void) BANKED;
 void     ui_combat_log_push(const char *line) BANKED;           // window palette PAL_UI
 void     ui_combat_log_push_pal(const char *line, uint8_t pal) BANKED; // CGB BGP palette index (e.g. PAL_XP_UI_BG)
 void     ui_combat_log_push_gold_suffix(const char *line, uint8_t gold_from) BANKED; // PAL_UI up to gold_from, then PAL_XP_UI_BG
+void     ui_confirm_prompt_push(uint8_t kind, uint8_t aux) BANKED; // zone-confirm prompt line (CONFIRM_* in defs.h); aux = dungeon/town id
 
 // combat-side text formatters — live in bank 5 (UI) to keep HOME small; BANKED so combat.c (HOME) can far-call them
 void     ui_push_combat_log(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_pct, uint8_t is_crit) BANKED;

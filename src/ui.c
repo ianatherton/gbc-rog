@@ -528,6 +528,27 @@ void ui_combat_log_push_gold_suffix(const char *line, uint8_t gold_from) BANKED 
 
 #define UI_MSG_LINE 20u // matches ui combat log row cap
 
+// Zone-confirm prompt (CONFIRM_* in defs.h). Composed here in bank 5 so the literals never cross a
+// bank into the log push (project_cross_bank_string_literal_gotcha). aux = dungeon id for ENTRANCE.
+void ui_confirm_prompt_push(uint8_t kind, uint8_t aux) BANKED {
+    char b[UI_MSG_LINE];
+    const char *s;
+    uint8_t i = 0u;
+    if      (kind == CONFIRM_ENTRANCE)  s = "ENTER DNG";
+    else if (kind == CONFIRM_TOWN)      s = "ENTER TOWN ";
+    else if (kind == CONFIRM_UP)        s = (floor_kind == FLOORKIND_TOWN) ? "LEAVE TOWN" : "CLIMB UP";
+    else if (kind == CONFIRM_BOSS_EXIT) s = "EXIT DUNGEON";
+    else if (kind == CONFIRM_SEALED)    s = "SEALED";
+    else                                s = "DESCEND"; // CONFIRM_PIT
+    while (s[i]) { b[i] = s[i]; i++; }
+    if (kind == CONFIRM_ENTRANCE || kind == CONFIRM_TOWN) b[i++] = (char)('1' + aux);
+    if (kind != CONFIRM_SEALED) {
+        b[i++] = '?'; b[i++] = ' '; b[i++] = '('; b[i++] = 'A'; b[i++] = ')';
+    }
+    b[i] = 0;
+    ui_combat_log_push(b);
+}
+
 void ui_push_combat_log(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_pct, uint8_t is_crit) BANKED {
     char logbuf[UI_MSG_LINE];
     char namebuf[12]; // SLIMESKULL + NUL is the longest current name; copy here to stay valid after bcall returns to bank 5
@@ -840,7 +861,10 @@ static void ui_draw_top_hud(void) { // bottom window row: L:♥×5 HP% XP% FLOOR
     vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_FLOOR_R);
     set_win_tile_xy(tx, hy, vram);
     set_win_attribute_xy(tx++, hy, PAL_UI);
-    if (floor_num >= GUARD_FLOOR_BASE) { // guardroom key 37..45 → show "<dungeon#>G" instead
+    if (floor_num >= TOWN_FLOOR_BASE) { // town 46..48 → "<town#>T"
+        win_putc_pal(tx++, hy, (char)('1' + (uint8_t)(floor_num - TOWN_FLOOR_BASE)), PAL_UI);
+        win_putc_pal(tx++, hy, 'T', PAL_UI);
+    } else if (floor_num >= GUARD_FLOOR_BASE) { // guardroom key 37..45 → show "<dungeon#>G" instead
         win_putc_pal(tx++, hy, (char)('1' + (uint8_t)(floor_num - GUARD_FLOOR_BASE)), PAL_UI);
         win_putc_pal(tx++, hy, 'G', PAL_UI);
     } else {
@@ -970,11 +994,7 @@ static void ui_draw_perf_pair(uint8_t y, const char *tag_l, PerfMetric l, const 
 static void ui_draw_perf_panel(void) { // 3-line rolling avg/max in DIV ticks
     ui_draw_perf_pair(UI_PANEL_WIN_Y0, "AI", PERF_ENEMY_MOVE, "CM", PERF_CAMERA_SCROLL);
     ui_draw_perf_pair(UI_PANEL_WIN_Y1, "RD", PERF_DRAW_SCREEN, "OV", PERF_DRAW_OVERLAY);
-    {
-        uint8_t x = 0u;
-        ui_draw_perf_metric(UI_PANEL_WIN_Y2, &x, "HT", PERF_HIT_RESOLVE);
-        while (x < UI_PANEL_COLS) win_put_space(x++, UI_PANEL_WIN_Y2);
-    }
+    ui_draw_perf_pair(UI_PANEL_WIN_Y2, "HT", PERF_HIT_RESOLVE, "CL", PERF_CLASSIFY);
 }
 
 static void put_word5(uint8_t x, uint8_t y, const char *s) { // fixed 5-char word into BKG via setchar

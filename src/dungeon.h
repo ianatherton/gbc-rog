@@ -15,10 +15,12 @@
 #define DUNGEON_COUNT     9u
 #define DUNGEON_FLOORS    4u
 #define GUARD_FLOOR_BASE 37u
+#define TOWN_FLOOR_BASE  46u // town interiors: floor 46+k = town k (0..2, one per region); safe zones off the hub
+#define TOWN_COUNT        3u
 #define DUNGEON_NONE   0xFFu
 
 // NOTE: macros evaluate args multiple times — call with plain variables only.
-#define FLOOR_DUNGEON_ID(f) ((f) == 0u ? DUNGEON_NONE \
+#define FLOOR_DUNGEON_ID(f) ((f) == 0u || (f) >= TOWN_FLOOR_BASE ? DUNGEON_NONE \
                              : ((f) >= GUARD_FLOOR_BASE ? (uint8_t)((f) - GUARD_FLOOR_BASE) \
                                                         : (uint8_t)(((f) - 1u) >> 2)))
 #define FLOOR_LOCAL(f)      ((f) >= GUARD_FLOOR_BASE ? 0u : (uint8_t)((((f) - 1u) & 3u) + 1u))
@@ -33,8 +35,10 @@
 #define FLOORKIND_NORMAL   2u // locals 1 and 3
 #define FLOORKIND_MINIBOSS 3u // local 2
 #define FLOORKIND_BOSS     4u // local 4
+#define FLOORKIND_TOWN     5u // town interior (floors 46+): safe zone, NPCs + heal fountain
 
 #define FLOOR_KIND_FOR(f) ((f) == 0u ? FLOORKIND_HUB \
+                           : (f) >= TOWN_FLOOR_BASE ? FLOORKIND_TOWN \
                            : (f) >= GUARD_FLOOR_BASE ? FLOORKIND_GUARD \
                            : (((f) - 1u) & 3u) == 1u ? FLOORKIND_MINIBOSS \
                            : (((f) - 1u) & 3u) == 3u ? FLOORKIND_BOSS \

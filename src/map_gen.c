@@ -363,8 +363,9 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
     mix *= 2246523629u;
     {
         uint8_t lk = FLOOR_KIND_FOR(floor_num);
-        if (lk == FLOORKIND_GUARD || lk == FLOORKIND_MINIBOSS || lk == FLOORKIND_BOSS) {
-            active_map_w = 20u; // guardroom, miniboss and boss floors: fixed compact arena
+        if (lk == FLOORKIND_GUARD || lk == FLOORKIND_MINIBOSS || lk == FLOORKIND_BOSS
+                || lk == FLOORKIND_TOWN) {
+            active_map_w = 20u; // guardroom, miniboss, boss and town floors: fixed compact arena
             active_map_h = 20u;
         } else {
             active_map_w = MAP_W; // hub + normal dungeon floors
@@ -431,6 +432,8 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
                 BIT_CLR(floor_bits, TILE_IDX((uint8_t)(tx + 1u), ty));
         }
         set_floor(player_spawn_x, player_spawn_y); // guarantee spawn open after scatter
+    } else if (floor_kind == FLOORKIND_TOWN) {
+        town_generate_interior((uint8_t)(floor_num - TOWN_FLOOR_BASE)); // bank 29: walls, huts, NPCs, fountain, door spawn
     } else {
         for (i = 0; i < WALK_STEPS; i++) {
         uint8_t d  = rand() >> 6; // use top bits of rand(); low bits are weak on this LCG
@@ -444,7 +447,7 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
         }
     }
 
-    if (floor_num != 0u) { // hub has no pit — dungeons are entered via their cave-mouth features
+    if (floor_num != 0u && floor_kind != FLOORKIND_TOWN) { // hub and towns have no pit — the hub uses cave-mouth features, towns exit via their door
         uint8_t placed = 0;
         for (uint8_t attempts = 0; attempts < 200 && placed < NUM_PITS; attempts++) { // random floor tile, not spawn
             uint8_t tx = (uint8_t)(rand() % active_map_w);
@@ -477,7 +480,7 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
         uint16_t attempts = 0u;
         uint8_t lk = FLOOR_KIND_FOR(floor_num);
         if (lk == FLOORKIND_HUB) target_count = 0u; // hub: no braziers
-        else if (lk == FLOORKIND_GUARD) target_count = 4u; // guardroom: well-lit safe room
+        else if (lk == FLOORKIND_GUARD || lk == FLOORKIND_TOWN) target_count = 4u; // guardroom/town: well-lit safe room
         else if (lk == FLOORKIND_BOSS) target_count = 0u; // unlit boss arena
         else {
             uint8_t base = (uint8_t)(10u + (uint8_t)(rand() % 11u)); // 10..20

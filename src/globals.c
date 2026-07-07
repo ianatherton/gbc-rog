@@ -15,7 +15,7 @@ volatile TransitionKind  pending_transition; // 0 = TRANS_NONE — omit ROM slot
 uint8_t                  pending_port_floor;  // target floor for TRANS_FLOOR_PORT (Witch Port scroll)
 uint8_t                  gameplay_soft_reenter; // 0 — set by transition only
 uint8_t                  level_is_revisit;      // 0 — set in level_init_display from floor_visited (direction-independent)
-uint8_t                  floor_visited[6];      // bit f = floor f generated before; cleared on fresh run
+uint8_t                  floor_visited[7];      // bit f = floor f generated before; cleared on fresh run (towns use bits 46-48)
 uint8_t                  entered_from_below;    // 1 = ascended via stairs-up (spawn at pit); 0 = descend/fresh (spawn at stairs-up)
 
 uint8_t  floor_kind;            // FLOORKIND_* — see dungeon.h
@@ -90,6 +90,7 @@ const OwPrefabDef ow_prefab_defs[OW_FEAT_COUNT] = {
     { 1u, 1u, 0u, 0u, OW_FEAT_ENTRANCE }, // ENTRANCE 1x1, the cell itself
     { 2u, 2u, 0u, 1u, OW_FEAT_BOSSDOOR }, // BOSSDOOR 2x2, enter from bottom-left
     { 1u, 1u, 0u, 0u, OW_FEAT_SIGNPOST }, // SIGNPOST 1x1, the cell itself is the trigger
+    { 1u, 1u, 0u, 0u, OW_FEAT_FOUNTAIN }, // FOUNTAIN 1x1 (town interior), the cell itself is the trigger
 };
 OwFeature ow_features[MAX_OW_FEATURES]; // BSS — filled by generate_level on the hub
 uint8_t   ow_feature_count;             // BSS 0

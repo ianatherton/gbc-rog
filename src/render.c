@@ -52,7 +52,7 @@ static uint8_t classify_cell(uint8_t mx, uint8_t my, uint8_t *attr_out) {
     {
         uint8_t t = tile_at(mx, my);
         uint8_t snow = 0u, desert = 0u;
-        if (floor_biome == BIOME_OVERWORLD) {
+        if (floor_biome == BIOME_OVERWORLD || floor_biome == BIOME_TOWN) { // town: feature overlay only, terrain falls through
             // One banked call resolves the hub cell: water/tree/coast/prefab → a finished VRAM tile;
             // interior land returns 0 + a region code that drives the floor-deco palette below. OW wall
             // cells always resolve here, so the dungeon wall branch never sees them.
@@ -117,15 +117,27 @@ void draw_cell(uint8_t mx, uint8_t my) { // cheap update if cell is on-screen
 // about-to-be-revealed strip at the target position before the glide (see camera.c). Blitting the
 // filled buffer is a separate step (render_blit_strip_col/row) done in the VBlank-safe window.
 void classify_col_strip(uint8_t mx, uint8_t cam_ty) {
-    uint8_t y, n = (uint8_t)(GRID_H + 1u);
-    for (y = 0u; y < n; y++)
-        render_strip_tiles[y] = classify_cell(mx, (uint8_t)(cam_ty + y), &render_strip_attrs[y]);
+    uint8_t perf_stamp = perf_stamp_now();
+    if (floor_biome == BIOME_OVERWORLD) { // one banked entry classifies the whole strip (bank 22)
+        overworld_classify_col_strip(mx, cam_ty);
+    } else {
+        uint8_t y, n = (uint8_t)(GRID_H + 1u);
+        for (y = 0u; y < n; y++)
+            render_strip_tiles[y] = classify_cell(mx, (uint8_t)(cam_ty + y), &render_strip_attrs[y]);
+    }
+    perf_record(PERF_CLASSIFY, perf_stamp_elapsed(&perf_stamp));
 }
 
 void classify_row_strip(uint8_t my, uint8_t cam_tx) {
-    uint8_t x, n = (uint8_t)(GRID_W + 1u);
-    for (x = 0u; x < n; x++)
-        render_strip_tiles[x] = classify_cell((uint8_t)(cam_tx + x), my, &render_strip_attrs[x]);
+    uint8_t perf_stamp = perf_stamp_now();
+    if (floor_biome == BIOME_OVERWORLD) {
+        overworld_classify_row_strip(my, cam_tx);
+    } else {
+        uint8_t x, n = (uint8_t)(GRID_W + 1u);
+        for (x = 0u; x < n; x++)
+            render_strip_tiles[x] = classify_cell((uint8_t)(cam_tx + x), my, &render_strip_attrs[x]);
+    }
+    perf_record(PERF_CLASSIFY, perf_stamp_elapsed(&perf_stamp));
 }
 
 void draw_col_strip(uint8_t mx) { // classify one world column at map x=mx, then one bulk blit

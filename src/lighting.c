@@ -203,6 +203,28 @@ __asm
 __endasm;
 }
 
+// Raw byte read from CGB WRAM bank 2 at 0xD000+off — the batch primitive for the strip classifier
+// (biome_overworld.c): one SVBK round-trip fetches 8 mask bits instead of one. Byte-return only, no
+// bulk copy: while SVBK != 1 the stack (0xDFxx) and anything above 0xD000 are the wrong bank, so the
+// value must come back in a register. Water mask = 0x480+, road mask = 0x900+ (see maps above).
+uint8_t wram2_read_byte(uint16_t off) __naked {
+    off;
+__asm
+    di
+    ld   a, #0x02
+    ldh  (_SVBK_REG + 0), a
+    ld   hl, #0xD000
+    add  hl, de
+    ld   a, (hl)
+    ld   e, a          ; stash byte before restoring the bank
+    ld   a, #0x01
+    ldh  (_SVBK_REG + 0), a
+    ei
+    ld   a, e
+    ret
+__endasm;
+}
+
 // ── hub road mask: CGB WRAM bank 2, 0xD900..0xDD7F (1,152 B) ──────────────────
 // Same __naked/SVBK discipline as the fog + water masks above (docs/BANKS.md). Hub-only, distinct
 // range from fog (0xD000) and water (0xD480). generate_level carves roads into it; overworld_cell_render
@@ -332,6 +354,10 @@ void lighting_reset(void) {
 
 void lighting_reveal_radius(uint8_t cx, uint8_t cy, uint8_t radius) {
 #if FEATURE_MAP_FOG
+    if (floor_biome == BIOME_OVERWORLD) { // hub never reads fog (see lighting_is_revealed) — the
+        lighting_dirty_clear();           // reveal diamond + dirty redraws would be pure waste
+        return;
+    }
     int16_t min_x = (int16_t)cx - (int16_t)radius;
     int16_t max_x = (int16_t)cx + (int16_t)radius;
     int16_t min_y = (int16_t)cy - (int16_t)radius;

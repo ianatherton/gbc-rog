@@ -479,8 +479,8 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
         uint8_t target_count;
         uint16_t attempts = 0u;
         uint8_t lk = FLOOR_KIND_FOR(floor_num);
-        if (lk == FLOORKIND_HUB) target_count = 0u; // hub: no braziers
-        else if (lk == FLOORKIND_GUARD || lk == FLOORKIND_TOWN) target_count = 4u; // guardroom/town: well-lit safe room
+        if (lk == FLOORKIND_HUB || lk == FLOORKIND_TOWN) target_count = 0u; // hub + towns: fully lit, no braziers
+        else if (lk == FLOORKIND_GUARD) target_count = 4u; // guardroom: well-lit safe room
         else if (lk == FLOORKIND_BOSS) target_count = 0u; // unlit boss arena
         else {
             uint8_t base = (uint8_t)(10u + (uint8_t)(rand() % 11u)); // 10..20

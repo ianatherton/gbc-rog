@@ -60,6 +60,21 @@ void apply_wall_palette(void) BANKED { // PAL_WALL_BG bulk walls + PAL_PILLAR_BG
         set_bkg_palette(PAL_WALL_BG,    1u, snow_pal);
         return;
     }
+    if (floor_biome == BIOME_TOWN) {
+        // Town interior: same grass field as the hub. Slot 6 = the hub's pine ramp (deco trees);
+        // slot 3 = this floor's wall-table ramp on a green field (brick buildings sit on grass);
+        // slot 1 = fixed stone ramp on green (fountain well, NPC "statues", any pillar art).
+        palette_color_t tree_pal[4]  = { RGB(12, 23, 5), RGB(6, 18, 4), RGB(10, 7, 2), RGB(12, 26, 6) };
+        palette_color_t stone_pal[4] = { RGB(12, 23, 5), RGB(9, 9, 11), RGB(17, 17, 19), RGB(27, 27, 29) };
+        wall_pal[0] = RGB(12, 23, 5); // grass shows through the brick art's index-0 "paper"
+        wall_pal[1] = wall_palette_table[iw][1];
+        wall_pal[2] = wall_palette_table[iw][2];
+        wall_pal[3] = wall_palette_table[iw][3];
+        set_bkg_palette(PAL_OW_FOLIAGE, 1u, tree_pal);
+        set_bkg_palette(PAL_WALL_BG,    1u, wall_pal);
+        set_bkg_palette(PAL_PILLAR_BG,  1u, stone_pal);
+        return;
+    }
     wall_pal[0] = bg0; // field color — seamless with blank / pit-adjacent open cells
     wall_pal[1] = wall_palette_table[iw][1];
     wall_pal[2] = wall_palette_table[iw][2];
@@ -75,7 +90,7 @@ void apply_wall_palette(void) BANKED { // PAL_WALL_BG bulk walls + PAL_PILLAR_BG
 
 BANKREF(apply_field_palette)
 void apply_field_palette(void) BANKED { // slot 0 (blank field) + floor-deco, per biome — restores after a menu blanks slot 0
-    if (floor_biome == BIOME_OVERWORLD) {
+    if (floor_biome == BIOME_OVERWORLD || floor_biome == BIOME_TOWN) { // towns share the hub's grass field
         // keep identical to biome_overworld.c pal_overworld_field / pal_overworld_floor_deco
         palette_color_t f[4]  = { RGB(12, 23, 5), RGB(8, 8, 8), RGB(16, 16, 16), RGB(31, 31, 31) };
         palette_color_t fd[4] = { RGB(12, 23, 5), RGB(5, 5, 5), RGB(11, 11, 11), RGB(17, 17, 17) };

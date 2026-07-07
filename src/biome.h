@@ -51,6 +51,7 @@ typedef void (*BiomeLoadPalettesFn)(void);
 void biome_boss_load_palettes(void); // overrides OCP4 with green+tan ramp for gorgon body/feet
 void biome_boss2_load_palettes(void); // OCP4 (PAL_SPHINX_BODY) sphinx ramp
 void biome_overworld_load_palettes(void); // dark-green field (BG slot 0 + floor-deco color 0)
+void biome_town_load_palettes(void);      // slot 7 sand ramp for town road cells (rest via apply_*_palette town branches)
 
 // Sphinx boss (bank 24, co-located with bosses.c art). sphinx_load_initial(): reset anim + upload
 // frame 0 (called from biome_load_active on floor entry). sphinx_anim_tick(): per gameplay frame on

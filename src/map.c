@@ -167,7 +167,7 @@ uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; overworl
         }
     }
     if (ground_item_index_at(x, y) != 255u) return TILE_ITEM_4; // mystery icon — true kind revealed in pickup dialog
-    if (floor_biome != BIOME_OVERWORLD) return TILE_TEST; // single floor-deco tile, torch-tinted in render.c — every lit cell, no blank sparsity
+    if (floor_biome != BIOME_OVERWORLD && floor_biome != BIOME_TOWN) return TILE_TEST; // single floor-deco tile, torch-tinted in render.c — every lit cell, no blank sparsity (hub + towns get E3/E4 grass scatter)
     if (floor_tile_is_blank(x, y)) return 255u;
     {
         static const uint8_t ground_e34[2] = { TILE_GROUND_C, TILE_GROUND_D }; // sheet E3, E4
@@ -265,6 +265,7 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     floor_kind = FLOOR_KIND_FOR(floor_num); // orthogonal to floor_biome — miniboss/boss are kinds now (dungeon.h)
     biome_apply_floor_kind(); // HOME: boss def/art + elite def overlays on miniboss/boss kinds
     if (floor_biome == BIOME_CAVERN) wall_tileset_index = TILE_WALL_F;
+    if (floor_biome == BIOME_TOWN) wall_tileset_index = TILE_WALL_A; // classic dungeon brick for town walls/buildings
     if (floor_biome == BIOME_OVERWORLD) {
         // Hub uses c10 for both bulk walls and isolated pillars. Future areas would also
         // place extra transition tiles here and route them via a destination lookup.

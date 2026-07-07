@@ -348,14 +348,14 @@ uint8_t lighting_dirty_overflow(void) { return lighting_dirty_ovf; }
 void lighting_reset(void) {
     lighting_dirty_clear();
 #if FEATURE_MAP_FOG
-    if (floor_biome != BIOME_OVERWORLD) exp2_clear_all(); // hub never reads fog — skip the ~5 ms clear
+    if (floor_biome != BIOME_OVERWORLD && floor_biome != BIOME_TOWN) exp2_clear_all(); // hub/towns never read fog — skip the ~5 ms clear
 #endif
 }
 
 void lighting_reveal_radius(uint8_t cx, uint8_t cy, uint8_t radius) {
 #if FEATURE_MAP_FOG
-    if (floor_biome == BIOME_OVERWORLD) { // hub never reads fog (see lighting_is_revealed) — the
-        lighting_dirty_clear();           // reveal diamond + dirty redraws would be pure waste
+    if (floor_biome == BIOME_OVERWORLD || floor_biome == BIOME_TOWN) { // fully-lit biomes never read fog (see
+        lighting_dirty_clear();           // lighting_is_revealed) — the reveal diamond + dirty redraws would be pure waste
         return;
     }
     int16_t min_x = (int16_t)cx - (int16_t)radius;
@@ -403,7 +403,7 @@ void lighting_reveal_radius(uint8_t cx, uint8_t cy, uint8_t radius) {
 }
 
 uint8_t lighting_is_revealed(uint8_t x, uint8_t y) {
-    if (floor_biome == BIOME_OVERWORLD) return 1u;
+    if (floor_biome == BIOME_OVERWORLD || floor_biome == BIOME_TOWN) return 1u; // hub + towns are fully lit
 #if FEATURE_MAP_FOG
     return exp2_test(TILE_IDX(x, y));
 #else

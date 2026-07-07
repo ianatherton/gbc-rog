@@ -18,6 +18,7 @@ BANKREF_EXTERN(biome_overworld_load_palettes)
 BANKREF_EXTERN(biome_boss2_copy_defs)
 BANKREF_EXTERN(biome_boss2_load_palettes)
 BANKREF_EXTERN(biome_town_copy_defs)
+BANKREF_EXTERN(biome_town_load_palettes)
 
 // Dispatch table indexed by biome ID — adding a biome is one new bank file plus one row here
 // (and BIOME_*/BIOME_COUNT in biome.h). Rows hold plain fn pointers; we map the bank ourselves.
@@ -30,7 +31,7 @@ static const BiomeEntry biome_table[BIOME_COUNT] = {
     /* BIOME_OVERWORLD */ { BANK(biome_overworld_copy_defs), biome_overworld_copy_defs, biome_overworld_load_palettes },
     /* BIOME_MINIBOSS (retired — kind now; row kept for index stability) */ { BANK(biome_dungeon_copy_defs), biome_dungeon_copy_defs, NULL },
     /* BIOME_BOSS2   */ { BANK(biome_boss2_copy_defs),   biome_boss2_copy_defs,   biome_boss2_load_palettes },
-    /* BIOME_TOWN    */ { BANK(biome_town_copy_defs),    biome_town_copy_defs,    NULL },
+    /* BIOME_TOWN    */ { BANK(biome_town_copy_defs),    biome_town_copy_defs,    biome_town_load_palettes },
 };
 
 void biome_load_active(uint8_t biome_id) {

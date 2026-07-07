@@ -478,24 +478,36 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
                               uint8_t *pal_out, uint8_t *region_out) BANKED {
     uint8_t region;
     if (floor_biome == BIOME_TOWN) {
-        // Town interior: only the feature overlay resolves here (NPC / fountain / signpost);
-        // walls and floor return 0 so classify_cell's normal dungeon renderer draws them.
-        // All three tiles survive the title VRAM stomp: 161 is re-uploaded every floor by
-        // biome_load_active, the shrine is main-sheet art, 205 is a permanent boot copy.
+        // Town interior: grass field like the hub. Features resolve first (fountain / NPC / sign /
+        // deco pine); wall cells are drawn as dungeon brick here (uniform bulk art — the thin
+        // building walls would otherwise hit render.c's pillar heuristic); road-lane floor cells
+        // report OW_REGION_DESERT so they render as the hub's open-sand roads. Every tile used is
+        // title-stomp-safe: 161 re-uploads per floor, shrine/brick are main-sheet, 205/213 are
+        // permanent boot copies.
         uint8_t fi;
         *region_out = OW_REGION_GRASS;
-        (void)base_tile;
         for (fi = 0u; fi < ow_feature_count; fi++) {
             if (ow_features[fi].x != mx || ow_features[fi].y != my) continue; // town features are all 1×1
+            if (ow_features[fi].type == OW_FEAT_TREE) {
+                *pal_out = PAL_OW_FOLIAGE; return TILE_OVERWORLD_WALL_VRAM; // deco pine (cell is blocking wall)
+            }
             if (ow_features[fi].type == OW_FEAT_FOUNTAIN) {
-                *pal_out = PAL_LADDER; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_SHRINE_ON_1);
+                *pal_out = PAL_PILLAR_BG; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_SHRINE_ON_1); // stone well
             }
             if (ow_features[fi].type == OW_FEAT_SIGNPOST) {
                 if ((uint8_t)(ow_features[fi].aux & 0xF0u) == SIGN_KIND_NPC) {
-                    *pal_out = PAL_LADDER; return TILE_PLAYER_HEAD_VRAM; // villager: hero-head art, torch tint
+                    *pal_out = PAL_PILLAR_BG; return TILE_PLAYER_HEAD_VRAM; // villager: hero-head art, stone ramp
                 }
                 *pal_out = PAL_FLOOR_BG; return PREFAB_VRAM_SIGNPOST;
             }
+        }
+        if (base_tile == TILE_WALL) { // town wall ring + building walls: uniform dungeon brick on grass
+            *pal_out = PAL_WALL_BG;
+            return (uint8_t)(TILESET_VRAM_OFFSET + wall_tileset_index);
+        }
+        { // road cross: door column up to the plaza + full plaza row — same open-sand look as hub roads
+            uint8_t cx = (uint8_t)(active_map_w >> 1), cy = (uint8_t)(active_map_h >> 1);
+            if ((mx == cx && my >= cy) || my == cy) *region_out = OW_REGION_DESERT;
         }
         return 0u;
     }

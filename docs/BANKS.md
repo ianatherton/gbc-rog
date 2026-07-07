@@ -34,10 +34,10 @@ SRAM (battery RAM) is currently unused — free for saves later.
 | 19 | 1,958 | 12% | combat (moved out of bank 2; per-turn, far-call boundary is cheap) + `combat_player_melee_extras` (axe cleave / mace stun, evicted from bank 2) |
 | 20 | — | — | equipment (`EquipStatDef` table, `items_equip_apply`, `items_equip_slot`, `equipped_kind_in_slot`) |
 | 21 | 132 | 1% | biome_boss |
-| 22 | 9,650 | 59% | biome_overworld (top-level hub, floor 0; no enemies/items) + render_palettes + batched strip classifiers (`overworld_classify_col/row_strip` — one banked entry per camera strip, mask bytes via `wram2_read_byte`) + town render overlay/step features |
+| 22 | 9,826 | 60% | biome_overworld (top-level hub, floor 0; no enemies/items) + render_palettes (incl. town field/brick/stone/foliage branches) + batched strip classifiers (`overworld_classify_col/row_strip` — one banked entry per camera strip, mask bytes via `wram2_read_byte`) + town render overlay/step features |
 | 24 | ~600 | 4% | biome_boss2 (Sphinx roster/art; overlaid onto any dungeon's boss floor by biome_apply_floor_kind) + bosses (png2asset sphinx sheet, res/bosses.png). 10-tile sprite uploaded to VRAM scratch + re-uploaded per frame by sphinx_anim_tick for a 2-frame leg cycle + faster wingbeat |
 | 28 | ~460 | 3% | dungeon_floors (miniboss elite art: runtime 2x pixel-doubler of elite_base_type's sprite → quadrant VRAM slots; floor-kind scheme in src/dungeon.h) |
-| 29 | 1,341 | 8% | biome_town (town interiors, floors 46–48 = `TOWN_FLOOR_BASE`+0..2: 20×20 safe zone, `town_generate_interior`, NPCs + heal fountain; enter/exit via the zone-confirm gate) |
+| 29 | 1,836 | 11% | biome_town (town interiors, floors 46–48 = `TOWN_FLOOR_BASE`+0..2: 20×20 overworld-look safe zone — grass field, sand road cross, brick buildings housing NPCs, deco pines, heal fountain; fully lit like the hub; enter/exit via the zone-confirm gate) |
 | 23, 25–27, 30–31 | 0 | 0% | empty — ~130 KB free (27 freed 2026-07: biome_miniboss + enemies_miniboss retired — miniboss/boss are floor kinds now, one biome per dungeon) |
 
 Total ROM used ≈ 76 KB of 512 KB (~15%). ROM is not the constraint. If it ever is,

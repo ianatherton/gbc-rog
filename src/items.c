@@ -8,11 +8,13 @@
 #include "scroll_blast.h"
 #include "scroll_root.h"
 #include "bow_shoot.h"
+#include "entity_sprites.h"
 #include <string.h>
 
 BANKREF_EXTERN(scroll_blast_use)
 BANKREF_EXTERN(scroll_root_use)
 BANKREF_EXTERN(bow_shoot_use)
+BANKREF_EXTERN(entity_sprites_run_item_popout)
 
 static const uint8_t kind_cat[ITEM_KIND_COUNT] = {
     ITEM_CAT_CONSUMABLE, // POTION
@@ -404,6 +406,7 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
         pending_port_floor = DUNGEON_BOSS_FLOOR(d);
         pending_transition = TRANS_FLOOR_PORT;
     }
+    entity_sprites_run_item_popout(kind);
     if (items_kind_category(kind) != ITEM_CAT_REUSABLE)
         inventory_remove(item_idx);
     out->consumed_turn = 1u;

@@ -835,6 +835,15 @@ void entity_sprites_enemy_hit_flash_clear(uint8_t slot) BANKED {
     }
 }
 
+// OBJ and BKG palettes are separate CRAM — items_kind_palette() picks colors tuned for the BKG
+// inventory/pickup icons, which land on the wrong OBJ ramp when reused for a sprite (e.g. a BKG-gold
+// item would show skeleton-violet). Default every item/weapon pop-out to the neutral grey ramp;
+// only the health potions (Potion, BigHeal/Key) get the red-rose ramp, matching their red BKG
+// life-UI color on both sides.
+static uint8_t item_popout_obj_palette(uint8_t kind) {
+    return (kind == ITEM_KIND_POTION || kind == ITEM_KIND_KEY) ? PAL_LIFE_UI : PAL_CORPSE;
+}
+
 BANKREF(entity_sprites_run_player_lunge)
 #define WEAPON_LUNGE_SIDE_PX 6 // held weapon pops out this many px to the facing side of the hero
 #define WEAPON_SWING_FRAMES 20u // ~333ms at 60Hz — weapon flies to the target and back
@@ -851,7 +860,7 @@ void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t d
     int16_t wsx = 0, wsy = 0, wtx = 0, wty = 0; // weapon tween endpoints: draw position <-> attacked tile
     if (show_weapon) {
         wtile = (uint8_t)(TILESET_VRAM_OFFSET + items_kind_tile(wk));
-        wpal  = items_kind_palette(wk);
+        wpal  = item_popout_obj_palette(wk);
         projectile_overrides_aura = 1u; // suppress the foot aura so slot 0 is free for the weapon
         wsx = (int16_t)((int16_t)px * 8 + (player_flip_x ? -WEAPON_LUNGE_SIDE_PX : WEAPON_LUNGE_SIDE_PX));
         wsy = (int16_t)((int16_t)py * 8);
@@ -881,6 +890,25 @@ void entity_sprites_run_player_lunge(uint8_t px, uint8_t py, int8_t dx, int8_t d
     pl_ofs_x = pl_ofs_y = 0;
     if (show_weapon) projectile_overrides_aura = 0u; // release slot 0; the refresh below repaints the aura over the weapon
     entity_sprites_refresh_player_only(px, py);
+}
+
+#define ITEM_POPOUT_FRAMES 30u // 500ms at 60Hz — item icon holds beside the hero
+
+BANKREF(entity_sprites_run_item_popout)
+void entity_sprites_run_item_popout(uint8_t kind) BANKED {
+    uint8_t t;
+    uint8_t tile = (uint8_t)(TILESET_VRAM_OFFSET + items_kind_tile(kind));
+    uint8_t pal  = item_popout_obj_palette(kind);
+    int16_t wx = (int16_t)((int16_t)g_player_x * 8 + (player_flip_x ? -WEAPON_LUNGE_SIDE_PX : WEAPON_LUNGE_SIDE_PX));
+    int16_t wy = (int16_t)((int16_t)g_player_y * 8);
+    projectile_overrides_aura = 1u; // suppress the foot aura so slot 0 is free for the item icon
+    for (t = 0; t < ITEM_POPOUT_FRAMES; t++) {
+        move_entity_oam(SP_PLAYER_AURA_OAM, wx, wy, tile, pal);
+        if (player_flip_x) set_sprite_prop(SP_PLAYER_AURA_OAM, (uint8_t)((pal & 7u) | S_FLIPX));
+        wait_vbl_done();
+    }
+    projectile_overrides_aura = 0u; // release slot 0; refresh repaints the aura over the item
+    entity_sprites_refresh_player_only(g_player_x, g_player_y);
 }
 
 BANKREF(entity_sprites_enemy_glide_begin)

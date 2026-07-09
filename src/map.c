@@ -273,9 +273,13 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
         floor_column_off   = TILE_OVERWORLD_WALL_OFF;
     }
     generate_level(floor_seed);
-    if (floor_num == 0u && hub_landing_dungeon != DUNGEON_NONE) {
-        overworld_place_player_near_entrance(hub_landing_dungeon); // land beside the entrance just exited
-        hub_landing_dungeon = DUNGEON_NONE;
+    if (floor_num == 0u) {
+        if (hub_landing_dungeon != DUNGEON_NONE) {
+            overworld_place_player_near_entrance(hub_landing_dungeon); // land beside the entrance just exited
+            hub_landing_dungeon = DUNGEON_NONE;
+        } else {
+            overworld_place_player_near_entrance(0x80u); // fresh run: start near Town 1 (grass region, ordinal 0)
+        }
     }
     lighting_reset();
     if (pit_present) lighting_reveal_radius(pit_x, pit_y, LIGHT_RADIUS_LADDER_DOWN);

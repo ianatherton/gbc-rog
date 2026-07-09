@@ -7,12 +7,14 @@
 #include "defs.h"
 #include "targeting.h"
 #include "entity_sprites.h"
+#include "items.h"
 #include "ui.h"
 #include "music.h"
 
 BANKREF_EXTERN(combat_damage_enemy)
 BANKREF_EXTERN(combat_crit_roll)
 BANKREF_EXTERN(entity_sprites_run_projectile)
+BANKREF_EXTERN(entity_sprites_run_item_popout)
 
 #define BOW_RANGE_TILES 4u // same reach as the witch bolt
 
@@ -31,6 +33,7 @@ void bow_shoot_use(AbilityResult *out) BANKED {
         push_short(too_far ? "too far" : "no los");
         return; // no consumed_turn → arrow not spent, player keeps the turn
     }
+    entity_sprites_run_item_popout(ITEM_KIND_BOW); // bow icon holds beside the hero, then the arrow flies
     sfx_spell_zap();
     entity_sprites_run_projectile(px, py, tx, ty,
         (uint8_t)(TILE_ARROW_VRAM - TILESET_VRAM_OFFSET), PAL_ENEMY_BAT); // H12 arrow, bat ramp

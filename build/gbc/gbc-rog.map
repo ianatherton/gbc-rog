@@ -156,7 +156,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      000032A4  l__CODE_1 |    000032C8  l__CODE_5 |    000032E0  s__HOME  
      00003E51  s__BASE   |    00003E51  s__CODE_0 |    00003E51  s__INITIA
      00003E51  s__LIT    |    00003E71  s__GSINIT |    00003E82  s__GSFINA
-     00003F5F  l__CODE_2 |    00004000  _rMBC7_SR |    00004000  _rRAMB   
+     00003F42  l__CODE_2 |    00004000  _rMBC7_SR |    00004000  _rRAMB   
      00008000  __VRAM    |    00008000  __VRAM800 |    00008800  __VRAM880
      00009000  __VRAM900 |    00009800  __SCRN0   |    00009C00  __SCRN1  
      0000A000  __SRAM    |    0000A000  _rMBC7_LA |    0000A010  _rMBC7_LA
@@ -580,7 +580,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_2                00024000    00003F5F =       16223. bytes (REL,CON)
+_CODE_2                00024000    00003F42 =       16194. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -592,21 +592,21 @@ _CODE_2                00024000    00003F5F =       16223. bytes (REL,CON)
      000245EE  _corpse_d |    000245FD  _spawn_en |    00024A6B  _enemy_se
      00024A83  _enemy_ge |    00024DEE  _enemy_re |    00024F76  _move_ene
      00025899  ___func_s |    00025899  _state_ga |    0002590A  ___func_s
-     0002590A  _state_ga |    0002635D  _wall_ort |    00026512  ___func_t
-     00026512  _tile_at  |    000265A0  ___func_m |    000265A0  _map_pit_
-     000265B9  ___func_g |    000265B9  _ground_i |    000265EC  ___func_m
-     000265EC  _map_tile |    0002661C  ___func_m |    0002661C  _map_tile
-     00026656  ___func_g |    00026656  _ground_i |    0002669C  ___func_i
-     0002669C  _is_walka |    000266DF  _tile_cha |    000266ED  _tile_vra
-     00026713  _tile_pal |    00026720  _floor_gr |    00026738  _floor_ti
-     0002685B  _nearest_ |    000268FD  _nav_fill |    000269E4  ___func_l
-     000269E4  _level_ge |    00027194  ___func_c |    00027194  _camera_i
-     000273FE  _camera_s |    000279B9  _camera_s |    00027C77  _draw_cel
-     00027CCB  _classify |    00027D3F  _classify |    00027DB2  _draw_col
-     00027DFC  _draw_row |    00027E46  _draw_ui_ |    00027E4E  _draw_gam
-     00027E68  _draw_scr |    00027EB5  _draw_gam |    00027ED2  _draw_gam
-     00027EDA  _draw_ene |    00027EE9  _draw_cor |    00027F2E  _draw_cor
-     00027F31  _draw_bos
+     0002590A  _state_ga |    00026340  _wall_ort |    000264F5  ___func_t
+     000264F5  _tile_at  |    00026583  ___func_m |    00026583  _map_pit_
+     0002659C  ___func_g |    0002659C  _ground_i |    000265CF  ___func_m
+     000265CF  _map_tile |    000265FF  ___func_m |    000265FF  _map_tile
+     00026639  ___func_g |    00026639  _ground_i |    0002667F  ___func_i
+     0002667F  _is_walka |    000266C2  _tile_cha |    000266D0  _tile_vra
+     000266F6  _tile_pal |    00026703  _floor_gr |    0002671B  _floor_ti
+     0002683E  _nearest_ |    000268E0  _nav_fill |    000269C7  ___func_l
+     000269C7  _level_ge |    00027177  ___func_c |    00027177  _camera_i
+     000273E1  _camera_s |    0002799C  _camera_s |    00027C5A  _draw_cel
+     00027CAE  _classify |    00027D22  _classify |    00027D95  _draw_col
+     00027DDF  _draw_row |    00027E29  _draw_ui_ |    00027E31  _draw_gam
+     00027E4B  _draw_scr |    00027E98  _draw_gam |    00027EB5  _draw_gam
+     00027EBD  _draw_ene |    00027ECC  _draw_cor |    00027F11  _draw_cor
+     00027F14  _draw_bos
 ASxxxx Linker V03.00/V05.40 + sdld,  page 33.
 Hexadecimal  [32-Bits]
 

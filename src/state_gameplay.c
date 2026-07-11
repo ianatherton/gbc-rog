@@ -37,10 +37,11 @@ BANKREF_EXTERN(entity_sprites_set_player_facing)
 
 static uint8_t turn_snap_ex[MAX_ENEMIES], turn_snap_ey[MAX_ENEMIES], turn_snap_ea[MAX_ENEMIES]; // enemy pos before AI — file static so SDCC does not stack three 28-byte arrays in one tick()
 
-// Zone-confirm latch (CONFIRM_* in defs.h): stepping toward a transition tile arms this + prints a
-// prompt instead of zoning; the next A rising-edge fires the stored transition. Any move to a
-// different target cell cancels silently. The player never steps onto the tile (matches the old
-// pre-commit behavior), and no enemy turn runs while armed, so there is no double-move risk.
+// Zone-confirm latch (CONFIRM_* in defs.h): walking onto a transition tile is a real step (full
+// turn — enemies act, camera scrolls, lighting updates, same as any other move); once landed, this
+// arms + prints a prompt instead of zoning immediately. The next A rising-edge fires the stored
+// transition without moving the player further. Any move to a different target cell cancels
+// silently.
 static uint8_t confirm_kind, confirm_aux, confirm_tx, confirm_ty;
 
 static void confirm_arm(uint8_t kind, uint8_t aux, uint8_t tx, uint8_t ty) {
@@ -340,7 +341,6 @@ void state_gameplay_tick(void) BANKED {
             && (j & J_A) && !(g_prev_j & J_A)) { // fire the armed zone transition
         uint8_t ck = confirm_kind;
         confirm_kind = CONFIRM_NONE;
-        if (ck != CONFIRM_UP && player_hp < player_hp_max) player_hp++; // parity: old pit/entrance branches healed 1
         wait_vbl_done();
         draw_cell(g_player_x, g_player_y);
         if (ck == CONFIRM_ENTRANCE) {
@@ -419,27 +419,33 @@ void state_gameplay_tick(void) BANKED {
         } else {
             uint8_t t = tile_at(nx, ny);
             if (t == TILE_WALL) {
-            } else if (t == TILE_PIT && !(boss_alive)) {
-                // Boss floor renders its pit as the exit portal once the boss is dead (boss_alive
-                // gates it above). Arm the confirm latch — A zones, walking away cancels.
-                confirm_arm((floor_kind == FLOORKIND_BOSS) ? CONFIRM_BOSS_EXIT : CONFIRM_PIT, 0u, nx, ny);
-            } else if (nx == player_spawn_x && ny == player_spawn_y
-                       && floor_num > 0u
-                       && !boss_alive) { // boss_alive is only ever set on boss/miniboss floors
-                confirm_arm(CONFIRM_UP, 0u, nx, ny);
-            } else if (floor_biome == BIOME_OVERWORLD && overworld_trigger_at(nx, ny) == OW_FEAT_ENTRANCE) {
-                // Overworld cave-mouth: arm entry into that dungeon's guardroom via the port path.
-                // Each of the 9 entrances is its own dungeon (dungeon.h floor scheme).
-                uint8_t did = overworld_entrance_id_at(nx, ny);
-                if (did < DUNGEON_COUNT && (dungeon_complete_mask & (uint16_t)((uint16_t)1u << did))) {
-                    confirm_arm(CONFIRM_SEALED, 0u, nx, ny); // message only (deduped); A does nothing
-                } else if (did < DUNGEON_COUNT) {
-                    confirm_arm(CONFIRM_ENTRANCE, did, nx, ny);
-                }
-            } else if (floor_biome == BIOME_OVERWORLD && overworld_trigger_at(nx, ny) == OW_FEAT_TOWN) {
-                uint8_t tid = overworld_town_id_at(nx, ny);
-                if (tid < TOWN_COUNT) confirm_arm(CONFIRM_TOWN, tid, nx, ny); // A → TOWN_FLOOR_BASE+tid via the port path
             } else {
+                // Figure out whether (nx,ny) is a transition tile before walking onto it — the
+                // walk always happens (full turn, enemies act); the confirm prompt arms only
+                // after landing, once g_player_x/y actually sit on the tile.
+                uint8_t want_kind = CONFIRM_NONE, want_aux = 0u;
+                if (t == TILE_PIT && !(boss_alive)) {
+                    // Boss floor renders its pit as the exit portal once the boss is dead (boss_alive
+                    // gates it above).
+                    want_kind = (floor_kind == FLOORKIND_BOSS) ? CONFIRM_BOSS_EXIT : CONFIRM_PIT;
+                } else if (nx == player_spawn_x && ny == player_spawn_y
+                           && floor_num > 0u
+                           && !boss_alive) { // boss_alive is only ever set on boss/miniboss floors
+                    want_kind = CONFIRM_UP;
+                } else if (floor_biome == BIOME_OVERWORLD && overworld_trigger_at(nx, ny) == OW_FEAT_ENTRANCE) {
+                    // Overworld cave-mouth: entry into that dungeon's guardroom via the port path.
+                    // Each of the 9 entrances is its own dungeon (dungeon.h floor scheme).
+                    uint8_t did = overworld_entrance_id_at(nx, ny);
+                    if (did < DUNGEON_COUNT && (dungeon_complete_mask & (uint16_t)((uint16_t)1u << did))) {
+                        want_kind = CONFIRM_SEALED; // message only (deduped); A does nothing
+                    } else if (did < DUNGEON_COUNT) {
+                        want_kind = CONFIRM_ENTRANCE; want_aux = did;
+                    }
+                } else if (floor_biome == BIOME_OVERWORLD && overworld_trigger_at(nx, ny) == OW_FEAT_TOWN) {
+                    uint8_t tid = overworld_town_id_at(nx, ny);
+                    if (tid < TOWN_COUNT) { want_kind = CONFIRM_TOWN; want_aux = tid; } // A → TOWN_FLOOR_BASE+tid via the port path
+                }
+
                 uint8_t opx = g_player_x, opy = g_player_y;
                 if (floor_biome == BIOME_OVERWORLD || floor_biome == BIOME_TOWN)
                     overworld_step_feature(nx, ny); // signpost label / NPC line / town fountain heal
@@ -507,6 +513,7 @@ void state_gameplay_tick(void) BANKED {
                     wait_vbl_done();
                     return;
                 }
+                if (want_kind != CONFIRM_NONE) confirm_arm(want_kind, want_aux, g_player_x, g_player_y);
 #if TURN_DELAY_MS > 0
                 delay(TURN_DELAY_MS);
 #endif

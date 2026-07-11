@@ -343,6 +343,12 @@ static void place_overworld_signposts(void) {
         else if (t == OW_FEAT_ENTRANCE) { aux = (uint8_t)(SIGN_KIND_DUNGEON | (dungc & 0x0Fu)); dungc++; }
         else if (t == OW_FEAT_BOSSDOOR) { aux = SIGN_KIND_BOSS; }
         else continue;
+        if (t == OW_FEAT_ENTRANCE) {
+            // Diagonal off the cave mouth reads clearer than directly adjacent — try SW then SE.
+            if (fx >= 1u && ow_add_signpost((uint8_t)(fx - 1u), (uint8_t)(fy + d->h), aux)) continue; // SW
+            ow_add_signpost((uint8_t)(fx + d->w), (uint8_t)(fy + d->h), aux);                          // SE
+            continue;
+        }
         // Try a few cells around the footprint for an open spot to stand the sign.
         if (ow_add_signpost(fx, (uint8_t)(fy + d->h), aux)) continue;                       // below-left
         if (ow_add_signpost((uint8_t)(fx + d->w - 1u), (uint8_t)(fy + d->h), aux)) continue; // below-right

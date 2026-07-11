@@ -26,7 +26,7 @@ SRAM (battery RAM) is currently unused — free for saves later.
 | 11 | 132 | 1% | biome_crypt |
 | 12 | 132 | 1% | biome_cavern |
 | 13 | 2,242 | 14% | items (kinds + affixes) |
-| 14 | 3,807 | 23% | story_ui |
+| 14 | 5,838 | 36% | story_ui + names (deterministic town/dungeon/NPC name generator, `src/names.c`) |
 | 15 | 157 | 1% | scroll_blast |
 | 16 | 357 | 2% | scroll_root, debuff_icon, bow_shoot |
 | 17 | 10,184 | 62% | entity_sprites, scoundrel_fox |

@@ -3,10 +3,12 @@
 #include "biome.h"
 #include "enemy.h"
 #include "defs.h"
+#include "dungeon.h" // TOWN_FLOOR_BASE
 #include "globals.h" // overworld_preset
 #include "map.h"     // active_map_w / active_map_h
 #include "render.h"  // render_strip_* buffers + render_blit_strip_* (placed here to relieve bank 2)
 #include "ui.h"      // ui_combat_log_push — signpost labels print to the chat box
+#include "names.h"   // town/dungeon/NPC flavor names — second chat-log line in overworld_signpost_read
 #include <gb/cgb.h>
 
 // Top-level hub floor (floor 0). No enemy roster, no items (the item scatter loop in
@@ -442,6 +444,21 @@ void overworld_signpost_read(uint8_t aux) BANKED {
         const char *s = "FINAL DUNGEON"; for (i = 0u; s[i]; i++) buf[i] = s[i]; buf[i] = 0;
     }
     ui_combat_log_push(buf);
+
+    // Second line: the generated flavor name (src/names.c), deterministic per (run_seed, id).
+    if (kind == SIGN_KIND_TOWN || kind == SIGN_KIND_DUNGEON || kind == SIGN_KIND_NPC) {
+        char nbuf[16];
+        if (kind == SIGN_KIND_TOWN) {
+            town_name_copy(num, nbuf, sizeof nbuf);
+        } else if (kind == SIGN_KIND_DUNGEON) {
+            dungeon_name_copy(num, nbuf, sizeof nbuf);
+        } else {
+            // aux's low nibble is only the villager slot (0..2, biome_town.c); this signpost
+            // only exists inside a town interior, so the town id is floor_num - TOWN_FLOOR_BASE.
+            npc_name_copy((uint8_t)(floor_num - TOWN_FLOOR_BASE), num, nbuf, sizeof nbuf);
+        }
+        ui_combat_log_push(nbuf);
+    }
 }
 
 // Prefab tile lookup: which VRAM tile to draw for local cell (lx,ly) of a w×h feature of the given type.
@@ -458,8 +475,10 @@ static uint8_t ow_prefab_vram(uint8_t type, uint8_t lx, uint8_t ly, uint8_t w, u
         if (ly == 0u) return (lx == 0u) ? PREFAB_VRAM_DOOR_TL : PREFAB_VRAM_DOOR_TR;
         return (lx == 0u) ? PREFAB_VRAM_DOOR_BL : PREFAB_VRAM_DOOR_BR;
     }
-    { // OW_FEAT_TOWN — 3×3 wall ring, grass centre
+    { // OW_FEAT_TOWN — 3×3 wall ring, grass centre, open door (G1) at the entrance cell
         uint8_t edge_x = (lx == 0u || lx == (uint8_t)(w - 1u));
+        if (lx == ow_prefab_defs[OW_FEAT_TOWN].ent_dx && ly == ow_prefab_defs[OW_FEAT_TOWN].ent_dy)
+            return (uint8_t)(TILESET_VRAM_OFFSET + TILE_DOOR_OPEN);
         uint8_t edge_y = (ly == 0u || ly == (uint8_t)(h - 1u));
         if (edge_x && edge_y) return PREFAB_VRAM_TOWN_CORNER;
         if (edge_y)           return PREFAB_VRAM_TOWN_WALL_NS;

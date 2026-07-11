@@ -83,8 +83,10 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000000D  b_invento |    0000000D  b_invento |    0000000D  b_item_ro
      0000000D  b_items_k |    0000000D  b_items_k |    0000000D  b_items_k
      0000000D  b_items_k |    0000000D  b_items_k |    0000000D  b_items_k
-     0000000D  b_items_u |    0000000D  b_ring_ro |    0000000E  ___bank_s
-     0000000E  b_story_u |    0000000F  b_scroll_ |    00000010  b_bow_sho
+     0000000D  b_items_u |    0000000D  b_ring_ro |    0000000E  ___bank_d
+     0000000E  ___bank_n |    0000000E  ___bank_s |    0000000E  ___bank_t
+     0000000E  b_dungeon |    0000000E  b_npc_nam |    0000000E  b_story_u
+     0000000E  b_town_na |    0000000F  b_scroll_ |    00000010  b_bow_sho
      00000010  b_debuff_ |    00000010  b_scroll_ |    00000011  ___bank_a
      00000011  ___bank_a |    00000011  ___bank_a |    00000011  ___bank_e
      00000011  ___bank_e |    00000011  ___bank_e |    00000011  ___bank_e
@@ -115,8 +117,6 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00000015  ___bank_b |    00000015  ___bank_b |    00000016  ___bank_a
      00000016  ___bank_a |    00000016  ___bank_b |    00000016  ___bank_b
      00000016  ___bank_l |    00000016  ___bank_o |    00000016  ___bank_o
-     00000016  ___bank_o |    00000016  ___bank_o |    00000016  ___bank_o
-     00000016  ___bank_o |    00000016  ___bank_o |    00000016  ___bank_o
 ASxxxx Linker V03.00/V05.40 + sdld,  page 3.
 Hexadecimal  [32-Bits]
 
@@ -126,6 +126,8 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
+     00000016  ___bank_o |    00000016  ___bank_o |    00000016  ___bank_o
+     00000016  ___bank_o |    00000016  ___bank_o |    00000016  ___bank_o
      00000016  ___bank_o |    00000016  ___bank_o |    00000016  ___bank_o
      00000016  ___bank_o |    00000016  ___bank_o |    00000016  ___bank_o
      00000016  ___bank_o |    00000016  ___bank_r |    00000016  ___bank_r
@@ -149,10 +151,10 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00000200  s__CODE   |    00000272  l__CODE_9 |    00000284  l__CODE_1
      00000293  l__CODE_8 |    0000039B  l__CODE_2 |    0000045A  l__CODE_2
      0000072C  l__CODE_2 |    000007A6  l__CODE_1 |    00000B71  l__HOME  
-     00000B9B  l__CODE_4 |    00000EDF  l__CODE_1 |    00001108  l__CODE_1
-     00001275  l__CODE_1 |    00001554  l__CODE_1 |    00001BE6  l__DATA  
-     00001F05  l__CODE_1 |    00001F0A  l__CODE_3 |    00002000  _rROMB0  
-     000026B8  l__CODE_2 |    00003000  _rROMB1   |    000030E0  l__CODE  
+     00000B9B  l__CODE_4 |    00001108  l__CODE_1 |    00001275  l__CODE_1
+     00001554  l__CODE_1 |    000016CE  l__CODE_1 |    00001BE6  l__DATA  
+     00001F0A  l__CODE_3 |    00001F5C  l__CODE_1 |    00002000  _rROMB0  
+     00002745  l__CODE_2 |    00003000  _rROMB1   |    000030E0  l__CODE  
      000032A4  l__CODE_1 |    000032C8  l__CODE_5 |    000032E0  s__HOME  
      00003E51  s__BASE   |    00003E51  s__CODE_0 |    00003E51  s__INITIA
      00003E51  s__LIT    |    00003E71  s__GSINIT |    00003E82  s__GSFINA
@@ -175,8 +177,6 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000FF1E  _NR34_REG |    0000FF20  _NR41_REG |    0000FF21  _NR42_REG
      0000FF22  _NR43_REG |    0000FF23  _NR44_REG |    0000FF24  _NR50_REG
      0000FF25  _NR51_REG |    0000FF26  _NR52_REG |    0000FF30  _AUD3WAVE
-     0000FF30  _PCM_SAMP |    0000FF30  __AUD3WAV |    0000FF40  _LCDC_REG
-     0000FF41  _STAT_REG |    0000FF42  _SCY_REG  |    0000FF43  _SCX_REG 
 ASxxxx Linker V03.00/V05.40 + sdld,  page 4.
 Hexadecimal  [32-Bits]
 
@@ -186,6 +186,8 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
+     0000FF30  _PCM_SAMP |    0000FF30  __AUD3WAV |    0000FF40  _LCDC_REG
+     0000FF41  _STAT_REG |    0000FF42  _SCY_REG  |    0000FF43  _SCX_REG 
      0000FF44  _LY_REG   |    0000FF45  _LYC_REG  |    0000FF46  _DMA_REG 
      0000FF47  _BGP_REG  |    0000FF48  _OBP0_REG |    0000FF49  _OBP1_REG
      0000FF4A  _WY_REG   |    0000FF4B  _WX_REG   |    0000FF4D  _KEY1_REG
@@ -706,12 +708,12 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_10               000A4000    00001F05 =        7941. bytes (REL,CON)
+_CODE_10               000A4000    00001F5C =        8028. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     000A51FF  ___func_g |    000A51FF  _generate |    000A5AF1  ___func_l
-     000A5AF1  _level_in |    000A5E20  ___func_b |    000A5E20  _biome_du
+     000A5256  ___func_g |    000A5256  _generate |    000A5B48  ___func_l
+     000A5B48  _level_in |    000A5E77  ___func_b |    000A5E77  _biome_du
 ASxxxx Linker V03.00/V05.40 + sdld,  page 41.
 Hexadecimal  [32-Bits]
 
@@ -751,11 +753,13 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_14               000E4000    00000EDF =        3807. bytes (REL,CON)
+_CODE_14               000E4000    000016CE =        5838. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     000E4000  ___func_s |    000E4B99  _story_ui
+     000E4000  ___func_s |    000E4B99  _story_ui |    000E558E  ___func_t
+     000E558E  _town_nam |    000E55E5  ___func_d |    000E55E5  _dungeon_
+     000E568A  ___func_n |    000E568A  _npc_name
 ASxxxx Linker V03.00/V05.40 + sdld,  page 45.
 Hexadecimal  [32-Bits]
 
@@ -857,7 +861,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_22               00164000    000026B8 =        9912. bytes (REL,CON)
+_CODE_22               00164000    00002745 =       10053. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -870,13 +874,13 @@ _CODE_22               00164000    000026B8 =        9912. bytes (REL,CON)
      00164C17  ___func_o |    00164C17  _overworl |    00164C71  ___func_o
      00164C71  _overworl |    00164D65  ___func_o |    00164D65  _overworl
      00164FED  ___func_o |    00164FED  _overworl |    00165025  ___func_o
-     00165025  _overworl |    0016535C  ___func_o |    0016535C  _overworl
-     00165BBA  ___func_o |    00165BBA  _overworl |    00165E35  ___func_o
-     00165E35  _overworl |    001660D8  ___func_r |    001660D8  _render_b
-     00166184  ___func_r |    00166184  _render_b |    00166232  ___func_w
-     00166232  _water_an |    00166242  ___func_w |    00166242  _water_an
-     001662F2  ___func_a |    001662F2  _apply_wa |    0016656B  ___func_a
-     0016656B  _apply_fi |    001665F1  ___func_l |    001665F1  _load_pal
+     00165025  _overworl |    001653E9  ___func_o |    001653E9  _overworl
+     00165C47  ___func_o |    00165C47  _overworl |    00165EC2  ___func_o
+     00165EC2  _overworl |    00166165  ___func_r |    00166165  _render_b
+     00166211  ___func_r |    00166211  _render_b |    001662BF  ___func_w
+     001662BF  _water_an |    001662CF  ___func_w |    001662CF  _water_an
+     0016637F  ___func_a |    0016637F  _apply_wa |    001665F8  ___func_a
+     001665F8  _apply_fi |    0016667E  ___func_l |    0016667E  _load_pal
 ASxxxx Linker V03.00/V05.40 + sdld,  page 53.
 Hexadecimal  [32-Bits]
 
@@ -981,6 +985,7 @@ obj/gbc/biome_crypt.rel                   [ biome_crypt ]
 obj/gbc/biome_cavern.rel                  [ biome_cavern ]
 obj/gbc/items.rel                         [ items ]
 obj/gbc/story_ui.rel                      [ story_ui ]
+obj/gbc/names.rel                         [ names ]
 obj/gbc/scroll_blast.rel                  [ scroll_blast ]
 obj/gbc/debuff_icon.rel                   [ debuff_icon ]
 obj/gbc/bow_shoot.rel                     [ bow_shoot ]

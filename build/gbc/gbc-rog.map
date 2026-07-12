@@ -150,7 +150,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000009D  l__CODE_1 |    000000AB  l__HEADER |    000001CB  l__CODE_2
      00000200  s__CODE   |    00000272  l__CODE_9 |    00000284  l__CODE_1
      00000293  l__CODE_8 |    0000039B  l__CODE_2 |    0000045A  l__CODE_2
-     0000072C  l__CODE_2 |    000007A6  l__CODE_1 |    00000B71  l__HOME  
+     0000072C  l__CODE_2 |    000007B6  l__CODE_1 |    00000B71  l__HOME  
      00000B9B  l__CODE_4 |    00001108  l__CODE_1 |    00001275  l__CODE_1
      00001554  l__CODE_1 |    000016D0  l__CODE_1 |    00001BE6  l__DATA  
      00001F0A  l__CODE_3 |    00001F5C  l__CODE_1 |    00002000  _rROMB0  
@@ -158,7 +158,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      000032A4  l__CODE_1 |    000032C8  l__CODE_5 |    000032E0  s__HOME  
      00003E51  s__BASE   |    00003E51  s__CODE_0 |    00003E51  s__INITIA
      00003E51  s__LIT    |    00003E71  s__GSINIT |    00003E82  s__GSFINA
-     00003F61  l__CODE_2 |    00004000  _rMBC7_SR |    00004000  _rRAMB   
+     00003F60  l__CODE_2 |    00004000  _rMBC7_SR |    00004000  _rRAMB   
      00008000  __VRAM    |    00008000  __VRAM800 |    00008800  __VRAM880
      00009000  __VRAM900 |    00009800  __SCRN0   |    00009C00  __SCRN1  
      0000A000  __SRAM    |    0000A000  _rMBC7_LA |    0000A010  _rMBC7_LA
@@ -582,7 +582,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_2                00024000    00003F61 =       16225. bytes (REL,CON)
+_CODE_2                00024000    00003F60 =       16224. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -602,13 +602,13 @@ _CODE_2                00024000    00003F61 =       16225. bytes (REL,CON)
      0002669E  _is_walka |    000266E1  _tile_cha |    000266EF  _tile_vra
      00026715  _tile_pal |    00026722  _floor_gr |    0002673A  _floor_ti
      0002685D  _nearest_ |    000268FF  _nav_fill |    000269E6  ___func_l
-     000269E6  _level_ge |    00027196  ___func_c |    00027196  _camera_i
-     00027400  _camera_s |    000279BB  _camera_s |    00027C79  _draw_cel
-     00027CCD  _classify |    00027D41  _classify |    00027DB4  _draw_col
-     00027DFE  _draw_row |    00027E48  _draw_ui_ |    00027E50  _draw_gam
-     00027E6A  _draw_scr |    00027EB7  _draw_gam |    00027ED4  _draw_gam
-     00027EDC  _draw_ene |    00027EEB  _draw_cor |    00027F30  _draw_cor
-     00027F33  _draw_bos
+     000269E6  _level_ge |    00027195  ___func_c |    00027195  _camera_i
+     000273FF  _camera_s |    000279BA  _camera_s |    00027C78  _draw_cel
+     00027CCC  _classify |    00027D40  _classify |    00027DB3  _draw_col
+     00027DFD  _draw_row |    00027E47  _draw_ui_ |    00027E4F  _draw_gam
+     00027E69  _draw_scr |    00027EB6  _draw_gam |    00027ED3  _draw_gam
+     00027EDB  _draw_ene |    00027EEA  _draw_cor |    00027F2F  _draw_cor
+     00027F32  _draw_bos
 ASxxxx Linker V03.00/V05.40 + sdld,  page 33.
 Hexadecimal  [32-Bits]
 
@@ -826,14 +826,14 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_19               00134000    000007A6 =        1958. bytes (REL,CON)
+_CODE_19               00134000    000007B6 =        1974. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00134088  ___func_c |    00134088  _combat_d |    001342FC  ___func_c
-     001342FC  _combat_c |    0013432C  ___func_c |    0013432C  _combat_p
-     00134450  ___func_c |    00134450  _combat_p |    001345C5  ___func_r
-     001345C5  _resolve_
+     00134088  ___func_c |    00134088  _combat_d |    0013432E  ___func_c
+     0013432E  _combat_c |    0013435E  ___func_c |    0013435E  _combat_p
+     00134482  ___func_c |    00134482  _combat_p |    001345D5  ___func_r
+     001345D5  _resolve_
 ASxxxx Linker V03.00/V05.40 + sdld,  page 50.
 Hexadecimal  [32-Bits]
 

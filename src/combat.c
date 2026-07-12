@@ -68,7 +68,7 @@ uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage, uint8_t from_shield_burn
         dx = enemy_x[ei];
         dy = enemy_y[ei];
         {
-            uint8_t dropped = enemy_try_drop_item(dx, dy);
+            uint8_t dropped = enemy_persistent[ei] ? enemy_try_drop_item(dx, dy) : 0u; // transient summons/splits never drop loot
             if (!dropped && num_corpses < MAX_CORPSES && !map_tile_blocks_gravestone(dx, dy)) {
                 corpse_x[num_corpses] = dx;
                 corpse_y[num_corpses] = dy;
@@ -160,7 +160,6 @@ uint8_t combat_player_melee_extras(uint8_t ei) BANKED {
                     dy = (enemy_y[ci] > g_player_y) ? (uint8_t)(enemy_y[ci] - g_player_y) : (uint8_t)(g_player_y - enemy_y[ci]);
                     if (dx > 1u || dy > 1u) continue;
                     if (combat_damage_enemy(ci, combat_crit_roll(player_damage), 0u)) {
-                        enemy_try_drop_item(enemy_x[ci], enemy_y[ci]);
                         cleave_killed = 1u;
                     }
                     hits++;

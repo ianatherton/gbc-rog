@@ -293,7 +293,7 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     spawn_enemies();
     ground_items_clear();
     if (floor_biome != BIOME_OVERWORLD && floor_kind != FLOORKIND_TOWN) { // hub and towns have no items (also avoids floor_items_picked[floor_num-1] underflow at floor 0)
-        uint8_t target = (uint8_t)(2u + (uint8_t)(rand() & 3u)); // 2..5 items per floor
+        uint8_t target = (uint8_t)(1u + (uint8_t)(rand() & 3u)); // 1..4 items per floor
         uint8_t placed = 0u;
         uint16_t attempts = 0u;
         if (target > MAX_GROUND_ITEMS) target = MAX_GROUND_ITEMS;

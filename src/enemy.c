@@ -161,19 +161,24 @@ void enemy_place_slot_far(uint8_t slot, uint8_t x, uint8_t y) BANKED {
     enemy_place_slot(slot, x, y);
 }
 
+// Difficulty steps by town tier only: all 3 dungeons around a town share one multiplier
+// (dungeons 0-2 / 3-5 / 6-8 belong to towns 0/1/2 — entrance placement order, map_gen.c),
+// x1 / x3 / x5 (+2 per town). Floors within a dungeon don't raise it.
+static uint8_t enemy_stat_scale(void) {
+    uint8_t d = FLOOR_DUNGEON_ID(floor_num);
+    if (d == DUNGEON_NONE) return 1u;
+    return (d >= 6u) ? 5u : (d >= 3u) ? 3u : 1u;
+}
+
 uint8_t enemy_effective_max_hp(uint8_t type) BANKED {
-    uint8_t scale_floor;
     if (type >= NUM_ENEMY_TYPES) return 1u;
-    scale_floor = (floor_num > 1u) ? (uint8_t)(floor_num - 1u) : 1u; // entry floor doesn't inflate stats; floor 2 starts baseline
-    { uint16_t v = (uint16_t)enemy_defs[type].max_hp * (uint16_t)scale_floor;
+    { uint16_t v = (uint16_t)enemy_defs[type].max_hp * (uint16_t)enemy_stat_scale();
       return (v > 255u) ? 255u : (uint8_t)v; }
 }
 
 uint8_t enemy_effective_damage(uint8_t type) BANKED {
-    uint8_t scale_floor;
     if (type >= NUM_ENEMY_TYPES) return 1u;
-    scale_floor = (floor_num > 1u) ? (uint8_t)(floor_num - 1u) : 1u; // keep damage curve aligned with HP scaling
-    { uint16_t v = (uint16_t)enemy_defs[type].damage * (uint16_t)scale_floor;
+    { uint16_t v = (uint16_t)enemy_defs[type].damage * (uint16_t)enemy_stat_scale();
       return (v > 255u) ? 255u : (uint8_t)v; }
 }
 

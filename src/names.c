@@ -51,7 +51,7 @@ static const char *const cavern_suf[] = {
 static const char *const people_names[] = {
     "GRETA","OSWALD","MABEL","BRUNO","HILDA","WALTER","AGNES","EDWIN","MARGE","CORWIN",
     "FENWICK","ROWAN","BRIGID","DUNCAN","PIPPA","GARRICK","NELL","AMBROSE","TILDA","WREN",
-    "GIDEON","MYRA","ELSPETH","FINN","HAZEL","IVO","JORAH","KESTREL","LOTTIE","BARTHOLD",
+    "GIDEON","MYRA","ELSPETH","FINN","HAZEL","IVO","JIMOTHY","KESTREL","LOTTIE","BARTHOLD",
 };
 
 #define TOWN_PREF_N   (sizeof(town_pref)   / sizeof(town_pref[0]))

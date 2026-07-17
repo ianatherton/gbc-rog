@@ -511,16 +511,18 @@ typedef struct {
 #define TILE_RAT_VRAM      239u  /* borrows unused P7 VRAM slot (sheet 111) */
 #define TILE_RAT_OFF       111u  /* = TILE_RAT_VRAM - TILESET_VRAM_OFFSET; use in EnemyDef.tile */
 
-/* N/O rows 10-12 — Gorgon boss sprite (2×3 tiles). ROM indices past first VRAM pack.
-   Boot-patched to borrowed row-7 slots (B7/C7/E7/F7/G7/H7) whose original ROM content
-   is never placed as a BG tile. Head row (N10/O10) flips horizontally for animation.
-   Until tile art exists, EnemyDef uses BIG_SKELL placeholder tiles. */
-#define TILE_GORGON_HEAD_L_ROM  157u  /* N10 — head left                    */
-#define TILE_GORGON_HEAD_R_ROM  158u  /* O10 — head right                   */
-#define TILE_GORGON_BODY_L_ROM  173u  /* N11 — body left                    */
-#define TILE_GORGON_BODY_R_ROM  174u  /* O11 — body right                   */
-#define TILE_GORGON_FEET_L_ROM  189u  /* N12 — feet left (collision tile)   */
-#define TILE_GORGON_FEET_R_ROM  190u  /* O12 — feet right                   */
+/* Gorgon boss sprite (2×3 tiles). Art lives in bosses.png rows 9-11 cols A-B (bank 24) —
+   the _ROM values are bosses_tiles[] indices (16 cols/row), NOT tileset_tiles indices;
+   biome_load_active maps bank 24 and uploads the tiles verbatim (tone fixes belong in
+   the art / tools/prep_assets.py, not load-time swaps).
+   Uploaded to borrowed row-7 slots (B7/C7/E7/F7/G7/H7) whose original ROM content
+   is never placed as a BG tile. Head row flips horizontally for animation. */
+#define TILE_GORGON_HEAD_L_ROM  128u  /* bosses A9  — head left             */
+#define TILE_GORGON_HEAD_R_ROM  129u  /* bosses B9  — head right            */
+#define TILE_GORGON_BODY_L_ROM  144u  /* bosses A10 — body left             */
+#define TILE_GORGON_BODY_R_ROM  145u  /* bosses B10 — body right            */
+#define TILE_GORGON_FEET_L_ROM  160u  /* bosses A11 — feet left (collision) */
+#define TILE_GORGON_FEET_R_ROM  161u  /* bosses B11 — feet right            */
 #define TILE_GORGON_HEAD_L_VRAM 225u  /* borrows B7=ROM97  (unused)         */
 #define TILE_GORGON_HEAD_R_VRAM 226u  /* borrows C7=ROM98  (unused)         */
 #define TILE_GORGON_BODY_L_VRAM 228u  /* borrows E7=ROM100 (unused)         */
@@ -549,11 +551,11 @@ typedef struct {
 #define TILE_SPHINX_W1_VRAM 238u /* wing top-right — skeleton-2 */
 #define TILE_SPHINX_W2_VRAM 239u /* wing bot-left  — rat */
 #define TILE_SPHINX_W3_VRAM 234u /* wing bot-right — big-skull body (blank tile during wing_up) */
-/* bosses_tiles[] source indices (3 cols/row → N = row*3 + col): */
-#define SPHINX_TILE_LEGSUP    0u  /* A1,B1,C1,A2,B2,C2 = 0..5 */
-#define SPHINX_TILE_LEGSDN    6u  /* A3,B3,C3,A4,B4,C4 = 6..11 */
-/* wing frames are non-contiguous (skip empty C col): A5,B5,A6,B6 and A7,B7,A8,B8 */
+/* bosses_tiles[] source indices (128x128 sheet, 16 cols/row → N = row*16 + col); see the
+   body_src[]/wing_src0[] tables in biome_boss2.c: legs_up {0,1,2,16,17,18} (+32 → legs_down),
+   wing_up {64,65,80,81} (+32 → wing_down; B6=81 is the blank 4th cell). */
 #define PAL_SPHINX_BODY PAL_GORGON_BODY /* OCP slot 4 — gorgon's slot, free on the sphinx floor */
+#define PAL_SPHINX_WING PAL_ENEMY_RAT   /* OCP slot 5 — no rats on boss floors; white/grey wing ramp */
 /* Sphinx behavioral states (g_sphinx_mode): grounded chases+melees & is hittable normally;
    flying is melee-immune (ranged-only), repositions toward the player and pelts a stun-glyph bolt. */
 #define SPHINX_GROUNDED     0u

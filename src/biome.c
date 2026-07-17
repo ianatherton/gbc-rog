@@ -2,7 +2,14 @@
 #include "dungeon.h"
 #include "globals.h"
 #include "tileset.h"
+#include "bosses.h"
 #include <gb/gb.h>
+
+// Gorgon art lives in bosses.png (bank 24) since the 128x128 sheet merge; tiles are used
+// verbatim — tone/channel fixes belong in the art + tools/prep_assets.py, not load-time swaps.
+static void load_gorgon_tile(uint8_t vram_slot, uint8_t rom_index) {
+    set_sprite_data(vram_slot, 1u, bosses_tiles + (uint16_t)rom_index * 16u);
+}
 
 EnemyDef enemy_defs[NUM_ENEMY_TYPES];        // HOME storage — biome_load_active fills this; indexed by type ID
 uint8_t  enemy_active_types[NUM_ENEMY_TYPES]; // type IDs present this floor
@@ -92,14 +99,18 @@ void biome_load_active(uint8_t biome_id) {
         set_sprite_data(TILE_RAT_VRAM,    1u, tileset_tiles + (uint16_t)TILE_RAT_ROM * 16u);
         set_sprite_data(TILE_BIG_SKELL_BODY_VRAM, 1u, tileset_tiles + (uint16_t)TILE_BIG_SKELL_BODY_ROM * 16u);
         // Restore gorgon slots too — the hub's coast tiles stomp these (COAST_VRAM_SW/S/SA/SE).
-        set_sprite_data(TILE_GORGON_HEAD_L_VRAM, 1u, tileset_tiles + (uint16_t)TILE_GORGON_HEAD_L_ROM * 16u);
-        set_sprite_data(TILE_GORGON_HEAD_R_VRAM, 1u, tileset_tiles + (uint16_t)TILE_GORGON_HEAD_R_ROM * 16u);
-        set_sprite_data(TILE_GORGON_BODY_L_VRAM, 1u, tileset_tiles + (uint16_t)TILE_GORGON_BODY_L_ROM * 16u);
-        set_sprite_data(TILE_GORGON_BODY_R_VRAM, 1u, tileset_tiles + (uint16_t)TILE_GORGON_BODY_R_ROM * 16u);
-        // Restore the enemy art the hub's prefab tiles stomp: gorgon feet (drawn on the boss floor, which
-        // takes this branch) and the small slime (drawn on dungeon/cavern; miniboss restores it too).
-        set_sprite_data(TILE_GORGON_FEET_L_VRAM, 1u, tileset_tiles + (uint16_t)TILE_GORGON_FEET_L_ROM * 16u);
-        set_sprite_data(TILE_GORGON_FEET_R_VRAM, 1u, tileset_tiles + (uint16_t)TILE_GORGON_FEET_R_ROM * 16u);
+        // Sourced from bosses.png in bank 24 (safe: this fn is HOME); the feet (stomped by the
+        // hub's prefab tiles) are drawn on the boss floor, which also takes this branch.
+        SWITCH_ROM(BANK(bosses));
+        load_gorgon_tile(TILE_GORGON_HEAD_L_VRAM, TILE_GORGON_HEAD_L_ROM);
+        load_gorgon_tile(TILE_GORGON_HEAD_R_VRAM, TILE_GORGON_HEAD_R_ROM);
+        load_gorgon_tile(TILE_GORGON_BODY_L_VRAM, TILE_GORGON_BODY_L_ROM);
+        load_gorgon_tile(TILE_GORGON_BODY_R_VRAM, TILE_GORGON_BODY_R_ROM);
+        load_gorgon_tile(TILE_GORGON_FEET_L_VRAM, TILE_GORGON_FEET_L_ROM);
+        load_gorgon_tile(TILE_GORGON_FEET_R_VRAM, TILE_GORGON_FEET_R_ROM);
+        SWITCH_ROM(BANK(tileset));
+        // Restore the small slime (drawn on dungeon/cavern; miniboss restores it too) — the hub's
+        // prefab tiles stomp it.
         set_sprite_data(TILE_SLIME_1_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SLIME_ROM_1 * 16u);
         set_sprite_data(TILE_SLIME_2_VRAM, 1u, tileset_tiles + (uint16_t)TILE_SLIME_ROM_2 * 16u);
         // Restore the stun/root overlay art the hub's snow mountains stomp (PREFAB_VRAM_MTN_L/R = 197/242).

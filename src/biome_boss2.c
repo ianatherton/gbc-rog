@@ -8,7 +8,8 @@
 #include <gb/cgb.h>
 
 // Sphinx art (same bank 24) — read directly; bank is mapped whenever these functions run.
-extern const uint8_t bosses_tiles[]; // 24 tiles, 3 cols/row: body legs_up(0-5)/down(6-11), wings(12-16,18-22)
+extern const uint8_t bosses_tiles[]; // 128x128 sheet, 16 cols/row (index = row*16+col); sphinx in cols a-c:
+                                     // body legs_up rows 1-2 / legs_down rows 3-4, wings rows 5-8 (cols a-b)
 
 static const EnemyDef defs[] = {
     /* ENEMY_SPHINX */ { (uint8_t)(TILE_SPHINX_B0_VRAM - TILESET_VRAM_OFFSET),
@@ -16,16 +17,28 @@ static const EnemyDef defs[] = {
                          50, 5, PAL_SPHINX_BODY, MOVE_BLINK, 3 },
 };
 
+// Colors map 1:1 onto the sheet's 2bpp channels (no load-time swaps) — if a shade lands in
+// the wrong channel, fix the art or tools/prep_assets.py, not this table.
 static const palette_color_t pal_sphinx_body[] = {
-    RGB(0,  0,  0),   // outline / shadow
+    RGB(0,  0,  0),   // idx0 transparent for OBJ — unused
     RGB(20, 16,  7),  // deep sandstone
     RGB(28, 24, 14),  // tan
     RGB(31, 30, 22),  // pale highlight
 };
 
+static const palette_color_t pal_sphinx_wing[] = { // white/grey ramp — wings only (OCP5, rat's slot)
+    RGB(0,  0,  0),   // idx0 transparent for OBJ — unused
+    RGB(26, 26, 28),  // pale feather
+    RGB(13, 13, 16),  // grey shading
+    RGB(31, 31, 31),  // white highlight
+};
+
+// Safe to claim OCP4/OCP5 here: no gorgon/skeleton/rat spawns on the sphinx floor, and biome
+// palettes load AFTER render_palettes' load_palettes() on floor entry.
 BANKREF(biome_boss2_load_palettes)
 void biome_boss2_load_palettes(void) {
     set_sprite_palette(PAL_SPHINX_BODY, 1u, pal_sphinx_body);
+    set_sprite_palette(PAL_SPHINX_WING, 1u, pal_sphinx_wing);
 }
 
 BANKREF(biome_boss2_copy_defs)
@@ -41,14 +54,15 @@ static const uint8_t body_dst[6] = { TILE_SPHINX_B0_VRAM, TILE_SPHINX_B1_VRAM, T
                                      TILE_SPHINX_B3_VRAM, TILE_SPHINX_B4_VRAM, TILE_SPHINX_B5_VRAM };
 static const uint8_t wing_dst[4] = { TILE_SPHINX_W0_VRAM, TILE_SPHINX_W1_VRAM,
                                      TILE_SPHINX_W2_VRAM, TILE_SPHINX_W3_VRAM };
-static const uint8_t wing_src0[4] = { 12u, 13u, 15u, 16u }; // wing_up: A5,B5,A6,B6(blank); +6 → wing_down A7,B7,A8,B8
+static const uint8_t body_src[6]  = { 0u, 1u, 2u, 16u, 17u, 18u }; // legs_up A1,B1,C1,A2,B2,C2; +32 → legs_down rows 3-4
+static const uint8_t wing_src0[4] = { 64u, 65u, 80u, 81u }; // wing_up: A5,B5,A6,B6(blank); +32 → wing_down A7,B7,A8,B8
 
-static void upload_body(uint8_t frame) { // frame 0 = legs_up (tiles 0-5), 1 = legs_down (6-11) — contiguous
-    uint8_t i, base = (uint8_t)(frame * 6u);
-    for (i = 0u; i < 6u; i++) set_sprite_data(body_dst[i], 1u, bosses_tiles + (uint16_t)(base + i) * 16u);
+static void upload_body(uint8_t frame) { // frame 0 = legs_up, 1 = legs_down (+32 per source tile = 2 rows down)
+    uint8_t i, add = (uint8_t)(frame * 32u);
+    for (i = 0u; i < 6u; i++) set_sprite_data(body_dst[i], 1u, bosses_tiles + (uint16_t)(body_src[i] + add) * 16u);
 }
-static void upload_wing(uint8_t frame) { // frame 0 = wing_up, 1 = wing_down (+6 per source tile)
-    uint8_t i, add = (uint8_t)(frame * 6u);
+static void upload_wing(uint8_t frame) { // frame 0 = wing_up, 1 = wing_down (+32 per source tile)
+    uint8_t i, add = (uint8_t)(frame * 32u);
     for (i = 0u; i < 4u; i++) set_sprite_data(wing_dst[i], 1u, bosses_tiles + (uint16_t)(wing_src0[i] + add) * 16u);
 }
 

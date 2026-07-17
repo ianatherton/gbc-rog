@@ -41,7 +41,8 @@ TILESET_C   = src/tileset.c
 # Each PNG holds that biome's enemy frames row-major; biome_load_active() uploads
 # them into the ENEMY_SCRATCH VRAM region on floor entry. One bank per sheet (the
 # biome's own bank). Add a biome: new res/enemies_<biome>.png + a rule below.
-BOSSES_PNG = res/bosses.png       # indexed 24x64 (3 cols x 8 rows): sphinx body x2 frames + wings x2 frames
+BOSSES_PNG = res/bosses.png       # indexed 128x128 (16 cols x 16 rows): sphinx body/wings x2 frames + gorgon (rows 9-11)
+                                  # Krita exports RGBA — run tools/prep_assets.py after every export to re-index.
 BOSSES_C   = src/bosses.c
 
 -include $(DEPS)
@@ -59,7 +60,7 @@ $(TILESET_C): $(TILESET_PNG)
 	@sed -i '/#pragma bank /d' $@
 	@sed -i '2a #pragma bank 1' $@
 
-# Sphinx boss: tiles row-major, 3 per row → tile N = row*3 + col (see TILE_SPHINX_* in defs.h).
+# Boss sheet: tiles row-major, 16 per row → tile N = row*16 + col (see biome_boss2.c / TILE_GORGON_*_ROM).
 $(BOSSES_C): $(BOSSES_PNG)
 	$(PNG2ASSET) $< -o $@ -map -keep_duplicate_tiles -noflip -keep_palette_order
 	@sed -i '/#pragma bank /d' $@

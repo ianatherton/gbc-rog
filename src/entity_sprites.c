@@ -522,10 +522,11 @@ static void refresh_enemy_oam(uint8_t slot) {
         }
         {
             uint8_t pal = PAL_SPHINX_BODY;
+            uint8_t wing_pal = PAL_SPHINX_WING;
             uint8_t h = en_hit_flash_age[slot];
             if (h > 0u && h <= ENEMY_HIT_FLASH_VBL) {
                 uint8_t age0 = (uint8_t)(h - 1u);
-                if (((age0 >> 1) & 1u) == 0u) pal = 0u; // OCP0 grey hit pulse
+                if (((age0 >> 1) & 1u) == 0u) { pal = 0u; wing_pal = 0u; } // OCP0 grey hit pulse
             }
             // body 3×2: top row at ewy-8, legs row (footprint) at ewy; cols ewx, +8, +16
             move_entity_oam((uint8_t)(SP_ENEMY_BASE + 4u), ewx,                (int16_t)(ewy - 8), TILE_SPHINX_B0_VRAM, pal);
@@ -539,10 +540,10 @@ static void refresh_enemy_oam(uint8_t slot) {
             // the "b1/b3" corner — so the wing extends up & right over the upper-center/right body.
             int16_t wing_bl_x = (int16_t)(ewx + 8); // B1 bottom-left corner X
             int16_t wing_bl_y = ewy;                // B1 bottom-left corner Y
-            move_entity_oam(sp,                            wing_bl_x,                (int16_t)(wing_bl_y - 16), TILE_SPHINX_W0_VRAM, pal);
-            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 1u), (int16_t)(wing_bl_x + 8), (int16_t)(wing_bl_y - 16), TILE_SPHINX_W1_VRAM, pal);
-            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 2u), wing_bl_x,                (int16_t)(wing_bl_y - 8),  TILE_SPHINX_W2_VRAM, pal);
-            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 3u), (int16_t)(wing_bl_x + 8), (int16_t)(wing_bl_y - 8),  TILE_SPHINX_W3_VRAM, pal);
+            move_entity_oam(sp,                            wing_bl_x,                (int16_t)(wing_bl_y - 16), TILE_SPHINX_W0_VRAM, wing_pal);
+            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 1u), (int16_t)(wing_bl_x + 8), (int16_t)(wing_bl_y - 16), TILE_SPHINX_W1_VRAM, wing_pal);
+            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 2u), wing_bl_x,                (int16_t)(wing_bl_y - 8),  TILE_SPHINX_W2_VRAM, wing_pal);
+            move_entity_oam((uint8_t)(SP_ENEMY_BASE + 3u), (int16_t)(wing_bl_x + 8), (int16_t)(wing_bl_y - 8),  TILE_SPHINX_W3_VRAM, wing_pal);
         }
         return;
     }

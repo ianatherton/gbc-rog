@@ -11,19 +11,19 @@
 #define bosses_TILE_ORIGIN 0
 #define bosses_TILE_W 8
 #define bosses_TILE_H 8
-#define bosses_WIDTH 24
-#define bosses_HEIGHT 64
-#define bosses_TILE_COUNT 24
-#define bosses_PALETTE_COUNT 8
+#define bosses_WIDTH 128
+#define bosses_HEIGHT 128
+#define bosses_TILE_COUNT 256
+#define bosses_PALETTE_COUNT 1
 #define bosses_COLORS_PER_PALETTE 4
-#define bosses_TOTAL_COLORS 32
+#define bosses_TOTAL_COLORS 4
 #define bosses_MAP_ATTRIBUTES 0
-extern const unsigned char bosses_map[24];
+extern const unsigned char bosses_map[256];
 #define bosses_map_attributes bosses_map
 
 BANKREF_EXTERN(bosses)
 
-extern const palette_color_t bosses_palettes[32];
-extern const uint8_t bosses_tiles[384];
+extern const palette_color_t bosses_palettes[4];
+extern const uint8_t bosses_tiles[4096];
 
 #endif

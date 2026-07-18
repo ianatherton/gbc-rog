@@ -9,6 +9,7 @@
 #include "render.h"  // render_strip_* buffers + render_blit_strip_* (placed here to relieve bank 2)
 #include "ui.h"      // ui_combat_log_push — signpost labels print to the chat box
 #include "names.h"   // town/dungeon/NPC flavor names — second chat-log line in overworld_signpost_read
+#include "lcd.h"     // lcd_note_bkg0 — panic flash restores the live slot-0 ramp
 #include <gb/cgb.h>
 
 // Top-level hub floor (floor 0). No enemy roster, no items (the item scatter loop in
@@ -16,10 +17,13 @@
 // here, routed by a position->destination lookup feeding pending_transition.
 
 // Dark-green field: color 0 of BG slot 0 (open field / blank cells) and of PAL_FLOOR_BG
-// (E3/E4 ground deco) replace the usual black. Remaining colors mirror render.c's
-// pal_default / pal_floor_deco so non-hub visuals are unchanged.
+// (E3/E4 ground deco) replace the usual black. On the hub, slot 0's other three colors are
+// never displayed by field art (no corpses/stairs here), so they carry the biome-border blend
+// instead: idx1 = flat sand stroke (desert border tiles), idx2/3 = snow fill + outline (snow
+// borders reuse the coast tiles, whose stroke is idx2/3). See ow_border(). Keep in sync with
+// the copy in apply_field_palette() (render_palettes.c).
 static const palette_color_t pal_overworld_field[] = {
-    RGB(12, 23, 5), RGB(8, 8, 8), RGB(16, 16, 16), RGB(31, 31, 31),
+    RGB(12, 23, 5), RGB(29, 24, 13), RGB(24, 27, 31), RGB(15, 19, 27),
 };
 static const palette_color_t pal_overworld_floor_deco[] = {
     RGB(12, 23, 5), RGB(5, 5, 5), RGB(11, 11, 11), RGB(17, 17, 17),
@@ -45,6 +49,7 @@ static const palette_color_t pal_flag_bat[]      = { RGB(0,0,0), RGB(23,9,0),  R
 BANKREF(biome_overworld_load_palettes)
 void biome_overworld_load_palettes(void) {
     set_bkg_palette(0, 1u, pal_overworld_field);
+    lcd_note_bkg0(pal_overworld_field);
     set_bkg_palette(PAL_FLOOR_BG, 1u, pal_overworld_floor_deco);
     set_bkg_palette(PAL_OW_ACCENT, 1u, pal_overworld_accent); // slot 6 (foliage) is set by apply_wall_palette
     set_sprite_palette(PAL_LADDER, 1u, pal_flag_skeleton);     // OCP4 — enemy-less on the hub; flag uses these
@@ -101,6 +106,8 @@ static const uint16_t ow_sq[80] = {
 // Coast tiles only exist in the grass-green palette (no free CRAM slot for desert/snow coast art), so
 // keep desert and snow back from every shoreline: any land within OW_COAST_GRASS_BAND tiles of water
 // is forced to grassland. Used by ow_near_water() and pre-banded into ow_lake_rb2[] by ow_prepare().
+// (The grass↔snow / grass↔desert borders themselves DO have transition art — see ow_border() — but
+// it also lives in grass-bulk palettes, so the band rule stands.)
 #define OW_COAST_GRASS_BAND 2
 
 // Per-preset invariants, computed once by ow_prepare() instead of being re-derived (with a modulo)
@@ -111,6 +118,7 @@ static uint8_t  ow_lake_x[3], ow_lake_y[3];
 static uint16_t ow_lake_r2[3];
 static uint16_t ow_lake_rb2[3]; // (rad + OW_COAST_GRASS_BAND)^2 — banded radius for ow_near_water()
 static uint8_t  ow_river_col[3];
+static uint16_t ow_snow_thresh, ow_desert_thresh; // (mx+my) diagonals of the two region borders
 static int8_t   ow_lobe[6][6]; // coast undulation per 16×16 block — 36 values, indexed [x>>4][y>>4]
 
 static void ow_prepare(void) {
@@ -122,6 +130,12 @@ static void ow_prepare(void) {
     ow_cx = (uint8_t)(active_map_w >> 1); ow_cy = (uint8_t)(active_map_h >> 1);
     ow_land_thresh = p->land_thresh;
     ow_nlakes = p->n_lakes; ow_nrivers = p->n_rivers;
+    // Region-border diagonals, hoisted out of ow_snow/ow_desert (ow_border tests them per cell).
+    // Desert: preset 0 (least water) widens the sand, 19/32 vs 20/32 (== legacy 5/8) → ~+17% area.
+    // Snow: ~20% less area than 3/8 (corner ∝ thresh²).
+    ow_snow_thresh   = ((uint16_t)active_map_w + (uint16_t)active_map_h) / 3u;
+    ow_desert_thresh = ((uint16_t)active_map_w + (uint16_t)active_map_h)
+                       * (overworld_preset == 0u ? 19u : 20u) / 32u;
     for (a = 0u; a < 6u; a++)
         for (b = 0u; b < 6u; b++)
             ow_lobe[a][b] = (int8_t)((ow_hash8((uint8_t)(a + 1u), (uint8_t)(b + 1u)) & 15u)) - 7; // ~16-tile bays/capes
@@ -232,18 +246,15 @@ static uint8_t ow_near_water(uint8_t x, uint8_t y) {
 // hub cell pays one prepare + zero internal trampolines instead of re-entering the bank per query.
 static uint8_t ow_desert(uint8_t mx, uint8_t my) { // hub SE corner: diagonal "coast" meeting the sea
     uint16_t sum = (uint16_t)mx + (uint16_t)my;
-    // preset 0 (least water) widens the sand: 19/32 vs 20/32 (== legacy 5/8) → ~+17% area.
-    uint16_t thresh = ((uint16_t)active_map_w + (uint16_t)active_map_h) * (overworld_preset == 0u ? 19u : 20u) / 32u;
     uint8_t  jitter = (uint8_t)(((uint8_t)(mx * 7u) ^ (uint8_t)(my * 13u)) & 3u); // ragged edge, +0..3 tiles
-    if ((sum + jitter) < thresh) return 0u;       // outside the SE sand region
+    if ((sum + jitter) < ow_desert_thresh) return 0u; // outside the SE sand region
     return ow_near_water(mx, my) ? 0u : 1u;       // grass band hugs the coast
 }
 
 static uint8_t ow_snow(uint8_t mx, uint8_t my) { // hub NW corner: snowfield on the freed PAL_WALL_BG slot
     uint16_t sum = (uint16_t)mx + (uint16_t)my;
-    uint16_t thresh = ((uint16_t)active_map_w + (uint16_t)active_map_h) / 3u; // ~20% less area than 3/8 (corner ∝ thresh^2)
     uint8_t  jitter = (uint8_t)(((uint8_t)(mx * 11u) ^ (uint8_t)(my * 5u)) & 3u); // ragged edge
-    if (sum > (uint16_t)(thresh + jitter)) return 0u; // outside the NW snow region
+    if (sum > (uint16_t)(ow_snow_thresh + jitter)) return 0u; // outside the NW snow region
     return ow_near_water(mx, my) ? 0u : 1u;           // grass band hugs the coast
 }
 
@@ -277,6 +288,52 @@ static uint8_t ow_coast(uint8_t mx, uint8_t my) { // assumes the water mask was 
 
 BANKREF(overworld_coast_vram)
 uint8_t overworld_coast_vram(uint8_t mx, uint8_t my) BANKED { ow_prepare(); return ow_coast(mx, my); }
+
+// Biome-border transition on a GRASS cell — same shape as ow_coast, but the "water" oracle is the
+// snow/desert region test of the 4 neighbours, and the stroke colors ride slot 0 (see
+// pal_overworld_field). Snow borders reuse the coast tiles verbatim (their idx2/3 stroke reads as
+// snow fill + outline under palette 0); desert borders use the 3 flat-stroke tiles biome.c remaps
+// at hub load (stroke idx1 = sand), oriented with BG-attr X/Y flips. attr_out gets palette 0 plus
+// any flip bits; only meaningful when the return is nonzero.
+// Pre-filter: both regions are ragged (mx+my) diagonals with jitter ≤ 3, so a grass cell can only
+// border snow when sum-1 <= thresh+3, resp. desert when sum+1 >= thresh-3 (+5 margin used for
+// safety) — every other cell skips the ow_near_water-heavy region tests entirely. The two bands
+// sit at ~(w+h)/3 vs ~5(w+h)/8 (opposite corners), so they never overlap. Caller guarantees the
+// cell is grass floor and not a road; like ow_coast, land never touches the forced-ocean map
+// border, so all four neighbours are in-bounds.
+static uint8_t ow_border(uint8_t mx, uint8_t my, uint8_t *attr_out) {
+    uint16_t sum = (uint16_t)mx + (uint16_t)my;
+    if (sum <= (uint16_t)(ow_snow_thresh + 5u)) {
+        uint8_t bn = ow_snow(mx, (uint8_t)(my - 1u)), bs = ow_snow(mx, (uint8_t)(my + 1u));
+        uint8_t be = ow_snow((uint8_t)(mx + 1u), my), bw = ow_snow((uint8_t)(mx - 1u), my);
+        *attr_out = 0u; // palette 0: green bulk idx0, snow stroke idx2/3
+        if (bn && be) return COAST_VRAM_NE;
+        if (bn && bw) return COAST_VRAM_NW;
+        if (bs && be) return COAST_VRAM_SE;
+        if (bs && bw) return COAST_VRAM_SW;
+        if (bn) return (mx & 1u) ? COAST_VRAM_NA : COAST_VRAM_N;
+        if (bs) return (mx & 1u) ? COAST_VRAM_SA : COAST_VRAM_S;
+        if (be) return (my & 1u) ? COAST_VRAM_SE : COAST_VRAM_NE; // E border ← corner art
+        if (bw) return (my & 1u) ? COAST_VRAM_SW : COAST_VRAM_NW; // W border ← corner art
+        return 0u;
+    }
+    if ((uint16_t)(sum + 5u) >= ow_desert_thresh) {
+        uint8_t bn = ow_desert(mx, (uint8_t)(my - 1u)), bs = ow_desert(mx, (uint8_t)(my + 1u));
+        uint8_t be = ow_desert((uint8_t)(mx + 1u), my), bw = ow_desert((uint8_t)(mx - 1u), my);
+        uint8_t t = 0u, fl = 0u;
+        if      (bn && be) { t = BORDER_VRAM_CORNER_NW; fl = S_FLIPX; }
+        else if (bn && bw)   t = BORDER_VRAM_CORNER_NW;
+        else if (bs && be) { t = BORDER_VRAM_CORNER_NW; fl = S_FLIPX | S_FLIPY; }
+        else if (bs && bw) { t = BORDER_VRAM_CORNER_NW; fl = S_FLIPY; }
+        else if (bn)         t = (mx & 1u) ? BORDER_VRAM_EDGE_NA : BORDER_VRAM_EDGE_N;
+        else if (bs)       { t = (mx & 1u) ? BORDER_VRAM_EDGE_NA : BORDER_VRAM_EDGE_N; fl = S_FLIPY; }
+        else if (be)       { t = BORDER_VRAM_CORNER_NW; fl = (my & 1u) ? (S_FLIPX | S_FLIPY) : S_FLIPX; } // E ← corner art
+        else if (bw)       { t = BORDER_VRAM_CORNER_NW; fl = (my & 1u) ? S_FLIPY : 0u; }                  // W ← corner art
+        *attr_out = fl; // palette 0: green bulk idx0, flat sand stroke idx1
+        return t;
+    }
+    return 0u;
+}
 
 // Part D: if (x,y) is the walkable trigger cell of a placed hub feature, return its OW_FEAT_* type,
 // else 255. The trigger cell is the footprint's top-left plus the prefab's ent_dx/ent_dy (globals.c).
@@ -583,6 +640,10 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
         uint8_t coast = ow_coast(mx, my); // shore tile when this land cell borders water
         if (coast) { *pal_out = PAL_PILLAR_BG; return coast; } // green land bulk + blue shore edge
         if (road_bit(TILE_IDX(mx, my))) *region_out = OW_REGION_DESERT; // road → open sand look (no new art)
+        else if (region == OW_REGION_GRASS) { // grass cell at a snow/desert border → transition stroke
+            uint8_t v = ow_border(mx, my, pal_out);
+            if (v) return v; // pal_out carries palette 0 + any flip bits
+        }
     }
     return 0u; // interior ground (or a visible pit/other tile) — caller draws via its own path
 }
@@ -683,6 +744,10 @@ static uint8_t ow_cell_batch(uint8_t mx, uint8_t my, uint8_t t, uint8_t wb) {
         if (wb & OWB_ROAD) desert = 1u; // road → open sand look (overrides region)
         else if (ow_snow(mx, my)) snow = 1u;
         else if (ow_desert(mx, my)) desert = 1u;
+        if (!snow && !desert) { // grass cell (and not road) at a snow/desert border → transition stroke
+            uint8_t v = ow_border(mx, my, &owb_attr);
+            if (v) return v; // owb_attr carries palette 0 + any flip bits
+        }
         for (i = 0u; i < brazier_count; i++) // hub target_count is 0 today; kept for parity
             if (brazier_x[i] == mx && brazier_y[i] == my) {
                 uint8_t off = (brazier_type[i] == 0u)

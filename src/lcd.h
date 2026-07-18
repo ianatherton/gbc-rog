@@ -6,6 +6,7 @@
 void lcd_init_raster(void); // VBL + LYC: dungeon full height → bottom window (WY=UI_WINDOW_Y_START)
 void lcd_clear_display(void); // call only after wait_vbl_done(): LCD off → wipe maps+OAM → on
 void lcd_hp_panic_flash_trigger(void); // one brief red wash on BKG palette 0 (CGB) — call when HP% crosses down through 30%
+void lcd_note_bkg0(const uint16_t *pal4); // record the live BKG palette 0 (4 colors) so the panic flash restores the right ramp — call after every gameplay set_bkg_palette(0, ...)
 void lcd_suspend(void);
 void lcd_resume(void);
 

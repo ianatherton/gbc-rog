@@ -10,6 +10,7 @@
 #include "wall_palettes.h" // wall_palette_table (HOME), NUM_WALL_PALETTES
 #include "biome.h"         // BIOME_OVERWORLD
 #include "class_palettes.h"
+#include "lcd.h"           // lcd_note_bkg0 — panic flash restores the live slot-0 ramp
 #include <gbdk/platform.h>
 
 static const palette_color_t pal_default[]  = { RGB(0,0,0),  RGB(8,8,8),   RGB(16,16,16), RGB(31,31,31) }; // slot 0: black field, corpses, blank floor; wall paper
@@ -92,13 +93,16 @@ BANKREF(apply_field_palette)
 void apply_field_palette(void) BANKED { // slot 0 (blank field) + floor-deco, per biome — restores after a menu blanks slot 0
     if (floor_biome == BIOME_OVERWORLD || floor_biome == BIOME_TOWN) { // towns share the hub's grass field
         // keep identical to biome_overworld.c pal_overworld_field / pal_overworld_floor_deco
-        palette_color_t f[4]  = { RGB(12, 23, 5), RGB(8, 8, 8), RGB(16, 16, 16), RGB(31, 31, 31) };
+        // (field idx1-3 = biome-border blend: sand stroke, snow fill, snow outline — see ow_border)
+        palette_color_t f[4]  = { RGB(12, 23, 5), RGB(29, 24, 13), RGB(24, 27, 31), RGB(15, 19, 27) };
         palette_color_t fd[4] = { RGB(12, 23, 5), RGB(5, 5, 5), RGB(11, 11, 11), RGB(17, 17, 17) };
         set_bkg_palette(0, 1, f);
         set_bkg_palette(PAL_FLOOR_BG, 1, fd);
+        lcd_note_bkg0(f);
     } else {
         set_bkg_palette(0, 1, pal_default);
         set_bkg_palette(PAL_FLOOR_BG, 1, pal_floor_deco);
+        lcd_note_bkg0(pal_default);
     }
     // A menu may have stomped PAL_WALL_BG/PAL_PILLAR_BG (e.g. inventory restores the metal ramp into
     // slot 3). Invalidate the cache so the next apply_wall_palette re-pushes the floor's true ramps —
@@ -109,6 +113,7 @@ void apply_field_palette(void) BANKED { // slot 0 (blank field) + floor-deco, pe
 BANKREF(load_palettes)
 void load_palettes(void) BANKED { // slots 0–7 except walls: wall table entry 0 until apply_wall_palette runs
     set_bkg_palette(0, 1, pal_default);
+    lcd_note_bkg0(pal_default); // hub/town loaders overwrite slot 0 (and the note) right after
     set_bkg_palette(PAL_PILLAR_BG, 1, wall_palette_table[0]); // slot 1 = pillars in gameplay (was unused BKG green)
     set_bkg_palette(PAL_FLOOR_BG, 1, pal_floor_deco); // ground deco tile only; blank floor uses slot 0
     set_bkg_palette(PAL_WALL_BG, 1, wall_palette_table[0]); // matches wall_palette_index default 0

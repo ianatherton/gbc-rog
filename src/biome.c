@@ -82,6 +82,21 @@ void biome_load_active(uint8_t biome_id) {
         // Snow-biome mountains (B9/C9) borrow the stun/root overlay slots — restored on the non-hub branch.
         set_bkg_data(PREFAB_VRAM_MTN_L,        1u, tileset_tiles + (uint16_t)TILE_PREFAB_MTN_L * 16u);
         set_bkg_data(PREFAB_VRAM_MTN_R,        1u, tileset_tiles + (uint16_t)TILE_PREFAB_MTN_R * 16u);
+        // Desert-border flat-stroke tiles: coast art with its idx2/3 stroke collapsed to idx1 (= flat
+        // sand under the hub's slot-0 blend). 2bpp per row pair: lo' = lo|hi, hi' = 0 (0→0, 1→1,
+        // 2→1, 3→1). Dead blank-cell slots (O5/P5/P6) — no restore needed. Orientation comes from
+        // BG-attr flips (ow_border), so only corner-NW + the two N edges are materialized. To swap in
+        // hand-authored art later, just point src at the new sheet cells and drop the remap loop.
+        {
+            static const uint8_t border_rom_src[3]  = { TILE_COAST_D11, TILE_COAST_E11, TILE_COAST_F11 };
+            static const uint8_t border_vram_dst[3] = { BORDER_VRAM_CORNER_NW, BORDER_VRAM_EDGE_N, BORDER_VRAM_EDGE_NA };
+            uint8_t buf[16], i, b;
+            for (i = 0u; i < 3u; i++) {
+                const uint8_t *src = tileset_tiles + (uint16_t)border_rom_src[i] * 16u;
+                for (b = 0u; b < 16u; b += 2u) { buf[b] = (uint8_t)(src[b] | src[b + 1u]); buf[b + 1u] = 0u; }
+                set_bkg_data(border_vram_dst[i], 1u, buf);
+            }
+        }
     } else if (biome_id == BIOME_BOSS2) {
         // Sphinx: upload frame-0 art into the 10 scratch slots (gorgon + skel/rat/big-skull slots,
         // free here). sphinx_anim_tick re-uploads per frame; the else-branch restores those slots

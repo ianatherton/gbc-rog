@@ -6,6 +6,7 @@
 #include "globals.h"
 #include "map.h"
 #include "dungeon.h"
+#include "lcd.h" // lcd_note_bkg0 — panic flash restores the live slot-0 ramp
 #include <gb/cgb.h>
 #include <gbdk/platform.h>
 
@@ -39,6 +40,7 @@ static const palette_color_t pal_town_accent[] = {
 BANKREF(biome_town_load_palettes)
 void biome_town_load_palettes(void) {
     set_bkg_palette(0, 1u, pal_town_field);
+    lcd_note_bkg0(pal_town_field);
     set_bkg_palette(PAL_FLOOR_BG, 1u, pal_town_floor_deco);
     set_bkg_palette(PAL_OW_ACCENT, 1u, pal_town_accent);
 }

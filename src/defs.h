@@ -401,6 +401,15 @@ typedef struct {
 /* The 8 coast tiles alias enemy OBJ VRAM slots (no enemies on the hub). biome_load_active() uploads
    coast art here on floor 0 and restores the enemy sprites on every dungeon floor. Order below must
    match the upload order in biome.c. */
+/* Biome-border transition tiles (grass↔snow, grass↔desert). Snow borders reuse the 8 coast tiles
+   verbatim with attr = palette 0: on the hub, slot 0's idx2/3 are snow shades, so the coast art's
+   blue stroke recolors white (its bulk idx0 stays the green field). Desert borders use 3 tiles
+   generated at hub load — coast art with idx2/3 collapsed to idx1 (= flat sand on the hub's slot 0)
+   — plus BG-attr X/Y flips for the other orientations. Slots are blank sheet cells O5/P5/P6 (no
+   art, no refs — verified), dead like the boss-door slots: no off-hub restore needed. */
+#define BORDER_VRAM_CORNER_NW 206u /* O5 blank — from TILE_COAST_D11, remapped */
+#define BORDER_VRAM_EDGE_N    207u /* P5 blank — from TILE_COAST_E11, remapped */
+#define BORDER_VRAM_EDGE_NA   223u /* P6 blank — from TILE_COAST_F11, remapped */
 #define COAST_VRAM_NW  237u /* TILE_SKEL_1_VRAM        */
 #define COAST_VRAM_N   238u /* TILE_SKEL_2_VRAM        */
 #define COAST_VRAM_NA  239u /* TILE_RAT_VRAM (N alt)   */

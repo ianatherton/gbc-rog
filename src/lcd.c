@@ -16,13 +16,20 @@ uint8_t  lcd_gameplay_active;   // BSS 0 — title/state screens drive transitio
 volatile int8_t lcd_shake_x;
 volatile int8_t lcd_shake_y;
 
-static uint8_t lcd_hp_panic_flash_ttl; // VBlanks left: BKG pal 0 red tint then restore (match render.c pal_default[0])
+static uint8_t lcd_hp_panic_flash_ttl; // VBlanks left: BKG pal 0 red tint then restore
 static const palette_color_t lcd_pal_hp_panic_flash[] = {
     RGB(22, 0, 0), RGB(28, 2, 2), RGB(31, 8, 6), RGB(31, 16, 12),
 };
-static const palette_color_t lcd_pal_bkg0_restore[] = {
+// Restored ramp = whatever the gameplay palette loaders last pushed into slot 0 (dungeon default /
+// hub green field / town field) — a fixed ramp here painted the dungeon black over the hub's green.
+static palette_color_t lcd_pal_bkg0_restore[] = {
     RGB(0, 0, 0), RGB(8, 8, 8), RGB(16, 16, 16), RGB(31, 31, 31),
 };
+
+void lcd_note_bkg0(const uint16_t *pal4) { // caller's pointer may be banked ROM — copy while it's mapped
+    lcd_pal_bkg0_restore[0] = pal4[0]; lcd_pal_bkg0_restore[1] = pal4[1];
+    lcd_pal_bkg0_restore[2] = pal4[2]; lcd_pal_bkg0_restore[3] = pal4[3];
+}
 
 void lcd_hp_panic_flash_trigger(void) {
     if (lcd_gameplay_active) lcd_hp_panic_flash_ttl = 3u; // ~3 frames @60Hz — one visible red pulse on pal-0 tiles

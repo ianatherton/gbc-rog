@@ -193,20 +193,24 @@ static void draw_stats_panel(void) {
     gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 1u)); printf("Damage:");
     put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 1u), player_damage, 3u);
 
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 2u)); printf("Dodge%%:");
-    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 2u), player_dodge, 2u);
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 2u)); printf("Crit%%:");
+    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 2u), player_crit_chance, 2u);
     gotoxy((uint8_t)(EQUIP_PANEL_X + 9u), (uint8_t)(y + 2u)); putchar('%');
 
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 3u)); printf("Armor:");
-    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 3u), player_armor, 2u);
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 3u)); printf("Dodge%%:");
+    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 3u), player_dodge, 2u);
     gotoxy((uint8_t)(EQUIP_PANEL_X + 9u), (uint8_t)(y + 3u)); putchar('%');
 
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 4u)); printf("MagDef:");
-    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 4u), player_magdef, 2u);
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 4u)); printf("Armor:");
+    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 4u), player_armor, 2u);
     gotoxy((uint8_t)(EQUIP_PANEL_X + 9u), (uint8_t)(y + 4u)); putchar('%');
 
-    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 5u)); printf("Light :");
-    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 5u), player_light_radius(), 3u);
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 5u)); printf("MagDef:");
+    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 5u), player_magdef, 2u);
+    gotoxy((uint8_t)(EQUIP_PANEL_X + 9u), (uint8_t)(y + 5u)); putchar('%');
+
+    gotoxy(EQUIP_PANEL_X, (uint8_t)(y + 6u)); printf("Light :");
+    put_stat_uint((uint8_t)(EQUIP_PANEL_X + 7u), (uint8_t)(y + 6u), player_light_radius(), 3u);
 }
 
 static void draw_equipped_marks(void) {
@@ -297,6 +301,11 @@ static void draw_menu_tabs_inv(void) {
     for (x = 11u; x <= 15u; x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI_BG); // SPELL
     for (x = 17u; x <= 19u; x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI_BG); // MAP
     VBK_REG = VBK_TILES;
+    if (player_stat_points) { // unspent level-up points reminder
+        gotoxy(10, 0); putchar('+');
+        set_bkg_attribute_xy(10u, 0u, PAL_XP_UI_BG);
+        VBK_REG = VBK_TILES;
+    }
 }
 
 static void draw_grid_screen(void) {

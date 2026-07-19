@@ -30,6 +30,11 @@ void state_ability_enter(void) BANKED {
         for (x = 6u; x <= 9u; x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI_BG);  // STAT
         for (x = 17u; x <= 19u; x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI_BG); // MAP
         VBK_REG = VBK_TILES;
+        if (player_stat_points) { // unspent level-up points; col 10 holds this tab's arrow
+            gotoxy(5, 0); putchar('+');
+            set_bkg_attribute_xy(5u, 0u, PAL_XP_UI_BG);
+            VBK_REG = VBK_TILES;
+        }
     }
     gotoxy(2, 6); printf("SPELLS");
     gotoxy(2, 9); printf("(none yet)");

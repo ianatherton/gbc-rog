@@ -30,6 +30,11 @@ void state_map_enter(void) BANKED {
         for (x = 6u;  x <= 9u;  x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI_BG);  // STAT
         for (x = 11u; x <= 15u; x++) set_bkg_attribute_xy(x, 0u, PAL_XP_UI_BG);  // SPELL
         VBK_REG = VBK_TILES;
+        if (player_stat_points) { // unspent level-up points reminder
+            gotoxy(10, 0); putchar('+');
+            set_bkg_attribute_xy(10u, 0u, PAL_XP_UI_BG);
+            VBK_REG = VBK_TILES;
+        }
     }
     ui_map_put_seed_line(0u, 1u); // full seed name under the tab bar
     gotoxy(2, 6); printf("MAP");

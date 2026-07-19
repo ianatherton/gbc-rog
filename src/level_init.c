@@ -85,6 +85,7 @@ void level_init_display(uint8_t from_pit) BANKED {
         player_level = 1;
         player_damage = 1;
         player_xp = 0;
+        player_stat_points = 0;
         if      (player_class == 1u) player_crit_chance = 15u; // SCOUNDREL
         else if (player_class == 2u) player_crit_chance = 10u; // WITCH
         else if (player_class == 3u) player_crit_chance = 20u; // ZERKER

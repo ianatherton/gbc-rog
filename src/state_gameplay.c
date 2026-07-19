@@ -23,6 +23,8 @@
 #include "ally.h"
 #include "items.h"
 #include "story_ui.h"
+#include "auto_explore.h"
+#include "gameplay_cold.h"
 #include <gb/gb.h>
 #include <gbdk/platform.h>
 
@@ -92,68 +94,14 @@ static void gameplay_allies_turn_and_glide(uint8_t px, uint8_t py) {
     }
 }
 
-// Strings live in HOME (ability_dispatch.c) — always mapped, safe to return from bank 2.
-static const char *belt_name_for(uint8_t slot) {
-    if (slot == 1u && player_class == 2u && player_level >= 3u) return ability_name_swamp_root;
-    if (slot != 0u) return 0;
-    if (player_class == 0u) return ability_name_holy_fire_shield;
-    if (player_class == 1u) return ability_name_call_fox;
-    if (player_class == 2u) return ability_name_fetid_bolt;
-    if (player_class == 3u) return ability_name_whirlwind;
-    return 0;
-}
-
 static uint8_t select_hold_ticks;
-
-static uint8_t belt_slot_nonempty(uint8_t slot) {
-    if (slot < BELT_SLOT_COUNT) return belt_name_for(slot) != 0;
-    {
-        uint8_t kind = inventory_kind[slot - BELT_SLOT_COUNT];
-        return kind != ITEM_KIND_NONE;
-    }
-}
-
-static void belt_select_advance_skip_empty(void) {
-    uint8_t i;
-    for (i = 0u; i < BELT_TOTAL_SLOTS; i++) {
-        selected_belt_slot = (uint8_t)((selected_belt_slot + 1u) % BELT_TOTAL_SLOTS);
-        if (belt_slot_nonempty(selected_belt_slot)) break;
-    }
-}
-
-static void push_selected_belt_description(void) {
-    char buf[20];
-    uint8_t i = 0u;
-    if (selected_belt_slot < BELT_SLOT_COUNT) {
-        const char *name = belt_name_for(selected_belt_slot);
-        if (!name) return;
-        while (name[i] && i < 19u) { buf[i] = name[i]; i++; }
-        buf[i] = 0;
-        ui_combat_log_push(buf);
-    } else {
-        uint8_t belt_idx = selected_belt_slot - BELT_SLOT_COUNT;
-        uint8_t kind = inventory_kind[belt_idx];
-        if (kind == ITEM_KIND_NONE) return;
-        items_kind_display_name_copy(kind, inventory_mod_level[belt_idx], buf, sizeof buf);
-        if (items_kind_category(kind) == ITEM_CAT_CONSUMABLE) {
-            uint8_t p = 0u, split, cnt = inventory_count[selected_belt_slot - BELT_SLOT_COUNT];
-            while (buf[p]) p++;
-            split = (uint8_t)(p + 1u); // "x" starts after the space
-            buf[p++] = ' '; buf[p++] = 'x';
-            if (cnt >= 100u) { buf[p++] = (char)('0' + cnt / 100u); cnt = (uint8_t)(cnt % 100u); }
-            if (cnt >= 10u)  { buf[p++] = (char)('0' + cnt / 10u);  cnt = (uint8_t)(cnt % 10u);  }
-            buf[p++] = (char)('0' + cnt);
-            buf[p] = 0;
-            ui_combat_log_push_gold_suffix(buf, split);
-        } else {
-            ui_combat_log_push(buf);
-        }
-    }
-}
+// belt_select_advance_skip_empty / push_selected_belt_description evicted to gameplay_cold.c
+// (bank 30) — SELECT-edge-only, moved for bank-2 space relief.
 
 BANKREF(state_gameplay_enter)
 void state_gameplay_enter(void) BANKED {
     confirm_kind = CONFIRM_NONE;
+    auto_explore_active = 0u;
     if (gameplay_soft_reenter) {
         gameplay_soft_reenter = 0u;
         g_prev_j = 0;
@@ -197,11 +145,14 @@ void state_gameplay_tick(void) BANKED {
 
     if (!lcd_gameplay_active) {
         lcd_gameplay_active = 1u;
+        g_prev_j = j; // buttons still held from the modal's exit press are stale — require release before they edge again (B belt-use / A auto-explore)
         window_ui_show();
         apply_field_palette(); // restore slot 0 field color (a menu may have blanked it to black)
         wait_vbl_done();
         draw_screen(g_player_x, g_player_y);
     }
+
+    if (auto_explore_active) j = auto_explore_step(j); // synthesized dpad bit (or 0) — drives the normal walk/bump path below
 
     if (lcd_gameplay_active && (j & J_START) && !(g_prev_j & J_START)) {
         next_state = STATE_INVENTORY;
@@ -362,13 +313,16 @@ void state_gameplay_tick(void) BANKED {
         return;
     }
 
+    if (!auto_explore_active && (j & J_A) && !(g_prev_j & J_A))
+        auto_explore_try_start(); // no confirm armed (consumed above) — A starts auto-explore; falls through, J_A moves nothing
+
     if (j & J_LEFT)  { nx = g_player_x > 0       ? (uint8_t)(g_player_x-1) : g_player_x; entity_sprites_set_player_facing(-1); }
     if (j & J_RIGHT) { nx = g_player_x < active_map_w-1 ? (uint8_t)(g_player_x+1) : g_player_x; entity_sprites_set_player_facing(1); }
     if (j & J_UP)    ny = g_player_y > 0         ? (uint8_t)(g_player_y-1) : g_player_y;
     if (j & J_DOWN)  ny = g_player_y < active_map_h-1   ? (uint8_t)(g_player_y+1) : g_player_y;
 
 #if GBC_ROG_DEBUG
-    if ((j & J_A) && !(g_prev_j & J_A)) {
+    if ((j & J_B) && (j & J_A) && !(g_prev_j & J_A)) { // B+A: plain A now starts auto-explore
         wall_palette_index = (uint8_t)((wall_palette_index + 1u) % NUM_WALL_PALETTES);
         wait_vbl_done();
         draw_screen(g_player_x, g_player_y);
@@ -531,7 +485,10 @@ void state_gameplay_tick(void) BANKED {
         wait_vbl_done();
         draw_enemy_cells(g_player_x, g_player_y);
     }
-    if (pending_pickup_slot != 255u) next_state = STATE_PICKUP; // turn fully resolved — open modal next frame
+    if (pending_pickup_slot != 255u) { // turn fully resolved — auto-take while exploring, else open modal next frame
+        if (auto_explore_active) auto_explore_take_pending();
+        else next_state = STATE_PICKUP;
+    }
     g_prev_j = j;
     wait_vbl_done();
     if (floor_biome == BIOME_OVERWORLD) water_anim_tick(); // fresh in VBlank: one 16-byte VRAM write drifts all sea

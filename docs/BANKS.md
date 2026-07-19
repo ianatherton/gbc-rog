@@ -14,7 +14,7 @@ SRAM (battery RAM) is currently unused — free for saves later.
 |------|------|----|----------|
 | 0 (fixed) | ~15,900 of 16,368 usable | ~97% | main loop, ability_dispatch, ally, biome dispatch + `enemy_defs` HOME cache, enemy_extras, lcd, lighting (incl. SVBK fog/water/road accessors + `wram2_read_byte` batch reader), music driver + SFX, perf, seed_entropy, targeting, tileset_io, title_logo, ui_loading_isr, wall_palettes, SDCC runtime. **~450 B free (2026-07-06) — keep HOME lean** |
 | 1 | 4,360 | 27% | tileset (png2asset output) |
-| 2 | 16,189 | 99% | gameplay kernel: state_gameplay (incl. zone-confirm latch), map, render, camera, enemy. **~195 B free — chronically full; evict before adding (axe/mace extras went to bank 19 2026-07-06)** |
+| 2 | 16,146 | 99% | gameplay kernel: state_gameplay (incl. zone-confirm latch), map, render, camera, enemy. **~238 B free — chronically full; evict before adding (axe/mace extras → bank 19 2026-07-06; belt-description helpers → bank 30 `gameplay_cold.c` 2026-07-18)** |
 | 3 | 6,077 | 37% | all 9 UI states (title → game_over) + class_palettes |
 | 4 | 2,971 | 18% | bwv1043 music data |
 | 5 | 13,000 | 79% | ui.c (incl. `ui_confirm_prompt_push` zone-confirm text) |
@@ -38,7 +38,8 @@ SRAM (battery RAM) is currently unused — free for saves later.
 | 24 | ~600 | 4% | biome_boss2 (Sphinx roster/art; overlaid onto any dungeon's boss floor by biome_apply_floor_kind) + bosses (png2asset sphinx sheet, res/bosses.png). 10-tile sprite uploaded to VRAM scratch + re-uploaded per frame by sphinx_anim_tick for a 2-frame leg cycle + faster wingbeat |
 | 28 | ~460 | 3% | dungeon_floors (miniboss elite art: runtime 2x pixel-doubler of elite_base_type's sprite → quadrant VRAM slots; floor-kind scheme in src/dungeon.h) |
 | 29 | 1,836 | 11% | biome_town (town interiors, floors 46–48 = `TOWN_FLOOR_BASE`+0..2: 20×20 overworld-look safe zone — grass field, sand road cross, brick buildings housing NPCs, deco pines, heal fountain; fully lit like the hub; enter/exit via the zone-confirm gate) |
-| 23, 25–27, 30–31 | 0 | 0% | empty — ~130 KB free (27 freed 2026-07: biome_miniboss + enemies_miniboss retired — miniboss/boss are floor kinds now, one biome per dungeon) |
+| 30 | 2,899 | 18% | auto_explore (A-button auto-explore: cached-path BFS, DCSS-style stop-on-sight/stop-on-hit, auto-pickup; private SVBK bank-3 accessors) + gameplay_cold (SELECT-edge belt-description helpers evicted from bank 2) |
+| 23, 25–27, 31 | 0 | 0% | empty — ~115 KB free (27 freed 2026-07: biome_miniboss + enemies_miniboss retired — miniboss/boss are floor kinds now, one biome per dungeon) |
 
 Total ROM used ≈ 76 KB of 512 KB (~15%). ROM is not the constraint. If it ever is,
 MBC5 goes to 8 MB: bump `-Wl-yo32` in the Makefile (64/128/…), nothing else changes.
@@ -80,8 +81,10 @@ Flow: `Boot → TITLE → CHAR_CREATE → GAMEPLAY ⇄ modals(STATS↔ABILITY, I
 
 ## WRAM budget
 
-Fixed WRAM (0xC000–0xDFFF): `_DATA` ≈ 6,647 B (+ 250 B for per-floor tracking) + `_INITIALIZED` 26 B.
-Stack runs down from 0xDFFF → **~1,350 B headroom**.
+Fixed WRAM (0xC000–0xDFFF): `_DATA` ≈ 7,485 B (measured 2026-07-18; ends 0xDDDD).
+Stack runs down from 0xDFFF → **~545 B headroom** — getting tight. Largest recent additions:
+auto_explore BFS queue + path buffer (256 + 48 B; move the queue to SVBK bank 3 at 0xDD80+
+if headroom is ever needed back).
 
 Top consumers:
 - 3 × 1,152 B map bitsets (`floor_bits`, `pit_bits`, `enemy_occ`) = 3,456 B
@@ -98,11 +101,16 @@ Top consumers:
 | 2 | 0xD480–0xD8FF | hub water mask (1,152 B) — `overworld_water_*` in `lighting.c`; hub-only, never aliases fog |
 | 2 | 0xD900–0xDD7F | hub road mask (1,152 B) — `road_*` in `lighting.c`; hub-only, rendered as open sand |
 | 2 | 0xDD80–0xDFFF | free (~640 B; keep data below ~0xDF00) |
-| 3–7 | — | free (20 KB) — future per-floor data, bigger maps, more creature stats |
+| 3 | 0xD000–0xD47F | auto-explore BFS visited bitmap (1,152 B) — private `av_*` accessors in `auto_explore.c`; scratch, valid only within one `ax_bfs()` call |
+| 3 | 0xD480–0xDD7F | auto-explore BFS parent-direction map, 2 bits/tile (2,304 B) — private `ap_*` accessors; never cleared (only current-flood tiles are read back), used to extract the cached path |
+| 3 | 0xDD80–0xDFFF | free (~640 B; keep data below ~0xDF00) |
+| 4–7 | — | free (16 KB) — future per-floor data, bigger maps, more creature stats |
 
 Rules for adding banked-WRAM data (the `exp2_*` accessors in `src/lighting.c` are the template):
-1. Accessors are `__naked` asm in a HOME file: nothing may touch the stack while SVBK ≠ 1
-   (the stack itself lives in banked memory at 0xDFxx).
+1. Accessors are `__naked` asm: nothing may touch the stack while SVBK ≠ 1
+   (the stack itself lives in banked memory at 0xDFxx). Put them in a HOME file when callers
+   span banks; private `static` accessors may live in the owning banked file (near calls only —
+   `av_*` in `auto_explore.c` does this).
 2. `di` before switching, `ei` after restoring — an ISR push while switched lands in the wrong bank.
 3. Never call the accessors from an ISR (the `ei` would re-enable interrupts inside it).
 4. Keep banked-WRAM data below ~0xDF00 so it can never collide with stack pushes during the window.

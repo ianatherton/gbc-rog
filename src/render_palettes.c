@@ -93,8 +93,9 @@ BANKREF(apply_field_palette)
 void apply_field_palette(void) BANKED { // slot 0 (blank field) + floor-deco, per biome — restores after a menu blanks slot 0
     if (floor_biome == BIOME_OVERWORLD || floor_biome == BIOME_TOWN) { // towns share the hub's grass field
         // keep identical to biome_overworld.c pal_overworld_field / pal_overworld_floor_deco
-        // (field idx1-3 = biome-border blend: sand stroke, snow fill, snow outline — see ow_border)
-        palette_color_t f[4]  = { RGB(12, 23, 5), RGB(29, 24, 13), RGB(24, 27, 31), RGB(15, 19, 27) };
+        // (field idx1-3 = biome-border blend: sand stroke, dark snow line, white snow edge — see
+        // ow_border; idx3 stays pure white for the loading screen's attr-0 pen-3 text)
+        palette_color_t f[4]  = { RGB(12, 23, 5), RGB(29, 24, 13), RGB(15, 19, 27), RGB(31, 31, 31) };
         palette_color_t fd[4] = { RGB(12, 23, 5), RGB(5, 5, 5), RGB(11, 11, 11), RGB(17, 17, 17) };
         set_bkg_palette(0, 1, f);
         set_bkg_palette(PAL_FLOOR_BG, 1, fd);

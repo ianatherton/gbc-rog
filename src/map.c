@@ -168,6 +168,7 @@ uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; overworl
     }
     if (ground_item_index_at(x, y) != 255u) return TILE_ITEM_4; // mystery icon — true kind revealed in pickup dialog
     if (floor_biome != BIOME_OVERWORLD && floor_biome != BIOME_TOWN) return TILE_TEST; // single floor-deco tile, torch-tinted in render.c — every lit cell, no blank sparsity (hub + towns get E3/E4 grass scatter)
+    if (floor_biome == BIOME_OVERWORLD && road_bit(TILE_IDX(x, y))) return TILE_TEST; // hub road: same A1 floor art, sand-tinted via the road cell's desert region (town lanes aren't in the road mask)
     if (floor_tile_is_blank(x, y)) return 255u;
     {
         static const uint8_t ground_e34[2] = { TILE_GROUND_C, TILE_GROUND_D }; // sheet E3, E4

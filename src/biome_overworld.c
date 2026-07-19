@@ -19,11 +19,13 @@
 // Dark-green field: color 0 of BG slot 0 (open field / blank cells) and of PAL_FLOOR_BG
 // (E3/E4 ground deco) replace the usual black. On the hub, slot 0's other three colors are
 // never displayed by field art (no corpses/stairs here), so they carry the biome-border blend
-// instead: idx1 = flat sand stroke (desert border tiles), idx2/3 = snow fill + outline (snow
-// borders reuse the coast tiles, whose stroke is idx2/3). See ow_border(). Keep in sync with
-// the copy in apply_field_palette() (render_palettes.c).
+// instead: idx1 = flat sand stroke (desert border tiles); for snow borders (coast tiles, whose
+// stroke is inner-line idx2 + outer-band idx3) idx2 = dark separation line and idx3 = bright
+// snow edge. idx3 MUST stay pure white — the loading screen's "Ascending" printf renders as
+// attr-0 pen-3 while these palettes are live. Keep in sync with the copy in
+// apply_field_palette() (render_palettes.c).
 static const palette_color_t pal_overworld_field[] = {
-    RGB(12, 23, 5), RGB(29, 24, 13), RGB(24, 27, 31), RGB(15, 19, 27),
+    RGB(12, 23, 5), RGB(29, 24, 13), RGB(15, 19, 27), RGB(31, 31, 31),
 };
 static const palette_color_t pal_overworld_floor_deco[] = {
     RGB(12, 23, 5), RGB(5, 5, 5), RGB(11, 11, 11), RGB(17, 17, 17),
@@ -291,8 +293,9 @@ uint8_t overworld_coast_vram(uint8_t mx, uint8_t my) BANKED { ow_prepare(); retu
 
 // Biome-border transition on a GRASS cell — same shape as ow_coast, but the "water" oracle is the
 // snow/desert region test of the 4 neighbours, and the stroke colors ride slot 0 (see
-// pal_overworld_field). Snow borders reuse the coast tiles verbatim (their idx2/3 stroke reads as
-// snow fill + outline under palette 0); desert borders use the 3 flat-stroke tiles biome.c remaps
+// pal_overworld_field). Snow borders reuse the coast tiles verbatim (their stroke reads as a dark
+// idx2 separation line + bright white idx3 edge under palette 0); desert borders use the 3
+// flat-stroke tiles biome.c remaps
 // at hub load (stroke idx1 = sand), oriented with BG-attr X/Y flips. attr_out gets palette 0 plus
 // any flip bits; only meaningful when the return is nonzero.
 // Pre-filter: both regions are ragged (mx+my) diagonals with jitter ≤ 3, so a grass cell can only
@@ -639,7 +642,7 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
     if (base_tile == TILE_FLOOR) {
         uint8_t coast = ow_coast(mx, my); // shore tile when this land cell borders water
         if (coast) { *pal_out = PAL_PILLAR_BG; return coast; } // green land bulk + blue shore edge
-        if (road_bit(TILE_IDX(mx, my))) *region_out = OW_REGION_DESERT; // road → open sand look (no new art)
+        if (road_bit(TILE_IDX(mx, my))) *region_out = OW_REGION_DESERT; // road → sand ramp; A1 texture via floor_tile_sheet_offset
         else if (region == OW_REGION_GRASS) { // grass cell at a snow/desert border → transition stroke
             uint8_t v = ow_border(mx, my, pal_out);
             if (v) return v; // pal_out carries palette 0 + any flip bits
@@ -741,7 +744,7 @@ static uint8_t ow_cell_batch(uint8_t mx, uint8_t my, uint8_t t, uint8_t wb) {
     }
     {
         uint8_t snow = 0u, desert = 0u;
-        if (wb & OWB_ROAD) desert = 1u; // road → open sand look (overrides region)
+        if (wb & OWB_ROAD) desert = 1u; // road → sand ramp, A1 texture below (overrides region)
         else if (ow_snow(mx, my)) snow = 1u;
         else if (ow_desert(mx, my)) desert = 1u;
         if (!snow && !desert) { // grass cell (and not road) at a snow/desert border → transition stroke
@@ -761,6 +764,10 @@ static uint8_t ow_cell_batch(uint8_t mx, uint8_t my, uint8_t t, uint8_t wb) {
                 owb_attr = PAL_ITEM_GOLD_BG;
                 return (uint8_t)(TILESET_VRAM_OFFSET + TILE_ITEM_4);
             }
+        if (wb & OWB_ROAD) { // road: the dungeon-floor A1 texture in the sand ramp (uniform, no scatter)
+            owb_attr = PAL_OW_ACCENT;
+            return (uint8_t)(TILESET_VRAM_OFFSET + TILE_TEST);
+        }
         { // blank-scatter hash — identical to map.c floor_tile_is_blank
             uint16_t h = (uint16_t)mx * 2971u ^ (uint16_t)my * 1619u ^ floor_visual_seed;
             h ^= (uint16_t)(h >> 5);

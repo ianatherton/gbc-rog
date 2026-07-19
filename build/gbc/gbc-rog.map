@@ -154,10 +154,10 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00001108  l__CODE_1 |    00001275  l__CODE_1 |    000012EE  l__CODE_2
      00001554  l__CODE_1 |    000016D0  l__CODE_1 |    00001BEA  l__DATA  
      00001F0A  l__CODE_3 |    00001F5C  l__CODE_1 |    00002000  _rROMB0  
-     000029AD  l__CODE_2 |    00003000  _rROMB1   |    000031D2  l__CODE  
+     000029C4  l__CODE_2 |    00003000  _rROMB1   |    000031D2  l__CODE  
      000032A9  l__CODE_1 |    000032C8  l__CODE_5 |    000033D2  s__HOME  
      00003F43  s__BASE   |    00003F43  s__CODE_0 |    00003F43  s__INITIA
-     00003F43  s__LIT    |    00003F60  l__CODE_2 |    00003F6B  s__GSINIT
+     00003F43  s__LIT    |    00003F51  l__CODE_2 |    00003F6B  s__GSINIT
      00003F7C  s__GSFINA |    00004000  _rMBC7_SR |    00004000  _rRAMB   
      00008000  __VRAM    |    00008000  __VRAM800 |    00008800  __VRAM880
      00009000  __VRAM900 |    00009800  __SCRN0   |    00009C00  __SCRN1  
@@ -583,7 +583,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_2                00024000    00003F60 =       16224. bytes (REL,CON)
+_CODE_2                00024000    00003F51 =       16209. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -602,14 +602,14 @@ _CODE_2                00024000    00003F60 =       16224. bytes (REL,CON)
      00026658  ___func_g |    00026658  _ground_i |    0002669E  ___func_i
      0002669E  _is_walka |    000266E1  _tile_cha |    000266EF  _tile_vra
      00026715  _tile_pal |    00026722  _floor_gr |    0002673A  _floor_ti
-     0002685D  _nearest_ |    000268FF  _nav_fill |    000269E6  ___func_l
-     000269E6  _level_ge |    00027195  ___func_c |    00027195  _camera_i
-     000273FF  _camera_s |    000279BA  _camera_s |    00027C78  _draw_cel
-     00027CCC  _classify |    00027D40  _classify |    00027DB3  _draw_col
-     00027DFD  _draw_row |    00027E47  _draw_ui_ |    00027E4F  _draw_gam
-     00027E69  _draw_scr |    00027EB6  _draw_gam |    00027ED3  _draw_gam
-     00027EDB  _draw_ene |    00027EEA  _draw_cor |    00027F2F  _draw_cor
-     00027F32  _draw_bos
+     0002688B  _nearest_ |    0002692D  _nav_fill |    00026A14  ___func_l
+     00026A14  _level_ge |    000271C3  ___func_c |    000271C3  _camera_i
+     0002742D  _camera_s |    000279E8  _camera_s |    00027C69  _draw_cel
+     00027CBD  _classify |    00027D31  _classify |    00027DA4  _draw_col
+     00027DEE  _draw_row |    00027E38  _draw_ui_ |    00027E40  _draw_gam
+     00027E5A  _draw_scr |    00027EA7  _draw_gam |    00027EC4  _draw_gam
+     00027ECC  _draw_ene |    00027EDB  _draw_cor |    00027F20  _draw_cor
+     00027F23  _draw_bos
 ASxxxx Linker V03.00/V05.40 + sdld,  page 33.
 Hexadecimal  [32-Bits]
 
@@ -862,7 +862,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_22               00164000    000029AD =       10669. bytes (REL,CON)
+_CODE_22               00164000    000029C4 =       10692. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -876,12 +876,12 @@ _CODE_22               00164000    000029AD =       10669. bytes (REL,CON)
      00164E8F  _overworl |    00164F83  ___func_o |    00164F83  _overworl
      0016520B  ___func_o |    0016520B  _overworl |    00165243  ___func_o
      00165243  _overworl |    00165607  ___func_o |    00165607  _overworl
-     00165E9A  ___func_o |    00165E9A  _overworl |    00166115  ___func_o
-     00166115  _overworl |    001663B8  ___func_r |    001663B8  _render_b
-     00166464  ___func_r |    00166464  _render_b |    00166512  ___func_w
-     00166512  _water_an |    00166522  ___func_w |    00166522  _water_an
-     001665D2  ___func_a |    001665D2  _apply_wa |    0016684B  ___func_a
-     0016684B  _apply_fi |    001668E0  ___func_l |    001668E0  _load_pal
+     00165EB1  ___func_o |    00165EB1  _overworl |    0016612C  ___func_o
+     0016612C  _overworl |    001663CF  ___func_r |    001663CF  _render_b
+     0016647B  ___func_r |    0016647B  _render_b |    00166529  ___func_w
+     00166529  _water_an |    00166539  ___func_w |    00166539  _water_an
+     001665E9  ___func_a |    001665E9  _apply_wa |    00166862  ___func_a
+     00166862  _apply_fi |    001668F7  ___func_l |    001668F7  _load_pal
 ASxxxx Linker V03.00/V05.40 + sdld,  page 53.
 Hexadecimal  [32-Bits]
 

@@ -70,7 +70,7 @@ static uint8_t classify_cell(uint8_t mx, uint8_t my, uint8_t *attr_out) {
             if      (off == TILE_STAIRS_UP_1)  *attr_out = 0u;
             else if ((off & 15u) == 2u)        *attr_out = PAL_LADDER;       // TILE_LIGHT_1..4 (col C rows 1-4: 2,18,34,50)
             else if (off == TILE_ITEM_4)       *attr_out = PAL_ITEM_GOLD_BG; // true orange-gold (slot 6), not the fire ramp
-            else if (off == TILE_TEST)         *attr_out = PAL_LADDER;       // single non-overworld floor deco tile, torch-tinted
+            else if (off == TILE_TEST)         *attr_out = desert ? PAL_OW_ACCENT : PAL_LADDER; // dungeon floor deco torch-tinted; hub roads (region desert) sand-tinted
             else                               *attr_out = ground_pal;       // snow / sand / grey ground deco by region
             return (uint8_t)(TILESET_VRAM_OFFSET + off);
         } else if (t == TILE_WALL) {

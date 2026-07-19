@@ -147,21 +147,21 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000001E  ___bank_a |    0000001E  ___bank_a |    0000001E  ___bank_a
      0000001E  ___bank_b |    0000001E  ___bank_p |    0000001E  b_auto_ex
      0000001E  b_auto_ex |    0000001E  b_auto_ex |    0000001E  b_belt_se
-     0000001E  b_push_se |    00000029  l__INITIA |    00000029  l__INITIA
+     0000001E  b_push_se |    0000002B  l__INITIA |    0000002B  l__INITIA
      00000030  l__HEADER |    00000052  l__CODE_2 |    00000060  l__HEADER
      00000074  l__CODE_7 |    00000084  l__CODE_1 |    00000084  l__CODE_1
      00000088  l__CODE_6 |    0000009D  l__CODE_1 |    000000AB  l__HEADER
      000001CB  l__CODE_2 |    00000200  s__CODE   |    00000272  l__CODE_9
      00000284  l__CODE_1 |    00000293  l__CODE_8 |    0000045A  l__CODE_2
-     00000732  l__CODE_2 |    000007C1  l__CODE_1 |    00000B53  l__CODE_3
-     00000B71  l__HOME   |    00000B9B  l__CODE_4 |    00001108  l__CODE_1
+     00000732  l__CODE_2 |    000007C1  l__CODE_1 |    00000B71  l__HOME  
+     00000B9B  l__CODE_4 |    00000C34  l__CODE_3 |    00001108  l__CODE_1
      00001275  l__CODE_1 |    000012EE  l__CODE_2 |    00001554  l__CODE_1
      000016D0  l__CODE_1 |    00001D40  l__DATA   |    00001F60  l__CODE_1
      00002000  _rROMB0   |    00002285  l__CODE_3 |    000029C4  l__CODE_2
      00003000  _rROMB1   |    000031D2  l__CODE   |    000032A9  l__CODE_1
      000032C8  l__CODE_5 |    000033D2  s__HOME   |    00003F18  l__CODE_2
      00003F43  s__BASE   |    00003F43  s__CODE_0 |    00003F43  s__INITIA
-     00003F43  s__LIT    |    00003F6C  s__GSINIT |    00003F7D  s__GSFINA
+     00003F43  s__LIT    |    00003F6E  s__GSINIT |    00003F7F  s__GSFINA
      00004000  _rMBC7_SR |    00004000  _rRAMB    |    00008000  __VRAM   
      00008000  __VRAM800 |    00008800  __VRAM880 |    00009000  __VRAM900
      00009800  __SCRN0   |    00009C00  __SCRN1   |    0000A000  __SRAM   
@@ -169,7 +169,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000A030  _rMBC7_AC |    0000A040  _rMBC7_AC |    0000A050  _rMBC7_AC
      0000C000  __RAM     |    0000C000  _shadow_O |    0000C0A0  s__DATA  
      0000D000  __RAMBANK |    0000DDE0  s__BSS    |    0000DDE0  s__INITIA
-     0000DE09  s__HEAP   |    0000DE09  s__HEAP_E |    0000E000  .STACK   
+     0000DE0B  s__HEAP   |    0000DE0B  s__HEAP_E |    0000E000  .STACK   
      0000FE00  __OAMRAM  |    0000FF00  _P1_REG   |    0000FF00  __IO     
      0000FF01  _SB_REG   |    0000FF02  _SC_REG   |    0000FF04  _DIV_REG 
      0000FF05  _TIMA_REG |    0000FF06  _TMA_REG  |    0000FF07  _TAC_REG 
@@ -473,7 +473,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_INITIALIZER           00003F43    00000029 =          41. bytes (REL,CON)
+_INITIALIZER           00003F43    0000002B =          43. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -482,17 +482,17 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_GSINIT                00003F6C    00000011 =          17. bytes (REL,CON)
+_GSINIT                00003F6E    00000011 =          17. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00003F6C  gsinit   
+     00003F6E  gsinit   
 ASxxxx Linker V03.00/V05.40 + sdld,  page 27.
 Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_GSFINAL               00003F7D    00000001 =           1. bytes (REL,CON)
+_GSFINAL               00003F7F    00000001 =           1. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -550,16 +550,16 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_INITIALIZED           0000DDE0    00000029 =          41. bytes (REL,CON)
+_INITIALIZED           0000DDE0    0000002B =          43. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
      0000DDE0  _current_ |    0000DDE1  _next_sta |    0000DDE2  _player_h
      0000DDE3  _player_h |    0000DDE4  _player_l |    0000DDE5  _player_d
      0000DDE6  _floor_nu |    0000DDE7  _run_seed |    0000DDF1  _boss_ali
-     0000DDF2  _ui_panel |    0000DE02  _auto_exp |    0000DE03  .curx    
-     0000DE04  .cury     |    0000DE05  .fg_colou |    0000DE05  __current
-     0000DE06  .bg_colou |    0000DE07  .draw_mod |    0000DE08  __map_til
+     0000DDF2  _ui_panel |    0000DE02  _auto_exp |    0000DE05  .curx    
+     0000DE06  .cury     |    0000DE07  .fg_colou |    0000DE07  __current
+     0000DE08  .bg_colou |    0000DE09  .draw_mod |    0000DE0A  __map_til
 ASxxxx Linker V03.00/V05.40 + sdld,  page 30.
 Hexadecimal  [32-Bits]
 
@@ -926,14 +926,14 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_30               001E4000    00000B53 =        2899. bytes (REL,CON)
+_CODE_30               001E4000    00000C34 =        3124. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     001E44F8  ___func_a |    001E44F8  _auto_exp |    001E45EA  ___func_a
-     001E45EA  _auto_exp |    001E4876  ___func_a |    001E4876  _auto_exp
-     001E49C5  ___func_b |    001E49C5  _belt_sel |    001E49E5  ___func_p
-     001E49E5  _push_sel
+     001E4530  ___func_a |    001E4530  _auto_exp |    001E4622  ___func_a
+     001E4622  _auto_exp |    001E4957  ___func_a |    001E4957  _auto_exp
+     001E4AA6  ___func_b |    001E4AA6  _belt_sel |    001E4AC6  ___func_p
+     001E4AC6  _push_sel
 ASxxxx Linker V03.00/V05.40 + sdld,  page 57.
 Hexadecimal  [32-Bits]
 

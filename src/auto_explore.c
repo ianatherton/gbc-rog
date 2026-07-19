@@ -58,6 +58,7 @@ static uint8_t ax_item_ty[MAX_GROUND_ITEMS];
 static uint8_t ax_item_cnt;
 
 static uint16_t ax_start_idx, ax_target_idx, ax_frontier_idx;
+static uint16_t ax_goal_idx = 0xFFFFu; // explicit BFS destination (the down-ladder pit) — 0xFFFF outside the ladder flood
 
 static uint8_t ax_path[AX_PATH_MAX / 4u]; // 2-bit dirs, replayed across steps
 static uint8_t ax_path_len, ax_path_pos;
@@ -268,9 +269,10 @@ static uint8_t ax_visit(uint8_t nx, uint8_t ny, uint8_t d) {
     if (nx >= active_map_w || ny >= active_map_h) return 0u; // uint8 wrap (0-1 => 255) lands here too — keeps idx inside the bitsets
     idx = TILE_IDX(nx, ny);
     if (!(floor_bits[idx >> 3] & ax_bitmask[(uint8_t)idx & 7u])) return 0u; // wall
-    if (pit_bits[idx >> 3] & ax_bitmask[(uint8_t)idx & 7u]) return 0u;     // never path onto pits/ladders
     if (av_test_set(idx)) return 0u;                                        // already visited
     ap_set(idx | ((uint16_t)d << 14));                                      // record entry dir for path extraction
+    if (idx == ax_goal_idx) { ax_target_idx = idx; return 1u; }             // ladder run: the pit itself is the destination
+    if (pit_bits[idx >> 3] & ax_bitmask[(uint8_t)idx & 7u]) return 0u;      // otherwise never path onto pits/ladders
     revealed = lighting_is_revealed(nx, ny);
     if (!revealed) { // frontier tile — never expanded
         if (ax_item_cnt == 0u) { ax_target_idx = idx; return 1u; }
@@ -433,7 +435,22 @@ uint8_t auto_explore_step(uint8_t j) BANKED {
     if (ax_path_valid && (ax_path_pos >= ax_path_len || ax_item_cnt != ax_path_item_cnt))
         ax_path_valid = 0u;
     if (!ax_path_valid) { // one flood per target; steps in between just replay ax_path
-        if (!ax_bfs() || !ax_build_path()) {
+        uint8_t ok = ax_bfs();
+        if (!ok) { // fully explored — walk to the down-ladder instead of just stopping
+            uint8_t lx, ly;
+            if (!boss_alive && map_pit_position(&lx, &ly)) {
+                uint16_t pidx = TILE_IDX(lx, ly);
+                if (TILE_IDX(g_player_x, g_player_y) == pidx) { // arrived — the walk armed the descend confirm; A drops
+                    auto_explore_active = 0u;
+                    return 0u;
+                }
+                ax_goal_idx = pidx;
+                ok = ax_bfs();
+                ax_goal_idx = 0xFFFFu;
+                if (ok) ax_log_and_redraw("Heading down.");
+            }
+        }
+        if (!ok || !ax_build_path()) {
             auto_explore_active = 0u;
             ax_log_and_redraw("Floor explored.");
             return 0u;

@@ -38,7 +38,7 @@ SRAM (battery RAM) is currently unused — free for saves later.
 | 24 | ~600 | 4% | biome_boss2 (Sphinx roster/art; overlaid onto any dungeon's boss floor by biome_apply_floor_kind) + bosses (png2asset sphinx sheet, res/bosses.png). 10-tile sprite uploaded to VRAM scratch + re-uploaded per frame by sphinx_anim_tick for a 2-frame leg cycle + faster wingbeat |
 | 28 | ~460 | 3% | dungeon_floors (miniboss elite art: runtime 2x pixel-doubler of elite_base_type's sprite → quadrant VRAM slots; floor-kind scheme in src/dungeon.h) |
 | 29 | 1,836 | 11% | biome_town (town interiors, floors 46–48 = `TOWN_FLOOR_BASE`+0..2: 20×20 overworld-look safe zone — grass field, sand road cross, brick buildings housing NPCs, deco pines, heal fountain; fully lit like the hub; enter/exit via the zone-confirm gate) |
-| 30 | 2,899 | 18% | auto_explore (A-button auto-explore: cached-path BFS, DCSS-style stop-on-sight/stop-on-hit, auto-pickup; private SVBK bank-3 accessors) + gameplay_cold (SELECT-edge belt-description helpers evicted from bank 2) |
+| 30 | 3,124 | 19% | auto_explore (A-button auto-explore: cached-path BFS, DCSS-style stop-on-sight/stop-on-hit, auto-pickup, walk-to-ladder when explored; private SVBK bank-3 accessors) + gameplay_cold (SELECT-edge belt-description helpers evicted from bank 2) |
 | 23, 25–27, 31 | 0 | 0% | empty — ~115 KB free (27 freed 2026-07: biome_miniboss + enemies_miniboss retired — miniboss/boss are floor kinds now, one biome per dungeon) |
 
 Total ROM used ≈ 76 KB of 512 KB (~15%). ROM is not the constraint. If it ever is,

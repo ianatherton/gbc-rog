@@ -382,7 +382,8 @@ void state_gameplay_tick(void) BANKED {
                     // Boss floor renders its pit as the exit portal once the boss is dead (boss_alive
                     // gates it above).
                     want_kind = (floor_kind == FLOORKIND_BOSS) ? CONFIRM_BOSS_EXIT : CONFIRM_PIT;
-                } else if (nx == player_spawn_x && ny == player_spawn_y
+                } else if (((nx == player_spawn_x && ny == player_spawn_y)
+                            || (floor_kind == FLOORKIND_TOWN && town_exit_at(nx, ny))) // any of the 4 town road mouths
                            && floor_num > 0u
                            && !boss_alive) { // boss_alive is only ever set on boss/miniboss floors
                     want_kind = CONFIRM_UP;
@@ -409,6 +410,9 @@ void state_gameplay_tick(void) BANKED {
                 g_player_x = nx;
                 g_player_y = ny;
                 lighting_reveal_radius(g_player_x, g_player_y, player_light_radius());
+                uint8_t roof_changed = 0u; // town: stepping through a building door lifts/re-covers its roof
+                if (floor_kind == FLOORKIND_TOWN)
+                    roof_changed = town_roof_update(g_player_x, g_player_y);
                 {
                     uint8_t gi = ground_item_index_at(g_player_x, g_player_y);
                     if (gi != 255u) pending_pickup_slot = gi; // queue modal — fires after enemy turn settles below
@@ -445,7 +449,7 @@ void state_gameplay_tick(void) BANKED {
                 consumed_turn = 0u; // ticked here; skip shared block below
                 wait_vbl_done();
 #if FEATURE_MAP_FOG
-                if (lighting_dirty_overflow())
+                if (lighting_dirty_overflow() || roof_changed)
                     draw_screen(g_player_x, g_player_y);
                 else {
                     uint8_t ni, dmx, dmy;
@@ -457,7 +461,8 @@ void state_gameplay_tick(void) BANKED {
                 }
                 lighting_dirty_clear();
 #else
-                draw_gameplay_overlays_profiled(g_player_x, g_player_y);
+                if (roof_changed) draw_screen(g_player_x, g_player_y);
+                else              draw_gameplay_overlays_profiled(g_player_x, g_player_y);
 #endif
 
                 if (result == 2) {

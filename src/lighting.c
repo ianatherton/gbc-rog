@@ -47,7 +47,12 @@ __asm
 __endasm;
 }
 
-static void exp2_set(uint16_t tile_idx) __naked { // BIT_SET equivalent (read-modify-write in one critical section)
+#endif // FEATURE_MAP_FOG (exp2_test — renderer fog gate only)
+
+// exp2_set / exp2_clear_all are public and fog-flag independent: towns reuse this 0xD000 buffer as
+// the building ROOF bitmask (townroof_* aliases in map.h). Towns never read fog and every dungeon
+// floor re-clears the buffer in lighting_reset, so the two uses never alias.
+void exp2_set(uint16_t tile_idx) __naked { // BIT_SET equivalent (read-modify-write in one critical section)
     tile_idx;
 __asm
     ld   a, e
@@ -83,7 +88,7 @@ __asm
 __endasm;
 }
 
-static void exp2_clear_all(void) __naked { // zero all 1,152 bytes; ~5 ms with di held — only called during floor gen
+void exp2_clear_all(void) __naked { // zero all 1,152 bytes; ~5 ms with di held — only called during floor gen
 __asm
     di
     ld   a, #0x02
@@ -103,7 +108,6 @@ __asm
     ret
 __endasm;
 }
-#endif // FEATURE_MAP_FOG
 
 // ── hub water mask lives in CGB WRAM bank 2 at 0xD480..0xD8FF (1,152 B) ──────
 // Independent of the fog bits (0xD000..0xD47F): the overworld never reads fog and dungeons never

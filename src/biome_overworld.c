@@ -500,6 +500,11 @@ void overworld_signpost_read(uint8_t aux) BANKED {
         const char *s = npc_lines[num & 3u];
         for (i = 0u; s[i] && i < 15u; i++) buf[i] = s[i];
         buf[i] = 0;
+    } else if (kind == SIGN_KIND_BUILDING) { // town building sign — canned type name by index
+        static const char *const bld_names[8] = { "INN", "SMITH", "TEMPLE", "MARKET", "HOUSE", "GUILD", "TAVERN", "STORE" };
+        const char *s = bld_names[num & 7u];
+        for (i = 0u; s[i]; i++) buf[i] = s[i];
+        buf[i] = 0;
     } else { // SIGN_KIND_BOSS
         const char *s = "FINAL DUNGEON"; for (i = 0u; s[i]; i++) buf[i] = s[i]; buf[i] = 0;
     }
@@ -513,7 +518,7 @@ void overworld_signpost_read(uint8_t aux) BANKED {
         } else if (kind == SIGN_KIND_DUNGEON) {
             dungeon_name_copy(num, nbuf, sizeof nbuf);
         } else {
-            // aux's low nibble is only the villager slot (0..2, biome_town.c); this signpost
+            // aux's low nibble is only the villager slot (0..7, biome_town.c); this signpost
             // only exists inside a town interior, so the town id is floor_num - TOWN_FLOOR_BASE.
             npc_name_copy((uint8_t)(floor_num - TOWN_FLOOR_BASE), num, nbuf, sizeof nbuf);
         }
@@ -547,6 +552,11 @@ static uint8_t ow_prefab_vram(uint8_t type, uint8_t lx, uint8_t ly, uint8_t w, u
     }
 }
 
+// Bit test via mask table, NOT variable shifts: SDCC 4.x miscompiled the dense
+// `(arr[i] >> (x & 7)) & 1` idiom here (it shifted the shift count and never loaded the byte —
+// found by the in-ROM parity sweep). The table is also faster on SM83 (no shift loop).
+static const uint8_t ow_bitmask[8] = { 1u, 2u, 4u, 8u, 16u, 32u, 64u, 128u };
+
 // Single per-cell classifier consumed by render.c (bank 2). Folds the desert/snow region test, the
 // water/tree split for WALL cells, and the coast lookup for FLOOR cells into one banked trampoline.
 // Returns the finished VRAM tile (0 = interior ground — render.c draws floor-deco using *region_out).
@@ -557,45 +567,62 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
                               uint8_t *pal_out, uint8_t *region_out) BANKED {
     uint8_t region;
     if (floor_biome == BIOME_TOWN) {
-        // Town interior: grass field like the hub. Features resolve first (fountain / NPC / sign /
-        // deco pine); wall cells are drawn as dungeon brick here (uniform bulk art — the thin
-        // building walls would otherwise hit render.c's pillar heuristic); road-lane floor cells
-        // report OW_REGION_DESERT so they render as the hub's open-sand roads. Every tile used is
-        // title-stomp-safe: 161 re-uploads per floor, shrine/brick are main-sheet, 205/213 are
-        // permanent boot copies.
+        // Town interior: grass field like the hub. Roofs resolve FIRST (a covered cell hides the
+        // villager/deco under it and skips the feature scan); then features (fountain / NPC /
+        // sign / deco pine); wall cells split into the map-edge pine border vs dungeon brick
+        // (uniform bulk art — the thin building walls would otherwise hit render.c's pillar
+        // heuristic); road-mask floor cells report OW_REGION_DESERT so they render as the hub's
+        // open-sand roads. Every tile used is title-stomp-safe: 161 re-uploads per floor,
+        // shrine/brick/roofs are main-sheet, 205/213 are permanent boot copies.
         uint8_t fi;
         *region_out = OW_REGION_GRASS;
-        // NPC body tile: one cell below the head
-        for (fi = 0u; fi < ow_feature_count; fi++) {
-            if (ow_features[fi].type == OW_FEAT_SIGNPOST
-                    && (uint8_t)(ow_features[fi].aux & 0xF0u) == SIGN_KIND_NPC
-                    && ow_features[fi].x == mx && (uint8_t)(ow_features[fi].y + 1u) == my) {
-                *pal_out = PAL_PILLAR_BG; return TILE_PLAYER_BODY_STAND_VRAM;
+        if (base_tile != TILE_WALL) { // roof bits only exist on building-interior floor cells
+            uint16_t idx = TILE_IDX(mx, my);
+            if (wram2_read_byte((uint16_t)(idx >> 3)) & ow_bitmask[(uint8_t)idx & 7u]) {
+                const TownBuilding *in = (town_state->inside_idx == 255u) ? 0 : &town_state->buildings[town_state->inside_idx];
+                if (!in || mx <= in->x || mx >= (uint8_t)(in->x + in->w - 1u)
+                        || my <= in->y || my >= (uint8_t)(in->y + in->h - 1u)) { // not the one open building
+                    uint8_t bi;
+                    for (bi = 0u; bi < town_state->count; bi++) { // owner picks the art variant
+                        const TownBuilding *b = &town_state->buildings[bi];
+                        if (mx > b->x && mx < (uint8_t)(b->x + b->w - 1u)
+                                && my > b->y && my < (uint8_t)(b->y + b->h - 1u)) break;
+                    }
+                    if (bi & 1u) { *pal_out = PAL_PILLAR_BG; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_ROOF_B); }
+                    *pal_out = PAL_OW_ACCENT; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_ROOF_A);
+                }
             }
         }
-        for (fi = 0u; fi < ow_feature_count; fi++) {
-            if (ow_features[fi].x != mx || ow_features[fi].y != my) continue; // town features are all 1×1
-            if (ow_features[fi].type == OW_FEAT_TREE) {
+        for (fi = 0u; fi < ow_feature_count; fi++) { // one pass: cell's own feature + NPC body (head is one cell up)
+            uint8_t fx = ow_features[fi].x, ft = ow_features[fi].type;
+            if (fx != mx) continue; // town features are all 1×1
+            if (ft == OW_FEAT_SIGNPOST && (uint8_t)(ow_features[fi].aux & 0xF0u) == SIGN_KIND_NPC
+                    && (uint8_t)(ow_features[fi].y + 1u) == my) {
+                *pal_out = PAL_PILLAR_BG; return TILE_PLAYER_BODY_STAND_VRAM;
+            }
+            if (ow_features[fi].y != my) continue;
+            if (ft == OW_FEAT_TREE) {
                 *pal_out = PAL_OW_FOLIAGE; return TILE_OVERWORLD_WALL_VRAM; // deco pine (cell is blocking wall)
             }
-            if (ow_features[fi].type == OW_FEAT_FOUNTAIN) {
+            if (ft == OW_FEAT_FOUNTAIN) {
                 *pal_out = PAL_PILLAR_BG; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_SHRINE_ON_1); // stone well
             }
-            if (ow_features[fi].type == OW_FEAT_SIGNPOST) {
+            if (ft == OW_FEAT_SIGNPOST) {
                 if ((uint8_t)(ow_features[fi].aux & 0xF0u) == SIGN_KIND_NPC) {
                     *pal_out = PAL_PILLAR_BG; return TILE_PLAYER_HEAD_VRAM; // villager: hero-head art, stone ramp
                 }
-                *pal_out = PAL_FLOOR_BG; return PREFAB_VRAM_SIGNPOST;
+                *pal_out = PAL_OW_ACCENT; return PREFAB_VRAM_SIGNPOST; // wooden sign: desert dead-tree sand ramp
             }
         }
-        if (base_tile == TILE_WALL) { // town wall ring + building walls: uniform dungeon brick on grass
-            *pal_out = PAL_WALL_BG;
+        if (base_tile == TILE_WALL) {
+            if (mx == 0u || my == 0u
+                    || mx == (uint8_t)(active_map_w - 1u) || my == (uint8_t)(active_map_h - 1u)) {
+                *pal_out = PAL_OW_FOLIAGE; return TILE_OVERWORLD_WALL_VRAM; // border pine ring (ring 0)
+            }
+            *pal_out = PAL_WALL_BG; // town wall ring + building walls: uniform dungeon brick on grass
             return (uint8_t)(TILESET_VRAM_OFFSET + wall_tileset_index);
         }
-        { // road cross: door column up to the plaza + full plaza row — same open-sand look as hub roads
-            uint8_t cx = (uint8_t)(active_map_w >> 1), cy = (uint8_t)(active_map_h >> 1);
-            if ((mx == cx && my >= cy) || my == cy) *region_out = OW_REGION_DESERT;
-        }
+        if (road_bit(TILE_IDX(mx, my))) *region_out = OW_REGION_DESERT; // real road mask (town gen fills it)
         return 0u;
     }
     ow_prepare();
@@ -619,7 +646,10 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
                                            d->w, d->h);
                 if (is_ent && (dungeon_complete_mask & (uint16_t)((uint16_t)1u << ent_ord)))
                     v = PREFAB_VRAM_TOWN_CORNER; // completed dungeon: mouth drawn as a bricked-up grey block
-                if (v) { *pal_out = PAL_FLOOR_BG; return v; } // grey wall art over the green field (idx0)
+                if (v) { // grey wall art; signs go wooden on the desert dead-tree sand ramp (idx0 bg = sand patch)
+                    *pal_out = (ow_features[fi].type == OW_FEAT_SIGNPOST) ? PAL_OW_ACCENT : PAL_FLOOR_BG;
+                    return v;
+                }
                 break; // town courtyard centre → fall through to grass ground
             }
             if (is_ent) ent_ord++; // ordinal = dungeon id (same counting as overworld_entrance_id_at)
@@ -662,11 +692,6 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
 #define OW_MASK_WATER 0x480u          // wram2_read_byte offsets (lighting.c mask maps)
 #define OW_MASK_ROAD  0x900u
 #define OW_ROW_BYTES  ((uint8_t)(MAP_W >> 3))
-
-// Bit test via mask table, NOT variable shifts: SDCC 4.x miscompiled the dense
-// `(arr[i] >> (x & 7)) & 1` idiom here (it shifted the shift count and never loaded the byte —
-// found by the in-ROM parity sweep). The table is also faster on SM83 (no shift loop).
-static const uint8_t ow_bitmask[8] = { 1u, 2u, 4u, 8u, 16u, 32u, 64u, 128u };
 
 #define OWB_C    0x01u // packed neighbour water bits + road bit for one cell
 #define OWB_N    0x02u
@@ -715,7 +740,10 @@ static uint8_t ow_cell_batch(uint8_t mx, uint8_t my, uint8_t t, uint8_t wb) {
             if (fl_type[i] == OW_FEAT_ENTRANCE
                     && (dungeon_complete_mask & (uint16_t)((uint16_t)1u << fl_ord[i])))
                 v = PREFAB_VRAM_TOWN_CORNER; // completed dungeon: bricked-up mouth
-            if (v) { owb_attr = PAL_FLOOR_BG; return v; }
+            if (v) { // signs go wooden on the desert dead-tree sand ramp, like overworld_cell_render
+                owb_attr = (fl_type[i] == OW_FEAT_SIGNPOST) ? PAL_OW_ACCENT : PAL_FLOOR_BG;
+                return v;
+            }
             break; // town courtyard centre → fall through to terrain
         }
     }

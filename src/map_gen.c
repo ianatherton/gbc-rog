@@ -369,12 +369,11 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
     mix *= 2246523629u;
     {
         uint8_t lk = FLOOR_KIND_FOR(floor_num);
-        if (lk == FLOORKIND_GUARD || lk == FLOORKIND_MINIBOSS || lk == FLOORKIND_BOSS
-                || lk == FLOORKIND_TOWN) {
-            active_map_w = 20u; // guardroom, miniboss, boss and town floors: fixed compact arena
+        if (lk == FLOORKIND_GUARD || lk == FLOORKIND_MINIBOSS || lk == FLOORKIND_BOSS) {
+            active_map_w = 20u; // guardroom, miniboss and boss floors: fixed compact arena
             active_map_h = 20u;
         } else {
-            active_map_w = MAP_W; // hub + normal dungeon floors
+            active_map_w = MAP_W; // hub + normal dungeon floors; towns re-size themselves in town_generate_interior
             active_map_h = MAP_H;
         }
     }
@@ -513,8 +512,8 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
     // only land on clear open land away from the down-ladder and the spawn clearing.
     if (floor_num == 0u) { place_overworld_features(); place_overworld_roads(); place_overworld_signposts(); }
 
-    // The hub has no enemies, so its nav graph is never consulted — skip the ~9k banked is_walkable
-    // probes (a big chunk of floor-0 load) and just present an empty graph to any nav consumer.
-    if (floor_num == 0u) num_nav_nodes = 0u;
-    else                 build_nav_graph(); // enemies need graph after geometry is known
+    // The hub and towns have no enemies, so their nav graphs are never consulted — skip the ~9k
+    // banked is_walkable probes (a big chunk of load time) and present an empty graph instead.
+    if (floor_num == 0u || floor_kind == FLOORKIND_TOWN) num_nav_nodes = 0u;
+    else                                                 build_nav_graph(); // enemies need graph after geometry is known
 }

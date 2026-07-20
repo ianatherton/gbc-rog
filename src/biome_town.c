@@ -10,12 +10,16 @@
 #include <gb/cgb.h>
 #include <gbdk/platform.h>
 
-// Town interior (floors TOWN_FLOOR_BASE + 0..2): a 20×20 safe zone entered from the hub town's
-// door. Looks like a piece of the overworld: grass field (hub palettes via apply_field/wall_palette
-// town branches), sand road cross, deco pines, and brick buildings (dungeon wall art) housing the
-// NPCs. Fully lit — no fog, no braziers (lighting.c treats BIOME_TOWN like the hub). No enemies,
-// no items. Layout is deterministic from (run_seed, town_id). The door cell (player spawn,
-// bottom-centre) doubles as the exit — stepping back onto it arms the LEAVE TOWN confirm.
+// Town interior (floors TOWN_FLOOR_BASE + 0..2): a large safe zone entered from the hub town's
+// door, sized 59..96 square by its building count (5..20). The map border is a pine ring with a
+// brick town wall just inside it; a sand road cross runs through the centre and out through gaps
+// at N/S/E/W — each mouth is a LEAVE TOWN exit (town_exit_x/y), and the south mouth doubles as the
+// spawn (drawn as the stairs-up glyph via the player_spawn path). Buildings are brick rects spread
+// between the roads, each with a signpost by its door (SIGN_KIND_BUILDING), villagers inside the
+// first few, and a roof that hides the interior until the player steps in: roof bits live in the
+// fog buffer (SVBK2 0xD000, townroof_* in map.h — towns never read fog), town_state->inside_idx picks the
+// one building drawn open. Fully lit — no fog, no braziers, no enemies, no items. Layout is
+// deterministic from (run_seed, town_id).
 
 BANKREF(biome_town_copy_defs)
 void biome_town_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count) {
@@ -52,8 +56,15 @@ static uint8_t tg_hash(uint8_t town_id, uint8_t salt) {
     return (uint8_t)h;
 }
 
-// One building rectangle: brick wall ring with a hollow floor interior. Overlapping calls merge
-// into multi-rectangular (L-shaped) buildings — the later interior carve re-opens the shared wall.
+// Tiny local LCG for layout sampling — independent of rand() so a town re-entry regenerates the
+// identical layout no matter what other floor-gen code consumed from the shared stream.
+static uint16_t tg_rng;
+static uint8_t tg_rand(void) {
+    tg_rng = (uint16_t)(tg_rng * 25173u + 13849u);
+    return (uint8_t)(tg_rng >> 8);
+}
+
+// One building rectangle: brick wall ring with a hollow floor interior.
 static void tg_building_rect(uint8_t x0, uint8_t y0, uint8_t bw, uint8_t bh) {
     uint8_t x, y;
     for (y = y0; y < (uint8_t)(y0 + bh); y++)
@@ -64,71 +75,178 @@ static void tg_building_rect(uint8_t x0, uint8_t y0, uint8_t bw, uint8_t bh) {
             BIT_SET(floor_bits, TILE_IDX(x, y));
 }
 
+// 1 if a candidate rect (inflated so buildings keep a ≥2-cell gap) touches a placed building.
+static uint8_t tg_rects_clash(uint8_t x0, uint8_t y0, uint8_t bw, uint8_t bh) {
+    uint8_t i;
+    for (i = 0u; i < town_state->count; i++) {
+        const TownBuilding *b = &town_state->buildings[i];
+        if ((uint8_t)(x0 + bw + 2u) <= b->x || (uint8_t)(b->x + b->w + 2u) <= x0) continue;
+        if ((uint8_t)(y0 + bh + 2u) <= b->y || (uint8_t)(b->y + b->h + 2u) <= y0) continue;
+        return 1u;
+    }
+    return 0u;
+}
+
+BANKREF(town_exit_at)
+uint8_t town_exit_at(uint8_t x, uint8_t y) BANKED { // 1 if (x,y) is one of the 4 road mouths
+    uint8_t i;
+    for (i = 0u; i < 4u; i++)
+        if (town_state->exit_x[i] == x && town_state->exit_y[i] == y) return 1u;
+    return 0u;
+}
+
+BANKREF(town_roof_update)
+uint8_t town_roof_update(uint8_t px, uint8_t py) BANKED { // 1 = inside-building state changed → repaint
+    uint8_t i, inside = 255u;
+    for (i = 0u; i < town_state->count; i++) {
+        const TownBuilding *b = &town_state->buildings[i];
+        if (px > b->x && px < (uint8_t)(b->x + b->w - 1u)
+                && py > b->y && py < (uint8_t)(b->y + b->h - 1u)) { inside = i; break; }
+    }
+    if (inside == town_state->inside_idx) return 0u;
+    town_state->inside_idx = inside;
+    return 1u;
+}
+
 BANKREF(town_generate_interior)
 void town_generate_interior(uint8_t town_id) BANKED {
     uint8_t x, y, i, n;
-    const uint8_t w = active_map_w, h = active_map_h; // 20×20 (map_gen sets dims for FLOORKIND_TOWN)
-    const uint8_t cx = (uint8_t)(w >> 1), cy = (uint8_t)(h >> 1);
-    const uint8_t door_x = cx, door_y = (uint8_t)(h - 2u);
-    uint8_t ax, ay, bx, by; // jittered top-left corners of buildings A (NW) and B (NE)
+    const uint8_t target = (uint8_t)(5u + (uint8_t)(tg_hash(town_id, 0u) % 16u)); // 5..20 buildings
+    uint8_t dims = (uint8_t)(44u + (uint8_t)(target * 3u)); // 59..104 → clamped below
+    uint8_t w, h, cx, cy;
+    if (dims > MAP_W) dims = MAP_W;
+    active_map_w = dims; // storage is the full MAP_W×MAP_H bitset; this floor only uses dims²
+    active_map_h = dims;
+    w = dims; h = dims;
+    cx = (uint8_t)(w >> 1);
+    cy = (uint8_t)(h >> 1);
+    tg_rng = (uint16_t)(run_seed ^ (uint16_t)((uint16_t)(town_id + 1u) * 40503u));
 
-    for (y = 1u; y < (uint8_t)(h - 1u); y++) // open grass yard inside the brick town wall ring
-        for (x = 1u; x < (uint8_t)(w - 1u); x++)
+    // Open yard. Ring 0 (map edge) stays wall → drawn as the pine border; ring 1 stays wall →
+    // the brick town wall (both in overworld_cell_render's town branch).
+    for (y = 2u; y < (uint8_t)(h - 2u); y++)
+        for (x = 2u; x < (uint8_t)(w - 2u); x++)
             BIT_SET(floor_bits, TILE_IDX(x, y));
 
-    // Three brick buildings, doors facing the plaza, one NPC inside each.
-    ax = (uint8_t)(2u + (tg_hash(town_id, 1u) & 1u));  // A: 5×5, top-left, door on the east wall
-    ay = (uint8_t)(3u + (tg_hash(town_id, 2u) & 1u));
-    tg_building_rect(ax, ay, 5u, 5u);
-    BIT_SET(floor_bits, TILE_IDX((uint8_t)(ax + 4u), (uint8_t)(ay + 2u))); // door
+    // Main road cross. Carving the full centre column/row also opens the N/S/E/W mouths through
+    // both border rings in the same pass; every carved cell is a road cell (mask read by render).
+    road_clear_all(); // hub-only place_overworld_roads never ran for this floor — mask is stale
+    for (y = 0u; y < h; y++) { BIT_SET(floor_bits, TILE_IDX(cx, y)); road_set(TILE_IDX(cx, y)); }
+    for (x = 0u; x < w; x++) { BIT_SET(floor_bits, TILE_IDX(x, cy)); road_set(TILE_IDX(x, cy)); }
+    town_state->exit_x[0] = cx;                town_state->exit_y[0] = 0u;                // N
+    town_state->exit_x[1] = cx;                town_state->exit_y[1] = (uint8_t)(h - 1u); // S
+    town_state->exit_x[2] = 0u;                town_state->exit_y[2] = cy;                // W
+    town_state->exit_x[3] = (uint8_t)(w - 1u); town_state->exit_y[3] = cy;                // E
+    player_spawn_x = cx;                                    // south mouth = spawn = stairs glyph;
+    player_spawn_y = (uint8_t)(h - 1u);                     // the other 3 mouths exit via town_exit_at
 
-    bx = (uint8_t)(12u + (tg_hash(town_id, 3u) & 1u)); // B: 5×5, top-right, door on the west wall
-    by = (uint8_t)(3u + (tg_hash(town_id, 4u) & 1u));
-    tg_building_rect(bx, by, 5u, 5u);
-    BIT_SET(floor_bits, TILE_IDX(bx, (uint8_t)(by + 2u))); // door
+    townroof_clear_all(); // mandatory: lighting_reset skips towns, so the buffer still holds the last dungeon's fog
+    town_state->inside_idx = 255u;
+    town_state->count = 0u;
 
-    tg_building_rect(13u, 12u, 5u, 4u); // C: L-shaped (two merged rects), bottom-right, door west
-    tg_building_rect(15u, 14u, 4u, 4u);
-    BIT_SET(floor_bits, TILE_IDX(13u, 13u)); // door
+    { // Rejection-sample the building rects; landing short of `target` on a crowded roll is fine.
+        uint16_t tries;
+        for (tries = 0u; tries < 250u && town_state->count < target; tries++) {
+            uint8_t bw = (uint8_t)(5u + (uint8_t)(tg_rand() % 3u)); // 5..7
+            uint8_t bh = (uint8_t)(5u + (uint8_t)(tg_rand() % 3u));
+            uint8_t x0 = (uint8_t)(3u + (uint8_t)(tg_rand() % (uint8_t)(w - 6u - bw)));
+            uint8_t y0 = (uint8_t)(3u + (uint8_t)(tg_rand() % (uint8_t)(h - 6u - bh)));
+            if (cx >= (uint8_t)(x0 - 1u) && cx <= (uint8_t)(x0 + bw)) continue; // keep 1 clear cell off the
+            if (cy >= (uint8_t)(y0 - 1u) && cy <= (uint8_t)(y0 + bh)) continue; // main road axes
+            if (tg_rects_clash(x0, y0, bw, bh)) continue;
+            tg_building_rect(x0, y0, bw, bh);
+            town_state->buildings[town_state->count].x = x0;
+            town_state->buildings[town_state->count].y = y0;
+            town_state->buildings[town_state->count].w = bw;
+            town_state->buildings[town_state->count].h = bh;
+            town_state->count++;
+        }
+    }
 
-    player_spawn_x = door_x; // door = spawn = exit cell (drawn as the stairs-up glyph)
-    player_spawn_y = door_y;
-    BIT_SET(floor_bits, TILE_IDX(door_x, door_y));
-    BIT_SET(floor_bits, TILE_IDX(door_x, (uint8_t)(door_y - 1u))); // guarantee a step off the door
-
-    n = 0u; // features (generate_level zeroed ow_feature_count): fountain, NPCs, deco pines
+    n = 0u; // features (generate_level zeroed ow_feature_count)
     ow_features[n].x = cx; ow_features[n].y = cy; // stone well at the road junction
     ow_features[n].type = OW_FEAT_FOUNTAIN; ow_features[n].aux = 0u;
-    BIT_SET(floor_bits, TILE_IDX(cx, cy));
     n++;
-    { // one villager inside each building
-        static const uint8_t ndx[3] = { 2u, 2u, 2u }; // interior offset from each building's corner
-        uint8_t nx_[3], ny_[3];
-        nx_[0] = (uint8_t)(ax + ndx[0]); ny_[0] = (uint8_t)(ay + 2u);
-        nx_[1] = (uint8_t)(bx + ndx[1]); ny_[1] = (uint8_t)(by + 2u);
-        nx_[2] = 15u;                    ny_[2] = 13u; // inside C's main room
-        for (i = 0u; i < 3u; i++) {
-            ow_features[n].x = nx_[i]; ow_features[n].y = ny_[i];
+
+    for (i = 0u; i < town_state->count; i++) {
+        const TownBuilding *b = &town_state->buildings[i];
+        uint8_t bcx = (uint8_t)(b->x + (uint8_t)(b->w >> 1));
+        uint8_t bcy = (uint8_t)(b->y + (uint8_t)(b->h >> 1));
+        uint8_t adx = (cx > bcx) ? (uint8_t)(cx - bcx) : (uint8_t)(bcx - cx);
+        uint8_t ady = (cy > bcy) ? (uint8_t)(cy - bcy) : (uint8_t)(bcy - cy);
+        uint8_t door_x, door_y;
+        int8_t sx = 0, sy = 0; // door's outward direction (toward the facing road axis)
+        if (adx <= ady) { // column road is nearer → door on the E or W wall
+            door_y = bcy;
+            if (cx > bcx) { door_x = (uint8_t)(b->x + b->w - 1u); sx = 1; }
+            else          { door_x = b->x;                        sx = -1; }
+        } else {          // row road is nearer → door on the N or S wall
+            door_x = bcx;
+            if (cy > bcy) { door_y = (uint8_t)(b->y + b->h - 1u); sy = 1; }
+            else          { door_y = b->y;                        sy = -1; }
+        }
+        BIT_SET(floor_bits, TILE_IDX(door_x, door_y)); // carve the door gap in the wall ring
+
+        { // roof bits over the interior — the wall ring (and its door cell) stays visible
+            uint8_t rx, ry;
+            for (ry = (uint8_t)(b->y + 1u); ry < (uint8_t)(b->y + b->h - 1u); ry++)
+                for (rx = (uint8_t)(b->x + 1u); rx < (uint8_t)(b->x + b->w - 1u); rx++)
+                    townroof_set(TILE_IDX(rx, ry));
+        }
+
+        { // cosmetic side road: straight run from outside the door toward the facing axis; stops
+          // at the first wall (another building/pine placed later can't cut it — pines skip roads)
+          // or on meeting an existing road cell. Roads are visual only — movement ignores them.
+            uint8_t rx = (uint8_t)((int8_t)door_x + sx);
+            uint8_t ry = (uint8_t)((int8_t)door_y + sy);
+            while (rx > 0u && ry > 0u && rx < (uint8_t)(w - 1u) && ry < (uint8_t)(h - 1u)) {
+                uint16_t idx = TILE_IDX(rx, ry);
+                if (!BIT_GET(floor_bits, idx)) break;
+                if (road_bit(idx)) break;
+                road_set(idx);
+                rx = (uint8_t)((int8_t)rx + sx);
+                ry = (uint8_t)((int8_t)ry + sy);
+            }
+        }
+
+        if (n < MAX_OW_FEATURES) { // signpost in front of the door, shifted perpendicular so it
+            uint8_t sgx = (uint8_t)((int8_t)door_x + sx + ((sy != 0) ? 1 : 0)); // doesn't sit in the walk path
+            uint8_t sgy = (uint8_t)((int8_t)door_y + sy + ((sx != 0) ? 1 : 0));
+            if (!BIT_GET(floor_bits, TILE_IDX(sgx, sgy))) { // shifted spot is a wall — fall back onto the path cell
+                sgx = (uint8_t)((int8_t)door_x + sx);
+                sgy = (uint8_t)((int8_t)door_y + sy);
+            }
+            ow_features[n].x = sgx; ow_features[n].y = sgy;
+            ow_features[n].type = OW_FEAT_SIGNPOST;
+            ow_features[n].aux = (uint8_t)(SIGN_KIND_BUILDING | (uint8_t)(tg_rand() & 7u));
+            n++;
+        }
+
+        if (i < 8u && n < MAX_OW_FEATURES) { // villager inside the first few buildings
+            ow_features[n].x = bcx; ow_features[n].y = bcy;
             ow_features[n].type = OW_FEAT_SIGNPOST;
             ow_features[n].aux = (uint8_t)(SIGN_KIND_NPC | i);
             n++;
         }
     }
-    for (i = 0u; i < 10u && n < (uint8_t)(MAX_OW_FEATURES - 1u); i++) { // up to ~6 deco pines on open grass
-        uint8_t px = (uint8_t)(2u + (tg_hash(town_id, (uint8_t)(60u + i)) % (uint8_t)(w - 4u)));
-        uint8_t py = (uint8_t)(2u + (tg_hash(town_id, (uint8_t)(80u + i)) % (uint8_t)(h - 5u)));
+
+    for (i = 0u; i < 40u && n < MAX_OW_FEATURES; i++) { // deco pines on open grass, off roads/aprons
+        uint8_t px = (uint8_t)(3u + (uint8_t)(tg_rand() % (uint8_t)(w - 6u)));
+        uint8_t py = (uint8_t)(3u + (uint8_t)(tg_rand() % (uint8_t)(h - 6u)));
+        uint16_t idx = TILE_IDX(px, py);
         uint8_t k, clash = 0u;
-        if (px == cx || py == cy) continue;                       // keep the road cross clear
-        if (px == door_x && py >= (uint8_t)(door_y - 2u)) continue; // keep the door approach clear
-        if (!BIT_GET(floor_bits, TILE_IDX(px, py))) continue;     // building wall — skip
-        // skip building interiors (a pine indoors would wall an NPC in)
-        if (px > ax && px < (uint8_t)(ax + 4u) && py > ay && py < (uint8_t)(ay + 4u)) continue;
-        if (px > bx && px < (uint8_t)(bx + 4u) && py > by && py < (uint8_t)(by + 4u)) continue;
-        if (px > 13u && px < 18u && py > 12u && py < 17u) continue;
+        if (!BIT_GET(floor_bits, idx)) continue; // wall / building
+        if (road_bit(idx)) continue;             // keep every road lane clear
+        for (k = 0u; k < town_state->count; k++) { // 1-cell apron around each building (door approaches)
+            const TownBuilding *b = &town_state->buildings[k];
+            if (px >= (uint8_t)(b->x - 1u) && px <= (uint8_t)(b->x + b->w)
+                    && py >= (uint8_t)(b->y - 1u) && py <= (uint8_t)(b->y + b->h)) { clash = 1u; break; }
+        }
+        if (clash) continue;
         for (k = 0u; k < n; k++)
             if (ow_features[k].x == px && ow_features[k].y == py) { clash = 1u; break; }
         if (clash) continue;
-        BIT_CLR(floor_bits, TILE_IDX(px, py)); // pine is a blocking wall cell, drawn by the TREE feature
+        BIT_CLR(floor_bits, idx); // pine is a blocking wall cell, drawn by the TREE feature
         ow_features[n].x = px; ow_features[n].y = py;
         ow_features[n].type = OW_FEAT_TREE; ow_features[n].aux = 0u;
         n++;

@@ -90,6 +90,9 @@ typedef struct { uint8_t x, y, type, aux; } OwFeature;                   // top-
 extern const OwPrefabDef ow_prefab_defs[OW_FEAT_COUNT]; // indexed by OW_FEAT_* type
 extern OwFeature ow_features[MAX_OW_FEATURES];          // placed this floor (hub only)
 extern uint8_t   ow_feature_count;                      // 0 on non-hub floors
+// Town interior state lives in `town_state` (map.h) — an overlay on nav_nodes[], NOT new globals:
+// fixed-WRAM stack headroom is load-bearing (adding ~90 B here overflowed the stack into _DATA
+// during class_emblem_draw once — garbled tiles from char create onward).
 
 uint8_t player_light_radius(void); // class base + player_light_bonus (HOME)
 

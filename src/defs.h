@@ -288,8 +288,10 @@ typedef struct {
 #define TILE_F5              69u  /* F5  — dead variant, never placed; VRAM 197 borrowed by TILE_STUN_ICON_VRAM */
 #define TILE_CHEST           5   /* F1  */
 #define TILE_BARREL         21   /* F2  */
-#define TILE_MUSHROOM       37   /* F3  */
-/* F4 (index 53) — unused, skip (was a stale c10 home; the title logo restore stomped VRAM 181). */
+#define TILE_ROOF_A         37   /* F3 — town building roof variant 1 (was the never-placed mushroom) */
+#define TILE_ROOF_B         53   /* F4 — town building roof variant 2. VRAM 165/181 are title-logo
+                                    stomp slots, but the restore re-uploads every slot from the sheet
+                                    at (VRAM-128) = exactly F3/F4 — safe with no boot copy. */
 /* Overworld terrain art (hub only). Both ROM sources live past the first-128 VRAM upload, so they
    are boot-copied into title-safe VRAM slots — the title logo (title_logo.c) patches+restores
    128..181, so the wall/water slots must sit ≥182 and outside that table or they get blanked. */
@@ -326,7 +328,8 @@ typedef struct {
 #define SIGN_KIND_WAYPOINT 0x10u /* low = quadrant 0=NE 1=NW 2=SE 3=SW */
 #define SIGN_KIND_DUNGEON  0x20u /* low = entrance index 0..8 */
 #define SIGN_KIND_BOSS     0x30u /* final dungeon */
-#define SIGN_KIND_NPC      0x40u /* town-interior NPC; low = canned dialogue line 0..3 */
+#define SIGN_KIND_NPC      0x40u /* town-interior NPC; low = villager slot (line = low & 3) */
+#define SIGN_KIND_BUILDING 0x50u /* town building sign; low = type 0..7 (INN/SMITH/... in overworld_signpost_read) */
 
 /* A waypoint must sit "within 1 screen" of the town/entrance it serves. Use a conservative co-visibility
    box (smaller than the GRID_W×GRID_H viewport) so the waypoint and its feature can share the screen. */
@@ -337,6 +340,10 @@ typedef struct {
    from every other town. ~3 screens-wide. The 96-tile map is only ~5 screens across, so this is near the
    geometric max for 3 diagonally-spread towns — placement drops the rule as a last resort (see map_gen). */
 #define MIN_TOWN_SEP_TILES  (3u * GRID_W) /* 60 */
+
+/* Town interiors (biome_town.c): building table cap — feature budget is the real limit
+   (1 fountain + ≤20 signs + ≤8 NPCs + pines must stay ≤ MAX_OW_FEATURES). */
+#define MAX_TOWN_BUILDINGS  20u
 
 /* The 3 dungeon entrances of a region cluster within this many tiles of their town (entrance-cell to
    town anchor), so each town is ringed by its own dungeons. ~1 screen. */

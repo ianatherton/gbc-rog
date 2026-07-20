@@ -12,6 +12,20 @@ extern uint8_t pit_bits[BITSET_BYTES];   // 1 = pit (subset of floor_bits)
 extern NavNode  nav_nodes[MAX_NAV_NODES]; // junction graph for chase AI
 extern uint8_t  num_nav_nodes;            // populated after generate_level
 
+// Town interior state — OVERLAYS nav_nodes[] (288 B): towns have no enemies, set num_nav_nodes=0
+// and never build the graph, and these tables are only read while on a town floor (regenerated on
+// every town entry; the next dungeon's build_nav_graph is free to stomp them). Zero new fixed WRAM:
+// the ~545 B stack headroom is load-bearing — class_emblem_draw alone puts ~336 B on the stack.
+typedef struct { uint8_t x, y, w, h; } TownBuilding; // wall-ring rect, walls included
+typedef struct {
+    TownBuilding buildings[MAX_TOWN_BUILDINGS];
+    uint8_t count;
+    uint8_t exit_x[4], exit_y[4]; // N/S/W/E road mouths — each arms LEAVE TOWN
+    uint8_t inside_idx;           // building whose interior holds the player; 255 = outside (roofs drawn)
+} TownState;
+#define town_state ((TownState *)nav_nodes)
+typedef char town_state_fits_nav_nodes[(sizeof(TownState) <= sizeof(NavNode) * MAX_NAV_NODES) ? 1 : -1];
+
 extern uint8_t wall_tileset_index; // which wall tile in VRAM band (debug)
 extern uint8_t wall_palette_index; // wall_palette_table index → PAL_WALL_BG
 extern uint8_t pillar_palette_index; // wall_palette_table index → PAL_PILLAR_BG (column tiles)
@@ -64,6 +78,13 @@ void    road_clear_all(void);        // zero the whole road mask (start of hub g
 // Raw byte read from CGB WRAM bank 2 (0xD000+off) — batch primitive for the overworld strip
 // classifier: one SVBK round-trip per 8 mask bits. Water mask bytes at 0x480+, road at 0x900+.
 uint8_t wram2_read_byte(uint16_t off);
+
+// Town roof mask = the fog buffer (0xD000) reused: towns never read fog and dungeons re-clear it,
+// so the datasets never alias. Gen (bank 29) writes via these; render reads via wram2_read_byte.
+void exp2_set(uint16_t tile_idx);  // lighting.c fog BIT_SET — SVBK-safe, HOME
+void exp2_clear_all(void);         // zero the whole 1,152 B buffer
+#define townroof_set       exp2_set
+#define townroof_clear_all exp2_clear_all
 
 uint8_t nearest_nav_node(uint8_t x, uint8_t y); // for mapping entity tiles to graph
 void    nav_fill_hops_from(uint8_t player_node, uint8_t *hop_out); // single BFS; hop_out[n] = first hop from n toward player_node

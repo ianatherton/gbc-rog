@@ -14,7 +14,7 @@ SRAM (battery RAM) is currently unused — free for saves later.
 |------|------|----|----------|
 | 0 (fixed) | ~15,900 of 16,368 usable | ~97% | main loop, ability_dispatch, ally, biome dispatch + `enemy_defs` HOME cache, enemy_extras, lcd, lighting (incl. SVBK fog/water/road accessors + `wram2_read_byte` batch reader), music driver + SFX, perf, seed_entropy, targeting, tileset_io, title_logo, ui_loading_isr, wall_palettes, SDCC runtime. **~450 B free (2026-07-06) — keep HOME lean** |
 | 1 | 4,360 | 27% | tileset (png2asset output) |
-| 2 | 16,146 | 99% | gameplay kernel: state_gameplay (incl. zone-confirm latch), map, render, camera, enemy. **~238 B free — chronically full; evict before adding (axe/mace extras → bank 19 2026-07-06; belt-description helpers → bank 30 `gameplay_cold.c` 2026-07-18)** |
+| 2 | 16,200 | 99% | gameplay kernel: state_gameplay (incl. zone-confirm latch + town exit/roof hooks), map, render, camera, enemy. **~184 B free — chronically full; evict before adding (axe/mace extras → bank 19 2026-07-06; belt-description helpers → bank 30 `gameplay_cold.c` 2026-07-18)** |
 | 3 | 6,077 | 37% | all 9 UI states (title → game_over) + class_palettes |
 | 4 | 2,971 | 18% | bwv1043 music data |
 | 5 | 13,000 | 79% | ui.c (incl. `ui_confirm_prompt_push` zone-confirm text) |
@@ -37,7 +37,7 @@ SRAM (battery RAM) is currently unused — free for saves later.
 | 22 | 9,826 | 60% | biome_overworld (top-level hub, floor 0; no enemies/items) + render_palettes (incl. town field/brick/stone/foliage branches) + batched strip classifiers (`overworld_classify_col/row_strip` — one banked entry per camera strip, mask bytes via `wram2_read_byte`) + town render overlay/step features |
 | 24 | ~600 | 4% | biome_boss2 (Sphinx roster/art; overlaid onto any dungeon's boss floor by biome_apply_floor_kind) + bosses (png2asset sphinx sheet, res/bosses.png). 10-tile sprite uploaded to VRAM scratch + re-uploaded per frame by sphinx_anim_tick for a 2-frame leg cycle + faster wingbeat |
 | 28 | ~460 | 3% | dungeon_floors (miniboss elite art: runtime 2x pixel-doubler of elite_base_type's sprite → quadrant VRAM slots; floor-kind scheme in src/dungeon.h) |
-| 29 | 1,836 | 11% | biome_town (town interiors, floors 46–48 = `TOWN_FLOOR_BASE`+0..2: 20×20 overworld-look safe zone — grass field, sand road cross, brick buildings housing NPCs, deco pines, heal fountain; fully lit like the hub; enter/exit via the zone-confirm gate) |
+| 29 | 3,258 | 20% | biome_town (town interiors, floors 46–48 = `TOWN_FLOOR_BASE`+0..2: 59..96-square safe zone sized by building count — pine border ring + brick town wall, sand road cross exiting N/S/E/W (4 LEAVE TOWN mouths, `town_exit_at`), 5–20 roofed brick buildings with door signs (`SIGN_KIND_BUILDING`) + villagers, deco pines, heal fountain; roofs = fog buffer reused (`townroof_*`), lifted per-building by `town_roof_update`; fully lit like the hub) |
 | 30 | 3,124 | 19% | auto_explore (A-button auto-explore: cached-path BFS, DCSS-style stop-on-sight/stop-on-hit, auto-pickup, walk-to-ladder when explored; private SVBK bank-3 accessors) + gameplay_cold (SELECT-edge belt-description helpers evicted from bank 2) |
 | 23, 25–27, 31 | 0 | 0% | empty — ~115 KB free (27 freed 2026-07: biome_miniboss + enemies_miniboss retired — miniboss/boss are floor kinds now, one biome per dungeon) |
 
@@ -81,15 +81,21 @@ Flow: `Boot → TITLE → CHAR_CREATE → GAMEPLAY ⇄ modals(STATS↔ABILITY, I
 
 ## WRAM budget
 
-Fixed WRAM (0xC000–0xDFFF): `_DATA` ≈ 7,485 B (measured 2026-07-18; ends 0xDDDD).
-Stack runs down from 0xDFFF → **~545 B headroom** — getting tight. Largest recent additions:
-auto_explore BFS queue + path buffer (256 + 48 B; move the queue to SVBK bank 3 at 0xDD80+
-if headroom is ever needed back).
+Fixed WRAM (0xC000–0xDFFF): `_DATA` ≈ 7,490 B (measured 2026-07-19; ends 0xDDE2).
+Stack runs down from 0xDFFF → **~542 B headroom — this is load-bearing, treat it as a floor**:
+`class_emblem_draw` (state_char_create.c) alone puts ~336 B of buffers on the stack, plus
+banked-call depth and the audio ISR. Adding ~90 B of town tables to globals.c once pushed
+`_DATA` to 0xDE3C and the char-create screen overran the stack into `_DATA` → garbled tiles
+from the class symbols onward. The town tables now OVERLAY `nav_nodes[]` (288 B) via
+`town_state` (map.h) — towns never build the nav graph, so the storage is free there.
+If headroom is ever needed: auto_explore BFS queue + path buffer (256 + 48 B) can move to
+SVBK bank 3 at 0xDD80+.
 
 Top consumers:
 - 3 × 1,152 B map bitsets (`floor_bits`, `pit_bits`, `enemy_occ`) = 3,456 B
-- `nav_nodes` 288 B; enemy parallel arrays ~250 B + corpses; file statics ~1.5 KB (ui log,
-  lcd/render scratch, map_gen temporaries)
+- `nav_nodes` 288 B (doubles as `town_state` on town floors — building/exit/roof-owner tables);
+  enemy parallel arrays ~250 B + corpses; file statics ~1.5 KB (ui log, lcd/render scratch,
+  map_gen temporaries)
 - `floor_bits` doubles as story-crawl scratch before the first `generate_level` (story_ui.c)
 
 ### CGB banked WRAM (SVBK)
@@ -97,9 +103,9 @@ Top consumers:
 | WRAM bank | Range (mapped at 0xD000) | Contents |
 |-----------|--------------------------|----------|
 | 1 (default) | 0xD000–0xDFFF | tail of `_DATA` + stack — SVBK must always be restored to 1 |
-| 2 | 0xD000–0xD47F | explored/fog bits (1,152 B) — access ONLY via `lighting.c` |
+| 2 | 0xD000–0xD47F | explored/fog bits (1,152 B) — access ONLY via `lighting.c`. **Town floors reuse this buffer as the building ROOF bitmask** (`townroof_set/clear_all` aliases in map.h; render reads bytes via `wram2_read_byte`) — never aliases fog: towns don't read fog, and every dungeon floor re-clears the buffer in `lighting_reset` |
 | 2 | 0xD480–0xD8FF | hub water mask (1,152 B) — `overworld_water_*` in `lighting.c`; hub-only, never aliases fog |
-| 2 | 0xD900–0xDD7F | hub road mask (1,152 B) — `road_*` in `lighting.c`; hub-only, rendered as open sand |
+| 2 | 0xD900–0xDD7F | road mask (1,152 B) — `road_*` in `lighting.c`; hub roads AND town roads (each gen `road_clear_all()`s first), rendered as open sand |
 | 2 | 0xDD80–0xDFFF | free (~640 B; keep data below ~0xDF00) |
 | 3 | 0xD000–0xD47F | auto-explore BFS visited bitmap (1,152 B) — private `av_*` accessors in `auto_explore.c`; scratch, valid only within one `ax_bfs()` call |
 | 3 | 0xD480–0xDD7F | auto-explore BFS parent-direction map, 2 bits/tile (2,304 B) — private `ap_*` accessors; never cleared (only current-flood tiles are read back), used to extract the cached path |

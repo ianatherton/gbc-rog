@@ -15,7 +15,7 @@ SRAM (battery RAM) is currently unused — free for saves later.
 | 0 (fixed) | ~15,900 of 16,368 usable | ~97% | main loop, ability_dispatch, ally, biome dispatch + `enemy_defs` HOME cache, enemy_extras, lcd, lighting (incl. SVBK fog/water/road accessors + `wram2_read_byte` batch reader), music driver + SFX, perf, seed_entropy, targeting, tileset_io, title_logo, ui_loading_isr, wall_palettes, SDCC runtime. **~450 B free (2026-07-06) — keep HOME lean** |
 | 1 | 4,360 | 27% | tileset (png2asset output) |
 | 2 | 16,347 | 99.8% | gameplay kernel: state_gameplay (incl. zone-confirm latch + town exit/roof/villager/barrel hooks), map, render (incl. the grass-biome ground-item palette fix), camera, enemy. **~37 B free (2026-07-21) — SEVERELY CRITICAL: do not add to this bank without evicting something first (tried hoisting a shared condition into a local var for the item-palette fix — SDCC generated basically the same size either way, ~36-37 B, so "write it cleverly" is not a lever here). Past eviction examples: axe/mace extras → bank 19 (2026-07-06), belt-description helpers → bank 30 `gameplay_cold.c` (2026-07-18)** |
-| 3 | 6,077 | 37% | all 9 UI states (title → game_over) + class_palettes |
+| 3 | 10,964 | 67% | all 10 UI states (title → game_over, incl. talk/trade) + class_palettes |
 | 4 | 2,971 | 18% | bwv1043 music data |
 | 5 | 13,000 | 79% | ui.c (incl. `ui_confirm_prompt_push` zone-confirm text) |
 | 6 | 122 | 1% | abilities_knight |
@@ -64,7 +64,7 @@ ROM around a plain call). The linker will NOT catch a near call into the wrong b
 
 ## Game states → banks
 
-Flow: `Boot → TITLE → CHAR_CREATE → GAMEPLAY ⇄ modals(STATS↔ABILITY, INVENTORY, MAP, PICKUP) → TRANSITION → (next floor | GAME_OVER → TITLE)`
+Flow: `Boot → TITLE → CHAR_CREATE → GAMEPLAY ⇄ modals(STATS↔ABILITY, INVENTORY, MAP, PICKUP, TALK) → TRANSITION → (next floor | GAME_OVER → TITLE)`
 
 | State | Primary bank | Far-calls into |
 |-------|--------------|----------------|
@@ -75,6 +75,7 @@ Flow: `Boot → TITLE → CHAR_CREATE → GAMEPLAY ⇄ modals(STATS↔ABILITY, I
 | GAMEPLAY tick | 2 | 19 (combat), 0→6/7/8/9 (abilities by class), 13 (items), 15/16 (scrolls), 5 (ui/log), 17 (sprites), 0 (ally/lighting/targeting) |
 | STATS / ABILITY | 3 | 5 (ui) |
 | INVENTORY / PICKUP | 3 | 5 (ui), 13 (items), 20 (equipment), 17 (cursor) |
+| TALK (trade) | 3 | 5 (ui/log), 13 (items + drop table), 17 (cursor); entered from 29 (`town_npc_blocks` sets `next_state` — bank 2 is full) |
 | MAP | 3 | 5 (ui), fog via lighting.c (bank 0) |
 | TRANSITION | 3 | pit → 10/11/12 regen |
 | GAME_OVER | 3 | 5 (ui) |

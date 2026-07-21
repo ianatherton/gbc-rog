@@ -350,6 +350,11 @@ typedef struct {
    refresh_town_npcs_oam. Wander AI in biome_town.c town_npcs_tick. */
 #define MAX_TOWN_NPCS  8u
 #define TOWN_NPC_ROAM_RADIUS 10u /* Chebyshev tiles from home before a wandering villager warps back */
+/* Trade: villager slot 0 of every town is its trader (the rest keep their canned greeting line).
+   Stock is TOWN_SHOP_SLOTS kinds, one bit each in town_shop_sold[] — do not raise past 8. */
+#define TOWN_TRADER_NPC  0u
+#define TOWN_SHOP_SLOTS  8u
+#define TOKENS_MAX      99u /* keeps the "*N" counter two digits wide */
 
 /* The 3 dungeon entrances of a region cluster within this many tiles of their town (entrance-cell to
    town anchor), so each town is ringed by its own dungeons. ~1 screen. */

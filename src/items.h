@@ -49,6 +49,7 @@ void    items_kind_display_name_copy(uint8_t kind, int8_t mod_level, char *out, 
 
 int8_t  item_roll_mod_level(void) BANKED; // -1..+10 "+N" modifier roll, weighted toward 0; call only for ITEM_CAT_EQUIPMENT kinds
 uint8_t ring_roll_kind(void) BANKED;      // random ring kind: uniform type, tier weighted toward T1
+uint8_t items_drop_table_pick(uint8_t idx) BANKED; // drop_table[idx % 58] — deterministic, no rand(); trade stock uses this
 
 uint8_t inventory_first_empty(void) BANKED; // 0..INVENTORY_MAX_SLOTS-1, else 255
 uint8_t inventory_count_used(void) BANKED;

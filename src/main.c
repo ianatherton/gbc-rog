@@ -20,6 +20,8 @@ BANKREF_EXTERN(state_map_enter)
 BANKREF_EXTERN(state_map_tick)
 BANKREF_EXTERN(state_pickup_enter)
 BANKREF_EXTERN(state_pickup_tick)
+BANKREF_EXTERN(state_talk_enter)
+BANKREF_EXTERN(state_talk_tick)
 BANKREF_EXTERN(state_transition_enter)
 BANKREF_EXTERN(tileset)
 BANKREF_EXTERN(entity_sprites_init)
@@ -197,7 +199,7 @@ int main(void) {
                 break;
             case STATE_GAMEPLAY:
                 if (from_st != STATE_STATS && from_st != STATE_INVENTORY && from_st != STATE_ABILITY
-                        && from_st != STATE_MAP && from_st != STATE_PICKUP) {
+                        && from_st != STATE_MAP && from_st != STATE_PICKUP && from_st != STATE_TALK) {
                     BANK_DBG("m_in_play");
                     state_gameplay_enter();
                     BANK_DBG("m_out_play");
@@ -229,6 +231,11 @@ int main(void) {
                 BANK_DBG("m_in_pu");
                 state_pickup_enter();
                 BANK_DBG("m_out_pu");
+                break;
+            case STATE_TALK:
+                BANK_DBG("m_in_talk");
+                state_talk_enter();
+                BANK_DBG("m_out_talk");
                 break;
             case STATE_TRANSITION:
                 BANK_DBG("m_in_tr");
@@ -266,6 +273,9 @@ int main(void) {
             break;
         case STATE_PICKUP:
             state_pickup_tick();
+            break;
+        case STATE_TALK:
+            state_talk_tick();
             break;
         default:
             wait_vbl_done();

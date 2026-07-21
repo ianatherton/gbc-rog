@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "defs.h"
+#include "dungeon.h" // TOWN_COUNT (town_shop_sold[])
 #include "game_state.h"
 #include "items.h"
 
@@ -76,6 +77,13 @@ extern uint8_t ground_item_x[MAX_GROUND_ITEMS];
 extern uint8_t ground_item_y[MAX_GROUND_ITEMS];
 extern int8_t  ground_item_mod_level[MAX_GROUND_ITEMS]; // parallel to ground_item_kind; rolled at drop/scatter time
 extern uint8_t pending_pickup_slot; // ground_item_* index queued for STATE_PICKUP; 255 = none
+
+/* Trade (STATE_TALK, state_talk.c). Everything is worth a flat 1 token, buy or sell; tokens are
+   earned only by selling. Villager slot 0 of each town is its trader — stock is 8 kinds derived
+   from run_seed + town id, so it survives leaving and re-entering the town. */
+extern uint8_t player_tokens;              // 0..TOKENS_MAX; drawn as "*N"
+extern uint8_t town_shop_sold[TOWN_COUNT]; // bit k = stock slot k already bought (per run)
+extern uint8_t pending_talk_npc;           // villager slot queued for STATE_TALK; 255 = none
 
 /* story_ui layout constants — scratch overlays floor_bits[] before first generate_level (see story_ui.c) */
 #define G_STORY_BIGBUF_CAP   400u

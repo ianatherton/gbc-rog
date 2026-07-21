@@ -14,6 +14,7 @@ typedef enum {
     STATE_PICKUP,     // modal: walked onto ground item — get/discard prompt
     STATE_TRANSITION, // bounce: floor-down, death→game over, future fades
     STATE_GAME_OVER,
+    STATE_TALK,       // modal: bumped a town NPC — conversation pop-up (currently the trade menu)
     STATE_NONE = 255,
 } GameState;
 

@@ -9,6 +9,8 @@
 #include "lcd.h" // lcd_note_bkg0 — panic flash restores the live slot-0 ramp
 #include "entity_sprites.h" // entity_sprites_town_npc_glide_set — villager wander slide
 #include "items.h" // enemy_try_drop_item — barrel loot roll (same table an enemy kill uses)
+#include "auto_explore.h" // auto_explore_active — never pop a modal it can't drive
+#include "game_state.h"   // next_state — the trader bump opens STATE_TALK straight from this bank
 #include <gb/cgb.h>
 #include <gbdk/platform.h>
 
@@ -113,7 +115,16 @@ uint8_t town_npc_blocks(uint8_t x, uint8_t y) BANKED { // 1 if a villager's tile
         if (town_state->npc_x[i] == x && town_state->npc_y[i] == y) {
             if (last_bump_npc != i) {
                 last_bump_npc = i;
-                overworld_signpost_read((uint8_t)(SIGN_KIND_NPC | i));
+                // The trader opens a modal; everyone else just says their line. next_state is set
+                // from here (bank 29) rather than queued for state_gameplay to dispatch, because
+                // bank 2 has no room left — this branch is a dead end (no move, no turn) and
+                // nothing in the turn tail writes next_state after it, so it lands safely.
+                if (i == TOWN_TRADER_NPC && !auto_explore_active) {
+                    pending_talk_npc = i;
+                    next_state = STATE_TALK;
+                } else {
+                    overworld_signpost_read((uint8_t)(SIGN_KIND_NPC | i));
+                }
             }
             return 1u;
         }

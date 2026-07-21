@@ -96,6 +96,12 @@ void level_init_display(uint8_t from_pit) BANKED {
         else                          { player_armor = 15u; player_magdef =  5u; player_dodge =  0u; } // KNIGHT — armored
         player_hp = player_hp_max;
         inventory_clear_all(); // fresh run wipes any items from a previous attempt
+        {   // trade state — see the GSINIT note in globals.c: these have no initializers
+            uint8_t t;
+            player_tokens = 0u;
+            pending_talk_npc = 255u;
+            for (t = 0u; t < TOWN_COUNT; t++) town_shop_sold[t] = 0u;
+        }
         if (player_class == 2u) { // WITCH starts with the Port: Boss scroll + her hat (worn)
             uint8_t s;
             inventory_add(ITEM_KIND_SCROLL_PORT6, 0);

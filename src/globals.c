@@ -81,6 +81,12 @@ uint8_t ground_item_y[MAX_GROUND_ITEMS];
 int8_t  ground_item_mod_level[MAX_GROUND_ITEMS];
 uint8_t pending_pickup_slot;
 
+// Same GSINIT reasoning as the block above: zeroed explicitly by trade_reset_run() (level_init,
+// fresh run) rather than with an initializer.
+uint8_t player_tokens;
+uint8_t town_shop_sold[TOWN_COUNT];
+uint8_t pending_talk_npc;
+
 volatile uint8_t inv_desc_scx; // BSS 0 — see globals.h
 
 // Overworld prefab dims, indexed by OW_FEAT_*. ent_dx/dy = walkable trigger cell within the footprint

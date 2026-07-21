@@ -431,6 +431,13 @@ static const uint8_t drop_table[58] = {
     ITEM_KIND_MACE,        ITEM_KIND_MACE,        ITEM_KIND_MACE,
 };
 
+/* Index the weighted drop table directly, without touching rand(). The trade screen needs stock
+   that is stable across visits, so it hashes run_seed itself and picks with this — reseeding the
+   RNG from a shop would desync floor generation. */
+uint8_t items_drop_table_pick(uint8_t idx) BANKED {
+    return drop_table[idx % 58u];
+}
+
 /* "+N" modifier roll: weighted toward 0, with a rare (~1%) reroll across the full -1..+10
    range so the occasional "masterwork" item can still show up. */
 static const int8_t mod_table[16] = { 0,0,0,0,0,0,0,0, -1,-1, 1,1,1, 2,2, 3 };

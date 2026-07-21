@@ -42,6 +42,13 @@ BANKREF_EXTERN(map_pit_position)
 #define MAX_WAYPOINT_FX        2u  // OW_FEATURE_PLAN places at most 2 OW_FEAT_WAYPOINT
 #define WAYPOINT_FX_PAL        PAL_LADDER
 
+// Town villagers: another borrow of the always-empty town enemy run (towns spawn no enemies) —
+// same trick as SP_WAYPOINT_FX_BASE above, just gated on FLOORKIND_TOWN instead of the hub. 2 OAM
+// tiles per villager (head+body, hero art), up to MAX_TOWN_NPCS*2 = 16 slots (4..19 of the 23-slot
+// run 4..26). Villager i's glide offset also borrows en_ofs_x/y[i] (the enemy lunge/glide array) —
+// same idle-in-town reasoning, one borrow per idle resource instead of new fixed WRAM.
+#define SP_TOWN_NPC_BASE SP_ENEMY_BASE
+
 static uint8_t brazier_fire_active;
 static uint8_t brazier_fire_ttl;
 static int16_t brazier_fire_wx, brazier_fire_wy;
@@ -240,6 +247,70 @@ static void refresh_town_flag_oam(void) {
     oam_hide(SP_TOWN_FLAG); // no town on-screen (only one fits at a time → single flag OAM slot suffices)
 }
 
+// 1 while SP_TOWN_NPC_BASE.. are villager-owned; off a town floor they belong to real enemies
+// instead (same OAM range, SP_ENEMY_BASE-based) and must never be touched here — see below.
+static uint8_t town_npc_oam_owned;
+
+// Villager sprites (town floors): 2-tile hero-art head/body at town_state->npc_x/y (biome_town.c
+// town_npcs_tick moves them, once per player turn, before this runs each refresh). Roof-hidden the
+// same way the BG art hides a covered interior: OAM always draws above BG, so a villager standing
+// under a closed roof (inside a building that isn't town_state->inside_idx) is simply skipped rather
+// than painted over the roof tile — same containment test as the render.c/biome_overworld.c roof
+// branch and town_roof_update, just against the villager's own tile instead of the player's.
+// Town floors are always fully lit (lighting_is_revealed is unconditional there), so no fog gate.
+//
+// Off a town floor this must be a complete no-op — SP_TOWN_NPC_BASE.. is the SAME OAM range real
+// enemies use, and unconditionally hiding it (like the hub's SP_WAYPOINT_FX_BASE trick does) would
+// blank live dungeon enemies. But leaving a town also can't rely on the enemy hide-sweep below to
+// clear stale villager art: going town → hub keeps num_enemies at 0 on both sides, so the sweep's
+// oam_enemy_hide_mark guard sees no change and skips re-hiding the run. town_npc_oam_owned tracks
+// who owns the range and fires exactly one cleanup sweep on the frame it changes hands.
+static void refresh_town_npcs_oam(void) {
+    uint8_t i;
+    if (floor_kind != FLOORKIND_TOWN) {
+        if (town_npc_oam_owned) {
+            for (i = 0u; i < MAX_TOWN_NPCS; i++) {
+                oam_hide((uint8_t)(SP_TOWN_NPC_BASE + i * 2u));
+                oam_hide((uint8_t)(SP_TOWN_NPC_BASE + i * 2u + 1u));
+            }
+            town_npc_oam_owned = 0u;
+        }
+        return;
+    }
+    town_npc_oam_owned = 1u;
+    for (i = 0u; i < MAX_TOWN_NPCS; i++) {
+        uint8_t hsp = (uint8_t)(SP_TOWN_NPC_BASE + i * 2u);
+        uint8_t bsp = (uint8_t)(hsp + 1u);
+        uint8_t nx, ny, hidden = 0u, bi;
+        if (i >= town_state->npc_count) { oam_hide(hsp); oam_hide(bsp); continue; }
+        nx = town_state->npc_x[i]; ny = town_state->npc_y[i];
+        if (nx < g_cam_tx || nx >= g_cam_tx_end || ny < g_cam_ty || ny >= g_cam_ty_end) {
+            oam_hide(hsp); oam_hide(bsp); continue;
+        }
+        for (bi = 0u; bi < town_state->count; bi++) {
+            const TownBuilding *b = &town_state->buildings[bi];
+            if (nx > b->x && nx < (uint8_t)(b->x + b->w - 1u)
+                    && ny > b->y && ny < (uint8_t)(b->y + b->h - 1u)) {
+                if (bi != town_state->inside_idx) hidden = 1u;
+                break;
+            }
+        }
+        if (hidden) { oam_hide(hsp); oam_hide(bsp); continue; }
+        // PAL_PLAYER, not PAL_PILLAR_BG: this is an OBJ (OCP) palette index, a separate CRAM bank
+        // from the BG index of the same name/number — OCP1 is the green snake ramp (wrong read for
+        // "villager"), where OCP2/PAL_PLAYER is the hero's own class ramp, already loaded and a
+        // natural fit for hero-shaped art sharing the same tiles.
+        // en_ofs_x/y[i] (the enemy-run glide offset, borrowed — see SP_TOWN_NPC_BASE) slides a
+        // villager from its previous tile; entity_sprites_enemy_glide_step decays it every scroll
+        // frame exactly like a real enemy's.
+        {
+            int16_t wx = (int16_t)nx * 8 + en_ofs_x[i], wy = (int16_t)ny * 8 + en_ofs_y[i];
+            move_entity_oam(bsp, wx, wy, TILE_PLAYER_BODY_STAND_VRAM, PAL_PLAYER);
+            move_entity_oam(hsp, wx, (int16_t)(wy - 8), TILE_PLAYER_HEAD_VRAM, PAL_PLAYER);
+        }
+    }
+}
+
 BANKREF(entity_sprites_poof_clear_all)
 void entity_sprites_poof_clear_all(void) BANKED {
     memset(enemy_poof_ttl, 0, sizeof enemy_poof_ttl);
@@ -274,6 +345,7 @@ void entity_sprites_init(void) BANKED {
     player_hurt_flash_ttl = 0u;
     player_hurt_flash_restore_needed = 0u;
     oam_enemy_hide_mark = 255u;
+    town_npc_oam_owned = 0u; // every OAM slot is hidden below — matches "nobody owns the town range" state
     brazier_fire_active = 0u;
     brazier_fire_ttl = 0u;
     brazier_fire_source_cursor = 0u;
@@ -820,6 +892,10 @@ void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) BANKED {
         }
     }
     if (!brazier_fire_active) oam_hide(SP_BRAZIER_FIRE); // keep slot hidden until first spawn
+    // Must run LAST: shares SP_ENEMY_BASE.. with the per-slot enemy loop and sweep above, and on a
+    // town floor needs to draw after both (num_enemies is always 0 in town, so the sweep would
+    // otherwise hide slots this call had just painted).
+    refresh_town_npcs_oam();
 }
 
 BANKREF(entity_sprites_refresh_all)
@@ -935,6 +1011,16 @@ void entity_sprites_enemy_glide_step(void) BANKED {
         if (en_ofs_y[i] > 0) en_ofs_y[i] = (en_ofs_y[i] > (int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_y[i] - ENEMY_GLIDE_SPEED) : 0;
         else if (en_ofs_y[i] < 0) en_ofs_y[i] = (en_ofs_y[i] < -(int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_y[i] + ENEMY_GLIDE_SPEED) : 0;
     }
+    // Town villagers share en_ofs_x/y[0..npc_count-1] with the (always-idle-in-town) enemy run —
+    // num_enemies is 0 on every town floor, so the loop above never touches these indices.
+    if (floor_kind == FLOORKIND_TOWN) {
+        for (i = 0; i < town_state->npc_count; i++) {
+            if (en_ofs_x[i] > 0) en_ofs_x[i] = (en_ofs_x[i] > (int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_x[i] - ENEMY_GLIDE_SPEED) : 0;
+            else if (en_ofs_x[i] < 0) en_ofs_x[i] = (en_ofs_x[i] < -(int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_x[i] + ENEMY_GLIDE_SPEED) : 0;
+            if (en_ofs_y[i] > 0) en_ofs_y[i] = (en_ofs_y[i] > (int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_y[i] - ENEMY_GLIDE_SPEED) : 0;
+            else if (en_ofs_y[i] < 0) en_ofs_y[i] = (en_ofs_y[i] < -(int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_y[i] + ENEMY_GLIDE_SPEED) : 0;
+        }
+    }
     for (i = 0; i < MAX_ALLIES; i++) {
         if (ally_ofs_x[i] > 0) ally_ofs_x[i] = (ally_ofs_x[i] > (int8_t)ALLY_GLIDE_SPEED) ? (int8_t)(ally_ofs_x[i] - ALLY_GLIDE_SPEED) : 0;
         else if (ally_ofs_x[i] < 0) ally_ofs_x[i] = (ally_ofs_x[i] < -(int8_t)ALLY_GLIDE_SPEED) ? (int8_t)(ally_ofs_x[i] + ALLY_GLIDE_SPEED) : 0;
@@ -962,6 +1048,16 @@ void entity_sprites_ally_glide_begin(const uint8_t *old_ax, const uint8_t *old_a
             }
         }
     }
+}
+
+BANKREF(entity_sprites_town_npc_glide_set)
+void entity_sprites_town_npc_glide_set(uint8_t idx, uint8_t old_x, uint8_t old_y) BANKED {
+    // Called only for a plain 1-tile wander step (biome_town.c town_npcs_tick skips this on a
+    // warp-home jump, so en_ofs here is always exactly ±8 or 0 — no need for the ally glide's
+    // long-jump/teleport clamp).
+    if (idx >= MAX_TOWN_NPCS) return;
+    en_ofs_x[idx] = (int8_t)(((int16_t)old_x - (int16_t)town_state->npc_x[idx]) * 8);
+    en_ofs_y[idx] = (int8_t)(((int16_t)old_y - (int16_t)town_state->npc_y[idx]) * 8);
 }
 
 BANKREF(entity_sprites_run_enemy_glide)

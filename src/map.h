@@ -20,8 +20,12 @@ typedef struct { uint8_t x, y, w, h; } TownBuilding; // wall-ring rect, walls in
 typedef struct {
     TownBuilding buildings[MAX_TOWN_BUILDINGS];
     uint8_t count;
-    uint8_t exit_x[4], exit_y[4]; // N/S/W/E road mouths — each arms LEAVE TOWN
     uint8_t inside_idx;           // building whose interior holds the player; 255 = outside (roofs drawn)
+    // road mouths are computed (town_exit_at: border cell + road_bit), not stored — the 2-wide
+    // cross always exits both mid columns/rows, so no per-direction table is needed.
+    uint8_t npc_count;
+    uint8_t npc_home_x[MAX_TOWN_NPCS], npc_home_y[MAX_TOWN_NPCS]; // wander anchor (building centre)
+    uint8_t npc_x[MAX_TOWN_NPCS],      npc_y[MAX_TOWN_NPCS];      // current tile — also the OAM/collision position
 } TownState;
 #define town_state ((TownState *)nav_nodes)
 typedef char town_state_fits_nav_nodes[(sizeof(TownState) <= sizeof(NavNode) * MAX_NAV_NODES) ? 1 : -1];

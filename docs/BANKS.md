@@ -14,7 +14,7 @@ SRAM (battery RAM) is currently unused — free for saves later.
 |------|------|----|----------|
 | 0 (fixed) | ~15,900 of 16,368 usable | ~97% | main loop, ability_dispatch, ally, biome dispatch + `enemy_defs` HOME cache, enemy_extras, lcd, lighting (incl. SVBK fog/water/road accessors + `wram2_read_byte` batch reader), music driver + SFX, perf, seed_entropy, targeting, tileset_io, title_logo, ui_loading_isr, wall_palettes, SDCC runtime. **~450 B free (2026-07-06) — keep HOME lean** |
 | 1 | 4,360 | 27% | tileset (png2asset output) |
-| 2 | 16,200 | 99% | gameplay kernel: state_gameplay (incl. zone-confirm latch + town exit/roof hooks), map, render, camera, enemy. **~184 B free — chronically full; evict before adding (axe/mace extras → bank 19 2026-07-06; belt-description helpers → bank 30 `gameplay_cold.c` 2026-07-18)** |
+| 2 | 16,255 | 99% | gameplay kernel: state_gameplay (incl. zone-confirm latch + town exit/roof/villager hooks), map, render, camera, enemy. **~129 B free — chronically full; evict before adding (axe/mace extras → bank 19 2026-07-06; belt-description helpers → bank 30 `gameplay_cold.c` 2026-07-18)** |
 | 3 | 6,077 | 37% | all 9 UI states (title → game_over) + class_palettes |
 | 4 | 2,971 | 18% | bwv1043 music data |
 | 5 | 13,000 | 79% | ui.c (incl. `ui_confirm_prompt_push` zone-confirm text) |
@@ -29,15 +29,15 @@ SRAM (battery RAM) is currently unused — free for saves later.
 | 14 | 5,838 | 36% | story_ui + names (deterministic town/dungeon/NPC name generator, `src/names.c`) |
 | 15 | 157 | 1% | scroll_blast |
 | 16 | 357 | 2% | scroll_root, debuff_icon, bow_shoot |
-| 17 | 10,184 | 62% | entity_sprites, scoundrel_fox |
+| 17 | 13,334 | 81% | entity_sprites (incl. `refresh_town_npcs_oam` — wandering villager OAM, borrows the town's always-empty enemy run), scoundrel_fox |
 | 18 | 5,460 | 33% | bwv527 music data (moved out of bank 5) |
 | 19 | 1,958 | 12% | combat (moved out of bank 2; per-turn, far-call boundary is cheap) + `combat_player_melee_extras` (axe cleave / mace stun, evicted from bank 2) |
 | 20 | — | — | equipment (`EquipStatDef` table, `items_equip_apply`, `items_equip_slot`, `equipped_kind_in_slot`) |
 | 21 | 132 | 1% | biome_boss |
-| 22 | 9,826 | 60% | biome_overworld (top-level hub, floor 0; no enemies/items) + render_palettes (incl. town field/brick/stone/foliage branches) + batched strip classifiers (`overworld_classify_col/row_strip` — one banked entry per camera strip, mask bytes via `wram2_read_byte`) + town render overlay/step features |
+| 22 | 11,004 | 67% | biome_overworld (top-level hub, floor 0; no enemies/items) + render_palettes (incl. town field/brick/stone/foliage branches) + batched strip classifiers (`overworld_classify_col/row_strip` — one banked entry per camera strip, mask bytes via `wram2_read_byte`) + town render overlay/step features (villagers are OAM now, not drawn here) |
 | 24 | ~600 | 4% | biome_boss2 (Sphinx roster/art; overlaid onto any dungeon's boss floor by biome_apply_floor_kind) + bosses (png2asset sphinx sheet, res/bosses.png). 10-tile sprite uploaded to VRAM scratch + re-uploaded per frame by sphinx_anim_tick for a 2-frame leg cycle + faster wingbeat |
 | 28 | ~460 | 3% | dungeon_floors (miniboss elite art: runtime 2x pixel-doubler of elite_base_type's sprite → quadrant VRAM slots; floor-kind scheme in src/dungeon.h) |
-| 29 | 3,258 | 20% | biome_town (town interiors, floors 46–48 = `TOWN_FLOOR_BASE`+0..2: 59..96-square safe zone sized by building count — pine border ring + brick town wall, sand road cross exiting N/S/E/W (4 LEAVE TOWN mouths, `town_exit_at`), 5–20 roofed brick buildings with door signs (`SIGN_KIND_BUILDING`) + villagers, deco pines, heal fountain; roofs = fog buffer reused (`townroof_*`), lifted per-building by `town_roof_update`; fully lit like the hub) |
+| 29 | 4,060 | 25% | biome_town (town interiors, floors 46–48 = `TOWN_FLOOR_BASE`+0..2: 59..96-square safe zone sized by building count — pine border ring + brick town wall, 2-tile-wide sand road cross exiting N/S/E/W (`town_exit_at` = border cell + road bit, no stored table), 5–20 roofed brick buildings with door signs (`SIGN_KIND_BUILDING`), deco pines, heal fountain; roofs = fog buffer reused (`townroof_*`), lifted per-building by `town_roof_update`; villagers wander via `town_npcs_tick`/`town_npc_blocks` (real OAM sprites, drawn in bank 17) — lazy random walk, solid collision on their tile, warp home past `TOWN_NPC_ROAM_RADIUS`; fully lit like the hub) |
 | 30 | 3,124 | 19% | auto_explore (A-button auto-explore: cached-path BFS, DCSS-style stop-on-sight/stop-on-hit, auto-pickup, walk-to-ladder when explored; private SVBK bank-3 accessors) + gameplay_cold (SELECT-edge belt-description helpers evicted from bank 2) |
 | 23, 25–27, 31 | 0 | 0% | empty — ~115 KB free (27 freed 2026-07: biome_miniboss + enemies_miniboss retired — miniboss/boss are floor kinds now, one biome per dungeon) |
 

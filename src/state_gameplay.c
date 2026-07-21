@@ -372,7 +372,7 @@ void state_gameplay_tick(void) BANKED {
 #endif
         } else {
             uint8_t t = tile_at(nx, ny);
-            if (t == TILE_WALL) {
+            if (t == TILE_WALL || (floor_kind == FLOORKIND_TOWN && town_npc_blocks(nx, ny))) { // a villager's tile blocks like a wall
             } else {
                 // Figure out whether (nx,ny) is a transition tile before walking onto it — the
                 // walk always happens (full turn, enemies act); the confirm prompt arms only
@@ -403,7 +403,7 @@ void state_gameplay_tick(void) BANKED {
 
                 uint8_t opx = g_player_x, opy = g_player_y;
                 if (floor_biome == BIOME_OVERWORLD || floor_biome == BIOME_TOWN)
-                    overworld_step_feature(nx, ny); // signpost label / NPC line / town fountain heal
+                    overworld_step_feature(nx, ny); // signpost label / town fountain heal
                 consumed_turn = 1u;
                 wait_vbl_done();
                 draw_cell(g_player_x, g_player_y);
@@ -433,6 +433,7 @@ void state_gameplay_tick(void) BANKED {
                     // Fox AI; glide offsets loaded so both fox and enemies slide during the camera pan
                     ally_fk = ally_walk_tick_and_snap(g_player_x, g_player_y, ally_snap_x, ally_snap_y, ally_snap_a);
                     entity_sprites_ally_glide_begin(ally_snap_x, ally_snap_y, ally_snap_a);
+                    if (floor_kind == FLOORKIND_TOWN) town_npcs_tick(g_player_x, g_player_y); // lazy villager wander; no glide
                     {
                         uint8_t target_cx = (g_player_x > GRID_W / 2) ? (uint8_t)(g_player_x - GRID_W / 2) : 0;
                         uint8_t target_cy = (g_player_y > GRID_H / 2) ? (uint8_t)(g_player_y - GRID_H / 2) : 0;

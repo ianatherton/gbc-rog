@@ -7,19 +7,23 @@
 #include "map.h"
 #include "dungeon.h"
 #include "lcd.h" // lcd_note_bkg0 — panic flash restores the live slot-0 ramp
+#include "entity_sprites.h" // entity_sprites_town_npc_glide_set — villager wander slide
 #include <gb/cgb.h>
 #include <gbdk/platform.h>
 
 // Town interior (floors TOWN_FLOOR_BASE + 0..2): a large safe zone entered from the hub town's
 // door, sized 59..96 square by its building count (5..20). The map border is a pine ring with a
-// brick town wall just inside it; a sand road cross runs through the centre and out through gaps
-// at N/S/E/W — each mouth is a LEAVE TOWN exit (town_exit_x/y), and the south mouth doubles as the
-// spawn (drawn as the stairs-up glyph via the player_spawn path). Buildings are brick rects spread
-// between the roads, each with a signpost by its door (SIGN_KIND_BUILDING), villagers inside the
-// first few, and a roof that hides the interior until the player steps in: roof bits live in the
-// fog buffer (SVBK2 0xD000, townroof_* in map.h — towns never read fog), town_state->inside_idx picks the
-// one building drawn open. Fully lit — no fog, no braziers, no enemies, no items. Layout is
-// deterministic from (run_seed, town_id).
+// brick town wall just inside it; a 2-tile-wide sand road cross runs through the centre and out
+// through gaps at N/S/E/W (town_exit_at tests border+road, no stored table) — the south mouth
+// doubles as the spawn (drawn as the stairs-up glyph via the player_spawn path). Buildings are
+// brick rects spread between the roads, each with a signpost by its door (SIGN_KIND_BUILDING) and
+// a roof that hides the interior until the player steps in: roof bits live in the fog buffer
+// (SVBK2 0xD000, townroof_* in map.h — towns never read fog), town_state->inside_idx picks the one
+// building drawn open. Villagers are real OAM sprites (entity_sprites.c refresh_town_npcs_oam) that
+// wander a lazy random walk (town_npcs_tick) and warp home if they stray past TOWN_NPC_ROAM_RADIUS
+// tiles (town_state->npc_home_*); collision is their current tile only (town_npc_blocks), same as a
+// wall — no pathing, no per-NPC extra data beyond position. Fully lit — no fog, no braziers, no
+// enemies, no items. Layout is deterministic from (run_seed, town_id).
 
 BANKREF(biome_town_copy_defs)
 void biome_town_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count) {
@@ -88,11 +92,82 @@ static uint8_t tg_rects_clash(uint8_t x0, uint8_t y0, uint8_t bw, uint8_t bh) {
 }
 
 BANKREF(town_exit_at)
-uint8_t town_exit_at(uint8_t x, uint8_t y) BANKED { // 1 if (x,y) is one of the 4 road mouths
+uint8_t town_exit_at(uint8_t x, uint8_t y) BANKED { // 1 if (x,y) is a road mouth: any border cell the road reaches
+    if (x != 0u && y != 0u && x != (uint8_t)(active_map_w - 1u) && y != (uint8_t)(active_map_h - 1u)) return 0u;
+    return road_bit(TILE_IDX(x, y));
+}
+
+// 255 = not currently bumping anyone. Same de-dup idiom as state_gameplay.c's confirm_arm: a bump
+// prints its line once, holding the direction against a stationary villager doesn't respam it, and
+// moving off (or the villager wandering away) clears it so the next bump — even the same villager —
+// greets again.
+static uint8_t last_bump_npc = 255u;
+
+BANKREF(town_npc_blocks)
+uint8_t town_npc_blocks(uint8_t x, uint8_t y) BANKED { // 1 if a villager's tile (its only collision — no head hitbox) sits at (x,y); bumping one starts a conversation instead of just blocking
     uint8_t i;
-    for (i = 0u; i < 4u; i++)
-        if (town_state->exit_x[i] == x && town_state->exit_y[i] == y) return 1u;
+    for (i = 0u; i < town_state->npc_count; i++) {
+        if (town_state->npc_x[i] == x && town_state->npc_y[i] == y) {
+            if (last_bump_npc != i) {
+                last_bump_npc = i;
+                overworld_signpost_read((uint8_t)(SIGN_KIND_NPC | i));
+            }
+            return 1u;
+        }
+    }
+    last_bump_npc = 255u;
     return 0u;
+}
+
+// Lazy random walk, one step per villager per player turn: ~1-in-4 chance to move, direction picked
+// uniformly from N/S/W/E, sliding there like an enemy step (entity_sprites_town_npc_glide_set). No
+// pathing and no data beyond the current tile — a rejected step (wall, player, another villager)
+// just means the villager stands still that turn. A villager that ends up more than
+// TOWN_NPC_ROAM_RADIUS tiles (Chebyshev) from its home building warps back instantly (no slide) —
+// the glide-set call is skipped whenever the net move for the turn is more than one tile, which only
+// happens on that warp.
+BANKREF(town_npcs_tick)
+void town_npcs_tick(uint8_t px, uint8_t py) BANKED {
+    uint8_t i;
+    for (i = 0u; i < town_state->npc_count; i++) {
+        uint8_t old_x = town_state->npc_x[i], old_y = town_state->npc_y[i];
+        if ((rand() & 3u) == 0u) {
+            uint8_t dir = (uint8_t)(rand() & 3u); // 0=N 1=S 2=W 3=E
+            int8_t dx = (dir == 2u) ? -1 : (dir == 3u) ? 1 : 0;
+            int8_t dy = (dir == 0u) ? -1 : (dir == 1u) ? 1 : 0;
+            int16_t nx16 = (int16_t)town_state->npc_x[i] + dx;
+            int16_t ny16 = (int16_t)town_state->npc_y[i] + dy;
+            if (nx16 >= 1 && ny16 >= 1 && nx16 < (int16_t)(active_map_w - 1u) && ny16 < (int16_t)(active_map_h - 1u)) {
+                uint8_t nx = (uint8_t)nx16, ny = (uint8_t)ny16, k, occupied = 0u;
+                if (nx == px && ny == py) occupied = 1u; // player is standing there
+                for (k = 0u; !occupied && k < town_state->npc_count; k++)
+                    if (k != i && town_state->npc_x[k] == nx && town_state->npc_y[k] == ny) occupied = 1u;
+                if (!occupied && is_walkable(nx, ny)) {
+                    town_state->npc_x[i] = nx;
+                    town_state->npc_y[i] = ny;
+                }
+            }
+        }
+        {
+            uint8_t adx = (town_state->npc_x[i] > town_state->npc_home_x[i])
+                ? (uint8_t)(town_state->npc_x[i] - town_state->npc_home_x[i])
+                : (uint8_t)(town_state->npc_home_x[i] - town_state->npc_x[i]);
+            uint8_t ady = (town_state->npc_y[i] > town_state->npc_home_y[i])
+                ? (uint8_t)(town_state->npc_y[i] - town_state->npc_home_y[i])
+                : (uint8_t)(town_state->npc_home_y[i] - town_state->npc_y[i]);
+            uint8_t dist = (adx > ady) ? adx : ady; // Chebyshev, matches the 4-directional step shape
+            if (dist > TOWN_NPC_ROAM_RADIUS) {
+                town_state->npc_x[i] = town_state->npc_home_x[i]; // simple snap-home — no pathing back either
+                town_state->npc_y[i] = town_state->npc_home_y[i];
+            }
+        }
+        { // slide only for a plain single-tile step; a warp-home jump (any larger delta) teleports
+            int16_t ddx = (int16_t)old_x - (int16_t)town_state->npc_x[i];
+            int16_t ddy = (int16_t)old_y - (int16_t)town_state->npc_y[i];
+            if ((ddx || ddy) && ddx >= -1 && ddx <= 1 && ddy >= -1 && ddy <= 1)
+                entity_sprites_town_npc_glide_set(i, old_x, old_y);
+        }
+    }
 }
 
 BANKREF(town_roof_update)
@@ -113,13 +188,15 @@ void town_generate_interior(uint8_t town_id) BANKED {
     uint8_t x, y, i, n;
     const uint8_t target = (uint8_t)(5u + (uint8_t)(tg_hash(town_id, 0u) % 16u)); // 5..20 buildings
     uint8_t dims = (uint8_t)(44u + (uint8_t)(target * 3u)); // 59..104 → clamped below
-    uint8_t w, h, cx, cy;
+    uint8_t w, h, cx, cy, rx0, rx1, ry0, ry1; // rx0/rx1, ry0/ry1: the 2-wide road's two columns/rows
     if (dims > MAP_W) dims = MAP_W;
     active_map_w = dims; // storage is the full MAP_W×MAP_H bitset; this floor only uses dims²
     active_map_h = dims;
     w = dims; h = dims;
     cx = (uint8_t)(w >> 1);
     cy = (uint8_t)(h >> 1);
+    rx0 = cx; rx1 = (uint8_t)(cx + 1u);
+    ry0 = cy; ry1 = (uint8_t)(cy + 1u);
     tg_rng = (uint16_t)(run_seed ^ (uint16_t)((uint16_t)(town_id + 1u) * 40503u));
 
     // Open yard. Ring 0 (map edge) stays wall → drawn as the pine border; ring 1 stays wall →
@@ -128,21 +205,25 @@ void town_generate_interior(uint8_t town_id) BANKED {
         for (x = 2u; x < (uint8_t)(w - 2u); x++)
             BIT_SET(floor_bits, TILE_IDX(x, y));
 
-    // Main road cross. Carving the full centre column/row also opens the N/S/E/W mouths through
-    // both border rings in the same pass; every carved cell is a road cell (mask read by render).
+    // Main road cross, 2 tiles wide: two full columns + two full rows. This also opens the N/S/E/W
+    // mouths (each 2 tiles wide) through both border rings in the same pass — town_exit_at derives
+    // them from border+road, no stored table. Every carved cell is a road cell (mask read by render).
     road_clear_all(); // hub-only place_overworld_roads never ran for this floor — mask is stale
-    for (y = 0u; y < h; y++) { BIT_SET(floor_bits, TILE_IDX(cx, y)); road_set(TILE_IDX(cx, y)); }
-    for (x = 0u; x < w; x++) { BIT_SET(floor_bits, TILE_IDX(x, cy)); road_set(TILE_IDX(x, cy)); }
-    town_state->exit_x[0] = cx;                town_state->exit_y[0] = 0u;                // N
-    town_state->exit_x[1] = cx;                town_state->exit_y[1] = (uint8_t)(h - 1u); // S
-    town_state->exit_x[2] = 0u;                town_state->exit_y[2] = cy;                // W
-    town_state->exit_x[3] = (uint8_t)(w - 1u); town_state->exit_y[3] = cy;                // E
-    player_spawn_x = cx;                                    // south mouth = spawn = stairs glyph;
-    player_spawn_y = (uint8_t)(h - 1u);                     // the other 3 mouths exit via town_exit_at
+    for (y = 0u; y < h; y++) {
+        BIT_SET(floor_bits, TILE_IDX(rx0, y)); road_set(TILE_IDX(rx0, y));
+        BIT_SET(floor_bits, TILE_IDX(rx1, y)); road_set(TILE_IDX(rx1, y));
+    }
+    for (x = 0u; x < w; x++) {
+        BIT_SET(floor_bits, TILE_IDX(x, ry0)); road_set(TILE_IDX(x, ry0));
+        BIT_SET(floor_bits, TILE_IDX(x, ry1)); road_set(TILE_IDX(x, ry1));
+    }
+    player_spawn_x = rx0;                    // south mouth = spawn = stairs glyph;
+    player_spawn_y = (uint8_t)(h - 1u);      // every other mouth cell exits via town_exit_at
 
     townroof_clear_all(); // mandatory: lighting_reset skips towns, so the buffer still holds the last dungeon's fog
     town_state->inside_idx = 255u;
     town_state->count = 0u;
+    town_state->npc_count = 0u;
 
     { // Rejection-sample the building rects; landing short of `target` on a crowded roll is fine.
         uint16_t tries;
@@ -151,8 +232,10 @@ void town_generate_interior(uint8_t town_id) BANKED {
             uint8_t bh = (uint8_t)(5u + (uint8_t)(tg_rand() % 3u));
             uint8_t x0 = (uint8_t)(3u + (uint8_t)(tg_rand() % (uint8_t)(w - 6u - bw)));
             uint8_t y0 = (uint8_t)(3u + (uint8_t)(tg_rand() % (uint8_t)(h - 6u - bh)));
-            if (cx >= (uint8_t)(x0 - 1u) && cx <= (uint8_t)(x0 + bw)) continue; // keep 1 clear cell off the
-            if (cy >= (uint8_t)(y0 - 1u) && cy <= (uint8_t)(y0 + bh)) continue; // main road axes
+            uint8_t xlo = (uint8_t)(x0 - 1u), xhi = (uint8_t)(x0 + bw); // keep 1 clear cell off the
+            uint8_t ylo = (uint8_t)(y0 - 1u), yhi = (uint8_t)(y0 + bh); // 2-wide main road bands
+            if (rx1 >= xlo && rx0 <= xhi) continue;
+            if (ry1 >= ylo && ry0 <= yhi) continue;
             if (tg_rects_clash(x0, y0, bw, bh)) continue;
             tg_building_rect(x0, y0, bw, bh);
             town_state->buildings[town_state->count].x = x0;
@@ -164,7 +247,7 @@ void town_generate_interior(uint8_t town_id) BANKED {
     }
 
     n = 0u; // features (generate_level zeroed ow_feature_count)
-    ow_features[n].x = cx; ow_features[n].y = cy; // stone well at the road junction
+    ow_features[n].x = rx0; ow_features[n].y = ry0; // stone well at the road junction
     ow_features[n].type = OW_FEAT_FOUNTAIN; ow_features[n].aux = 0u;
     n++;
 
@@ -222,11 +305,10 @@ void town_generate_interior(uint8_t town_id) BANKED {
             n++;
         }
 
-        if (i < 8u && n < MAX_OW_FEATURES) { // villager inside the first few buildings
-            ow_features[n].x = bcx; ow_features[n].y = bcy;
-            ow_features[n].type = OW_FEAT_SIGNPOST;
-            ow_features[n].aux = (uint8_t)(SIGN_KIND_NPC | i);
-            n++;
+        if (i < MAX_TOWN_NPCS) { // villager sprite, home = building centre (entity_sprites.c draws it)
+            town_state->npc_home_x[i] = bcx; town_state->npc_home_y[i] = bcy;
+            town_state->npc_x[i]      = bcx; town_state->npc_y[i]      = bcy;
+            town_state->npc_count++;
         }
     }
 

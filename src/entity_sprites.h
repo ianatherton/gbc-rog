@@ -46,7 +46,12 @@ void entity_sprites_enemy_glide_begin(const uint8_t *old_ex, const uint8_t *old_
                                        const uint8_t *old_alive) BANKED;
 void entity_sprites_ally_glide_begin(const uint8_t *old_ax, const uint8_t *old_ay,
                                       const uint8_t *old_aa) BANKED;
-void entity_sprites_enemy_glide_step(void) BANKED; // steps en_ofs + ally_ofs; no-op when all zero
+void entity_sprites_enemy_glide_step(void) BANKED; // steps en_ofs + ally_ofs (+ town villager offsets); no-op when all zero
 void entity_sprites_run_enemy_glide_finish(const uint8_t *old_alive) BANKED; // drain remaining offsets after camera scroll
+
+// Town villager glide: called once per villager that took a plain 1-tile wander step this turn
+// (biome_town.c town_npcs_tick) — sets the borrowed en_ofs_x/y[idx] slide-from offset; a warp-home
+// jump skips this call entirely so it appears as an instant teleport, matching the ally convention.
+void entity_sprites_town_npc_glide_set(uint8_t idx, uint8_t old_x, uint8_t old_y) BANKED;
 
 #endif // ENTITY_SPRITES_H

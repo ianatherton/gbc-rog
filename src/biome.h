@@ -112,21 +112,28 @@ void overworld_classify_col_strip(uint8_t mx, uint8_t cam_ty) BANKED;
 void overworld_classify_row_strip(uint8_t my, uint8_t cam_tx) BANKED;
 
 // Towns (floors TOWN_FLOOR_BASE+, biome_town.c bank 29). town_generate_interior carves the whole
-// interior — size, border rings, roads, buildings, roofs (called by generate_level, bank 10).
-// overworld_town_id_at = OW_FEAT_TOWN ordinal at a hub door cell. overworld_step_feature handles
-// walking onto a signpost/NPC (label/dialogue) or a town fountain (full heal). town_exit_at tests
-// the 4 road-mouth exit cells (state_gameplay arms LEAVE TOWN on them). town_roof_update refreshes
-// town_inside_idx from the player's tile — a 1 return means roof visibility changed: repaint.
+// interior — size, border rings, 2-wide roads, buildings, roofs, villager home spots (called by
+// generate_level, bank 10). overworld_town_id_at = OW_FEAT_TOWN ordinal at a hub door cell.
+// overworld_step_feature handles walking onto a signpost (label) or a town fountain (full heal).
+// town_exit_at tests the road-mouth exit cells (state_gameplay arms LEAVE TOWN on them).
+// town_roof_update refreshes town_inside_idx from the player's tile — a 1 return means roof
+// visibility changed: repaint. town_npc_blocks/town_npcs_tick drive the wandering villager sprites
+// (state_gameplay: blocks movement like a wall; ticks once per player turn) — rendered as OAM by
+// entity_sprites.c (bank 17), which reads town_state->npc_* directly (plain RAM, no bank switch).
 BANKREF_EXTERN(town_generate_interior)
 BANKREF_EXTERN(overworld_town_id_at)
 BANKREF_EXTERN(overworld_step_feature)
 BANKREF_EXTERN(town_exit_at)
 BANKREF_EXTERN(town_roof_update)
+BANKREF_EXTERN(town_npc_blocks)
+BANKREF_EXTERN(town_npcs_tick)
 void    town_generate_interior(uint8_t town_id) BANKED;
 uint8_t overworld_town_id_at(uint8_t x, uint8_t y) BANKED;
 void    overworld_step_feature(uint8_t x, uint8_t y) BANKED;
 uint8_t town_exit_at(uint8_t x, uint8_t y) BANKED;
 uint8_t town_roof_update(uint8_t px, uint8_t py) BANKED;
+uint8_t town_npc_blocks(uint8_t x, uint8_t y) BANKED;
+void    town_npcs_tick(uint8_t px, uint8_t py) BANKED;
 
 // Open-sea animation (bank 22): the whole sea shares one VRAM tile, so rewriting that tile's 16 pixel bytes
 // each tick scrolls EVERY water cell at once — O(1), no per-cell map writes. water_anim_tick() runs per

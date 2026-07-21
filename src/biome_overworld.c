@@ -495,7 +495,7 @@ void overworld_signpost_read(uint8_t aux) BANKED {
         i = 11u;
         if (dungeon_complete_mask & (uint16_t)((uint16_t)1u << num)) buf[i++] = '*';
         buf[i] = 0;
-    } else if (kind == SIGN_KIND_NPC) { // town villager — canned line by index
+    } else if (kind == SIGN_KIND_NPC) { // villager bump-to-talk (town_npc_blocks, biome_town.c) — num = villager index, canned line by index
         static const char *const npc_lines[4] = { "WELCOME, HERO", "REST AT THE WELL", "SAFE INSIDE WALLS", "FINE DAY, NO?" };
         const char *s = npc_lines[num & 3u];
         for (i = 0u; s[i] && i < 15u; i++) buf[i] = s[i];
@@ -567,13 +567,15 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
                               uint8_t *pal_out, uint8_t *region_out) BANKED {
     uint8_t region;
     if (floor_biome == BIOME_TOWN) {
-        // Town interior: grass field like the hub. Roofs resolve FIRST (a covered cell hides the
-        // villager/deco under it and skips the feature scan); then features (fountain / NPC /
-        // sign / deco pine); wall cells split into the map-edge pine border vs dungeon brick
-        // (uniform bulk art — the thin building walls would otherwise hit render.c's pillar
-        // heuristic); road-mask floor cells report OW_REGION_DESERT so they render as the hub's
-        // open-sand roads. Every tile used is title-stomp-safe: 161 re-uploads per floor,
-        // shrine/brick/roofs are main-sheet, 205/213 are permanent boot copies.
+        // Town interior: grass field like the hub. Roofs resolve FIRST (a covered cell hides
+        // whatever's under it — deco, and the villager sprite entity_sprites.c hides separately —
+        // and skips the feature scan); then features (fountain / sign / deco pine); wall cells
+        // split into the map-edge pine border vs dungeon brick (uniform bulk art — the thin
+        // building walls would otherwise hit render.c's pillar heuristic); road-mask floor cells
+        // report OW_REGION_DESERT so they render as the hub's open-sand roads. Villagers are OAM
+        // sprites (entity_sprites.c refresh_town_npcs_oam), not BG features — nothing to draw here.
+        // Every tile used is title-stomp-safe: 161 re-uploads per floor, shrine/brick/roofs are
+        // main-sheet, 205/213 are permanent boot copies.
         uint8_t fi;
         *region_out = OW_REGION_GRASS;
         if (base_tile != TILE_WALL) { // roof bits only exist on building-interior floor cells
@@ -593,24 +595,15 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
                 }
             }
         }
-        for (fi = 0u; fi < ow_feature_count; fi++) { // one pass: cell's own feature + NPC body (head is one cell up)
-            uint8_t fx = ow_features[fi].x, ft = ow_features[fi].type;
-            if (fx != mx) continue; // town features are all 1×1
-            if (ft == OW_FEAT_SIGNPOST && (uint8_t)(ow_features[fi].aux & 0xF0u) == SIGN_KIND_NPC
-                    && (uint8_t)(ow_features[fi].y + 1u) == my) {
-                *pal_out = PAL_PILLAR_BG; return TILE_PLAYER_BODY_STAND_VRAM;
-            }
-            if (ow_features[fi].y != my) continue;
-            if (ft == OW_FEAT_TREE) {
+        for (fi = 0u; fi < ow_feature_count; fi++) { // town features are all 1×1: fountain, sign, deco pine
+            if (ow_features[fi].x != mx || ow_features[fi].y != my) continue;
+            if (ow_features[fi].type == OW_FEAT_TREE) {
                 *pal_out = PAL_OW_FOLIAGE; return TILE_OVERWORLD_WALL_VRAM; // deco pine (cell is blocking wall)
             }
-            if (ft == OW_FEAT_FOUNTAIN) {
+            if (ow_features[fi].type == OW_FEAT_FOUNTAIN) {
                 *pal_out = PAL_PILLAR_BG; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_SHRINE_ON_1); // stone well
             }
-            if (ft == OW_FEAT_SIGNPOST) {
-                if ((uint8_t)(ow_features[fi].aux & 0xF0u) == SIGN_KIND_NPC) {
-                    *pal_out = PAL_PILLAR_BG; return TILE_PLAYER_HEAD_VRAM; // villager: hero-head art, stone ramp
-                }
+            if (ow_features[fi].type == OW_FEAT_SIGNPOST) {
                 *pal_out = PAL_OW_ACCENT; return PREFAB_VRAM_SIGNPOST; // wooden sign: desert dead-tree sand ramp
             }
         }

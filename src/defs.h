@@ -342,8 +342,13 @@ typedef struct {
 #define MIN_TOWN_SEP_TILES  (3u * GRID_W) /* 60 */
 
 /* Town interiors (biome_town.c): building table cap — feature budget is the real limit
-   (1 fountain + ≤20 signs + ≤8 NPCs + pines must stay ≤ MAX_OW_FEATURES). */
+   (1 fountain + ≤20 signs + pines must stay ≤ MAX_OW_FEATURES). */
 #define MAX_TOWN_BUILDINGS  20u
+/* Villager sprites: one per building, first N buildings only. OAM cost is 2 slots each (head+body)
+   borrowed from the always-empty town enemy run (SP_ENEMY_BASE..+15) — see entity_sprites.c
+   refresh_town_npcs_oam. Wander AI in biome_town.c town_npcs_tick. */
+#define MAX_TOWN_NPCS  8u
+#define TOWN_NPC_ROAM_RADIUS 10u /* Chebyshev tiles from home before a wandering villager warps back */
 
 /* The 3 dungeon entrances of a region cluster within this many tiles of their town (entrance-cell to
    town anchor), so each town is ringed by its own dungeons. ~1 screen. */

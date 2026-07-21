@@ -54,4 +54,9 @@ void entity_sprites_run_enemy_glide_finish(const uint8_t *old_alive) BANKED; // 
 // jump skips this call entirely so it appears as an instant teleport, matching the ally convention.
 void entity_sprites_town_npc_glide_set(uint8_t idx, uint8_t old_x, uint8_t old_y) BANKED;
 
+// Barrel break (biome_town.c town_barrel_try_break): same grey puff art/duration as an enemy's death
+// poof, blocking for ~370ms (like entity_sprites_run_item_popout) since it's a discrete one-off turn
+// action, not concurrent gameplay — no per-VBL-tick bookkeeping needed.
+void entity_sprites_run_barrel_poof(uint8_t mx, uint8_t my) BANKED;
+
 #endif // ENTITY_SPRITES_H

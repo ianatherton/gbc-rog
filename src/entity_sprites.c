@@ -48,6 +48,10 @@ BANKREF_EXTERN(map_pit_position)
 // run 4..26). Villager i's glide offset also borrows en_ofs_x/y[i] (the enemy lunge/glide array) —
 // same idle-in-town reasoning, one borrow per idle resource instead of new fixed WRAM.
 #define SP_TOWN_NPC_BASE SP_ENEMY_BASE
+// One more slot from the same idle run for the barrel-break poof — sits right after the 16 villager
+// slots (still inside 4..26, nowhere near the equip-mark menu range 4..11 by the time this fires:
+// barrels only break during gameplay, never while STATE_INVENTORY is on screen).
+#define SP_TOWN_BARREL_POOF (uint8_t)(SP_TOWN_NPC_BASE + MAX_TOWN_NPCS * 2u)
 
 static uint8_t brazier_fire_active;
 static uint8_t brazier_fire_ttl;
@@ -1058,6 +1062,17 @@ void entity_sprites_town_npc_glide_set(uint8_t idx, uint8_t old_x, uint8_t old_y
     if (idx >= MAX_TOWN_NPCS) return;
     en_ofs_x[idx] = (int8_t)(((int16_t)old_x - (int16_t)town_state->npc_x[idx]) * 8);
     en_ofs_y[idx] = (int8_t)(((int16_t)old_y - (int16_t)town_state->npc_y[idx]) * 8);
+}
+
+BANKREF(entity_sprites_run_barrel_poof)
+void entity_sprites_run_barrel_poof(uint8_t mx, uint8_t my) BANKED { // grey puff — same tile/palette/duration as an enemy's death poof
+    uint8_t t;
+    int16_t wx = (int16_t)mx * 8, wy = (int16_t)my * 8;
+    for (t = 0u; t < ENEMY_POOF_DURATION_VBL; t++) {
+        move_entity_oam(SP_TOWN_BARREL_POOF, wx, wy, (uint8_t)(TILESET_VRAM_OFFSET + TILE_POOF_CLOUD), 0u); // OCP0 = pal_default
+        wait_vbl_done();
+    }
+    oam_hide(SP_TOWN_BARREL_POOF);
 }
 
 BANKREF(entity_sprites_run_enemy_glide)

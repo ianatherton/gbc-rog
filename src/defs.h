@@ -318,7 +318,8 @@ typedef struct {
 #define OW_FEAT_SIGNPOST  4u  /* 1x1 readable marker (tile B8); step on it to print its label to the chat box */
 #define OW_FEAT_FOUNTAIN  5u  /* 1x1 town-interior heal fountain; step on it to restore full HP */
 #define OW_FEAT_TREE      6u  /* 1x1 town-interior deco pine; the cell itself is carved WALL (blocking) */
-#define OW_FEAT_COUNT     7u
+#define OW_FEAT_BARREL    7u  /* 1x1 town-interior deco barrel (F2); carved WALL (blocking), same as TREE */
+#define OW_FEAT_COUNT     8u
 #define MAX_OW_FEATURES   44u /* 17 structures (3 towns + 9 entrances + 4 waypoints + 1 boss) + a signpost beside each */
 #define TILE_SHEET_B8        113u /* B8 signpost art (row 8, col B; directly below flag tile B7=97) */
 #define PREFAB_VRAM_SIGNPOST 205u /* dedicated free slot (blank sheet cell N5, ≥182 so title restore won't blank it); B8 boot-copied here in main.c */

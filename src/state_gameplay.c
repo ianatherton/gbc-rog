@@ -372,7 +372,13 @@ void state_gameplay_tick(void) BANKED {
 #endif
         } else {
             uint8_t t = tile_at(nx, ny);
-            if (t == TILE_WALL || (floor_kind == FLOORKIND_TOWN && town_npc_blocks(nx, ny))) { // a villager's tile blocks like a wall
+            if (t == TILE_WALL && floor_kind == FLOORKIND_TOWN && town_barrel_try_break(nx, ny)) {
+                // 1-hit break: loot roll + poof already ran; no player movement. Overlay/HUD refresh
+                // comes from the shared consumed_turn tail below — no separate draw call needed here.
+                consumed_turn = 1u;
+                wait_vbl_done();
+                draw_cell(nx, ny); // barrel gone — cell now shows plain grass
+            } else if (t == TILE_WALL || (floor_kind == FLOORKIND_TOWN && town_npc_blocks(nx, ny))) { // a villager's tile blocks like a wall
             } else {
                 // Figure out whether (nx,ny) is a transition tile before walking onto it — the
                 // walk always happens (full turn, enemies act); the confirm prompt arms only

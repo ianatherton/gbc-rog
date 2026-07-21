@@ -127,6 +127,7 @@ BANKREF_EXTERN(town_exit_at)
 BANKREF_EXTERN(town_roof_update)
 BANKREF_EXTERN(town_npc_blocks)
 BANKREF_EXTERN(town_npcs_tick)
+BANKREF_EXTERN(town_barrel_try_break)
 void    town_generate_interior(uint8_t town_id) BANKED;
 uint8_t overworld_town_id_at(uint8_t x, uint8_t y) BANKED;
 void    overworld_step_feature(uint8_t x, uint8_t y) BANKED;
@@ -134,6 +135,7 @@ uint8_t town_exit_at(uint8_t x, uint8_t y) BANKED;
 uint8_t town_roof_update(uint8_t px, uint8_t py) BANKED;
 uint8_t town_npc_blocks(uint8_t x, uint8_t y) BANKED;
 void    town_npcs_tick(uint8_t px, uint8_t py) BANKED;
+uint8_t town_barrel_try_break(uint8_t x, uint8_t y) BANKED; // 1 hit, same loot roll + poof as an enemy kill
 
 // Open-sea animation (bank 22): the whole sea shares one VRAM tile, so rewriting that tile's 16 pixel bytes
 // each tick scrolls EVERY water cell at once — O(1), no per-cell map writes. water_anim_tick() runs per

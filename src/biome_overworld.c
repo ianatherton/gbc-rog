@@ -595,16 +595,33 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
                 }
             }
         }
-        for (fi = 0u; fi < ow_feature_count; fi++) { // town features are all 1×1: fountain, sign, deco pine
+        for (fi = 0u; fi < ow_feature_count; fi++) { // town features are all 1×1: fountain, sign, deco pine/barrel
             if (ow_features[fi].x != mx || ow_features[fi].y != my) continue;
             if (ow_features[fi].type == OW_FEAT_TREE) {
                 *pal_out = PAL_OW_FOLIAGE; return TILE_OVERWORLD_WALL_VRAM; // deco pine (cell is blocking wall)
+            }
+            if (ow_features[fi].type == OW_FEAT_BARREL) {
+                *pal_out = PAL_PILLAR_BG; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_BARREL); // deco barrel (cell is blocking wall); sign palette (grass background)
             }
             if (ow_features[fi].type == OW_FEAT_FOUNTAIN) {
                 *pal_out = PAL_PILLAR_BG; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_SHRINE_ON_1); // stone well
             }
             if (ow_features[fi].type == OW_FEAT_SIGNPOST) {
-                *pal_out = PAL_OW_ACCENT; return PREFAB_VRAM_SIGNPOST; // wooden sign: desert dead-tree sand ramp
+                // PAL_PILLAR_BG, not PAL_OW_ACCENT: apply_wall_palette's town branch (render_palettes.c)
+                // sets this slot's idx0 to the same green as the field ("any pillar art" — fountain,
+                // now signs too), so the sign's transparent background reads as grass instead of sand.
+                *pal_out = PAL_PILLAR_BG; return PREFAB_VRAM_SIGNPOST;
+            }
+        }
+        { // building doorway: G1 open (walkable, grass shows through — palette 0, the ambient field
+          // ramp) or G2 closed (decorative building, never carved — stays a wall cell, brick palette
+          // so it reads as part of the wall it's set into).
+            uint8_t bi;
+            for (bi = 0u; bi < town_state->count; bi++) {
+                const TownBuilding *b = &town_state->buildings[bi];
+                if (b->door_x != mx || b->door_y != my) continue;
+                if (b->closed) { *pal_out = PAL_WALL_BG; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_DOOR_CLOSED); }
+                *pal_out = 0u; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_DOOR_OPEN);
             }
         }
         if (base_tile == TILE_WALL) {

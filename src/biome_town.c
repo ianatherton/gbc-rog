@@ -8,8 +8,11 @@
 #include "dungeon.h"
 #include "lcd.h" // lcd_note_bkg0 — panic flash restores the live slot-0 ramp
 #include "entity_sprites.h" // entity_sprites_town_npc_glide_set — villager wander slide
+#include "items.h" // enemy_try_drop_item — barrel loot roll (same table an enemy kill uses)
 #include <gb/cgb.h>
 #include <gbdk/platform.h>
+
+BANKREF_EXTERN(enemy_try_drop_item)
 
 // Town interior (floors TOWN_FLOOR_BASE + 0..2): a large safe zone entered from the hub town's
 // door, sized 59..96 square by its building count (5..20). The map border is a pine ring with a
@@ -170,6 +173,27 @@ void town_npcs_tick(uint8_t px, uint8_t py) BANKED {
     }
 }
 
+// Barrels always break in one hit: no HP, just remove the feature (cell becomes floor again), roll
+// the SAME loot table an enemy kill uses (enemy_try_drop_item — its 10% chance is untouched, this
+// isn't a guaranteed drop), and play the same grey death-poof art. Order matters: the feature must
+// be gone and the tile walkable BEFORE the poof's ~370ms busy-wait, so a repaint mid-animation (e.g.
+// a VBL-driven HUD update) never draws the broken barrel's ghost. Removal is swap-with-last — feature
+// order is never meaningful elsewhere, every consumer just loops 0..ow_feature_count.
+BANKREF(town_barrel_try_break)
+uint8_t town_barrel_try_break(uint8_t x, uint8_t y) BANKED {
+    uint8_t i;
+    for (i = 0u; i < ow_feature_count; i++) {
+        if (ow_features[i].type != OW_FEAT_BARREL || ow_features[i].x != x || ow_features[i].y != y) continue;
+        BIT_SET(floor_bits, TILE_IDX(x, y)); // barrel gone — cell walkable again
+        ow_feature_count--;
+        ow_features[i] = ow_features[ow_feature_count];
+        enemy_try_drop_item(x, y); // same weighted-random table + 10% odds as an enemy kill
+        entity_sprites_run_barrel_poof(x, y);
+        return 1u;
+    }
+    return 0u;
+}
+
 BANKREF(town_roof_update)
 uint8_t town_roof_update(uint8_t px, uint8_t py) BANKED { // 1 = inside-building state changed → repaint
     uint8_t i, inside = 255u;
@@ -252,12 +276,13 @@ void town_generate_interior(uint8_t town_id) BANKED {
     n++;
 
     for (i = 0u; i < town_state->count; i++) {
-        const TownBuilding *b = &town_state->buildings[i];
+        TownBuilding *b = &town_state->buildings[i];
         uint8_t bcx = (uint8_t)(b->x + (uint8_t)(b->w >> 1));
         uint8_t bcy = (uint8_t)(b->y + (uint8_t)(b->h >> 1));
         uint8_t adx = (cx > bcx) ? (uint8_t)(cx - bcx) : (uint8_t)(bcx - cx);
         uint8_t ady = (cy > bcy) ? (uint8_t)(cy - bcy) : (uint8_t)(bcy - cy);
         uint8_t door_x, door_y;
+        uint8_t closed = (i >= MAX_TOWN_NPCS); // beyond the villager cap: decorative, closed door, no entry
         int8_t sx = 0, sy = 0; // door's outward direction (toward the facing road axis)
         if (adx <= ady) { // column road is nearer → door on the E or W wall
             door_y = bcy;
@@ -268,18 +293,21 @@ void town_generate_interior(uint8_t town_id) BANKED {
             if (cy > bcy) { door_y = (uint8_t)(b->y + b->h - 1u); sy = 1; }
             else          { door_y = b->y;                        sy = -1; }
         }
-        BIT_SET(floor_bits, TILE_IDX(door_x, door_y)); // carve the door gap in the wall ring
+        b->door_x = door_x; b->door_y = door_y; b->closed = closed;
+        if (!closed) BIT_SET(floor_bits, TILE_IDX(door_x, door_y)); // carve the gap; closed stays wall → G2 renders there
 
-        { // roof bits over the interior — the wall ring (and its door cell) stays visible
+        { // roof bits over the interior — the wall ring (and its door cell) stays visible. Applied
+          // even to closed buildings: harmless (nobody can ever reach in to matter) and one less branch.
             uint8_t rx, ry;
             for (ry = (uint8_t)(b->y + 1u); ry < (uint8_t)(b->y + b->h - 1u); ry++)
                 for (rx = (uint8_t)(b->x + 1u); rx < (uint8_t)(b->x + b->w - 1u); rx++)
                     townroof_set(TILE_IDX(rx, ry));
         }
 
-        { // cosmetic side road: straight run from outside the door toward the facing axis; stops
-          // at the first wall (another building/pine placed later can't cut it — pines skip roads)
-          // or on meeting an existing road cell. Roads are visual only — movement ignores them.
+        if (!closed) { // cosmetic side road: straight run from outside the door toward the facing
+          // axis; stops at the first wall (another building/pine placed later can't cut it — pines
+          // skip roads) or on meeting an existing road cell. Roads are visual only — movement ignores
+          // them. A closed building's door is never walked to, so it gets no approach road.
             uint8_t rx = (uint8_t)((int8_t)door_x + sx);
             uint8_t ry = (uint8_t)((int8_t)door_y + sy);
             while (rx > 0u && ry > 0u && rx < (uint8_t)(w - 1u) && ry < (uint8_t)(h - 1u)) {
@@ -305,10 +333,35 @@ void town_generate_interior(uint8_t town_id) BANKED {
             n++;
         }
 
-        if (i < MAX_TOWN_NPCS) { // villager sprite, home = building centre (entity_sprites.c draws it)
+        if (!closed) { // villager sprite, home = building centre (entity_sprites.c draws it) — closed
+                        // buildings have no reachable interior, so no villager to place inside one
             town_state->npc_home_x[i] = bcx; town_state->npc_home_y[i] = bcy;
             town_state->npc_x[i]      = bcx; town_state->npc_y[i]      = bcy;
             town_state->npc_count++;
+        }
+
+        if (n < MAX_OW_FEATURES && (tg_rand() & 1u)) { // ~half the buildings get a barrel against an outer wall
+            uint8_t edge = (uint8_t)(tg_rand() & 3u); // 0=N 1=S 2=W 3=E
+            uint8_t brx, bry;
+            if (edge < 2u) {
+                brx = (uint8_t)(b->x + 1u + (uint8_t)(tg_rand() % (uint8_t)(b->w - 2u)));
+                bry = (edge == 0u) ? (uint8_t)(b->y - 1u) : (uint8_t)(b->y + b->h);
+            } else {
+                bry = (uint8_t)(b->y + 1u + (uint8_t)(tg_rand() % (uint8_t)(b->h - 2u)));
+                brx = (edge == 2u) ? (uint8_t)(b->x - 1u) : (uint8_t)(b->x + b->w);
+            }
+            if (BIT_GET(floor_bits, TILE_IDX(brx, bry)) && !road_bit(TILE_IDX(brx, bry))
+                    && !(brx == door_x && bry == door_y)) {
+                uint8_t k, clash = 0u;
+                for (k = 0u; k < n; k++)
+                    if (ow_features[k].x == brx && ow_features[k].y == bry) { clash = 1u; break; }
+                if (!clash) {
+                    BIT_CLR(floor_bits, TILE_IDX(brx, bry)); // barrel is a blocking wall cell, like a pine
+                    ow_features[n].x = brx; ow_features[n].y = bry;
+                    ow_features[n].type = OW_FEAT_BARREL; ow_features[n].aux = 0u;
+                    n++;
+                }
+            }
         }
     }
 
@@ -331,6 +384,22 @@ void town_generate_interior(uint8_t town_id) BANKED {
         BIT_CLR(floor_bits, idx); // pine is a blocking wall cell, drawn by the TREE feature
         ow_features[n].x = px; ow_features[n].y = py;
         ow_features[n].type = OW_FEAT_TREE; ow_features[n].aux = 0u;
+        n++;
+    }
+
+    for (i = 0u; i < 3u && n < MAX_OW_FEATURES; i++) { // rare stray barrel, fully random open spot
+        uint8_t px = (uint8_t)(3u + (uint8_t)(tg_rand() % (uint8_t)(w - 6u)));
+        uint8_t py = (uint8_t)(3u + (uint8_t)(tg_rand() % (uint8_t)(h - 6u)));
+        uint16_t idx = TILE_IDX(px, py);
+        uint8_t k, clash = 0u;
+        if (tg_rand() >= 32u) continue; // ~1/8 odds per attempt — genuinely rare, not a guaranteed 3rd/4th/5th barrel
+        if (!BIT_GET(floor_bits, idx) || road_bit(idx)) continue;
+        for (k = 0u; k < n; k++)
+            if (ow_features[k].x == px && ow_features[k].y == py) { clash = 1u; break; }
+        if (clash) continue;
+        BIT_CLR(floor_bits, idx);
+        ow_features[n].x = px; ow_features[n].y = py;
+        ow_features[n].type = OW_FEAT_BARREL; ow_features[n].aux = 0u;
         n++;
     }
     ow_feature_count = n;

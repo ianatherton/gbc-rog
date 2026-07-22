@@ -101,6 +101,7 @@ void level_init_display(uint8_t from_pit) BANKED {
             player_tokens = 0u;
             pending_talk_npc = 255u;
             for (t = 0u; t < TOWN_COUNT; t++) town_shop_sold[t] = 0u;
+            for (t = 0u; t < (uint8_t)(TOWN_COUNT * 3u); t++) town_barrels_broken[t] = 0u;
         }
         if (player_class == 2u) { // WITCH starts with the Port: Boss scroll + her hat (worn)
             uint8_t s;

@@ -474,3 +474,24 @@ uint8_t enemy_try_drop_item(uint8_t dx, uint8_t dy) BANKED {
     }
     return 0u;
 }
+
+// Same table/slot logic as enemy_try_drop_item, kept as a separate function (not a shared parameter)
+// so a future change to enemy odds can never accidentally retune barrels or vice versa.
+uint8_t town_barrel_try_drop_item(uint8_t dx, uint8_t dy) BANKED {
+    uint8_t gi;
+    uint8_t kind;
+    if (map_tile_is_stairs_or_ladder(dx, dy)) return 0u;
+    if ((rand() % 100u) >= 30u) return 0u; // 30%
+    for (gi = 0u; gi < MAX_GROUND_ITEMS; gi++) {
+        if (ground_item_kind[gi] == ITEM_KIND_NONE) {
+            kind = drop_table[rand() % 58u];
+            if ((rand() % 100u) < RING_DROP_PCT) kind = ring_roll_kind();
+            ground_item_kind[gi] = kind;
+            ground_item_x[gi] = dx;
+            ground_item_y[gi] = dy;
+            ground_item_mod_level[gi] = (items_kind_category(kind) == ITEM_CAT_EQUIPMENT) ? item_roll_mod_level() : 0;
+            return 1u;
+        }
+    }
+    return 0u;
+}

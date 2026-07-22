@@ -86,6 +86,7 @@ uint8_t pending_pickup_slot;
 uint8_t player_tokens;
 uint8_t town_shop_sold[TOWN_COUNT];
 uint8_t pending_talk_npc;
+uint8_t town_barrels_broken[TOWN_COUNT * 3u];
 
 volatile uint8_t inv_desc_scx; // BSS 0 — see globals.h
 

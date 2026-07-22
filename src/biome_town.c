@@ -8,13 +8,13 @@
 #include "dungeon.h"
 #include "lcd.h" // lcd_note_bkg0 — panic flash restores the live slot-0 ramp
 #include "entity_sprites.h" // entity_sprites_town_npc_glide_set — villager wander slide
-#include "items.h" // enemy_try_drop_item — barrel loot roll (same table an enemy kill uses)
+#include "items.h" // town_barrel_try_drop_item — barrel loot roll (20%, same table an enemy kill uses)
 #include "auto_explore.h" // auto_explore_active — never pop a modal it can't drive
 #include "game_state.h"   // next_state — the trader bump opens STATE_TALK straight from this bank
 #include <gb/cgb.h>
 #include <gbdk/platform.h>
 
-BANKREF_EXTERN(enemy_try_drop_item)
+BANKREF_EXTERN(town_barrel_try_drop_item)
 
 // Town interior (floors TOWN_FLOOR_BASE + 0..2): a large safe zone entered from the hub town's
 // door, sized 59..96 square by its building count (5..20). The map border is a pine ring with a
@@ -185,20 +185,29 @@ void town_npcs_tick(uint8_t px, uint8_t py) BANKED {
 }
 
 // Barrels always break in one hit: no HP, just remove the feature (cell becomes floor again), roll
-// the SAME loot table an enemy kill uses (enemy_try_drop_item — its 10% chance is untouched, this
-// isn't a guaranteed drop), and play the same grey death-poof art. Order matters: the feature must
-// be gone and the tile walkable BEFORE the poof's ~370ms busy-wait, so a repaint mid-animation (e.g.
-// a VBL-driven HUD update) never draws the broken barrel's ghost. Removal is swap-with-last — feature
-// order is never meaningful elsewhere, every consumer just loops 0..ow_feature_count.
+// loot at 20% (town_barrel_try_drop_item — a separate roll from the enemy-kill 10%, same table), and
+// play the same grey death-poof art. Order matters: the feature must be gone and the tile walkable
+// BEFORE the poof's ~370ms busy-wait, so a repaint mid-animation (e.g. a VBL-driven HUD update) never
+// draws the broken barrel's ghost. Removal is swap-with-last — feature order is never meaningful
+// elsewhere, every consumer just loops 0..ow_feature_count. Persistence: the barrel's ordinal (its
+// placement order in town_generate_interior, stable across regens — see there) rode in .aux; marking
+// its bit in town_barrels_broken means town_generate_interior simply won't place it again this run.
 BANKREF(town_barrel_try_break)
 uint8_t town_barrel_try_break(uint8_t x, uint8_t y) BANKED {
     uint8_t i;
     for (i = 0u; i < ow_feature_count; i++) {
         if (ow_features[i].type != OW_FEAT_BARREL || ow_features[i].x != x || ow_features[i].y != y) continue;
         BIT_SET(floor_bits, TILE_IDX(x, y)); // barrel gone — cell walkable again
+        {
+            uint8_t ord = ow_features[i].aux;
+            if (ord < MAX_TOWN_BARRELS) {
+                uint8_t town_id = (uint8_t)(floor_num - TOWN_FLOOR_BASE);
+                town_barrels_broken[(uint8_t)(town_id * 3u + (ord >> 3u))] |= (uint8_t)(1u << (ord & 7u));
+            }
+        }
         ow_feature_count--;
         ow_features[i] = ow_features[ow_feature_count];
-        enemy_try_drop_item(x, y); // same weighted-random table + 10% odds as an enemy kill
+        town_barrel_try_drop_item(x, y); // 20% — separate roll from an enemy kill's 10%, same weighted table
         entity_sprites_run_barrel_poof(x, y);
         return 1u;
     }
@@ -259,6 +268,7 @@ void town_generate_interior(uint8_t town_id) BANKED {
     town_state->inside_idx = 255u;
     town_state->count = 0u;
     town_state->npc_count = 0u;
+    uint8_t barrel_ord = 0u; // stable per-barrel id (placement order) — town_barrels_broken persistence keys off this
 
     { // Rejection-sample the building rects; landing short of `target` on a crowded roll is fine.
         uint16_t tries;
@@ -367,10 +377,14 @@ void town_generate_interior(uint8_t town_id) BANKED {
                 for (k = 0u; k < n; k++)
                     if (ow_features[k].x == brx && ow_features[k].y == bry) { clash = 1u; break; }
                 if (!clash) {
-                    BIT_CLR(floor_bits, TILE_IDX(brx, bry)); // barrel is a blocking wall cell, like a pine
-                    ow_features[n].x = brx; ow_features[n].y = bry;
-                    ow_features[n].type = OW_FEAT_BARREL; ow_features[n].aux = 0u;
-                    n++;
+                    uint8_t ord = barrel_ord++; // assigned regardless of broken-state so it stays stable across regens
+                    if (ord >= MAX_TOWN_BARRELS || !(town_barrels_broken[(uint8_t)(town_id * 3u + (ord >> 3u))]
+                            & (uint8_t)(1u << (ord & 7u)))) {
+                        BIT_CLR(floor_bits, TILE_IDX(brx, bry)); // barrel is a blocking wall cell, like a pine
+                        ow_features[n].x = brx; ow_features[n].y = bry;
+                        ow_features[n].type = OW_FEAT_BARREL; ow_features[n].aux = ord;
+                        n++;
+                    }
                 }
             }
         }
@@ -402,15 +416,18 @@ void town_generate_interior(uint8_t town_id) BANKED {
         uint8_t px = (uint8_t)(3u + (uint8_t)(tg_rand() % (uint8_t)(w - 6u)));
         uint8_t py = (uint8_t)(3u + (uint8_t)(tg_rand() % (uint8_t)(h - 6u)));
         uint16_t idx = TILE_IDX(px, py);
-        uint8_t k, clash = 0u;
+        uint8_t k, clash = 0u, ord;
         if (tg_rand() >= 32u) continue; // ~1/8 odds per attempt — genuinely rare, not a guaranteed 3rd/4th/5th barrel
         if (!BIT_GET(floor_bits, idx) || road_bit(idx)) continue;
         for (k = 0u; k < n; k++)
             if (ow_features[k].x == px && ow_features[k].y == py) { clash = 1u; break; }
         if (clash) continue;
+        ord = barrel_ord++; // assigned regardless of broken-state so it stays stable across regens
+        if (ord < MAX_TOWN_BARRELS && (town_barrels_broken[(uint8_t)(town_id * 3u + (ord >> 3u))]
+                & (uint8_t)(1u << (ord & 7u)))) continue;
         BIT_CLR(floor_bits, idx);
         ow_features[n].x = px; ow_features[n].y = py;
-        ow_features[n].type = OW_FEAT_BARREL; ow_features[n].aux = 0u;
+        ow_features[n].type = OW_FEAT_BARREL; ow_features[n].aux = ord;
         n++;
     }
     ow_feature_count = n;

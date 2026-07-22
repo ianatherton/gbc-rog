@@ -25,7 +25,7 @@ SRAM (battery RAM) is currently unused — free for saves later.
 | 10 | 2,879 | 18% | level_init, map_gen, biome_dungeon |
 | 11 | 132 | 1% | biome_crypt |
 | 12 | 132 | 1% | biome_cavern |
-| 13 | 2,242 | 14% | items (kinds + affixes) |
+| 13 | 2,470 | 15% | items (kinds + affixes) — incl. `town_barrel_try_drop_item` (30% loot roll, separate function from `enemy_try_drop_item`'s 10% so the two can never accidentally cross-tune) |
 | 14 | 5,838 | 36% | story_ui + names (deterministic town/dungeon/NPC name generator, `src/names.c`) |
 | 15 | 157 | 1% | scroll_blast |
 | 16 | 357 | 2% | scroll_root, debuff_icon, bow_shoot |
@@ -37,7 +37,7 @@ SRAM (battery RAM) is currently unused — free for saves later.
 | 22 | 11,102 | 68% | biome_overworld (top-level hub, floor 0; no enemies/items) + render_palettes (incl. town field/brick/stone/foliage branches) + batched strip classifiers (`overworld_classify_col/row_strip` — one banked entry per camera strip, mask bytes via `wram2_read_byte`) + town render overlay/step features (villagers are OAM now, not drawn here; doorway G1/G2 + barrel props drawn here) |
 | 24 | ~600 | 4% | biome_boss2 (Sphinx roster/art; overlaid onto any dungeon's boss floor by biome_apply_floor_kind) + bosses (png2asset sphinx sheet, res/bosses.png). 10-tile sprite uploaded to VRAM scratch + re-uploaded per frame by sphinx_anim_tick for a 2-frame leg cycle + faster wingbeat |
 | 28 | ~460 | 3% | dungeon_floors (miniboss elite art: runtime 2x pixel-doubler of elite_base_type's sprite → quadrant VRAM slots; floor-kind scheme in src/dungeon.h) |
-| 29 | 5,017 | 31% | biome_town (town interiors, floors 46–48 = `TOWN_FLOOR_BASE`+0..2: 59..96-square safe zone sized by building count — pine border ring + brick town wall, 2-tile-wide sand road cross exiting N/S/E/W (`town_exit_at` = border cell + road bit, no stored table), 5–20 buildings — first `MAX_TOWN_NPCS` (8) open (G1 doorway, roofed walkable interior, villager, `SIGN_KIND_BUILDING` door sign), the rest closed/decorative (G2 door, never carved, no villager, still signed) — deco pines + destructible barrels (F2, ~half the buildings plus rare stray ones; `town_barrel_try_break` — 1 hit, same loot roll as an enemy kill via `enemy_try_drop_item`, same poof art via bank-17 `entity_sprites_run_barrel_poof`), heal fountain; roofs = fog buffer reused (`townroof_*`), lifted per-building by `town_roof_update`; villagers wander + slide via `town_npcs_tick`/`town_npc_blocks` (real OAM sprites, drawn+glided in bank 17) — lazy random walk, solid collision on their tile (bumping one starts a conversation via `overworld_signpost_read`), warp home past `TOWN_NPC_ROAM_RADIUS`; fully lit like the hub) |
+| 29 | 5,405 | 33% | biome_town (town interiors, floors 46–48 = `TOWN_FLOOR_BASE`+0..2: 59..96-square safe zone sized by building count — pine border ring + brick town wall, 2-tile-wide sand road cross exiting N/S/E/W (`town_exit_at` = border cell + road bit, no stored table), 5–20 buildings — first `MAX_TOWN_NPCS` (8) open (G1 doorway, roofed walkable interior, villager, `SIGN_KIND_BUILDING` door sign), the rest closed/decorative (G2 door, never carved, no villager, still signed) — deco pines + destructible + persistent barrels (F2, ~half the buildings plus rare stray ones; `town_barrel_try_break` — 1 hit, 30% loot roll via `town_barrel_try_drop_item`, same poof art via bank-17 `entity_sprites_run_barrel_poof`; each barrel's placement-order ordinal rides in `OwFeature.aux` and keys a bit in `town_barrels_broken` (globals.h, `TOWN_COUNT*3` B) so a broken barrel never re-spawns on re-entry this run — same trick as `floor_items_picked` for dungeon ground items, viable because town layout is fully deterministic from (run_seed, town_id)), heal fountain; roofs = fog buffer reused (`townroof_*`), lifted per-building by `town_roof_update`; villagers wander + slide via `town_npcs_tick`/`town_npc_blocks` (real OAM sprites, drawn+glided in bank 17) — lazy random walk, solid collision on their tile (bumping one starts a conversation via `overworld_signpost_read`, or opens STATE_TALK for the trader), warp home past `TOWN_NPC_ROAM_RADIUS`; fully lit like the hub) |
 | 30 | 3,124 | 19% | auto_explore (A-button auto-explore: cached-path BFS, DCSS-style stop-on-sight/stop-on-hit, auto-pickup, walk-to-ladder when explored; private SVBK bank-3 accessors) + gameplay_cold (SELECT-edge belt-description helpers evicted from bank 2) |
 | 23, 25–27, 31 | 0 | 0% | empty — ~115 KB free (27 freed 2026-07: biome_miniboss + enemies_miniboss retired — miniboss/boss are floor kinds now, one biome per dungeon) |
 
@@ -82,15 +82,16 @@ Flow: `Boot → TITLE → CHAR_CREATE → GAMEPLAY ⇄ modals(STATS↔ABILITY, I
 
 ## WRAM budget
 
-Fixed WRAM (0xC000–0xDFFF): `_DATA` ≈ 7,490 B (measured 2026-07-19; ends 0xDDE2).
-Stack runs down from 0xDFFF → **~542 B headroom — this is load-bearing, treat it as a floor**:
-`class_emblem_draw` (state_char_create.c) alone puts ~336 B of buffers on the stack, plus
-banked-call depth and the audio ISR. Adding ~90 B of town tables to globals.c once pushed
-`_DATA` to 0xDE3C and the char-create screen overran the stack into `_DATA` → garbled tiles
-from the class symbols onward. The town tables now OVERLAY `nav_nodes[]` (288 B) via
-`town_state` (map.h) — towns never build the nav graph, so the storage is free there.
-If headroom is ever needed: auto_explore BFS queue + path buffer (256 + 48 B) can move to
-SVBK bank 3 at 0xDD80+.
+Fixed WRAM (0xC000–0xDFFF): `_DATA` ≈ 7,512 B (measured 2026-07-21; ends 0xDDF8) → **~520 B stack
+headroom — this is load-bearing, treat it as a floor**: `class_emblem_draw` (state_char_create.c)
+alone puts ~336 B of buffers on the stack, plus banked-call depth and the audio ISR. Adding ~90 B of
+town tables to globals.c once pushed `_DATA` to 0xDE3C and the char-create screen overran the stack
+into `_DATA` → garbled tiles from the class symbols onward. The town building/villager tables OVERLAY
+`nav_nodes[]` (288 B) via `town_state` (map.h) — towns never build the nav graph, so the storage is
+free there; new *fixed*-WRAM growth since (trade state, `town_barrels_broken[TOWN_COUNT*3]`, etc.) is
+small and deliberate, not overlaid — keep it that way, this floor doesn't have much further to give.
+If headroom is ever needed: auto_explore BFS queue + path buffer (256 + 48 B) can move to SVBK bank 3
+at 0xDD80+.
 
 Top consumers:
 - 3 × 1,152 B map bitsets (`floor_bits`, `pit_bits`, `enemy_occ`) = 3,456 B

@@ -85,6 +85,12 @@ extern uint8_t player_tokens;              // 0..TOKENS_MAX; drawn as "*N"
 extern uint8_t town_shop_sold[TOWN_COUNT]; // bit k = stock slot k already bought (per run)
 extern uint8_t pending_talk_npc;           // villager slot queued for STATE_TALK; 255 = none
 
+// Broken barrels persist per run, same idea as floor_items_picked for dungeon ground items: town
+// layout (including barrel placement order) is deterministic from (run_seed, town_id), so ordinal k
+// always names the same physical barrel across re-entries — bit k here just means "don't place it
+// again". 3 bytes/town = 24 barrels/town, same packing as floor_enemy_dead.
+extern uint8_t town_barrels_broken[TOWN_COUNT * 3u];
+
 /* story_ui layout constants — scratch overlays floor_bits[] before first generate_level (see story_ui.c) */
 #define G_STORY_BIGBUF_CAP   400u
 #define G_STORY_MAX_LINES    40u // wrap + blank lines can exceed 28; tail was dropped from story_line_off[]

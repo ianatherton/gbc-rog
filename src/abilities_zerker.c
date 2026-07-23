@@ -13,8 +13,6 @@
 BANKREF_EXTERN(combat_damage_enemy)
 BANKREF_EXTERN(combat_crit_roll)
 
-#define ZERKER_WHIRLWIND_COOLDOWN 6u
-
 static void push_short(const char *s) {
     char buf[20];
     uint8_t i = 0u;
@@ -23,22 +21,12 @@ static void push_short(const char *s) {
     ui_combat_log_push(buf);
 }
 
-static void push_recharge(uint8_t turns) {
-    char buf[20];
-    const char *s = "Recharging: ";
-    uint8_t i = 0u;
-    while (*s) buf[i++] = *s++;
-    buf[i++] = (char)('0' + (turns > 9u ? 9u : turns));
-    s = " turns";
-    while (*s) buf[i++] = *s++;
-    buf[i] = 0;
-    ui_combat_log_push(buf);
-}
-
-static void cast_whirlwind(uint8_t px, uint8_t py, AbilityResult *out) {
+static void cast_whirlwind(uint8_t rank, uint8_t px, uint8_t py, AbilityResult *out) {
     uint8_t ei;
     uint8_t hits = 0u;
-    uint8_t dmg = combat_crit_roll((player_damage > 127u) ? 255u : (uint8_t)(player_damage << 1)); // 2x base; crit doubles again
+    uint8_t dmg;
+    if (rank == 0u) dmg = player_damage; // generic scroll: 1x base, no crit — rank scaling is in the cooldown curve
+    else dmg = combat_crit_roll((player_damage > 127u) ? 255u : (uint8_t)(player_damage << 1)); // 2x base; crit doubles again
 
     for (ei = 0u; ei < num_enemies; ei++) {
         uint8_t ex;
@@ -62,7 +50,6 @@ static void cast_whirlwind(uint8_t px, uint8_t py, AbilityResult *out) {
     }
 
     sfx_whirlwind_cast();
-    zerker_whirlwind_cooldown_turns = ZERKER_WHIRLWIND_COOLDOWN;
     out->consumed_turn = 1u;
     if (hits) push_short("Whirlwind");
     else      push_short("Whirlwind Miss");
@@ -73,13 +60,10 @@ void abilities_zerker_new_run_init(void) BANKED {
     inventory_add(ITEM_KIND_AXE, 0);
 }
 
-BANKREF(ability_zerker_cast_belt)
-void ability_zerker_cast_belt(uint8_t belt_slot, uint8_t px, uint8_t py, AbilityResult *out) BANKED {
-    (void)belt_slot; // pre-dispatch UX: B always tries the class primary ability from slot 0
-    if (player_level < 1u) return;
-    if (zerker_whirlwind_cooldown_turns > 0u) {
-        push_recharge((uint8_t)(zerker_whirlwind_cooldown_turns - 1u));
-        return;
+BANKREF(ability_zerker_cast)
+void ability_zerker_cast(uint8_t spell_idx, uint8_t rank, uint8_t px, uint8_t py, AbilityResult *out) BANKED {
+    switch (spell_idx) {
+        case 0u: cast_whirlwind(rank, px, py, out); break;
+        default: break; // spells 1..5 not designed yet
     }
-    cast_whirlwind(px, py, out);
 }

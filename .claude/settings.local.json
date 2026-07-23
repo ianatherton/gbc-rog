@@ -31,7 +31,8 @@
       "Bash(sed -n '/title_logo_bkg_vram_restore/,/^}/p' title_logo.c)",
       "Bash(python3 -c \"from PIL import Image; Image.open\\('build/gbc/gbc-rog.bmp'\\).save\\('/tmp/rog.png'\\)\")",
       "Bash(find / -path /proc -prune -o -iname \"project_two_tile_hero_sprite.md\" -print)",
-      "Bash(find / -path /proc -prune -o -iname \"project_towns_confirm_gate_perf.md\" -print)"
+      "Bash(find / -path /proc -prune -o -iname \"project_towns_confirm_gate_perf.md\" -print)",
+      "Bash(sort -t: -k2)"
     ]
   }
 }

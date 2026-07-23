@@ -13,24 +13,19 @@ typedef struct {
     uint8_t lighting_refresh; // 1 → fog reveal radius changed (e.g. candle) — state_gameplay repaints BKG
 } AbilityResult;
 
-// HOME-resident dispatcher. Looks up player_class + belt slot, SWITCH_ROMs into
-// the matching purple bank (6=knight, 7=scoundrel, 8=witch, 9=zerker), invokes
-// the per-class ability entry, and returns. Result is zeroed if nothing happened.
-void ability_dispatch_cast_belt(uint8_t belt_slot, uint8_t px, uint8_t py, AbilityResult *out);
+// HOME-resident dispatcher (always mapped, so ANY bank may plain-call these).
+// Routes a global spell id (spells.h SPELL_ID encoding) into the matching purple
+// bank (6=knight, 7=scoundrel, 8=witch, 9=zerker). rank 0 = generic-scroll
+// strength. Zeroes *out first; no gating — caller decides castability.
+void ability_dispatch_cast(uint8_t spell_id, uint8_t rank, uint8_t px, uint8_t py, AbilityResult *out);
 
-// Lightweight predicate used by UI / belt rendering — does the active class+slot
-// have an ability ready to fire? (e.g. cooldown clear). HOME-only; no bank switch.
-uint8_t ability_dispatch_belt_ready(uint8_t belt_slot);
+// Belt path (B button, state_gameplay). Resolves belt_spell[belt_slot] for the
+// active class, centralizes the cooldown gate + "Recharging" log + cooldown set,
+// then routes through ability_dispatch_cast at the spell's trained rank.
+void ability_dispatch_cast_belt(uint8_t belt_slot, uint8_t px, uint8_t py, AbilityResult *out);
 
 // Called once on a fresh run (after inventory_clear_all) to give each class its starting items.
 // Switches into the class's bank and calls abilities_<class>_new_run_init().
 void ability_dispatch_new_run_init(void);
-
-// HOME-resident spell name strings — safe to return from any bank since HOME is always mapped.
-extern const char ability_name_holy_fire_shield[];
-extern const char ability_name_call_fox[];
-extern const char ability_name_fetid_bolt[];
-extern const char ability_name_whirlwind[];
-extern const char ability_name_swamp_root[];
 
 #endif

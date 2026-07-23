@@ -95,6 +95,11 @@ void state_stats_enter(void) BANKED {
             set_bkg_attribute_xy(10u, 0u, PAL_XP_UI_BG);
             VBK_REG = VBK_TILES;
         }
+        if (player_spell_points) { // unspent spell points, right after SPELL
+            gotoxy(16, 0); putchar('+');
+            set_bkg_attribute_xy(16u, 0u, PAL_XP_UI_BG);
+            VBK_REG = VBK_TILES;
+        }
     }
     gotoxy(1, 2); printf("STATS");
     stats_draw_pts();

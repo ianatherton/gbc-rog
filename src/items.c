@@ -44,6 +44,15 @@ static const uint8_t kind_cat[ITEM_KIND_COUNT] = {
     ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, ITEM_CAT_EQUIPMENT, // Storm
     ITEM_CAT_CONSUMABLE, // SCROLL_PORT6 (Port: Flr6)
     ITEM_CAT_EQUIPMENT,  // WITCH_HAT
+    /* 32 generic spell scrolls (kind = FIRST + spell_id; stride-8 gaps never instantiated) */
+    ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, // knight 0-3
+    ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, // knight 4-5 + gaps
+    ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, // scoundrel
+    ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE,
+    ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, // witch
+    ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE,
+    ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, // zerker
+    ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE,
 };
 
 static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
@@ -74,6 +83,15 @@ static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
     TILE_RING_OFF, TILE_RING_OFF, TILE_RING_OFF, // Storm
     TILE_SCROLL_BELT_OFF, // SCROLL_PORT6 — reuses the scroll art
     TILE_WITCHHAT_BELT_OFF, // WITCH_HAT — H6 art at TILE_WITCH_HAT_VRAM
+    /* 32 generic spell scrolls — all share the scroll art; class conveyed by palette tint */
+    TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, // knight
+    TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF,
+    TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, // scoundrel
+    TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF,
+    TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, // witch
+    TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF,
+    TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, // zerker
+    TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF,
 };
 
 static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
@@ -106,6 +124,15 @@ static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
     PAL_WALL_BG, PAL_CORPSE, PAL_XP_UI_BG, // Storm
     PAL_ENEMY_SNAKE, // SCROLL_PORT6 — green tint to read apart from the gold Death Scroll
     PAL_XP_UI_BG,    // WITCH_HAT — blue/arcane, same ramp as the heal book
+    /* 32 generic spell scrolls — per-class tint (gaps ride the class tint too) */
+    PAL_WALL_BG, PAL_WALL_BG, PAL_WALL_BG, PAL_WALL_BG,             // knight — warm metal
+    PAL_WALL_BG, PAL_WALL_BG, PAL_WALL_BG, PAL_WALL_BG,
+    PAL_LADDER, PAL_LADDER, PAL_LADDER, PAL_LADDER,                 // scoundrel — earthy
+    PAL_LADDER, PAL_LADDER, PAL_LADDER, PAL_LADDER,
+    PAL_ENEMY_SNAKE, PAL_ENEMY_SNAKE, PAL_ENEMY_SNAKE, PAL_ENEMY_SNAKE, // witch — swamp green
+    PAL_ENEMY_SNAKE, PAL_ENEMY_SNAKE, PAL_ENEMY_SNAKE, PAL_ENEMY_SNAKE,
+    PAL_LIFE_UI, PAL_LIFE_UI, PAL_LIFE_UI, PAL_LIFE_UI,             // zerker — blood red
+    PAL_LIFE_UI, PAL_LIFE_UI, PAL_LIFE_UI, PAL_LIFE_UI,
 };
 
 static const char *const kind_name[ITEM_KIND_COUNT] = {
@@ -125,6 +152,11 @@ static const char *const kind_name[ITEM_KIND_COUNT] = {
     "Storm Ring",  "Storm Ring",  "Storm Ring",
     "Port: Boss",
     "Witch Hat",
+    /* 32 generic spell scrolls (gap rows named "?" — never instantiated) */
+    "Scrl:HolyFire", "?", "?", "?", "?", "?", "?", "?",             // knight 0..5 + stride gaps
+    "Scrl:CallFox",  "?", "?", "?", "?", "?", "?", "?",             // scoundrel
+    "Scrl:FetidBolt", "Scrl:SwampRoot", "?", "?", "?", "?", "?", "?", // witch
+    "Scrl:Whirlwind", "?", "?", "?", "?", "?", "?", "?",            // zerker
 };
 
 static const char *const kind_desc[ITEM_KIND_COUNT] = {
@@ -175,6 +207,11 @@ static const char *const kind_desc[ITEM_KIND_COUNT] = {
     "+3 atk, +12% dodge. A tempest ring.",  // Storm T3
     "Warps to this dungeon's boss floor.", // SCROLL_PORT6
     "+5% magic def. A crooked pointed hat.", // WITCH_HAT
+    /* 32 generic spell scrolls — one shared desc (weak rank-0 copy, any class) */
+    "A weak copy. Any class can cast.", "", "", "", "", "", "", "", // knight
+    "A weak copy. Any class can cast.", "", "", "", "", "", "", "", // scoundrel
+    "A weak copy. Any class can cast.", "A weak copy. Any class can cast.", "", "", "", "", "", "", // witch
+    "A weak copy. Any class can cast.", "", "", "", "", "", "", "", // zerker
 };
 
 uint8_t items_kind_category(uint8_t kind) BANKED {
@@ -360,6 +397,17 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
         if (out->consumed_turn) inventory_remove(item_idx);
         return;
     }
+    if (kind >= ITEM_KIND_SPELL_SCROLL_FIRST &&
+        kind < (uint8_t)(ITEM_KIND_SPELL_SCROLL_FIRST + ITEM_KIND_SPELL_SCROLL_COUNT)) {
+        /* generic spell scroll — rank-0 cast of the class-bank spell core (bow pattern:
+           the effect logs its own result; a fizzle keeps the scroll and the turn) */
+        spells_cast_scroll((uint8_t)(kind - ITEM_KIND_SPELL_SCROLL_FIRST), out);
+        if (out->consumed_turn) {
+            entity_sprites_run_item_popout(kind);
+            inventory_remove(item_idx);
+        }
+        return;
+    }
     {
         char log[20];
         const char *prefix = "Used ";
@@ -412,9 +460,13 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
     out->consumed_turn = 1u;
 }
 
-/* Weighted drop table: consumables weight 5, equipment/reusables weight 4, bow/axe/shield/mace weight 3-4.
-   Total 58 entries. The bow lands as a full quiver (ITEM_BOW_STACK_QTY) at pickup. */
-static const uint8_t drop_table[58] = {
+/* Weighted drop table: consumables weight 5, equipment/reusables weight 4, bow/axe/shield/mace
+   weight 3-4, generic spell scrolls weight 1 each. The bow lands as a full quiver
+   (ITEM_BOW_STACK_QTY) at pickup. DROP_TABLE_LEN is the single source of the modulus — the
+   trade screen's stable stock hashes through items_drop_table_pick, so growing the table
+   reshuffles drops AND trader stock for a given seed (expected, keep changes atomic). */
+#define DROP_TABLE_LEN 63u
+static const uint8_t drop_table[DROP_TABLE_LEN] = {
     ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,
     ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,
     ITEM_KIND_KEY,         ITEM_KIND_KEY,         ITEM_KIND_KEY,         ITEM_KIND_KEY,         ITEM_KIND_KEY,
@@ -429,13 +481,19 @@ static const uint8_t drop_table[58] = {
     ITEM_KIND_AXE,         ITEM_KIND_AXE,         ITEM_KIND_AXE,
     ITEM_KIND_SHIELD,      ITEM_KIND_SHIELD,      ITEM_KIND_SHIELD,
     ITEM_KIND_MACE,        ITEM_KIND_MACE,        ITEM_KIND_MACE,
+    /* generic spell scrolls — rare (weight 1); kind = SPELL_SCROLL_FIRST + spell_id */
+    (uint8_t)(ITEM_KIND_SPELL_SCROLL_FIRST + 0u),  // Scrl:HolyFire  (knight 0)
+    (uint8_t)(ITEM_KIND_SPELL_SCROLL_FIRST + 8u),  // Scrl:CallFox   (scoundrel 0)
+    (uint8_t)(ITEM_KIND_SPELL_SCROLL_FIRST + 16u), // Scrl:FetidBolt (witch 0)
+    (uint8_t)(ITEM_KIND_SPELL_SCROLL_FIRST + 17u), // Scrl:SwampRoot (witch 1)
+    (uint8_t)(ITEM_KIND_SPELL_SCROLL_FIRST + 24u), // Scrl:Whirlwind (zerker 0)
 };
 
 /* Index the weighted drop table directly, without touching rand(). The trade screen needs stock
    that is stable across visits, so it hashes run_seed itself and picks with this — reseeding the
    RNG from a shop would desync floor generation. */
 uint8_t items_drop_table_pick(uint8_t idx) BANKED {
-    return drop_table[idx % 58u];
+    return drop_table[idx % DROP_TABLE_LEN];
 }
 
 /* "+N" modifier roll: weighted toward 0, with a rare (~1%) reroll across the full -1..+10
@@ -463,7 +521,7 @@ uint8_t enemy_try_drop_item(uint8_t dx, uint8_t dy) BANKED {
     if ((rand() % 20u) >= 2u) return 0u;
     for (gi = 0u; gi < MAX_GROUND_ITEMS; gi++) {
         if (ground_item_kind[gi] == ITEM_KIND_NONE) {
-            kind = drop_table[rand() % 58u];
+            kind = drop_table[rand() % DROP_TABLE_LEN];
             if ((rand() % 100u) < RING_DROP_PCT) kind = ring_roll_kind();
             ground_item_kind[gi] = kind;
             ground_item_x[gi] = dx;
@@ -484,7 +542,7 @@ uint8_t town_barrel_try_drop_item(uint8_t dx, uint8_t dy) BANKED {
     if ((rand() % 100u) >= 30u) return 0u; // 30%
     for (gi = 0u; gi < MAX_GROUND_ITEMS; gi++) {
         if (ground_item_kind[gi] == ITEM_KIND_NONE) {
-            kind = drop_table[rand() % 58u];
+            kind = drop_table[rand() % DROP_TABLE_LEN];
             if ((rand() % 100u) < RING_DROP_PCT) kind = ring_roll_kind();
             ground_item_kind[gi] = kind;
             ground_item_x[gi] = dx;

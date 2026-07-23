@@ -28,7 +28,13 @@
 #define ITEM_KIND_RING_COUNT 30u
 #define ITEM_KIND_SCROLL_PORT6 44u // "Port: Flr6" — Witch starting scroll; warps the player to floor 6. Not in the drop table
 #define ITEM_KIND_WITCH_HAT  45u  // Witch Hat — equipment (HEAD); Witch starts with it equipped. Not in the drop table
-#define ITEM_KIND_COUNT      46u
+/* Generic spell scrolls — weak (rank 0) copies of class spells, castable by ANY class.
+   One kind per spell-id slot: kind = FIRST + spell_id (spells.h stride-8 encoding), so the
+   mapping back is the identity `spell_id = kind - FIRST`. Stride-gap / not-yet-designed
+   ids exist as kinds but are never instantiated (spells_exists() guards the cast). */
+#define ITEM_KIND_SPELL_SCROLL_FIRST 46u
+#define ITEM_KIND_SPELL_SCROLL_COUNT 32u // = SPELL_ID_SPAN
+#define ITEM_KIND_COUNT      78u
 #define ITEM_KIND_NONE      255u
 
 #define ITEM_BOW_STACK_QTY   20u  // arrows granted per bow pickup

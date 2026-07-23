@@ -42,6 +42,7 @@ static void grant_xp_from_kill(uint8_t enemy_damage) {
         else player_hp_max = 255u;
         player_hp = player_hp_max;
         if (player_stat_points <= 252u) player_stat_points += 3u;
+        if (player_spell_points < 255u) player_spell_points++; // spent on the SPELL subscreen
         ui_push_level_up_line(player_level); // bank 5 — far call
         did_level = 1;
         entity_sprites_level_up_fx_trigger(); // L10 smile on aura slot — HOME

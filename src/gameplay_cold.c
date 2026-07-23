@@ -12,19 +12,16 @@
 #include "ability_dispatch.h"
 #include "gameplay_cold.h"
 
-// Strings live in HOME (ability_dispatch.c) — always mapped, safe to pass across banks.
-static const char *belt_name_for(uint8_t slot) {
-    if (slot == 1u && player_class == 2u && player_level >= 3u) return ability_name_swamp_root;
-    if (slot != 0u) return 0;
-    if (player_class == 0u) return ability_name_holy_fire_shield;
-    if (player_class == 1u) return ability_name_call_fox;
-    if (player_class == 2u) return ability_name_fetid_bolt;
-    if (player_class == 3u) return ability_name_whirlwind;
-    return 0;
+// Spell slots are data-driven: belt_spell[] holds the active class's local spell
+// idx (assigned on the SPELL subscreen); names come out of bank 27 via copy-out.
+static uint8_t belt_spell_learned(uint8_t slot) { // local idx if slot holds a learned spell, else SPELL_IDX_NONE
+    uint8_t idx = belt_spell[slot];
+    if (idx >= SPELLS_PER_CLASS || spell_rank[idx] == 0u) return SPELL_IDX_NONE;
+    return idx;
 }
 
 static uint8_t belt_slot_nonempty(uint8_t slot) {
-    if (slot < BELT_SLOT_COUNT) return belt_name_for(slot) != 0;
+    if (slot < BELT_SLOT_COUNT) return belt_spell_learned(slot) != SPELL_IDX_NONE;
     {
         uint8_t kind = inventory_kind[slot - BELT_SLOT_COUNT];
         return kind != ITEM_KIND_NONE;
@@ -43,12 +40,10 @@ void belt_select_advance_skip_empty(void) BANKED {
 BANKREF(push_selected_belt_description)
 void push_selected_belt_description(void) BANKED {
     char buf[20];
-    uint8_t i = 0u;
     if (selected_belt_slot < BELT_SLOT_COUNT) {
-        const char *name = belt_name_for(selected_belt_slot);
-        if (!name) return;
-        while (name[i] && i < 19u) { buf[i] = name[i]; i++; }
-        buf[i] = 0;
+        uint8_t idx = belt_spell_learned(selected_belt_slot);
+        if (idx == SPELL_IDX_NONE) return;
+        spells_name_copy(SPELL_ID(player_class, idx), buf, sizeof buf);
         ui_combat_log_push(buf);
     } else {
         uint8_t belt_idx = selected_belt_slot - BELT_SLOT_COUNT;

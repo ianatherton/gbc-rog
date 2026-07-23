@@ -751,28 +751,19 @@ static void ui_belt_put_label_pair(uint8_t *x, uint8_t left_off, uint8_t right_o
 }
 
 static void ui_belt_spell_slot(uint8_t s, uint8_t *icon_v, uint8_t *icon_pal) {
-    if (s == 0u && player_class == 2u && player_level >= 1u) { // witch — Fetid Bolt (M12 → VRAM)
-        *icon_v = TILE_WITCH_BOLT_VRAM;
-        *icon_pal = (witch_shot_cooldown_turns == 0u) ? PAL_WALL_BG : PAL_CORPSE;
-    } else if (s == 0u && player_class == 3u && player_level >= 1u) { // zerker — Whirlwind (I10)
-        *icon_v = TILE_ZERKER_WHIRLWIND_VRAM;
-        *icon_pal = (zerker_whirlwind_cooldown_turns == 0u) ? PAL_WALL_BG : PAL_CORPSE;
-    } else if (s == 0u && player_class == 0u && player_level >= 1u) { // knight — Holy Fire Shield (I9)
-        *icon_v = TILE_KNIGHT_SHIELD_VRAM;
-        *icon_pal = knight_shield_active ? PAL_LIFE_UI : PAL_WALL_BG;
-    } else if (s == 0u && player_class == 1u && player_level >= 1u) { // scoundrel — Call Fox (J9 patched)
-        *icon_v = TILE_FOX_J9_VRAM;
-        *icon_pal = ally_has_type(ALLY_TYPE_FOX) ? PAL_WALL_BG : PAL_XP_UI_BG;
-    } else if (s == 1u && player_class == 2u && player_level >= 3u) { // witch — Swamp Root (L11, unlocks lv3)
-        *icon_v = TILE_ROOT_ICON_VRAM;
-        *icon_pal = (witch_shot_cooldown_turns == 0u) ? PAL_XP_UI_BG : PAL_CORPSE;
-    } else {
+    uint8_t idx = belt_spell[s]; // data-driven: icon+pal from the bank-27 spell table (redraw-edge only)
+    if (idx >= SPELLS_PER_CLASS || spell_rank[idx] == 0u) {
         *icon_v = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY);
         *icon_pal = PAL_UI;
+        return;
     }
+    *icon_v = spells_icon(SPELL_ID(player_class, idx), icon_pal);
+    if (spell_cd[idx] > 0u) *icon_pal = PAL_CORPSE; // recharging → hourglass companion tile
+    else if (idx == 0u && player_class == 0u && knight_shield_active) *icon_pal = PAL_LIFE_UI; // shield buff up (not a cooldown)
+    else if (idx == 0u && player_class == 1u && ally_has_type(ALLY_TYPE_FOX)) *icon_pal = PAL_WALL_BG; // fox already out
 }
 
-static void ui_draw_belt_placeholder_row(void) { // [SPELL] s0 s1 s2 s3 [ITEM] i0 i1 i2 i3 — 20 tiles, no gap
+static void ui_draw_belt_placeholder_row(void) { // [SPELL] s0 s1 [ITEM] i0 i1 i2 i3 — 16 tiles + blank tail
     uint8_t x = 0u, s, v, icon_pal;
     ui_belt_put_label_pair(&x, TILE_UI_SPELL_L, TILE_UI_SPELL_R);
     for (s = 0u; s < BELT_SLOT_COUNT; s++) {
@@ -810,6 +801,7 @@ static void ui_draw_belt_placeholder_row(void) { // [SPELL] s0 s1 s2 s3 [ITEM] i
             else                win_putc_pal(x++, UI_BELT_WIN_Y, '*', PAL_UI);
         }
     }
+    while (x < UI_PANEL_COLS) win_put_space(x++, UI_BELT_WIN_Y); // row shrank with BELT_SLOT_COUNT — blank the tail
 }
 
 static void ui_draw_top_hud(void) { // bottom window row: L:♥×5 HP% XP% FLOORdd

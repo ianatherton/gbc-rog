@@ -55,9 +55,7 @@ static void confirm_arm(uint8_t kind, uint8_t aux, uint8_t tx, uint8_t ty) {
 }
 
 static void tick_turn_cooldowns(void) {
-    if (witch_shot_cooldown_turns > 0u) witch_shot_cooldown_turns--;
-    if (zerker_whirlwind_cooldown_turns > 0u) zerker_whirlwind_cooldown_turns--;
-    if (book_heal_cooldown_turns > 0u) book_heal_cooldown_turns--;
+    spells_tick_cooldowns(); // bank 27 — spell_cd[] + book_heal_cooldown_turns
 }
 
 static void gameplay_allies_turn_and_glide(uint8_t px, uint8_t py) {
@@ -124,9 +122,7 @@ void state_gameplay_enter(void) BANKED {
     level_generate_and_spawn(&g_player_x, &g_player_y);
     selected_belt_slot = 0u;
     player_hp_prev = player_hp;
-    witch_shot_cooldown_turns = 0u;
-    zerker_whirlwind_cooldown_turns = 0u;
-    book_heal_cooldown_turns = 0u;
+    spells_floor_reset(); // bank 27 — spell_cd[] + book_heal_cooldown_turns
     BANK_DBG("GP_done");
 }
 

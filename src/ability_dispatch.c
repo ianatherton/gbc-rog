@@ -1,34 +1,45 @@
 #include "ability_dispatch.h"
 #include "abilities_class.h"
+#include "spells.h"
 #include "globals.h"
 #include <string.h>
 
-// HOME-resident — any bank can safely return these pointers since HOME is always mapped.
-const char ability_name_holy_fire_shield[] = "Holy Fire Shield";
-const char ability_name_call_fox[]         = "Call Fox";
-const char ability_name_fetid_bolt[]       = "Fetid Bolt";
-const char ability_name_whirlwind[]        = "Whirlwind";
-const char ability_name_swamp_root[]       = "Swamp Root";
-
-BANKREF_EXTERN(ability_knight_cast_belt)
-BANKREF_EXTERN(ability_scoundrel_cast_belt)
-BANKREF_EXTERN(ability_witch_cast_belt)
-BANKREF_EXTERN(ability_zerker_cast_belt)
+BANKREF_EXTERN(ability_knight_cast)
+BANKREF_EXTERN(ability_scoundrel_cast)
+BANKREF_EXTERN(ability_witch_cast)
+BANKREF_EXTERN(ability_zerker_cast)
 
 BANKREF_EXTERN(abilities_knight_new_run_init)
 BANKREF_EXTERN(abilities_scoundrel_new_run_init)
 BANKREF_EXTERN(abilities_witch_new_run_init)
 BANKREF_EXTERN(abilities_zerker_new_run_init)
 
-void ability_dispatch_cast_belt(uint8_t belt_slot, uint8_t px, uint8_t py, AbilityResult *out) {
+void ability_dispatch_cast(uint8_t spell_id, uint8_t rank, uint8_t px, uint8_t py, AbilityResult *out) {
+    uint8_t idx = SPELL_ID_IDX(spell_id);
     memset(out, 0, sizeof *out);
-    switch (player_class) {
-        case 0u: ability_knight_cast_belt(belt_slot, px, py, out);    break;
-        case 1u: ability_scoundrel_cast_belt(belt_slot, px, py, out); break;
-        case 2u: ability_witch_cast_belt(belt_slot, px, py, out);     break;
-        case 3u: ability_zerker_cast_belt(belt_slot, px, py, out);    break;
+    switch (SPELL_ID_CLASS(spell_id)) {
+        case 0u: ability_knight_cast(idx, rank, px, py, out);    break;
+        case 1u: ability_scoundrel_cast(idx, rank, px, py, out); break;
+        case 2u: ability_witch_cast(idx, rank, px, py, out);     break;
+        case 3u: ability_zerker_cast(idx, rank, px, py, out);    break;
         default: break;
     }
+}
+
+void ability_dispatch_cast_belt(uint8_t belt_slot, uint8_t px, uint8_t py, AbilityResult *out) {
+    uint8_t idx = belt_spell[belt_slot];
+    uint8_t rank, id;
+    memset(out, 0, sizeof *out);
+    if (idx >= SPELLS_PER_CLASS) return;      // SPELL_IDX_NONE / garbage → empty slot
+    rank = spell_rank[idx];
+    if (rank == 0u) return;                   // unlearned
+    if (spell_cd[idx] > 0u) {
+        spells_notify_recharging((uint8_t)(spell_cd[idx] - 1u));
+        return;
+    }
+    id = SPELL_ID(player_class, idx);
+    ability_dispatch_cast(id, rank, px, py, out);
+    if (out->consumed_turn) spell_cd[idx] = spells_cooldown_for(id, rank);
 }
 
 void ability_dispatch_new_run_init(void) {
@@ -39,16 +50,4 @@ void ability_dispatch_new_run_init(void) {
         case 3u: abilities_zerker_new_run_init();   break;
         default: break;
     }
-}
-
-uint8_t ability_dispatch_belt_ready(uint8_t belt_slot) {
-    if (belt_slot == 0u) {
-        if (player_class == 0u && player_level >= 1u && !knight_shield_active) return 1u;
-        if (player_class == 2u && player_level >= 1u && witch_shot_cooldown_turns == 0u) return 1u;
-        if (player_class == 3u && player_level >= 1u && zerker_whirlwind_cooldown_turns == 0u) return 1u;
-        if (player_class == 1u && player_level >= 1u) return 1u;
-        return 0u;
-    }
-    if (belt_slot == 1u && player_class == 2u && player_level >= 3u && witch_shot_cooldown_turns == 0u) return 1u;
-    return 0u;
 }

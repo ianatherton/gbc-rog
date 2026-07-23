@@ -19,9 +19,10 @@ BANKREF_EXTERN(entity_sprites_run_projectile)
 
 #define WITCH_BOLT_RANGE_TILES 4u
 #define WITCH_BOLT_BURSTS      3u
-#define WITCH_BOLT_COOLDOWN    0u
-#define SWAMP_ROOT_COOLDOWN    8u
-#define SWAMP_ROOT_TURNS      12u
+
+// Rank scaling (index = rank; [0] = generic-scroll strength for any class)
+static const uint8_t bolt_bonus_dmg[4]  = {0u, 0u, 1u, 2u}; // added to the class formula (rank 1 = legacy numbers)
+static const uint8_t root_turns_rank[4] = {6u, 8u, 12u, 16u};
 
 static void push_short(const char *s) { // tiny helper — log lines are short enough to inline at call sites
     char buf[20];
@@ -31,7 +32,7 @@ static void push_short(const char *s) { // tiny helper — log lines are short e
     ui_combat_log_push(buf);
 }
 
-static void cast_bolt(uint8_t px, uint8_t py, AbilityResult *out) {
+static void cast_bolt(uint8_t rank, uint8_t px, uint8_t py, AbilityResult *out) {
     uint8_t ei, tx, ty, too_far, killed, burst, dmg;
     if (!targeting_find_nearest_visible(px, py, WITCH_BOLT_RANGE_TILES, &ei, &tx, &ty, &too_far)) {
         push_short(too_far ? "too far" : "no los");
@@ -43,10 +44,13 @@ static void cast_bolt(uint8_t px, uint8_t py, AbilityResult *out) {
             (uint8_t)(TILE_WITCH_BOLT_VRAM - TILESET_VRAM_OFFSET), PAL_XP_UI);
     }
     sfx_lunge_hit();
-    dmg = (uint8_t)(((player_damage + 1u) >> 1) + 1u); // half damage, rounded up, +1 base
-    dmg = combat_crit_roll(dmg);
+    if (rank == 0u) {
+        dmg = 2u; // generic scroll: flat weak bolt, no crit, no class scaling
+    } else {
+        dmg = (uint8_t)(((player_damage + 1u) >> 1) + 1u + bolt_bonus_dmg[rank]); // half damage, rounded up, +1 base
+        dmg = combat_crit_roll(dmg);
+    }
     killed = combat_damage_enemy(ei, dmg, 0u);
-    witch_shot_cooldown_turns = WITCH_BOLT_COOLDOWN;
     out->consumed_turn = 1u;
     if (killed) {
         out->did_kill = 1u;
@@ -55,19 +59,7 @@ static void cast_bolt(uint8_t px, uint8_t py, AbilityResult *out) {
     }
 }
 
-static void push_recharge(uint8_t turns) {
-    char buf[20];
-    const char *s = "Recharging: ";
-    uint8_t i = 0u;
-    while (*s) buf[i++] = *s++;
-    buf[i++] = (char)('0' + (turns > 9u ? 9u : turns));
-    s = " turns";
-    while (*s) buf[i++] = *s++;
-    buf[i] = 0;
-    ui_combat_log_push(buf);
-}
-
-static void cast_swamp_root(AbilityResult *out) {
+static void cast_swamp_root(uint8_t rank, AbilityResult *out) {
     uint8_t ei;
     uint8_t cam_tx = (uint8_t)(camera_px >> 3);
     uint8_t cam_ty = (uint8_t)(camera_py >> 3);
@@ -75,9 +67,8 @@ static void cast_swamp_root(AbilityResult *out) {
         if (!enemy_alive[ei]) continue;
         if (enemy_x[ei] >= cam_tx && enemy_x[ei] < (uint8_t)(cam_tx + GRID_W)
                 && enemy_y[ei] >= cam_ty && enemy_y[ei] < (uint8_t)(cam_ty + GRID_H))
-            enemy_status[ei] = SWAMP_ROOT_TURNS;
+            enemy_status[ei] = root_turns_rank[rank];
     }
-    witch_shot_cooldown_turns = SWAMP_ROOT_COOLDOWN;
     push_short("Swamp Root!");
     out->consumed_turn = 1u;
 }
@@ -88,13 +79,11 @@ void abilities_witch_new_run_init(void) BANKED {
     inventory_add(ITEM_KIND_KEY, 0); // 2× BigHeal Potion
 }
 
-BANKREF(ability_witch_cast_belt)
-void ability_witch_cast_belt(uint8_t belt_slot, uint8_t px, uint8_t py, AbilityResult *out) BANKED {
-    if (player_level < 1u) return;
-    if (witch_shot_cooldown_turns > 0u) {
-        push_recharge((uint8_t)(witch_shot_cooldown_turns - 1u));
-        return;
+BANKREF(ability_witch_cast)
+void ability_witch_cast(uint8_t spell_idx, uint8_t rank, uint8_t px, uint8_t py, AbilityResult *out) BANKED {
+    switch (spell_idx) {
+        case 0u: cast_bolt(rank, px, py, out); break;
+        case 1u: cast_swamp_root(rank, out);   break;
+        default: break; // spells 2..5 not designed yet
     }
-    if (belt_slot == 1u && player_level >= 3u) { cast_swamp_root(out); return; }
-    cast_bolt(px, py, out);
 }

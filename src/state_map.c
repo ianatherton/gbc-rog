@@ -35,6 +35,11 @@ void state_map_enter(void) BANKED {
             set_bkg_attribute_xy(10u, 0u, PAL_XP_UI_BG);
             VBK_REG = VBK_TILES;
         }
+        if (player_spell_points) { // unspent spell points; col 16 holds this tab's arrow → use col 5
+            gotoxy(5, 0); putchar('+');
+            set_bkg_attribute_xy(5u, 0u, PAL_XP_UI_BG);
+            VBK_REG = VBK_TILES;
+        }
     }
     ui_map_put_seed_line(0u, 1u); // full seed name under the tab bar
     gotoxy(2, 6); printf("MAP");

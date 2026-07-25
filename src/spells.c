@@ -46,7 +46,17 @@ static const SpellDef spell_defs[SPELL_ID_SPAN] = {
     /* ── Scoundrel (8..15) ── */
     {TILE_FOX_J9_VRAM, PAL_XP_UI_BG, 1u, SPELL_RANK_MAX, 0u, 0u,
      "Call Fox", "Summon a fox ally"},
-    NOSPELL, NOSPELL, NOSPELL, NOSPELL, NOSPELL, NOSPELL, NOSPELL,
+    {TILE_FOX_J9_VRAM, PAL_WALL_BG, 1u, SPELL_RANK_MAX, 8u, 1u,
+     "Sprint", "Dash speed buff"},
+    {TILE_ROOT_ICON_VRAM, PAL_WALL_BG, 1u, SPELL_RANK_MAX, 6u, 1u,
+     "Bear Trap", "Snap + root a foe"},
+    {TILE_WITCH_BOLT_VRAM, PAL_XP_UI_BG, 1u, SPELL_RANK_MAX, 4u, 1u,
+     "Poison Dart", "Ranged + poison"},
+    {TILE_FOX_J9_VRAM, PAL_LADDER, 1u, SPELL_RANK_MAX, 10u, 1u,
+     "Graverob", "Loot the dead"},
+    {TILE_WITCH_BOLT_VRAM, PAL_WALL_BG, 1u, SPELL_RANK_MAX, 12u, 1u,
+     "Sniper Mode", "Ranged buff"},
+    NOSPELL, NOSPELL,
     /* ── Witch (16..23) ── */
     {TILE_WITCH_BOLT_VRAM, PAL_WALL_BG, 1u, SPELL_RANK_MAX, 0u, 0u,
      "Fetid Bolt", "Bolt nearest enemy"},
@@ -60,10 +70,21 @@ static const SpellDef spell_defs[SPELL_ID_SPAN] = {
      "Cat Form", "Swipe up to 3"},
     {TILE_WITCH_BOLT_VRAM, PAL_WALL_BG, 1u, SPELL_RANK_MAX, 12u, 2u,
      "Icicle Orb", "Slow ice orb"},
+    NOSPELL, NOSPELL, /* witch ids 22,23 — keep the stride-8 gap so Zerker starts at 24 */
     /* ── Zerker (24..31) ── */
     {TILE_ZERKER_WHIRLWIND_VRAM, PAL_WALL_BG, 1u, SPELL_RANK_MAX, 6u, 1u,
-     "Whirlwind", "Hit all adjacent foes"},
-    NOSPELL, NOSPELL, NOSPELL, NOSPELL, NOSPELL, NOSPELL, NOSPELL,
+     "Whirlwind", "Spin: 1-3 tile hit"},
+    {TILE_WITCH_BOLT_VRAM, PAL_WALL_BG, 1u, SPELL_RANK_MAX, 7u, 1u,
+     "Charge", "Stun nearest foe"},
+    {TILE_ZERKER_WHIRLWIND_VRAM, PAL_XP_UI_BG, 1u, SPELL_RANK_MAX, 8u, 1u,
+     "ThunderWave", "Dmg + stun r3"},
+    {TILE_ZERKER_WHIRLWIND_VRAM, PAL_WALL_BG, 1u, SPELL_RANK_MAX, 10u, 1u,
+     "Shout Fear", "Foes cower"},
+    {TILE_ZERKER_WHIRLWIND_VRAM, PAL_WALL_BG, 1u, SPELL_RANK_MAX, 5u, 1u,
+     "Throw Axe", "2x ranged (axe)"},
+    {TILE_ZERKER_WHIRLWIND_VRAM, PAL_LIFE_UI, 1u, SPELL_RANK_MAX, 15u, 2u,
+     "Zerk Mode", "Rage buff"},
+    NOSPELL, NOSPELL,
 };
 
 static void copy_capped(const char *s, char *out, uint8_t cap) {

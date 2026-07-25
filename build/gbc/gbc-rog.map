@@ -160,11 +160,11 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000001E  b_auto_ex |    0000001E  b_auto_ex |    0000001E  b_belt_se
      0000001E  b_push_se |    0000002D  l__INITIA |    0000002D  l__INITIA
      00000030  l__HEADER |    00000052  l__CODE_2 |    00000060  l__HEADER
-     00000083  l__CODE_7 |    00000084  l__CODE_1 |    00000084  l__CODE_1
-     0000009D  l__CODE_1 |    000000AB  l__HEADER |    0000016D  l__CODE_9
-     000001CB  l__CODE_2 |    00000200  s__CODE   |    00000284  l__CODE_1
-     00000488  l__CODE_6 |    000004D7  l__CODE_8 |    0000055A  l__CODE_2
-     00000575  l__CODE_2 |    000007CB  l__CODE_1 |    00000B71  l__HOME  
+     00000084  l__CODE_1 |    00000084  l__CODE_1 |    0000009D  l__CODE_1
+     000000AB  l__HEADER |    000001CB  l__CODE_2 |    00000200  s__CODE  
+     00000284  l__CODE_1 |    000002D4  l__CODE_7 |    00000488  l__CODE_6
+     000004D7  l__CODE_8 |    0000050A  l__CODE_9 |    0000055A  l__CODE_2
+     00000666  l__CODE_2 |    000007CB  l__CODE_1 |    00000B71  l__HOME  
      00000B9B  l__CODE_4 |    00000BEC  l__CODE_3 |    00001108  l__CODE_1
      000012EE  l__CODE_2 |    000014F4  l__CODE_1 |    0000151D  l__CODE_2
      00001554  l__CODE_1 |    000016D0  l__CODE_1 |    00001D63  l__DATA  
@@ -694,12 +694,12 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_7                00074000    00000083 =         131. bytes (REL,CON)
+_CODE_7                00074000    000002D4 =         724. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00074033  ___func_a |    00074033  _abilitie |    0007406F  ___func_a
-     0007406F  _ability_
+     00074033  ___func_a |    00074033  _abilitie |    00074261  ___func_a
+     00074261  _ability_
 ASxxxx Linker V03.00/V05.40 + sdld,  page 38.
 Hexadecimal  [32-Bits]
 
@@ -716,12 +716,12 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_9                00094000    0000016D =         365. bytes (REL,CON)
+_CODE_9                00094000    0000050A =        1290. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00094148  ___func_a |    00094148  _abilitie |    00094156  ___func_a
-     00094156  _ability_
+     00094478  ___func_a |    00094478  _abilitie |    00094486  ___func_a
+     00094486  _ability_
 ASxxxx Linker V03.00/V05.40 + sdld,  page 40.
 Hexadecimal  [32-Bits]
 
@@ -921,15 +921,15 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_27               001B4000    00000575 =        1397. bytes (REL,CON)
+_CODE_27               001B4000    00000666 =        1638. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     001B4311  _spells_n |    001B434E  _spells_d |    001B438B  _spells_i
-     001B43C1  _spells_u |    001B43DC  _spells_m |    001B43F7  _spells_c
-     001B4432  _spells_e |    001B4454  _spells_n |    001B4483  _spells_l
-     001B449A  _spells_f |    001B44B0  _spells_t |    001B44CC  _spells_c
-     001B44E4  _spells_n
+     001B4402  _spells_n |    001B443F  _spells_d |    001B447C  _spells_i
+     001B44B2  _spells_u |    001B44CD  _spells_m |    001B44E8  _spells_c
+     001B4523  _spells_e |    001B4545  _spells_n |    001B4574  _spells_l
+     001B458B  _spells_f |    001B45A1  _spells_t |    001B45BD  _spells_c
+     001B45D5  _spells_n
 ASxxxx Linker V03.00/V05.40 + sdld,  page 55.
 Hexadecimal  [32-Bits]
 

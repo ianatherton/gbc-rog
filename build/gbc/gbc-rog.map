@@ -161,10 +161,10 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000001E  b_push_se |    0000002C  l__INITIA |    0000002C  l__INITIA
      00000030  l__HEADER |    00000052  l__CODE_2 |    00000060  l__HEADER
      00000083  l__CODE_7 |    00000084  l__CODE_1 |    00000084  l__CODE_1
-     0000008F  l__CODE_6 |    0000009D  l__CODE_1 |    000000AB  l__HEADER
-     0000016D  l__CODE_9 |    000001CB  l__CODE_2 |    00000200  s__CODE  
-     00000203  l__CODE_8 |    00000284  l__CODE_1 |    00000490  l__CODE_2
-     0000055A  l__CODE_2 |    000007CB  l__CODE_1 |    00000B71  l__HOME  
+     0000009D  l__CODE_1 |    000000AB  l__HEADER |    0000016D  l__CODE_9
+     000001CB  l__CODE_2 |    00000200  s__CODE   |    00000284  l__CODE_1
+     00000488  l__CODE_6 |    000004D7  l__CODE_8 |    0000055A  l__CODE_2
+     00000575  l__CODE_2 |    000007CB  l__CODE_1 |    00000B71  l__HOME  
      00000B9B  l__CODE_4 |    00000BEC  l__CODE_3 |    00001108  l__CODE_1
      000012EE  l__CODE_2 |    000014F4  l__CODE_1 |    0000151D  l__CODE_2
      00001554  l__CODE_1 |    000016D0  l__CODE_1 |    00001D64  l__DATA  
@@ -683,12 +683,12 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_6                00064000    0000008F =         143. bytes (REL,CON)
+_CODE_6                00064000    00000488 =        1160. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00064033  ___func_a |    00064033  _abilitie |    0006407F  ___func_a
-     0006407F  _ability_
+     000643BF  ___func_a |    000643BF  _abilitie |    0006440B  ___func_a
+     0006440B  _ability_
 ASxxxx Linker V03.00/V05.40 + sdld,  page 37.
 Hexadecimal  [32-Bits]
 
@@ -705,12 +705,12 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_8                00084000    00000203 =         515. bytes (REL,CON)
+_CODE_8                00084000    000004D7 =        1239. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     000841BE  ___func_a |    000841BE  _abilitie |    000841D9  ___func_a
-     000841D9  _ability_
+     00084438  ___func_a |    00084438  _abilitie |    00084453  ___func_a
+     00084453  _ability_
 ASxxxx Linker V03.00/V05.40 + sdld,  page 39.
 Hexadecimal  [32-Bits]
 
@@ -921,15 +921,15 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_27               001B4000    00000490 =        1168. bytes (REL,CON)
+_CODE_27               001B4000    00000575 =        1397. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     001B422C  _spells_n |    001B4269  _spells_d |    001B42A6  _spells_i
-     001B42DC  _spells_u |    001B42F7  _spells_m |    001B4312  _spells_c
-     001B434D  _spells_e |    001B436F  _spells_n |    001B439E  _spells_l
-     001B43B5  _spells_f |    001B43CB  _spells_t |    001B43E7  _spells_c
-     001B43FF  _spells_n
+     001B4311  _spells_n |    001B434E  _spells_d |    001B438B  _spells_i
+     001B43C1  _spells_u |    001B43DC  _spells_m |    001B43F7  _spells_c
+     001B4432  _spells_e |    001B4454  _spells_n |    001B4483  _spells_l
+     001B449A  _spells_f |    001B44B0  _spells_t |    001B44CC  _spells_c
+     001B44E4  _spells_n
 ASxxxx Linker V03.00/V05.40 + sdld,  page 55.
 Hexadecimal  [32-Bits]
 

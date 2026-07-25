@@ -407,8 +407,10 @@ void state_gameplay_tick(void) BANKED {
                 if (floor_biome == BIOME_OVERWORLD || floor_biome == BIOME_TOWN)
                     overworld_step_feature(nx, ny); // signpost label / town fountain heal
                 consumed_turn = 1u;
-                wait_vbl_done();
-                draw_cell(g_player_x, g_player_y);
+                if (!auto_explore_active) { // auto: fold this repaint into the post-move pass to save a frame
+                    wait_vbl_done();
+                    draw_cell(g_player_x, g_player_y);
+                }
                 g_player_x = nx;
                 g_player_y = ny;
                 lighting_reveal_radius(g_player_x, g_player_y, player_light_radius());
@@ -451,6 +453,7 @@ void state_gameplay_tick(void) BANKED {
                 tick_turn_cooldowns();
                 consumed_turn = 0u; // ticked here; skip shared block below
                 wait_vbl_done();
+                if (auto_explore_active) draw_cell(opx, opy); // repaint vacated tile (folded from the skipped pre-move pass)
 #if FEATURE_MAP_FOG
                 if (lighting_dirty_overflow() || roof_changed)
                     draw_screen(g_player_x, g_player_y);
@@ -498,7 +501,12 @@ void state_gameplay_tick(void) BANKED {
         else next_state = STATE_PICKUP;
     }
     g_prev_j = j;
-    wait_vbl_done();
-    if (floor_biome == BIOME_OVERWORLD) water_anim_tick(); // fresh in VBlank: one 16-byte VRAM write drifts all sea
-    else if (floor_kind == FLOORKIND_BOSS && floor_boss_type == ENEMY_SPHINX) sphinx_anim_tick(); // fresh in VBlank: re-upload sphinx body/wing frames
+    if (auto_explore_active && !(floor_kind == FLOORKIND_BOSS && floor_boss_type == ENEMY_SPHINX)) {
+        // auto: skip the trailing pacing frame — the next tick self-syncs before any VRAM write.
+        // (auto is disabled on the overworld, so water_anim_tick never applies here.)
+    } else {
+        wait_vbl_done();
+        if (floor_biome == BIOME_OVERWORLD) water_anim_tick(); // fresh in VBlank: one 16-byte VRAM write drifts all sea
+        else if (floor_kind == FLOORKIND_BOSS && floor_boss_type == ENEMY_SPHINX) sphinx_anim_tick(); // fresh in VBlank: re-upload sphinx body/wing frames
+    }
 }

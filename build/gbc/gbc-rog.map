@@ -173,7 +173,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000332A  l__CODE_5 |    000033ED  s__HOME   |    000035DA  l__CODE_1
      00003F5E  s__BASE   |    00003F5E  s__CODE_0 |    00003F5E  s__INITIA
      00003F5E  s__LIT    |    00003F8B  s__GSINIT |    00003F97  s__GSFINA
-     00003FC7  l__CODE_2 |    00004000  _rMBC7_SR |    00004000  _rRAMB   
+     00003FD1  l__CODE_2 |    00004000  _rMBC7_SR |    00004000  _rRAMB   
      00008000  __VRAM    |    00008000  __VRAM800 |    00008800  __VRAM880
      00009000  __VRAM900 |    00009800  __SCRN0   |    00009C00  __SCRN1  
      0000A000  __SRAM    |    0000A000  _rMBC7_LA |    0000A010  _rMBC7_LA
@@ -600,7 +600,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_2                00024000    00003FC7 =       16327. bytes (REL,CON)
+_CODE_2                00024000    00003FD1 =       16337. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -620,13 +620,13 @@ _CODE_2                00024000    00003FC7 =       16327. bytes (REL,CON)
      00025894  _floor_gr |    000258AC  _floor_ti |    000259ED  _nearest_
      00025A8F  _nav_fill |    00025B76  ___func_l |    00025B76  _level_ge
      000264FA  ___func_s |    000264FA  _state_ga |    0002656A  ___func_s
-     0002656A  _state_ga |    000270B8  ___func_c |    000270B8  _camera_i
-     000273A8  _camera_s |    00027A4E  _camera_s |    00027CDF  _draw_cel
-     00027D33  _classify |    00027DA7  _classify |    00027E1A  _draw_col
-     00027E64  _draw_row |    00027EAE  _draw_ui_ |    00027EB6  _draw_gam
-     00027ED0  _draw_scr |    00027F1D  _draw_gam |    00027F3A  _draw_gam
-     00027F42  _draw_ene |    00027F51  _draw_cor |    00027F96  _draw_cor
-     00027F99  _draw_bos
+     0002656A  _state_ga |    000270C2  ___func_c |    000270C2  _camera_i
+     000273B2  _camera_s |    00027A58  _camera_s |    00027CE9  _draw_cel
+     00027D3D  _classify |    00027DB1  _classify |    00027E24  _draw_col
+     00027E6E  _draw_row |    00027EB8  _draw_ui_ |    00027EC0  _draw_gam
+     00027EDA  _draw_scr |    00027F27  _draw_gam |    00027F44  _draw_gam
+     00027F4C  _draw_ene |    00027F5B  _draw_cor |    00027FA0  _draw_cor
+     00027FA3  _draw_bos
 ASxxxx Linker V03.00/V05.40 + sdld,  page 33.
 Hexadecimal  [32-Bits]
 

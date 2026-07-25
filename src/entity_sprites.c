@@ -121,8 +121,9 @@ static void refresh_buff_icon_oam(void) { // top-right HUD slot — show I9 shie
 }
 
 static uint8_t belt_slot_icon_col(uint8_t slot) { // map slot 0..7 to its WIN tile column on the belt row
-    if (slot < BELT_SLOT_COUNT) return (uint8_t)(2u + slot * 2u);                          // after SPELL label
-    return (uint8_t)((4u + 2u * BELT_SLOT_COUNT) + (uint8_t)(slot - BELT_SLOT_COUNT) * 2u);  // after ITEM label
+    uint8_t base = UI_BELT_TRIM_COLS; // belt content is centred; left border trim shifts every slot right
+    if (slot < BELT_SLOT_COUNT) return (uint8_t)(base + 2u + slot * 2u);                          // after SPELL label
+    return (uint8_t)(base + (4u + 2u * BELT_SLOT_COUNT) + (uint8_t)(slot - BELT_SLOT_COUNT) * 2u);  // after ITEM label
 }
 
 static void refresh_belt_selector_oam(void) { // M3 arrow on dungeon row GRID_H-1 (above belt / window band)

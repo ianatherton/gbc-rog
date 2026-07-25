@@ -554,7 +554,7 @@ void ui_push_combat_log(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_
     char namebuf[12]; // SLIMESKULL + NUL is the longest current name; copy here to stay valid after bcall returns to bank 5
     uint8_t p = 0, d = dmg, mhp, pct, ni;
     enemy_type_short_name_copy(type_idx, namebuf, sizeof namebuf);
-    for (ni = 0u; namebuf[ni] && p < 9u; ni++) logbuf[p++] = namebuf[ni];
+    for (ni = 0u; namebuf[ni] && p < 8u; ni++) logbuf[p++] = namebuf[ni]; // 8: worst line = name8+' -NNN! NN%' = 18 = UI_PANEL_TEXT_COLS
     logbuf[p++] = ' ';
     if (d) {
         logbuf[p++] = '-';
@@ -588,7 +588,7 @@ void ui_push_combat_log_shield_burn(uint8_t type_idx, uint8_t dmg, uint8_t hp_re
     uint8_t p = 0, d = dmg, mhp, pct, ni;
     if (dmg == 0u) return; // only "-N" lines; kills pass lethal damage, not a separate DIES
     enemy_type_short_name_copy(type_idx, namebuf, sizeof namebuf);
-    for (ni = 0u; namebuf[ni] && p < 9u; ni++) logbuf[p++] = namebuf[ni];
+    for (ni = 0u; namebuf[ni] && p < 8u; ni++) logbuf[p++] = namebuf[ni]; // 8: worst line = name8+' -NNN! NN%' = 18 = UI_PANEL_TEXT_COLS
     logbuf[p++] = ' ';
     logbuf[p++] = 'b';
     logbuf[p++] = 'u';
@@ -724,21 +724,48 @@ static void win_put_space(uint8_t x, uint8_t y) { // blank space tile + UI palet
     set_win_attribute_xy(x, y, PAL_UI);
 }
 
+static void ui_put_border(uint8_t x, uint8_t y, uint8_t off, uint8_t flip) { // M1/M2 rail tile, gold ramp
+    set_win_tile_xy(x, y, (uint8_t)(TILESET_VRAM_OFFSET + off));
+    set_win_attribute_xy(x, y, (uint8_t)(PAL_XP_UI_BG | flip));
+}
+
+static void ui_panel_rails(uint8_t y) { // left rail is the 180° flip of the right so the frame reads symmetric
+    ui_put_border(0u, y, TILE_UI_BORDER_V, (uint8_t)(S_FLIPX | S_FLIPY));
+    ui_put_border((uint8_t)(UI_PANEL_COLS - 1u), y, TILE_UI_BORDER_V, 0u);
+}
+
+/* Hub/overworld only: rows 0 and 4 carry no belt and no HUD, so they close the text box
+   into a full frame. Painted once on the latch edge (below) rather than per refresh —
+   the hub deliberately skips the per-scroll bottom-band repaint. */
+static void ui_draw_hub_frame_row(uint8_t win_y) {
+    uint8_t x;
+    for (x = 0u; x < UI_PANEL_COLS; x++) ui_put_border(x, win_y, TILE_UI_BORDER_H, 0u);
+}
+
+/* 0xFF forces the first call to run the latch branch. window_ui_show() re-arms it, because
+   its fill_win_rect wipes rows 0/4 on every modal return (inventory/map/stats/talk). */
+static uint8_t bottom_was_hub = 0xFFu;
+
+/* Panel rows 1–3 are framed: text lives in cols UI_PANEL_TEXT_X..+UI_PANEL_TEXT_COLS-1,
+   rails own cols 0 and 19. `cols` below is a count of TEXT columns, not screen columns. */
 static void win_puts_row_pad_cols(uint8_t y, const char *s, uint8_t pal, uint8_t cols) {
     uint8_t x = 0;
-    while (*s && x < cols) win_putc_pal(x++, y, *s++, pal);
-    while (x < cols) win_put_space(x++, y);
+    while (*s && x < cols) win_putc_pal((uint8_t)(UI_PANEL_TEXT_X + x++), y, *s++, pal);
+    while (x < cols) win_put_space((uint8_t)(UI_PANEL_TEXT_X + x++), y);
+    ui_panel_rails(y);
 }
 
 static void win_puts_row_split(uint8_t y, const char *s, uint8_t pal, uint8_t split, uint8_t cols) {
-    uint8_t x = 0;
-    while (*s && x < cols) { win_putc_pal(x, y, *s++, x >= split ? PAL_XP_UI_BG : pal); x++; }
-    while (x < cols) win_put_space(x++, y);
+    uint8_t x = 0; // string index — `split` is a string offset, so compare before the screen shift
+    while (*s && x < cols) { win_putc_pal((uint8_t)(UI_PANEL_TEXT_X + x), y, *s++, x >= split ? PAL_XP_UI_BG : pal); x++; }
+    while (x < cols) win_put_space((uint8_t)(UI_PANEL_TEXT_X + x++), y);
+    ui_panel_rails(y);
 }
 
-static void win_clear_row(uint8_t win_y, uint8_t pal) {
+static void win_clear_panel_row(uint8_t win_y) { // blank text area, keep the frame
     uint8_t x;
-    for (x = 0; x < UI_PANEL_COLS; x++) win_putc_pal(x, win_y, ' ', pal);
+    for (x = 0; x < UI_PANEL_TEXT_COLS; x++) win_putc_pal((uint8_t)(UI_PANEL_TEXT_X + x), win_y, ' ', PAL_UI);
+    ui_panel_rails(win_y);
 }
 
 static void ui_belt_put_label_pair(uint8_t *x, uint8_t left_off, uint8_t right_off) {
@@ -763,8 +790,9 @@ static void ui_belt_spell_slot(uint8_t s, uint8_t *icon_v, uint8_t *icon_pal) {
     else if (idx == 0u && player_class == 1u && ally_has_type(ALLY_TYPE_FOX)) *icon_pal = PAL_WALL_BG; // fox already out
 }
 
-static void ui_draw_belt_placeholder_row(void) { // [SPELL] s0 s1 [ITEM] i0 i1 i2 i3 — 16 tiles + blank tail
+static void ui_draw_belt_placeholder_row(void) { // trim [SPELL] s0 s1 [ITEM] i0 i1 i2 i3 trim — centred in 20 cols
     uint8_t x = 0u, s, v, icon_pal;
+    while (x < UI_BELT_TRIM_COLS) ui_put_border(x++, UI_BELT_WIN_Y, TILE_UI_BORDER_H, 0u); // left trim
     ui_belt_put_label_pair(&x, TILE_UI_SPELL_L, TILE_UI_SPELL_R);
     for (s = 0u; s < BELT_SLOT_COUNT; s++) {
         ui_belt_spell_slot(s, &v, &icon_pal);
@@ -801,7 +829,8 @@ static void ui_draw_belt_placeholder_row(void) { // [SPELL] s0 s1 [ITEM] i0 i1 i
             else                win_putc_pal(x++, UI_BELT_WIN_Y, '*', PAL_UI);
         }
     }
-    while (x < UI_PANEL_COLS) win_put_space(x++, UI_BELT_WIN_Y); // row shrank with BELT_SLOT_COUNT — blank the tail
+    // right trim — matches the left run, so the belt sits centred (x is 18 here)
+    while (x < UI_PANEL_COLS) ui_put_border(x++, UI_BELT_WIN_Y, TILE_UI_BORDER_H, 0u);
 }
 
 static void ui_draw_top_hud(void) { // bottom window row: L:♥×5 HP% XP% FLOORdd
@@ -887,7 +916,7 @@ static void format_class_level_buf(char *buf) { // "KNIGHT, Lvl 3" into buf (COM
 static void ui_draw_class_level_line(uint8_t win_y) { // idle panel top row
     char buf[COMBAT_LOG_LEN];
     format_class_level_buf(buf);
-    win_puts_row_pad_cols(win_y, buf, PAL_UI, UI_PANEL_COLS);
+    win_puts_row_pad_cols(win_y, buf, PAL_UI, UI_PANEL_TEXT_COLS);
 }
 
 static void ui_draw_floor_counts(uint8_t win_y) { // " mons: xx item: xx" from current (permanence-applied) floor state
@@ -901,15 +930,15 @@ static void ui_draw_floor_counts(uint8_t win_y) { // " mons: xx item: xx" from c
     buf[i++] = ' '; buf[i++] = 'i'; buf[i++] = 't'; buf[i++] = 'e'; buf[i++] = 'm'; buf[i++] = ':'; buf[i++] = ' ';
     buf[i++] = (char)('0' + items / 10u); buf[i++] = (char)('0' + items % 10u);
     buf[i] = '\0';
-    win_puts_row_pad_cols(win_y, buf, PAL_UI, UI_PANEL_COLS);
+    win_puts_row_pad_cols(win_y, buf, PAL_UI, UI_PANEL_TEXT_COLS);
 }
 
 static void ui_draw_reclaim_idle_panel(void) { // after 8 quiet turns: one line only, no seed/zone
     char buf[COMBAT_LOG_LEN];
     format_class_level_buf(buf);
-    win_puts_row_pad_cols(UI_PANEL_WIN_Y0, buf, PAL_UI, UI_PANEL_COLS);
-    win_clear_row(UI_PANEL_WIN_Y1, PAL_UI);
-    win_clear_row(UI_PANEL_WIN_Y2, PAL_UI);
+    win_puts_row_pad_cols(UI_PANEL_WIN_Y0, buf, PAL_UI, UI_PANEL_TEXT_COLS);
+    win_clear_panel_row(UI_PANEL_WIN_Y1);
+    win_clear_panel_row(UI_PANEL_WIN_Y2);
 }
 
 static void ui_draw_combat_panel(void) {
@@ -924,9 +953,9 @@ static void ui_draw_combat_panel(void) {
     } else {
         for (i = 0; i < COMBAT_LOG_LINES; i++) {
             if (combat_log_split[i])
-                win_puts_row_split((uint8_t)(UI_PANEL_WIN_Y0 + i), combat_log[i], combat_log_pal[i], combat_log_split[i], UI_PANEL_COLS);
+                win_puts_row_split((uint8_t)(UI_PANEL_WIN_Y0 + i), combat_log[i], combat_log_pal[i], combat_log_split[i], UI_PANEL_TEXT_COLS);
             else
-                win_puts_row_pad_cols((uint8_t)(UI_PANEL_WIN_Y0 + i), combat_log[i], combat_log_pal[i], UI_PANEL_COLS);
+                win_puts_row_pad_cols((uint8_t)(UI_PANEL_WIN_Y0 + i), combat_log[i], combat_log_pal[i], UI_PANEL_TEXT_COLS);
         }
     }
 }
@@ -935,29 +964,30 @@ static void ui_draw_inspect_panel(void) {
     uint8_t slot = panel_inspect_slot;
     uint8_t t, x;
     if (slot >= num_enemies || !enemy_alive[slot]) {
-        win_clear_row(UI_PANEL_WIN_Y0, PAL_UI);
-        win_clear_row(UI_PANEL_WIN_Y1, PAL_UI);
-        win_clear_row(UI_PANEL_WIN_Y2, PAL_UI);
+        win_clear_panel_row(UI_PANEL_WIN_Y0);
+        win_clear_panel_row(UI_PANEL_WIN_Y1);
+        win_clear_panel_row(UI_PANEL_WIN_Y2);
         return;
     }
     t = enemy_type[slot];
     {
         char namebuf[12];
         enemy_type_short_name_copy(t, namebuf, sizeof namebuf);
-        win_puts_row_pad_cols(UI_PANEL_WIN_Y0, namebuf, PAL_UI, UI_PANEL_COLS);
+        win_puts_row_pad_cols(UI_PANEL_WIN_Y0, namebuf, PAL_UI, UI_PANEL_TEXT_COLS);
     }
     { // HP N/M — one line under name (panel rows 1–2; HUD on row 4 after ui_draw_bottom_rows)
         uint8_t hp = enemy_hp[slot], mhp = enemy_effective_max_hp(t);
-        x = 0;
+        x = UI_PANEL_TEXT_X;
         win_putc_pal(x++, UI_PANEL_WIN_Y1, 'H', PAL_UI);
         win_putc_pal(x++, UI_PANEL_WIN_Y1, 'P', PAL_UI);
         win_putc_pal(x++, UI_PANEL_WIN_Y1, ' ', PAL_UI);
         win_put_uint8(x, UI_PANEL_WIN_Y1, hp, 3, PAL_UI); x = (uint8_t)(x + 3u);
         win_putc_pal(x++, UI_PANEL_WIN_Y1, '/', PAL_UI);
         win_put_uint8(x, UI_PANEL_WIN_Y1, mhp, 3, PAL_UI); x = (uint8_t)(x + 3u);
-        while (x < UI_PANEL_COLS) win_putc_pal(x++, UI_PANEL_WIN_Y1, ' ', PAL_UI);
+        while (x < (uint8_t)(UI_PANEL_TEXT_X + UI_PANEL_TEXT_COLS)) win_putc_pal(x++, UI_PANEL_WIN_Y1, ' ', PAL_UI);
+        ui_panel_rails(UI_PANEL_WIN_Y1);
     }
-    win_clear_row(UI_PANEL_WIN_Y2, PAL_UI);
+    win_clear_panel_row(UI_PANEL_WIN_Y2);
 }
 
 static uint8_t ui_u8_digits(uint8_t v) { // compact width accounting for perf panel layout
@@ -976,11 +1006,12 @@ static void ui_draw_perf_metric(uint8_t y, uint8_t *x, const char *tag, PerfMetr
 }
 
 static void ui_draw_perf_pair(uint8_t y, const char *tag_l, PerfMetric l, const char *tag_r, PerfMetric r) {
-    uint8_t x = 0u;
+    uint8_t x = UI_PANEL_TEXT_X;
     ui_draw_perf_metric(y, &x, tag_l, l);
     win_putc_pal(x++, y, ' ', PAL_UI);
     ui_draw_perf_metric(y, &x, tag_r, r);
-    while (x < UI_PANEL_COLS) win_put_space(x++, y);
+    while (x < (uint8_t)(UI_PANEL_TEXT_X + UI_PANEL_TEXT_COLS)) win_put_space(x++, y);
+    ui_panel_rails(y);
 }
 
 static void ui_draw_perf_panel(void) { // 3-line rolling avg/max in DIV ticks
@@ -1033,6 +1064,7 @@ void window_ui_show(void) BANKED { // belt + 3 text rows + HUD; WIN from UI_WIND
     for (wy = 0; wy < UI_WINDOW_TILE_ROWS; wy++)
         for (wx = 0; wx < 32u; wx++)
             set_win_attribute_xy(wx, wy, PAL_UI);
+    bottom_was_hub = 0xFFu; // the fills above wiped rows 0/4 — re-arm the latch so the hub frame repaints
 }
 
 void window_ui_hide(void) BANKED {
@@ -1072,12 +1104,11 @@ void ui_draw_bottom_rows(void) BANKED {
     // Overworld hub (floor 0): show only the 3 text rows — no belt, no HUD. Skipping their per-scroll
     // repaint trims the bottom-band cost, and leaving the belt icons undrawn frees their VRAM slots for
     // hub graphics. The belt/HUD return automatically on any dungeon floor.
-    static uint8_t bottom_was_hub = 0xFFu; // 0xFF forces the first call to run the blank/setup branch
     uint8_t hub = (floor_num == 0u);
     VBK_REG = VBK_TILES; // render.c leaves VBK 0 but other paths may not — win writes assume tile plane
-    if (hub != bottom_was_hub) { // entering the hub: blank belt + HUD once, then skip repainting them
+    if (hub != bottom_was_hub) { // entering the hub: frame belt + HUD rows once, then skip repainting them
         bottom_was_hub = hub;
-        if (hub) { win_clear_row(UI_BELT_WIN_Y, PAL_UI); win_clear_row(UI_HUD_WIN_Y, PAL_UI); }
+        if (hub) { ui_draw_hub_frame_row(UI_BELT_WIN_Y); ui_draw_hub_frame_row(UI_HUD_WIN_Y); }
     }
     if (!hub) ui_draw_belt_placeholder_row();
     switch (ui_panel_mode) {
@@ -1090,14 +1121,15 @@ void ui_draw_bottom_rows(void) BANKED {
 }
 
 void ui_draw_seed_words(uint16_t seed, uint8_t win_y) BANKED { // desc + noun + place on one row
-    uint8_t x, d, n, p;
+    uint8_t d, n, p;
     run_seed_to_triple(seed, &d, &n, &p);
-    put_word5_win(0u,  win_y, seed_words_desc[d]);
-    put_word5_win(6u,  win_y, seed_words_noun[n]);
-    put_word5_win(12u, win_y, seed_words_place[p]);
-    win_put_space(5u, win_y);  // separators between the fixed 5-char words
-    win_put_space(11u, win_y);
-    for (x = 17; x < UI_PANEL_COLS; x++) win_put_space(x, win_y);
+    put_word5_win(1u,  win_y, seed_words_desc[d]);  // 3×5 words + 2 separators = 17 of the 18 framed cols
+    put_word5_win(7u,  win_y, seed_words_noun[n]);
+    put_word5_win(13u, win_y, seed_words_place[p]);
+    win_put_space(6u, win_y);  // separators between the fixed 5-char words
+    win_put_space(12u, win_y);
+    win_put_space(18u, win_y);  // last framed col — words end at 17
+    ui_panel_rails(win_y);
 }
 
 void ui_panel_show_combat(void) BANKED { ui_panel_mode = UI_PANEL_COMBAT; }

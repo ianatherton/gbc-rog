@@ -24,6 +24,10 @@ Sheets:
   normalized to (255,255,255,0): the RGB under alpha=0 matters to png2asset's palette
   derivation, and white-transparent is what the known-good sheets used.
 
+Derived tiles (generated here, DO NOT hand-draw them in Krita — they get overwritten):
+- tileset M1 = M2 rotated 90 deg CW (vertical HUD border rail; the GBC can only flip,
+  never rotate, so the vertical rail needs its own tile).
+
 Then runs make.
 """
 import subprocess
@@ -93,9 +97,33 @@ def normalize(path, out_indexed, forbid_visible_white):
     print(f"{path}: {state}")
 
 
+def sheet_cell_origin(col, row):
+    """Sheet cell name (col letter A=0.., 1-based row) -> top-left pixel of its 8x8 tile."""
+    return col * 8, (row - 1) * 8
+
+
+def derive_rotated_tiles(path):
+    """Rotate M2 (horizontal HUD border rail) 90 deg CW into M1 (vertical rail).
+
+    The GBC can only X/Y-flip a tile, never rotate it, so the vertical rail needs its own
+    tile. M1 is blank and unreferenced, so we generate it here instead of hand-drawing it.
+    Runs AFTER normalize() so it operates on final (already inverted/snapped) tones.
+    Idempotent: always sources from M2, and M2 is never written."""
+    im = Image.open(path).convert("RGBA")
+    sx, sy = sheet_cell_origin(12, 2)   # M2 - source, horizontal
+    dx, dy = sheet_cell_origin(12, 1)   # M1 - destination, vertical
+    src = [[im.getpixel((sx + x, sy + y)) for x in range(8)] for y in range(8)]
+    for y in range(8):
+        for x in range(8):
+            im.putpixel((dx + x, dy + y), src[7 - x][y])  # rot 90 CW
+    im.save(path)
+    print(f"{path}: M1 <- rot90cw(M2)")
+
+
 def main():
     normalize(ROOT / "res" / "bosses.png", out_indexed=True, forbid_visible_white=True)
     normalize(ROOT / "res" / "tileset.png", out_indexed=False, forbid_visible_white=False)
+    derive_rotated_tiles(ROOT / "res" / "tileset.png")
     print("running make ...")
     sys.exit(subprocess.call(["make"], cwd=ROOT))
 

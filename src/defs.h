@@ -99,6 +99,13 @@ typedef struct {
 #define BELT_ITEM_SLOT_COUNT 4u          // item quick slots (right half; mirrors inventory_kind[0..3])
 #define BELT_TOTAL_SLOTS  ((uint8_t)(BELT_SLOT_COUNT + BELT_ITEM_SLOT_COUNT)) // SELECT cycles 0..7
 #define UI_PANEL_COLS     20u
+#define UI_PANEL_TEXT_X    1u  // log rows 1-3: text starts at col 1 (col 0 = border rail)
+#define UI_PANEL_TEXT_COLS 18u // log rows 1-3: cols 1..18 usable; col 19 = border rail
+// Belt content = 2 SPELL label + 2/slot + 2 ITEM label + 2/slot = 16 cols today; the
+// leftover splits evenly into border trim on both ends. Shared with entity_sprites.c so
+// the belt selector arrow tracks the shift automatically.
+#define BELT_CONTENT_COLS ((uint8_t)(4u + 2u * BELT_SLOT_COUNT + 2u * BELT_ITEM_SLOT_COUNT))
+#define UI_BELT_TRIM_COLS ((uint8_t)((UI_PANEL_COLS - BELT_CONTENT_COLS) / 2u))
 #define UI_CHAT_RECLAIM_AFTER_TURNS 8u // no new log lines for this many player turns → clear log, show idle class row until next push
 
 /* ── Level generation ────────────────────────────────────────────────────── */
@@ -640,9 +647,14 @@ typedef struct {
 
 #define TILE_LEVELUP_SMILE_VRAM 244u // OBJ — copied from TILE_SMILE_L10 at boot
 
-/* ── M col — directional arrows ─────────────────────────────────────────── */
-#define TILE_ARROW_NE       12   /* M1  - top-right diagonal               */
-#define TILE_ARROW_NW       28   /* M2  - top-left diagonal                */
+/* ── M col — HUD border rails + directional arrows ──────────────────────── */
+/* M1/M2 are the bottom-band border art. Both are < 128, so they ride main.c's bulk
+   set_bkg_data(TILESET_VRAM_OFFSET, 128, ...) — no boot copy, no borrowed VRAM slot.
+   Their VRAM slots (140/156) are in title_logo_bkg_vram_slot[] but the title restore
+   reloads each slot from ROM tile (VRAM-128), i.e. exactly this layout. */
+#define TILE_UI_BORDER_H    28u  /* M2  - horizontal HUD rail, as drawn (VRAM 156) */
+#define TILE_UI_BORDER_V    12u  /* M1  - vertical rail; auto-derived rot90cw(M2) by
+                                    tools/prep_assets.py — do NOT hand-draw (VRAM 140) */
 #define TILE_ARROW_SW       44   /* M3  - down arrow / ladder marker       */
 #define TILE_ARROW_SE       60   /* M4  - bottom-right diagonal            */
 #define TILE_ARROW_LADDER   TILE_ARROW_SW

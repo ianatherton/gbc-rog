@@ -22,6 +22,7 @@
 BANKREF_EXTERN(entity_sprites_inv_cursor_show)
 BANKREF_EXTERN(entity_sprites_inv_cursor_hide)
 #include <gb/gb.h>
+#include <gb/cgb.h> // set_bkg_palette — dark menu background
 #include <gbdk/console.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -43,6 +44,14 @@ BANKREF_EXTERN(entity_sprites_inv_cursor_hide)
 #define TK_NAME_COL   5u
 #define TK_ICON_COL   3u
 #define TK_PRICE_COL 16u
+
+// Black paper / white ink for BG palette 0 (the plane console text and cleared cells sit on). Set on
+// entry so the whole menu reads as white-on-black instead of text over the town's green field ramp;
+// gameplay re-entry runs apply_field_palette() (state_gameplay.c) which restores slot 0, so this
+// needs no manual undo — the same "a menu may have blanked slot 0 to black" contract the HUD relies on.
+static const palette_color_t pal_talk_bg[] = {
+    RGB(0, 0, 0), RGB(10, 10, 10), RGB(20, 20, 20), RGB(31, 31, 31),
+};
 
 static uint8_t tk_prev_j;
 static uint8_t tk_mode;
@@ -120,6 +129,16 @@ static void draw_tokens(uint8_t x, uint8_t y) {
     put_uint((uint8_t)(x + 1u), y, player_tokens, 2u);
 }
 
+// Blank one text row on both planes with the LCD live — 20 tiles + 20 attrs comfortably fits a
+// single VBlank at double speed, so an in-place row update needs no LCD-off clear (which is what
+// caused the bright per-update flash). Caller must wait_vbl_done() first, same as lcd_clear_display.
+static void clear_row(uint8_t row) {
+    fill_bkg_rect(0u, row, 20u, 1u, 0u);
+    VBK_REG = VBK_ATTRIBUTES;
+    fill_bkg_rect(0u, row, 20u, 1u, 0u);
+    VBK_REG = VBK_TILES;
+}
+
 static void cursor_at(uint8_t cy) {
     entity_sprites_inv_cursor_show(TK_ARROW_CX, cy);
     set_sprite_tile(SP_INV_CURSOR, (uint8_t)(TILESET_VRAM_OFFSET + TILE_ARROW_SE));
@@ -132,6 +151,7 @@ static void cursor_update(void) {
 }
 
 static void draw_root(void) {
+    wait_vbl_done(); // lcd_clear_display toggles LCDC off — must land in VBlank or it flashes white
     lcd_clear_display();
     gotoxy(2u, 3u); printf("Trade");
     draw_tokens(15u, 3u);
@@ -143,31 +163,37 @@ static void draw_root(void) {
     cursor_update();
 }
 
+// One buy row's content only — assumes the row is already blank (either from lcd_clear_display on a
+// full draw, or clear_row on an in-place update).
+static void paint_buy_content(uint8_t i) {
+    uint8_t row = (uint8_t)(TK_LIST_ROW + i);
+    if (shop_slot_sold(i)) {
+        blank_icon(TK_ICON_COL, row);
+        gotoxy(TK_NAME_COL, row); printf("---");
+    } else {
+        char nm[12];
+        uint8_t kind = shop_kind(i);
+        items_kind_display_name_copy(kind, 0, nm, sizeof nm);
+        draw_icon(kind, TK_ICON_COL, row);
+        gotoxy(TK_NAME_COL, row); printf("%s", nm);
+        gotoxy(TK_PRICE_COL, row); printf("*1");
+    }
+}
+
 static void draw_buy(void) {
     uint8_t i;
+    wait_vbl_done(); // see draw_root
     lcd_clear_display();
     gotoxy(2u, 1u); printf("Buy");
     draw_tokens(15u, 1u);
-    for (i = 0u; i < TK_LIST_ROWS; i++) {
-        uint8_t row = (uint8_t)(TK_LIST_ROW + i);
-        if (shop_slot_sold(i)) {
-            blank_icon(TK_ICON_COL, row);
-            gotoxy(TK_NAME_COL, row); printf("---");
-        } else {
-            char nm[12];
-            uint8_t kind = shop_kind(i);
-            items_kind_display_name_copy(kind, 0, nm, sizeof nm);
-            draw_icon(kind, TK_ICON_COL, row);
-            gotoxy(TK_NAME_COL, row); printf("%s", nm);
-            gotoxy(TK_PRICE_COL, row); printf("*1");
-        }
-    }
+    for (i = 0u; i < TK_LIST_ROWS; i++) paint_buy_content(i);
     gotoxy(2u, 14u); printf("A buy  B back");
     cursor_update();
 }
 
 static void draw_sell(void) {
     uint8_t i;
+    wait_vbl_done(); // see draw_root
     lcd_clear_display();
     gotoxy(2u, 1u); printf("Sell");
     draw_tokens(15u, 1u);
@@ -221,7 +247,12 @@ static void do_buy(void) {
     player_tokens--;
     town_shop_sold[tk_town] |= (uint8_t)(1u << tk_list_sel);
     log_trade("Bought ", kind, 0);
-    draw_buy();
+    // Only the bought row and the token count change — repaint them in place instead of clearing
+    // the whole screen, so a purchase never flashes. The cursor sprite stays put.
+    wait_vbl_done();
+    clear_row((uint8_t)(TK_LIST_ROW + tk_list_sel));
+    paint_buy_content(tk_list_sel);
+    draw_tokens(15u, 1u);
 }
 
 static void do_sell(void) {
@@ -261,6 +292,7 @@ void state_talk_enter(void) BANKED {
     lcd_gameplay_active = 0u;
     window_ui_hide();
     wait_vbl_done();
+    set_bkg_palette(0u, 1u, pal_talk_bg); // dark menu background; restored on gameplay re-entry
     tk_town = (floor_num >= TOWN_FLOOR_BASE) ? (uint8_t)(floor_num - TOWN_FLOOR_BASE) : 0u;
     if (tk_town >= TOWN_COUNT) tk_town = 0u;
     tk_root_sel = TK_SEL_BUY;

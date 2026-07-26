@@ -23,6 +23,44 @@ static const palette_color_t pal_enemy_goblin[]   = { RGB(0,0,0), RGB(18,4,18), 
 static const palette_color_t pal_life_ui[]  = { RGB(0,0,0),  RGB(18,0,0),  RGB(25,2,2),   RGB(31,31,31) }; // slot 5: hearts/bar + all white HUD/UI text — bright = white
 static const palette_color_t pal_xp_ui[]    = { RGB(0,0,0),  RGB(23,9,0), RGB(30,17,0), RGB(31,27,1) }; // OCP7 sprite gold ramp — low B keeps hue; steps stay dark/mid/bright
 
+// ── Encounter ('?' sub-zone) ramps ───────────────────────────────────────────────────────────
+// Which set is live is chosen by enc_region — the hub region the '?' stood in — NOT by anything
+// about the encounter template, so any template works in any region. render.c's classify_cell picks
+// the GROUND palette from the region code the biome hands back (grass -> PAL_FLOOR_BG,
+// desert -> PAL_OW_ACCENT, snow -> PAL_WALL_BG), so all three deco ramps are loaded every time.
+//
+// Ramps are STACK LOCALS initialised from literals, matching the hub and town branches in
+// apply_wall_palette below rather than the file's `static const` tables — that is the shape this
+// file's other per-biome branches use and the one known to behave under SDCC here.
+BANKREF(encounter_palettes_apply)
+void encounter_palettes_apply(void) BANKED {
+    palette_color_t field[4], cover[4], prop[4];
+    palette_color_t deco_g[4] = { RGB(12, 23,  5), RGB( 5,  5,  5), RGB(11, 11, 11), RGB(17, 17, 17) };
+    palette_color_t deco_s[4] = { RGB(29, 24, 13), RGB(20, 15,  7), RGB(26, 21, 11), RGB(31, 29, 20) };
+    palette_color_t deco_w[4] = { RGB(24, 27, 31), RGB(15, 19, 27), RGB(20, 24, 30), RGB(31, 31, 31) };
+    if (enc_region == OW_REGION_DESERT) {
+        field[0] = RGB(29, 24, 13); field[1] = RGB( 8,  8,  8); field[2] = RGB(16, 16, 16); field[3] = RGB(31, 31, 31);
+        cover[0] = RGB(29, 24, 13); cover[1] = RGB(20, 15,  7); cover[2] = RGB(26, 21, 11); cover[3] = RGB(31, 29, 20); // palm
+    } else if (enc_region == OW_REGION_SNOW) {
+        field[0] = RGB(27, 29, 31); field[1] = RGB( 8,  8,  8); field[2] = RGB(16, 16, 16); field[3] = RGB(31, 31, 31);
+        cover[0] = RGB(24, 27, 31); cover[1] = RGB( 4, 10,  6); cover[2] = RGB( 8, 17, 10); cover[3] = RGB(16, 25, 18); // frosted pine
+    } else {
+        field[0] = RGB(12, 23,  5); field[1] = RGB( 8,  8,  8); field[2] = RGB(16, 16, 16); field[3] = RGB(31, 31, 31);
+        cover[0] = RGB(12, 23,  5); cover[1] = RGB( 6, 18,  4); cover[2] = RGB(10,  7,  2); cover[3] = RGB(12, 26,  6); // pine
+    }
+    // Barrels/chests ride PAL_PILLAR_BG; idx0 must match the field or the prop's transparent
+    // background punches a hole in the ground (same fix the town signs needed).
+    prop[0] = field[0]; prop[1] = RGB( 9,  6,  3); prop[2] = RGB(18, 13,  6); prop[3] = RGB(27, 21, 12);
+
+    set_bkg_palette(0, 1u, field);
+    lcd_note_bkg0(field); // panic flash restores slot 0 from this note
+    set_bkg_palette(PAL_FLOOR_BG,   1u, deco_g);
+    set_bkg_palette(PAL_OW_ACCENT,  1u, deco_s);
+    set_bkg_palette(PAL_WALL_BG,    1u, deco_w);
+    set_bkg_palette(PAL_OW_FOLIAGE, 1u, cover);
+    set_bkg_palette(PAL_PILLAR_BG,  1u, prop);
+}
+
 static uint8_t wall_palette_hw_iw = 255u, wall_palette_hw_ip = 255u; // 255 = out of band; invalidated in load_palettes
 static uint8_t wall_palette_hw_biome = 255u; // tracks floor_biome so the field color follows hub<->dungeon transitions
 
@@ -61,6 +99,10 @@ void apply_wall_palette(void) BANKED { // PAL_WALL_BG bulk walls + PAL_PILLAR_BG
         set_bkg_palette(PAL_WALL_BG,    1u, snow_pal);
         return;
     }
+    if (floor_biome == BIOME_ENCOUNTER) {
+        encounter_palettes_apply();
+        return;
+    }
     if (floor_biome == BIOME_TOWN) {
         // Town interior: same grass field as the hub. Slot 6 = the hub's pine ramp (deco trees);
         // slot 3 = this floor's wall-table ramp on a green field (brick buildings sit on grass);
@@ -91,7 +133,9 @@ void apply_wall_palette(void) BANKED { // PAL_WALL_BG bulk walls + PAL_PILLAR_BG
 
 BANKREF(apply_field_palette)
 void apply_field_palette(void) BANKED { // slot 0 (blank field) + floor-deco, per biome — restores after a menu blanks slot 0
-    if (floor_biome == BIOME_OVERWORLD || floor_biome == BIOME_TOWN) { // towns share the hub's grass field
+    if (floor_biome == BIOME_ENCOUNTER) { // grass/sand/snow by enc_region
+        encounter_palettes_apply();
+    } else if (floor_biome == BIOME_OVERWORLD || floor_biome == BIOME_TOWN) { // towns share the hub's grass field
         // keep identical to biome_overworld.c pal_overworld_field / pal_overworld_floor_deco
         // (field idx1-3 = biome-border blend: sand stroke, dark snow line, white snow edge — see
         // ow_border; idx3 stays pure white for the loading screen's attr-0 pen-3 text)

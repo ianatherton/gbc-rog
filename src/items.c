@@ -533,6 +533,31 @@ uint8_t enemy_try_drop_item(uint8_t dx, uint8_t dy) BANKED {
     return 0u;
 }
 
+// Encounter chests: the reward for clearing to them, so unlike the two chance-based drops above this
+// one always pays out, and rolls the equipment modifier twice keeping the better result. Separate
+// function again — chest generosity must stay independently tunable from barrels and kills.
+uint8_t encounter_chest_drop_item(uint8_t dx, uint8_t dy) BANKED {
+    uint8_t gi;
+    uint8_t kind;
+    for (gi = 0u; gi < MAX_GROUND_ITEMS; gi++) {
+        if (ground_item_kind[gi] == ITEM_KIND_NONE) {
+            kind = drop_table[rand() % DROP_TABLE_LEN];
+            if ((rand() % 100u) < (uint8_t)(RING_DROP_PCT * 2u)) kind = ring_roll_kind();
+            ground_item_kind[gi] = kind;
+            ground_item_x[gi] = dx;
+            ground_item_y[gi] = dy;
+            if (items_kind_category(kind) == ITEM_CAT_EQUIPMENT) {
+                int8_t a = item_roll_mod_level(), b = item_roll_mod_level();
+                ground_item_mod_level[gi] = (b > a) ? b : a; // best of two — chests skew high
+            } else {
+                ground_item_mod_level[gi] = 0;
+            }
+            return 1u;
+        }
+    }
+    return 0u;
+}
+
 // Same table/slot logic as enemy_try_drop_item, kept as a separate function (not a shared parameter)
 // so a future change to enemy odds can never accidentally retune barrels or vice versa.
 uint8_t town_barrel_try_drop_item(uint8_t dx, uint8_t dy) BANKED {

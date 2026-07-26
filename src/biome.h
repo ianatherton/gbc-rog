@@ -14,7 +14,8 @@
 #define BIOME_MINIBOSS 5u // RETIRED as a floor biome — miniboss is FLOORKIND_MINIBOSS now (dungeon.h); id kept for table stability
 #define BIOME_BOSS2   6u // Sphinx roster/palette bank row — loaded via biome_apply_floor_kind on boss floors, never a floor biome
 #define BIOME_TOWN    7u // town interior (floors 46+, bank 29): safe zone with NPCs + heal fountain
-#define BIOME_COUNT   8u
+#define BIOME_ENCOUNTER 8u // hub '?' encounter (floor 49, bank 23): open outdoor map, terrain from enc_region
+#define BIOME_COUNT   9u
 #define BIOME_RANDOM_COUNT 3u // per-dungeon biome picks from dungeon/crypt/cavern only
 
 // HOME-resident roster cache; populated by biome_load_active() at floor-gen time.
@@ -46,12 +47,14 @@ void biome_boss_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count
 void biome_overworld_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 void biome_boss2_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 void biome_town_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
+void biome_encounter_copy_defs(EnemyDef *out, uint8_t *out_active, uint8_t *out_count);
 
 typedef void (*BiomeLoadPalettesFn)(void);
 void biome_boss_load_palettes(void); // overrides OCP4 with green+tan ramp for gorgon body/feet
 void biome_boss2_load_palettes(void); // OCP4 (PAL_SPHINX_BODY) sphinx ramp
 void biome_overworld_load_palettes(void); // dark-green field (BG slot 0 + floor-deco color 0)
-void biome_town_load_palettes(void);      // slot 7 sand ramp for town road cells (rest via apply_*_palette town branches)
+void biome_town_load_palettes(void);      // slot 7 sand ramp for town road cells
+void biome_encounter_load_palettes(void); // field/deco/foliage/prop ramps chosen by enc_region (rest via apply_*_palette town branches)
 
 // Sphinx boss (bank 24, co-located with bosses.c art). sphinx_load_initial(): reset anim + upload
 // frame 0 (called from biome_load_active on floor entry). sphinx_anim_tick(): per gameplay frame on

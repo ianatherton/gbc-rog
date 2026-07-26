@@ -182,6 +182,7 @@ typedef struct {
 #define CONFIRM_ENTRANCE  4u // hub cave mouth, aux = dungeon id → TRANS_FLOOR_PORT
 #define CONFIRM_SEALED    5u // completed dungeon's mouth — message only, A does nothing
 #define CONFIRM_TOWN      6u // hub town door, aux = town id → TRANS_FLOOR_PORT to TOWN_FLOOR_BASE+aux
+#define CONFIRM_ENCOUNTER 7u // hub '?' marker → TRANS_FLOOR_PORT to ENCOUNTER_FLOOR (enc_* globals carry the rest)
 
 /* ── Logical tile IDs (returned by tile_at() for render compatibility) ───── */
 // These are NOT stored in memory — tile_at() reconstructs them on-the-fly
@@ -326,7 +327,8 @@ typedef struct {
 #define OW_FEAT_FOUNTAIN  5u  /* 1x1 town-interior heal fountain; step on it to restore full HP */
 #define OW_FEAT_TREE      6u  /* 1x1 town-interior deco pine; the cell itself is carved WALL (blocking) */
 #define OW_FEAT_BARREL    7u  /* 1x1 town-interior deco barrel (F2); carved WALL (blocking), same as TREE */
-#define OW_FEAT_COUNT     8u
+#define OW_FEAT_CHEST     8u  /* 1x1 encounter-interior chest (F1); carved WALL (blocking), bump to open */
+#define OW_FEAT_COUNT     9u
 #define MAX_OW_FEATURES   44u /* 17 structures (3 towns + 9 entrances + 4 waypoints + 1 boss) + a signpost beside each */
 #define TILE_SHEET_B8        113u /* B8 signpost art (row 8, col B; directly below flag tile B7=97) */
 #define PREFAB_VRAM_SIGNPOST 205u /* dedicated free slot (blank sheet cell N5, ≥182 so title restore won't blank it); B8 boot-copied here in main.c */
@@ -358,6 +360,19 @@ typedef struct {
 #define MAX_TOWN_NPCS  8u
 #define TOWN_NPC_ROAM_RADIUS 10u /* Chebyshev tiles from home before a wandering villager warps back */
 #define MAX_TOWN_BARRELS 24u /* bits tracked per town in town_barrels_broken (globals.h), 3 bytes/town */
+
+/* ── Hub '?' encounter markers (biome_encounter.c, bank 23) ────────────────────────────────────
+   Markers live on the hub only. Their positions are stored in the always-empty hub enemy arrays
+   (enemy_x/enemy_y/enemy_type) — the same idle-resource borrow as the town villagers' OAM run —
+   with num_enemies deliberately left at 0 so combat/move_enemies/enemy_occ never see them; the
+   live count is enc_marker_count. The set is a pure hash of (run_seed, world_tick, region), so
+   nothing about it is stored across floors: world_tick++ on every hub entry reshuffles the world
+   and consumes the marker you just entered. Snow is densest, per design. */
+#define ENC_MARKERS_GRASS   3u
+#define ENC_MARKERS_DESERT  4u
+#define ENC_MARKERS_SNOW    6u
+#define MAX_ENC_MARKERS    (ENC_MARKERS_GRASS + ENC_MARKERS_DESERT + ENC_MARKERS_SNOW) /* 13 */
+#define ENC_MOVES_FLAG   0x80u /* enemy_type[] high bit flags a drifting marker; low bits = template id */
 /* Trade: villager slot 0 of every town is its trader (the rest keep their canned greeting line).
    Stock is TOWN_SHOP_SLOTS kinds, one bit each in town_shop_sold[] — do not raise past 8. */
 #define TOWN_TRADER_NPC  0u

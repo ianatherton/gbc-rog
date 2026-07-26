@@ -8,6 +8,7 @@
 #include "lcd.h"    // line-8 ISR owns SCX/SCY during play
 #include "wall_palettes.h" // wall_palette_table, NUM_WALL_PALETTES
 #include "biome.h"
+#include "dungeon.h"
 #include "entity_sprites.h"
 #include "class_palettes.h"
 #include "perf.h"
@@ -52,7 +53,7 @@ static uint8_t classify_cell(uint8_t mx, uint8_t my, uint8_t *attr_out) {
     {
         uint8_t t = tile_at(mx, my);
         uint8_t snow = 0u, desert = 0u;
-        if (floor_biome == BIOME_OVERWORLD || floor_biome == BIOME_TOWN) { // town: feature overlay only, terrain falls through
+        if (floor_kind == FLOORKIND_HUB || floor_kind >= FLOORKIND_TOWN) { // town/encounter: feature overlay only, terrain falls through
             // One banked call resolves the hub cell: water/tree/coast/prefab → a finished VRAM tile;
             // interior land returns 0 + a region code that drives the floor-deco palette below. OW wall
             // cells always resolve here, so the dungeon wall branch never sees them.

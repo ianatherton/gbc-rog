@@ -13,6 +13,7 @@
 BANKREF(level_init_display)
 
 void level_init_display(uint8_t from_pit) BANKED {
+
     if (from_pit == 1u) {
         lcd_gameplay_active = 0u;
         window_ui_hide();
@@ -32,7 +33,11 @@ void level_init_display(uint8_t from_pit) BANKED {
         wait_vbl_done();
         lcd_clear_display();
         ui_loading_screen_begin(1);
-        if (floor_num >= TOWN_FLOOR_BASE) { // town door exits to the hub, beside the town (0x80 flags a town id)
+        if (floor_num == ENCOUNTER_FLOOR) { // '?' encounter: any border cell exits to the hub, where the marker stood
+            hub_landing_dungeon = HUB_LANDING_ENCOUNTER; // 0xC0 — land on enc_return_x/y, no feature to search for
+            floor_num = 0u;
+            entered_from_below = 0u;
+        } else if (floor_num >= TOWN_FLOOR_BASE) { // town door exits to the hub, beside the town (0x80 flags a town id)
             hub_landing_dungeon = (uint8_t)(0x80u | (uint8_t)(floor_num - TOWN_FLOOR_BASE));
             floor_num = 0u;
             entered_from_below = 0u;
@@ -69,6 +74,15 @@ void level_init_display(uint8_t from_pit) BANKED {
         ui_loading_screen_begin(0);
         floor_num = pending_port_floor; // Witch Port scroll warps straight to this floor
         entered_from_below = 0u;        // land at the stairs-up like a descent
+        if (floor_num == ENCOUNTER_FLOOR) {
+            // Every encounter reuses this one floor index, so its persistence keys must be wiped on
+            // the way in or the second encounter would inherit the first one's looted/dead bits.
+            // Encounters are one-shot by design — nothing here is meant to survive.
+            uint8_t k;
+            BIT_CLR(floor_visited, ENCOUNTER_FLOOR);
+            floor_items_picked[ENCOUNTER_FLOOR - 1u] = 0u;
+            for (k = 0u; k < 3u; k++) floor_enemy_dead[(ENCOUNTER_FLOOR - 1u) * 3u + k] = 0u;
+        }
     } else {
         lcd_gameplay_active = 0u;
         window_ui_hide();
@@ -77,6 +91,7 @@ void level_init_display(uint8_t from_pit) BANKED {
         dungeon_complete_mask = 0u;
         hub_landing_dungeon   = DUNGEON_NONE;
         floor_kind            = FLOORKIND_HUB;
+        world_tick            = 0u; // fresh run: the tail below bumps it to 1 for the first hub layout
         {
             uint8_t vi;
             for (vi = 0u; vi < 7u; vi++) floor_visited[vi] = 0u;
@@ -127,6 +142,11 @@ void level_init_display(uint8_t from_pit) BANKED {
         wait_vbl_done();
         ui_loading_screen_begin(0);
     }
+    // Every arrival on the hub advances the world clock, which is the entire storage cost of the
+    // '?' encounter system: the marker set is hash(run_seed, world_tick, region), so stepping back
+    // out of an encounter both consumes the marker that took you in and reshuffles the rest.
+    // Placed here rather than in each hub-return branch above so no future path can forget it.
+    if (floor_num == 0u) world_tick++;
     // Direction-independent revisit: each floor tracks its own visited bit —
     // with 9 independent dungeon branches a "deepest floor" watermark is meaningless.
     level_is_revisit = BIT_GET(floor_visited, floor_num);

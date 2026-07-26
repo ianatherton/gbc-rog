@@ -167,7 +167,12 @@ uint8_t floor_tile_sheet_offset(uint8_t x, uint8_t y) { // 255 = blank; overworl
         }
     }
     if (ground_item_index_at(x, y) != 255u) return TILE_ITEM_4; // mystery icon — true kind revealed in pickup dialog
-    if (floor_biome != BIOME_OVERWORLD && floor_biome != BIOME_TOWN) return TILE_TEST; // single floor-deco tile, torch-tinted in render.c — every lit cell, no blank sparsity (hub + towns get E3/E4 grass scatter)
+    // Outdoor floors (hub, towns, encounters) get the sparse E3/E4 grass scatter below: ~1 cell in 8
+    // stays blank and shows palette slot 0 — the ambient FIELD colour — which is what actually makes
+    // open ground read as grass/sand/snow rather than as a dungeon. Everything else returns the one
+    // dense floor-deco tile, which render.c torch-tints via PAL_LADDER. Same `floor_kind` range idiom
+    // as the lit-floor gates (dungeon.h keeps TOWN/ENCOUNTER adjacent for exactly this).
+    if (floor_biome != BIOME_OVERWORLD && floor_kind < FLOORKIND_TOWN) return TILE_TEST;
     if (road_bit(TILE_IDX(x, y))) return TILE_TEST; // hub + town road: same A1 floor art, sand-tinted via the road cell's desert region (town gen fills the mask too)
     if (floor_tile_is_blank(x, y)) return 255u;
     {
@@ -275,7 +280,13 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
     }
     generate_level(floor_seed);
     if (floor_num == 0u) {
-        if (hub_landing_dungeon != DUNGEON_NONE) {
+        if (hub_landing_dungeon == HUB_LANDING_ENCOUNTER) {
+            // Back out of a '?': stand exactly where it stood. No feature lookup — world_tick has
+            // already rerolled the marker set, so that marker no longer exists to search for.
+            player_spawn_x = enc_return_x;
+            player_spawn_y = enc_return_y;
+            hub_landing_dungeon = DUNGEON_NONE;
+        } else if (hub_landing_dungeon != DUNGEON_NONE) {
             overworld_place_player_near_entrance(hub_landing_dungeon); // land beside the entrance just exited
             hub_landing_dungeon = DUNGEON_NONE;
         } else {

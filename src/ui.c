@@ -536,7 +536,9 @@ void ui_confirm_prompt_push(uint8_t kind, uint8_t aux) BANKED {
     uint8_t i = 0u;
     if      (kind == CONFIRM_ENTRANCE)  s = "ENTER DNG";
     else if (kind == CONFIRM_TOWN)      s = "ENTER TOWN ";
-    else if (kind == CONFIRM_UP)        s = (floor_kind == FLOORKIND_TOWN) ? "LEAVE TOWN" : "CLIMB UP";
+    else if (kind == CONFIRM_ENCOUNTER) s = "EXPLORE";
+    else if (kind == CONFIRM_UP)        s = (floor_kind == FLOORKIND_TOWN) ? "LEAVE TOWN"
+                                          : (floor_kind == FLOORKIND_ENCOUNTER) ? "LEAVE AREA" : "CLIMB UP";
     else if (kind == CONFIRM_BOSS_EXIT) s = "EXIT DUNGEON";
     else if (kind == CONFIRM_SEALED)    s = "SEALED";
     else                                s = "DESCEND"; // CONFIRM_PIT

@@ -53,6 +53,20 @@ BANKREF_EXTERN(map_pit_position)
 // barrels only break during gameplay, never while STATE_INVENTORY is on screen).
 #define SP_TOWN_BARREL_POOF (uint8_t)(SP_TOWN_NPC_BASE + MAX_TOWN_NPCS * 2u)
 
+// Hub '?' encounter markers: a third borrow of the idle enemy run, gated on FLOORKIND_HUB. 1 OAM
+// slot each, and they must clear SP_WAYPOINT_FX_BASE's 2 slots — the waypoint aura shares the hub
+// with them, unlike the villagers/poof which only ever exist on a town floor. So the base starts
+// PAST the waypoint run, not at SP_ENEMY_BASE. 6..18 of the 23-slot run 4..26.
+#define SP_ENC_MARKER_BASE (uint8_t)(SP_WAYPOINT_FX_BASE + MAX_WAYPOINT_FX)
+// TILE_ITEM_4 is the sheet's mystery-icon glyph, already used for unidentified ground items — it is
+// sheet index < 128, so it rides main.c's bulk set_bkg_data and is permanently resident in VRAM.
+// Nothing to upload and no slot to borrow. PAL_XP_UI (OCP7) is the gold ramp shared with bats,
+// which never spawn on the hub.
+#define ENC_MARKER_TILE (uint8_t)(TILESET_VRAM_OFFSET + TILE_ITEM_4)
+#define ENC_MARKER_PAL  PAL_XP_UI
+typedef char enc_markers_fit_enemy_run[
+    ((SP_ENC_MARKER_BASE + MAX_ENC_MARKERS) <= (SP_ENEMY_BASE + MAX_ENEMIES)) ? 1 : -1];
+
 static uint8_t brazier_fire_active;
 static uint8_t brazier_fire_ttl;
 static int16_t brazier_fire_wx, brazier_fire_wy;
@@ -316,6 +330,36 @@ static void refresh_town_npcs_oam(void) {
     }
 }
 
+// Hub '?' markers. Same ownership-latch reasoning as refresh_town_npcs_oam above, for the same
+// reason: hub → town keeps num_enemies at 0 on both sides, so the enemy hide-sweep's change guard
+// never fires and stale '?' art would linger over the town. enc_marker_oam_owned forces exactly one
+// cleanup sweep on the frame the range changes hands. The hub is fully lit, so no fog gate.
+static uint8_t enc_marker_oam_owned;
+
+static void refresh_encounter_markers_oam(void) {
+    uint8_t i;
+    if (floor_kind != FLOORKIND_HUB) {
+        if (enc_marker_oam_owned) {
+            for (i = 0u; i < MAX_ENC_MARKERS; i++) oam_hide((uint8_t)(SP_ENC_MARKER_BASE + i));
+            enc_marker_oam_owned = 0u;
+        }
+        return;
+    }
+    enc_marker_oam_owned = 1u;
+    for (i = 0u; i < MAX_ENC_MARKERS; i++) {
+        uint8_t sp = (uint8_t)(SP_ENC_MARKER_BASE + i);
+        uint8_t mx, my;
+        if (i >= enc_marker_count) { oam_hide(sp); continue; }
+        // Marker positions live in the hub's idle enemy arrays (biome_encounter.c) — num_enemies
+        // stays 0, so nothing else in the engine reads them.
+        mx = enemy_x[i]; my = enemy_y[i];
+        if (mx < g_cam_tx || mx >= g_cam_tx_end || my < g_cam_ty || my >= g_cam_ty_end) {
+            oam_hide(sp); continue;
+        }
+        move_entity_oam(sp, (int16_t)mx * 8, (int16_t)my * 8, ENC_MARKER_TILE, ENC_MARKER_PAL);
+    }
+}
+
 BANKREF(entity_sprites_poof_clear_all)
 void entity_sprites_poof_clear_all(void) BANKED {
     memset(enemy_poof_ttl, 0, sizeof enemy_poof_ttl);
@@ -351,6 +395,7 @@ void entity_sprites_init(void) BANKED {
     player_hurt_flash_restore_needed = 0u;
     oam_enemy_hide_mark = 255u;
     town_npc_oam_owned = 0u; // every OAM slot is hidden below — matches "nobody owns the town range" state
+    enc_marker_oam_owned = 0u; // ditto for the hub '?' marker range
     brazier_fire_active = 0u;
     brazier_fire_ttl = 0u;
     brazier_fire_source_cursor = 0u;
@@ -901,6 +946,7 @@ void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) BANKED {
     // town floor needs to draw after both (num_enemies is always 0 in town, so the sweep would
     // otherwise hide slots this call had just painted).
     refresh_town_npcs_oam();
+    refresh_encounter_markers_oam();
 }
 
 BANKREF(entity_sprites_refresh_all)

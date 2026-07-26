@@ -1,4 +1,5 @@
 #include "map.h"
+#include "dungeon.h"
 #include "globals.h"
 #include "biome.h"
 
@@ -352,13 +353,15 @@ uint8_t lighting_dirty_overflow(void) { return lighting_dirty_ovf; }
 void lighting_reset(void) {
     lighting_dirty_clear();
 #if FEATURE_MAP_FOG
-    if (floor_biome != BIOME_OVERWORLD && floor_biome != BIOME_TOWN) exp2_clear_all(); // hub/towns never read fog — skip the ~5 ms clear
+    // Keyed on floor_kind, not floor_biome: HUB plus everything from TOWN up (towns, encounters)
+    // is fully lit, and dungeon.h keeps those kinds adjacent so this is one range compare.
+    if (floor_kind != FLOORKIND_HUB && floor_kind < FLOORKIND_TOWN) exp2_clear_all(); // lit floors never read fog — skip the ~5 ms clear
 #endif
 }
 
 void lighting_reveal_radius(uint8_t cx, uint8_t cy, uint8_t radius) {
 #if FEATURE_MAP_FOG
-    if (floor_biome == BIOME_OVERWORLD || floor_biome == BIOME_TOWN) { // fully-lit biomes never read fog (see
+    if (floor_kind == FLOORKIND_HUB || floor_kind >= FLOORKIND_TOWN) { // fully-lit floors never read fog (see
         lighting_dirty_clear();           // lighting_is_revealed) — the reveal diamond + dirty redraws would be pure waste
         return;
     }
@@ -407,7 +410,7 @@ void lighting_reveal_radius(uint8_t cx, uint8_t cy, uint8_t radius) {
 }
 
 uint8_t lighting_is_revealed(uint8_t x, uint8_t y) {
-    if (floor_biome == BIOME_OVERWORLD || floor_biome == BIOME_TOWN) return 1u; // hub + towns are fully lit
+    if (floor_kind == FLOORKIND_HUB || floor_kind >= FLOORKIND_TOWN) return 1u; // hub, towns and encounters are fully lit
 #if FEATURE_MAP_FOG
     return exp2_test(TILE_IDX(x, y));
 #else

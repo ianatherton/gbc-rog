@@ -70,7 +70,10 @@ extern uint8_t  floor_kind;            // FLOORKIND_* — set alongside floor_bi
 extern uint8_t  floor_boss_type;       // ENEMY_GORGON or ENEMY_SPHINX on FLOORKIND_BOSS floors
 extern uint8_t  elite_base_type;       // fodder type the 2x elite was built from (FLOORKIND_MINIBOSS)
 extern uint16_t dungeon_complete_mask; // bit k = dungeon k boss beaten + exited; entrance sealed
-extern uint8_t  hub_landing_dungeon;   // DUNGEON_NONE = spawn as usual; else land beside entrance k on next hub gen
+// DUNGEON_NONE = spawn as usual; 0..8 = land beside entrance k; 0x80|k = beside town k;
+// HUB_LANDING_ENCOUNTER = land on enc_return_x/y (the cell the '?' occupied).
+extern uint8_t  hub_landing_dungeon;
+#define HUB_LANDING_ENCOUNTER 0xC0u
 
 extern uint8_t inventory_kind[INVENTORY_MAX_SLOTS];     // ITEM_KIND_NONE = empty
 extern uint8_t inventory_equipped[INVENTORY_MAX_SLOTS]; // 1=equipped, 0=not; parallel to inventory_kind
@@ -94,6 +97,18 @@ extern uint8_t pending_talk_npc;           // villager slot queued for STATE_TAL
 // always names the same physical barrel across re-entries — bit k here just means "don't place it
 // again". 3 bytes/town = 24 barrels/town, same packing as floor_enemy_dead.
 extern uint8_t town_barrels_broken[TOWN_COUNT * 3u];
+
+/* ── Hub '?' encounters (biome_encounter.c, bank 23; see MAX_ENC_MARKERS in defs.h) ────────────
+   Six scalars, no arrays: marker positions ride the idle hub enemy arrays, and the marker SET is
+   a pure function of (run_seed, world_tick, region) so it needs no storage at all. Fixed-WRAM
+   stack headroom is load-bearing (see the note below) — keep it this way. */
+extern uint8_t world_tick;       // ++ on every hub entry; reseeds the marker set, consuming the one just used
+extern uint8_t enc_marker_count; // live markers this hub visit; 0 off the hub
+extern uint8_t enc_template;     // ENC_DEFS[] row of the encounter being entered
+extern uint8_t enc_region;       // OW_REGION_* under the marker → terrain art, palette AND difficulty tier
+extern uint8_t enc_return_x;     // hub cell the marker stood on — where leaving puts you back
+extern uint8_t enc_return_y;
+extern uint8_t zone_stat_scale;  // enemy HP/damage multiplier for this floor; set once per floor load
 
 /* story_ui layout constants — scratch overlays floor_bits[] before first generate_level (see story_ui.c) */
 #define G_STORY_BIGBUF_CAP   400u

@@ -3,6 +3,7 @@
 #include "map.h"
 #include "globals.h"
 #include "biome.h" // overworld_water_at (bank 22, BANKED) — hub continent carve
+#include "biome_encounter.h" // encounter_generate / encounter_markers_build (bank 23)
 #include "dungeon.h"
 #include <rand.h>
 
@@ -373,8 +374,19 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
             active_map_w = 20u; // guardroom, miniboss and boss floors: fixed compact arena
             active_map_h = 20u;
         } else {
-            active_map_w = MAP_W; // hub + normal dungeon floors; towns re-size themselves in town_generate_interior
+            active_map_w = MAP_W; // hub + normal dungeon floors; towns/encounters re-size themselves in their generators
             active_map_h = MAP_H;
+        }
+        // One multiplier per floor, read back by enemy_effective_max_hp/damage (bank 2). Dungeons
+        // step by town tier (dungeons 0-2/3-5/6-8 ring towns 0/1/2, by entrance placement order);
+        // an encounter inherits the tier of the region its '?' stood in, so the difficulty curve is
+        // the same whichever way the player leaves a town.
+        {
+            uint8_t d = FLOOR_DUNGEON_ID(floor_num);
+            zone_stat_scale = (lk == FLOORKIND_ENCOUNTER) ? (uint8_t)(1u + (uint8_t)(enc_region * 2u))
+                            : (d == DUNGEON_NONE)         ? 1u
+                            : (d >= 6u)                   ? 5u
+                            : (d >= 3u)                   ? 3u : 1u;
         }
     }
     {
@@ -439,6 +451,8 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
         set_floor(player_spawn_x, player_spawn_y); // guarantee spawn open after scatter
     } else if (floor_kind == FLOORKIND_TOWN) {
         town_generate_interior((uint8_t)(floor_num - TOWN_FLOOR_BASE)); // bank 29: walls, huts, NPCs, fountain, door spawn
+    } else if (floor_kind == FLOORKIND_ENCOUNTER) {
+        encounter_generate(); // bank 23: open field, clutter, barrels/chest; enc_* globals carry the rest
     } else {
         for (i = 0; i < WALK_STEPS; i++) {
         uint8_t d  = rand() >> 6; // use top bits of rand(); low bits are weak on this LCG
@@ -452,7 +466,7 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
         }
     }
 
-    if (floor_num != 0u && floor_kind != FLOORKIND_TOWN) { // hub and towns have no pit — the hub uses cave-mouth features, towns exit via their door
+    if (floor_num != 0u && floor_kind < FLOORKIND_TOWN) { // hub/towns/encounters have no pit — the hub uses cave-mouth features, towns exit via their door, encounters via any border cell
         uint8_t placed = 0;
         for (uint8_t attempts = 0; attempts < 200 && placed < NUM_PITS; attempts++) { // random floor tile, not spawn
             uint8_t tx = (uint8_t)(rand() % active_map_w);
@@ -484,7 +498,7 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
         uint8_t target_count;
         uint16_t attempts = 0u;
         uint8_t lk = FLOOR_KIND_FOR(floor_num);
-        if (lk == FLOORKIND_HUB || lk == FLOORKIND_TOWN) target_count = 0u; // hub + towns: fully lit, no braziers
+        if (lk == FLOORKIND_HUB || lk >= FLOORKIND_TOWN) target_count = 0u; // hub + towns + encounters: fully lit, no braziers
         else if (lk == FLOORKIND_GUARD) target_count = 4u; // guardroom: well-lit safe room
         else if (lk == FLOORKIND_BOSS) target_count = 0u; // unlit boss arena
         else {
@@ -510,10 +524,15 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
 
     // Hub prefab structures: placed after the landmass, trees, pit and spawn are final so footprints
     // only land on clear open land away from the down-ladder and the spawn clearing.
-    if (floor_num == 0u) { place_overworld_features(); place_overworld_roads(); place_overworld_signposts(); }
+    if (floor_num == 0u) {
+        place_overworld_features(); place_overworld_roads(); place_overworld_signposts();
+        encounter_markers_build(); // bank 23: '?' markers, placed last so they can dodge every footprint
+    }
 
-    // The hub and towns have no enemies, so their nav graphs are never consulted — skip the ~9k
-    // banked is_walkable probes (a big chunk of load time) and present an empty graph instead.
-    if (floor_num == 0u || floor_kind == FLOORKIND_TOWN) num_nav_nodes = 0u;
+    // The hub and towns have no enemies at all. Encounters do, but they are wide-open fields where
+    // the corridor graph buys nothing — step_nav_chase (enemy.c) falls back to step_direct on an
+    // empty graph, which is the correct behaviour in the open anyway. All three skip the ~9k banked
+    // is_walkable probes (a big chunk of load time) and present an empty graph instead.
+    if (floor_num == 0u || floor_kind >= FLOORKIND_TOWN) num_nav_nodes = 0u;
     else                                                 build_nav_graph(); // enemies need graph after geometry is known
 }

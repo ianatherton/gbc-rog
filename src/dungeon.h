@@ -10,6 +10,8 @@
 //   1..36    dungeon k = (f-1)/4 (0-based), local floor ((f-1)%4)+1:
 //              local 1 normal → local 2 miniboss → local 3 normal → local 4 boss
 //   37..45   guardroom of dungeon f-37 (local 0: items, no monsters, no depth)
+//   46..48   town interiors (one per region)
+//   49       encounter — ONE reusable slot for every hub '?' marker
 // Guardroom floors double as persistence keys: indices 36..44 < MAX_FLOORS(50),
 // so floor_items_picked / floor_enemy_dead need no resizing.
 #define DUNGEON_COUNT     9u
@@ -17,6 +19,10 @@
 #define GUARD_FLOOR_BASE 37u
 #define TOWN_FLOOR_BASE  46u // town interiors: floor 46+k = town k (0..2, one per region); safe zones off the hub
 #define TOWN_COUNT        3u
+// Encounters are one-shot (entering consumes the marker; world_tick rerolls the set on the way
+// out), so every one of them can share a single floor index — the last one MAX_FLOORS leaves
+// free. Its persistence keys are wiped on entry rather than accumulated.
+#define ENCOUNTER_FLOOR  49u
 #define DUNGEON_NONE   0xFFu
 
 // NOTE: macros evaluate args multiple times — call with plain variables only.
@@ -36,8 +42,13 @@
 #define FLOORKIND_MINIBOSS 3u // local 2
 #define FLOORKIND_BOSS     4u // local 4
 #define FLOORKIND_TOWN     5u // town interior (floors 46+): safe zone, NPCs + heal fountain
+#define FLOORKIND_ENCOUNTER 6u // hub '?' encounter (floor 49): open lit outdoor map, no walls
+// TOWN and ENCOUNTER are the two "lit, no fog, no pit, no nav graph" kinds and are deliberately
+// adjacent: several hot tests spell that set as `floor_kind >= FLOORKIND_TOWN`, which costs one
+// compare instead of two. Keep any future lit outdoor kind at the top of this list.
 
 #define FLOOR_KIND_FOR(f) ((f) == 0u ? FLOORKIND_HUB \
+                           : (f) == ENCOUNTER_FLOOR ? FLOORKIND_ENCOUNTER \
                            : (f) >= TOWN_FLOOR_BASE ? FLOORKIND_TOWN \
                            : (f) >= GUARD_FLOOR_BASE ? FLOORKIND_GUARD \
                            : (((f) - 1u) & 3u) == 1u ? FLOORKIND_MINIBOSS \

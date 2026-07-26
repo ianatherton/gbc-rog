@@ -635,6 +635,36 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
         if (road_bit(TILE_IDX(mx, my))) *region_out = OW_REGION_DESERT; // real road mask (town gen fills it)
         return 0u;
     }
+    if (floor_biome == BIOME_ENCOUNTER) {
+        // Encounter interior: an open field with no wall ring, no coast, no roads and no border
+        // strokes. The region is FORCED from enc_region (the hub region the '?' stood in) rather
+        // than derived from map coords — content and terrain are independent axes, so any template
+        // can appear in any region. Props are the same 1x1 blocking-feature scheme the town uses.
+        uint8_t fi;
+        *region_out = enc_region;
+        for (fi = 0u; fi < ow_feature_count; fi++) {
+            if (ow_features[fi].x != mx || ow_features[fi].y != my) continue;
+            if (ow_features[fi].type == OW_FEAT_BARREL) {
+                *pal_out = PAL_PILLAR_BG; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_BARREL);
+            }
+            if (ow_features[fi].type == OW_FEAT_CHEST) {
+                *pal_out = PAL_PILLAR_BG; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_CHEST);
+            }
+        }
+        if (base_tile == TILE_WALL) { // cover clumps, recoloured per region
+            if (enc_region == OW_REGION_DESERT) { // sparse palms, same D6 art the hub deserts use
+                *pal_out = PAL_OW_ACCENT;
+                return (uint8_t)(TILESET_VRAM_OFFSET + TILE_COLUMN_6);
+            }
+            // Grass AND snow both use the pine (recoloured through PAL_OW_FOLIAGE by the palette
+            // callback). Snow deliberately does NOT reuse the hub's PREFAB_VRAM_MTN_L/R mountains:
+            // those slots are TILE_STUN_ICON_VRAM / TILE_ROOT_ICON_VRAM, and unlike the hub an
+            // encounter has live enemies that can be stunned or rooted mid-fight.
+            *pal_out = PAL_OW_FOLIAGE;
+            return TILE_OVERWORLD_WALL_VRAM;
+        }
+        return 0u; // open ground — caller draws floor deco through *region_out
+    }
     ow_prepare();
     if (ow_snow(mx, my))        region = OW_REGION_SNOW;   // NW corner takes priority (regions don't overlap)
     else if (ow_desert(mx, my)) region = OW_REGION_DESERT; // SE corner

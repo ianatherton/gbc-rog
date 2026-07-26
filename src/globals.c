@@ -90,6 +90,16 @@ uint8_t town_shop_sold[TOWN_COUNT];
 uint8_t pending_talk_npc;
 uint8_t town_barrels_broken[TOWN_COUNT * 3u];
 
+// Hub '?' encounters — see globals.h. All BSS; world_tick is reset by level_init on a fresh run,
+// and zone_stat_scale is written on every floor load before any enemy stat is read.
+uint8_t world_tick;
+uint8_t enc_marker_count;
+uint8_t enc_template;
+uint8_t enc_region;
+uint8_t enc_return_x;
+uint8_t enc_return_y;
+uint8_t zone_stat_scale;
+
 volatile uint8_t inv_desc_scx; // BSS 0 — see globals.h
 
 // Overworld prefab dims, indexed by OW_FEAT_*. ent_dx/dy = walkable trigger cell within the footprint
@@ -103,6 +113,7 @@ const OwPrefabDef ow_prefab_defs[OW_FEAT_COUNT] = {
     { 1u, 1u, 0u, 0u, OW_FEAT_FOUNTAIN }, // FOUNTAIN 1x1 (town interior), the cell itself is the trigger
     { 1u, 1u, 0u, 0u, OW_FEAT_TREE },     // TREE     1x1 (town interior deco), blocking wall cell
     { 1u, 1u, 0u, 0u, OW_FEAT_BARREL },   // BARREL   1x1 (town interior deco), blocking wall cell
+    { 1u, 1u, 0u, 0u, OW_FEAT_CHEST },    // CHEST    1x1 (encounter interior), blocking wall cell
 };
 OwFeature ow_features[MAX_OW_FEATURES]; // BSS — filled by generate_level on the hub
 uint8_t   ow_feature_count;             // BSS 0

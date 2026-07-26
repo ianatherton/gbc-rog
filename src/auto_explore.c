@@ -3,6 +3,7 @@
 #include <gbdk/platform.h>
 #include <stdint.h>
 #include "defs.h"
+#include "dungeon.h"
 #include "globals.h"
 #include "map.h"
 #include "enemy.h"
@@ -348,7 +349,7 @@ static uint8_t ax_build_path(void) { // backtrack ax_target_idx → ax_start_idx
 
 BANKREF(auto_explore_try_start)
 void auto_explore_try_start(void) BANKED {
-    if (floor_biome == BIOME_OVERWORLD || floor_biome == BIOME_TOWN) { // fog is always-revealed on hubs — nothing to explore
+    if (floor_kind == FLOORKIND_HUB || floor_kind >= FLOORKIND_TOWN) { // fog is always-revealed on lit floors — nothing to explore
         ax_log_and_redraw("Can't explore here.");
         return;
     }

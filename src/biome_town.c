@@ -199,8 +199,11 @@ uint8_t town_barrel_try_break(uint8_t x, uint8_t y) BANKED {
         if (ow_features[i].type != OW_FEAT_BARREL || ow_features[i].x != x || ow_features[i].y != y) continue;
         BIT_SET(floor_bits, TILE_IDX(x, y)); // barrel gone — cell walkable again
         {
+            // Encounters reuse this function for their own barrels, but they are one-shot floors:
+            // nothing there is meant to persist, town_barrels_broken is sized for TOWN_COUNT only,
+            // and their barrels carry aux = 255. Guarded on both counts.
             uint8_t ord = ow_features[i].aux;
-            if (ord < MAX_TOWN_BARRELS) {
+            if (floor_kind == FLOORKIND_TOWN && ord < MAX_TOWN_BARRELS) {
                 uint8_t town_id = (uint8_t)(floor_num - TOWN_FLOOR_BASE);
                 town_barrels_broken[(uint8_t)(town_id * 3u + (ord >> 3u))] |= (uint8_t)(1u << (ord & 7u));
             }

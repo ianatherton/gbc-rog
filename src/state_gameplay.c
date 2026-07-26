@@ -19,6 +19,7 @@
 #include "perf.h"
 #include "ability_dispatch.h"
 #include "biome.h"
+#include "biome_encounter.h"
 #include "dungeon.h"
 #include "ally.h"
 #include "items.h"
@@ -296,6 +297,10 @@ void state_gameplay_tick(void) BANKED {
         } else if (ck == CONFIRM_TOWN) {
             pending_port_floor = (uint8_t)(TOWN_FLOOR_BASE + confirm_aux);
             pending_transition = TRANS_FLOOR_PORT;
+        } else if (ck == CONFIRM_ENCOUNTER) {
+            encounter_enter(confirm_aux); // bank 23: latch template/region/return cell before the hub is torn down
+            pending_port_floor = ENCOUNTER_FLOOR;
+            pending_transition = TRANS_FLOOR_PORT;
         } else if (ck == CONFIRM_UP) {
             pending_transition = TRANS_FLOOR_UP;
         } else if (ck == CONFIRM_BOSS_EXIT) {
@@ -368,44 +373,25 @@ void state_gameplay_tick(void) BANKED {
 #endif
         } else {
             uint8_t t = tile_at(nx, ny);
-            if (t == TILE_WALL && floor_kind == FLOORKIND_TOWN && town_barrel_try_break(nx, ny)) {
+            uint8_t bump = zone_bump_at(nx, ny, t); // bank 30: barrel break / villager block / plain wall
+            if (bump == 2u) {
                 // 1-hit break: loot roll + poof already ran; no player movement. Overlay/HUD refresh
                 // comes from the shared consumed_turn tail below — no separate draw call needed here.
                 consumed_turn = 1u;
                 wait_vbl_done();
                 draw_cell(nx, ny); // barrel gone — cell now shows plain grass
-            } else if (t == TILE_WALL || (floor_kind == FLOORKIND_TOWN && town_npc_blocks(nx, ny))) { // a villager's tile blocks like a wall
+            } else if (bump) { // blocked
             } else {
                 // Figure out whether (nx,ny) is a transition tile before walking onto it — the
                 // walk always happens (full turn, enemies act); the confirm prompt arms only
-                // after landing, once g_player_x/y actually sit on the tile.
-                uint8_t want_kind = CONFIRM_NONE, want_aux = 0u;
-                if (t == TILE_PIT && !(boss_alive)) {
-                    // Boss floor renders its pit as the exit portal once the boss is dead (boss_alive
-                    // gates it above).
-                    want_kind = (floor_kind == FLOORKIND_BOSS) ? CONFIRM_BOSS_EXIT : CONFIRM_PIT;
-                } else if (((nx == player_spawn_x && ny == player_spawn_y)
-                            || (floor_kind == FLOORKIND_TOWN && town_exit_at(nx, ny))) // any of the 4 town road mouths
-                           && floor_num > 0u
-                           && !boss_alive) { // boss_alive is only ever set on boss/miniboss floors
-                    want_kind = CONFIRM_UP;
-                } else if (floor_biome == BIOME_OVERWORLD && overworld_trigger_at(nx, ny) == OW_FEAT_ENTRANCE) {
-                    // Overworld cave-mouth: entry into that dungeon's guardroom via the port path.
-                    // Each of the 9 entrances is its own dungeon (dungeon.h floor scheme).
-                    uint8_t did = overworld_entrance_id_at(nx, ny);
-                    if (did < DUNGEON_COUNT && (dungeon_complete_mask & (uint16_t)((uint16_t)1u << did))) {
-                        want_kind = CONFIRM_SEALED; // message only (deduped); A does nothing
-                    } else if (did < DUNGEON_COUNT) {
-                        want_kind = CONFIRM_ENTRANCE; want_aux = did;
-                    }
-                } else if (floor_biome == BIOME_OVERWORLD && overworld_trigger_at(nx, ny) == OW_FEAT_TOWN) {
-                    uint8_t tid = overworld_town_id_at(nx, ny);
-                    if (tid < TOWN_COUNT) { want_kind = CONFIRM_TOWN; want_aux = tid; } // A → TOWN_FLOOR_BASE+tid via the port path
-                }
+                // after landing, once g_player_x/y actually sit on the tile. Classification is
+                // in bank 30 (zone_confirm_at) — bank 2 has no room for the branch chain.
+                uint8_t want_aux;
+                uint8_t want_kind = zone_confirm_at(nx, ny, t, &want_aux);
 
                 uint8_t opx = g_player_x, opy = g_player_y;
-                if (floor_biome == BIOME_OVERWORLD || floor_biome == BIOME_TOWN)
-                    overworld_step_feature(nx, ny); // signpost label / town fountain heal
+                if (floor_biome == BIOME_OVERWORLD || floor_kind >= FLOORKIND_TOWN)
+                    overworld_step_feature(nx, ny); // signpost label / town fountain heal (encounters: seat for traps)
                 consumed_turn = 1u;
                 if (!auto_explore_active) { // auto: fold this repaint into the post-move pass to save a frame
                     wait_vbl_done();
@@ -438,6 +424,7 @@ void state_gameplay_tick(void) BANKED {
                     ally_fk = ally_walk_tick_and_snap(g_player_x, g_player_y, ally_snap_x, ally_snap_y, ally_snap_a);
                     entity_sprites_ally_glide_begin(ally_snap_x, ally_snap_y, ally_snap_a);
                     if (floor_kind == FLOORKIND_TOWN) town_npcs_tick(g_player_x, g_player_y); // lazy villager wander; no glide
+                    else if (floor_kind == FLOORKIND_HUB) encounter_markers_tick(g_player_x, g_player_y); // '?' drift; never toward the player
                     {
                         uint8_t target_cx = (g_player_x > GRID_W / 2) ? (uint8_t)(g_player_x - GRID_W / 2) : 0;
                         uint8_t target_cy = (g_player_y > GRID_H / 2) ? (uint8_t)(g_player_y - GRID_H / 2) : 0;

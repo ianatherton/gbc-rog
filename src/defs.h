@@ -373,6 +373,18 @@ typedef struct {
 #define ENC_MARKERS_SNOW    6u
 #define MAX_ENC_MARKERS    (ENC_MARKERS_GRASS + ENC_MARKERS_DESERT + ENC_MARKERS_SNOW) /* 13 */
 #define ENC_MOVES_FLAG   0x80u /* enemy_type[] high bit flags a drifting marker; low bits = template id */
+/* Marker OBJ art: a hand-drawn '?' glyph (biome_encounter.c) uploaded on hub entry.
+   It lives in OBJ-ONLY VRAM, which exists because BG and OBJ address tiles differently here:
+   BG runs in SIGNED mode, so the font's tiles 0-127 sit at $9000+ and the sheet's 128-255 at
+   $8800+; OBJ is always unsigned from $8000, so OBJ indices 0..127 land in $8000-$87FF — 2 KB
+   that NO background art can reach. Nothing else in the project uploads a sprite tile below 128.
+   That asymmetry is also why the font's own '?' could not be used (an OBJ pointed at tile 31 reads
+   $81F0, not the font's $91F0, and draws blank) and why borrowing a 128-255 "enemy" slot is a trap:
+   the hub repurposes most of them for BG prefab art — TILE_SLIME_1_VRAM is PREFAB_VRAM_WP_BL, so
+   uploading there turned every waypoint's bottom-left corner into a '?'. Use this range instead for
+   any OAM-only glyph; it needs no off-hub restore because nothing ever stomps it. */
+#define OBJ_ONLY_VRAM_FIRST 1u /* 1..127 free for OAM-only art; 0 left alone as the conventional blank */
+#define ENC_MARKER_TILE  OBJ_ONLY_VRAM_FIRST
 /* Trade: villager slot 0 of every town is its trader (the rest keep their canned greeting line).
    Stock is TOWN_SHOP_SLOTS kinds, one bit each in town_shop_sold[] — do not raise past 8. */
 #define TOWN_TRADER_NPC  0u

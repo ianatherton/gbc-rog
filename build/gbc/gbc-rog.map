@@ -173,7 +173,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      000002D4  l__CODE_7 |    00000488  l__CODE_6 |    000004D7  l__CODE_8
      0000050A  l__CODE_9 |    0000055A  l__CODE_2 |    00000666  l__CODE_2
      000007CB  l__CODE_1 |    00000B71  l__HOME   |    00000B9B  l__CODE_4
-     00000CB5  l__CODE_2 |    00000D68  l__CODE_3 |    00001108  l__CODE_1
+     00000CD2  l__CODE_2 |    00000D68  l__CODE_3 |    00001108  l__CODE_1
      000012EE  l__CODE_2 |    000014C7  l__CODE_2 |    00001554  l__CODE_1
      000015DC  l__CODE_1 |    000016D0  l__CODE_1 |    00001D6D  l__DATA  
      00002000  _rROMB0   |    000020A9  l__CODE_1 |    00002DBB  l__CODE_2
@@ -919,16 +919,16 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_23               00174000    00000CB5 =        3253. bytes (REL,CON)
+_CODE_23               00174000    00000CD2 =        3282. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
      00174000  ___func_b |    00174000  _biome_en |    0017416B  ___func_b
      0017416B  _biome_en |    001742F7  ___func_e |    001742F7  _encounte
-     001744B1  ___func_e |    001744B1  _encounte |    001744DE  ___func_e
-     001744DE  _encounte |    0017461A  ___func_e |    0017461A  _encounte
-     0017468D  ___func_e |    0017468D  _encounte |    001748F9  ___func_e
-     001748F9  _encounte |    00174BDF  ___func_e |    00174BDF  _encounte
+     001744CE  ___func_e |    001744CE  _encounte |    001744FB  ___func_e
+     001744FB  _encounte |    00174637  ___func_e |    00174637  _encounte
+     001746AA  ___func_e |    001746AA  _encounte |    00174916  ___func_e
+     00174916  _encounte |    00174BFC  ___func_e |    00174BFC  _encounte
 ASxxxx Linker V03.00/V05.40 + sdld,  page 54.
 Hexadecimal  [32-Bits]
 

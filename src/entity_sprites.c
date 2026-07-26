@@ -58,11 +58,9 @@ BANKREF_EXTERN(map_pit_position)
 // with them, unlike the villagers/poof which only ever exist on a town floor. So the base starts
 // PAST the waypoint run, not at SP_ENEMY_BASE. 6..18 of the 23-slot run 4..26.
 #define SP_ENC_MARKER_BASE (uint8_t)(SP_WAYPOINT_FX_BASE + MAX_WAYPOINT_FX)
-// TILE_ITEM_4 is the sheet's mystery-icon glyph, already used for unidentified ground items — it is
-// sheet index < 128, so it rides main.c's bulk set_bkg_data and is permanently resident in VRAM.
-// Nothing to upload and no slot to borrow. PAL_XP_UI (OCP7) is the gold ramp shared with bats,
-// which never spawn on the hub.
-#define ENC_MARKER_TILE (uint8_t)(TILESET_VRAM_OFFSET + TILE_ITEM_4)
+// ENC_MARKER_TILE (defs.h) is the '?' glyph, uploaded on hub entry by encounter_markers_build.
+// PAL_XP_UI (OCP7) is the gold ramp shared with bats, which never spawn on the hub; the glyph is
+// drawn entirely in colour index 3, so it picks up that ramp's brightest entry.
 #define ENC_MARKER_PAL  PAL_XP_UI
 typedef char enc_markers_fit_enemy_run[
     ((SP_ENC_MARKER_BASE + MAX_ENC_MARKERS) <= (SP_ENEMY_BASE + MAX_ENEMIES)) ? 1 : -1];

@@ -29,9 +29,8 @@ static const palette_color_t pal_xp_ui[]    = { RGB(0,0,0),  RGB(23,9,0), RGB(30
 // the GROUND palette from the region code the biome hands back (grass -> PAL_FLOOR_BG,
 // desert -> PAL_OW_ACCENT, snow -> PAL_WALL_BG), so all three deco ramps are loaded every time.
 //
-// Ramps are STACK LOCALS initialised from literals, matching the hub and town branches in
-// apply_wall_palette below rather than the file's `static const` tables — that is the shape this
-// file's other per-biome branches use and the one known to behave under SDCC here.
+// Ramps are stack locals initialised from literals, matching the hub and town branches in
+// apply_wall_palette below.
 BANKREF(encounter_palettes_apply)
 void encounter_palettes_apply(void) BANKED {
     palette_color_t field[4], cover[4], prop[4];

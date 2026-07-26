@@ -155,9 +155,35 @@ static uint8_t enc_marker_here(uint8_t x, uint8_t y, uint8_t upto) {
 // ── Markers (hub only) ───────────────────────────────────────────────────────────────────────
 static const uint8_t enc_region_counts[3] = { ENC_MARKERS_GRASS, ENC_MARKERS_DESERT, ENC_MARKERS_SNOW };
 
+// The '?' glyph, hand-drawn as a 2bpp tile. It CANNOT come from the font: font_load (main.c) goes
+// through set_bkg_data, and in this project BG and OBJ tile space are not the same memory — that is
+// why main.c uploads every shared tile twice, once with set_bkg_data and again with set_sprite_data
+// ("same tile for OAM"). Pointing an OBJ at the font's '?' tile index just draws whatever happens to
+// live at that OBJ address, which came out blank.
+//
+// Drawn as a bright body (colour index 3) with a dark drop-shadow one pixel down-right (index 1).
+// The shadow is what makes it legible in every region: index 3 of the hub's OCP7 is gold, which
+// pops on grass and sand but would wash out against a snowfield on its own. Index 0 stays
+// transparent so the glyph floats on the terrain instead of sitting in a box.
+//   plane0 = body | shadow, plane1 = body  ->  body reads 3, shadow reads 1.
+static const uint8_t enc_marker_glyph[16] = {
+    0x3Cu, 0x3Cu, // ..####..
+    0x7Eu, 0x66u, // .##..##.
+    0x37u, 0x06u, // .....##.
+    0x0Fu, 0x0Cu, // ....##..
+    0x1Eu, 0x18u, // ...##...
+    0x0Cu, 0x00u, // ........
+    0x18u, 0x18u, // ...##...
+    0x0Cu, 0x00u, // ........
+};
+
 BANKREF(encounter_markers_build)
 void encounter_markers_build(void) BANKED {
     uint8_t region, n = 0u;
+    // Upload into OBJ-only VRAM (see ENC_MARKER_TILE in defs.h). Nothing else can touch that range,
+    // so unlike a borrowed 128-255 slot this needs no off-hub restore and can never collide with the
+    // hub's prefab BG art. Re-uploading per hub gen is harmless and keeps it off bank 0's budget.
+    set_sprite_data(ENC_MARKER_TILE, 1u, enc_marker_glyph);
     eg_rng = (uint16_t)(run_seed ^ (uint16_t)((uint16_t)(world_tick + 1u) * 40503u));
     if (!eg_rng) eg_rng = 0xACE1u;
     for (region = 0u; region < 3u; region++) {

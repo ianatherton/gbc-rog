@@ -60,8 +60,12 @@ int main(void) {
         set_bkg_data(TILESET_VRAM_OFFSET, TILESET_NTILES_VRAM, tileset_tiles);
         set_bkg_data((uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_SLOT_EMPTY), 1u, // K1 VRAM ← M14 empty-slot art (ROM past first 128)
             tileset_tiles + (uint16_t)TILE_SHEET_M14 * 16u);
-        set_bkg_data(TILE_OVERWORLD_WALL_VRAM, 1u, // overworld tree wall ← c10 art (title-safe F6 slot 213)
+        set_bkg_data(TILE_OVERWORLD_WALL_VRAM, 1u, // hub pine wall ← c10 art (title-safe F6 slot 213)
             tileset_tiles + (uint16_t)TILE_C10 * 16u);
+        set_bkg_data(TILE_OW_TREE_TOP_VRAM, 1u, // town/encounter tree canopy ← l15 art (title-safe B5 slot 193)
+            tileset_tiles + (uint16_t)TILE_L15 * 16u);
+        set_bkg_data(TILE_OW_TREE_BOT_VRAM, 1u, // town/encounter tree trunk ← l16 art (title-safe E6 slot 212)
+            tileset_tiles + (uint16_t)TILE_L16 * 16u);
         set_bkg_data(TILE_OVERWORLD_WATER_VRAM, 1u, // overworld water border ← f10 art (title-safe G6 slot 214)
             tileset_tiles + (uint16_t)TILE_F10 * 16u);
         memcpy(water_anim_base, tileset_tiles + (uint16_t)TILE_F10 * 16u, 16u); // snapshot base for the sea-scroll anim (tileset bank paged in here)

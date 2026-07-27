@@ -303,11 +303,28 @@ typedef struct {
 /* Overworld terrain art (hub only). Both ROM sources live past the first-128 VRAM upload, so they
    are boot-copied into title-safe VRAM slots — the title logo (title_logo.c) patches+restores
    128..181, so the wall/water slots must sit ≥182 and outside that table or they get blanked. */
-#define TILE_C10                 146u /* C10 sheet source = (10-1)*16 + 2 — overworld wall (pine tree) art */
+/* The 2-tile-tall tree (L15 canopy over L16 trunk, both cells blocking) is TOWN/ENCOUNTER art only —
+   the hub keeps its 1-tile C10 pine, so hub forests read at the old scale. Generation aligns every
+   pair to an EVEN row (biome_encounter.c cover, biome_town.c groves), so the renderers pick the half
+   with a plain (my & 1u) test — no neighbour lookup, same trick as the snow mountains' (mx & 1u). */
+#define TILE_C10                 146u /* C10 sheet source = (10-1)*16 + 2 — hub wall (1-tile pine) art */
+#define TILE_L15                 235u /* L15 sheet source = (15-1)*16 + 11 — tree canopy (top half) */
+#define TILE_L16                 251u /* L16 sheet source = (16-1)*16 + 11 — tree trunk  (bottom half) */
 #define TILE_F10                 149u /* F10 sheet source = (10-1)*16 + 5 — overworld water (border) art */
 #define TILE_OVERWORLD_WALL_OFF   85u /* borrows unused F6 VRAM slot (213); renderer adds TILESET_VRAM_OFFSET */
+/* The two tree halves borrow dead sheet cells B5/E6: neither index has a TILE_* constant and neither
+   VRAM slot has a _VRAM constant anywhere in src/ (confirmed zero refs), both are ≥182 so the
+   title-logo restore (128..181) leaves them alone, and both sit outside 176..191 — that range is the
+   char-create 2x class emblem (state_char_create.c), which restores it from sheet tiles 48..63 when
+   the screen exits. A single boot copy therefore survives for the whole run. Checking only per-slot
+   _VRAM constants is NOT enough: the emblem range is a START+COUNT pair and claims 16 slots at once
+   (it ate an earlier pick of P4/191 — the canopy came back as P4's dither after char create). */
+#define TILE_OW_TREE_TOP_OFF      65u /* borrows unused B5 VRAM slot (193) */
+#define TILE_OW_TREE_BOT_OFF      84u /* borrows unused E6 VRAM slot (212) */
 #define TILE_OVERWORLD_WATER_OFF  86u /* borrows unused G6 VRAM slot (214) */
-#define TILE_OVERWORLD_WALL_VRAM  ((uint8_t)(TILESET_VRAM_OFFSET + TILE_OVERWORLD_WALL_OFF))  /* =213 tree */
+#define TILE_OVERWORLD_WALL_VRAM  ((uint8_t)(TILESET_VRAM_OFFSET + TILE_OVERWORLD_WALL_OFF))  /* =213 hub pine */
+#define TILE_OW_TREE_TOP_VRAM     ((uint8_t)(TILESET_VRAM_OFFSET + TILE_OW_TREE_TOP_OFF))     /* =193 tree canopy */
+#define TILE_OW_TREE_BOT_VRAM     ((uint8_t)(TILESET_VRAM_OFFSET + TILE_OW_TREE_BOT_OFF))     /* =212 tree trunk  */
 #define TILE_OVERWORLD_WATER_VRAM ((uint8_t)(TILESET_VRAM_OFFSET + TILE_OVERWORLD_WATER_OFF)) /* =214 water */
 #define OVERWORLD_BORDER_BAND      2u /* hub: outermost N tiles are always ocean (forced water margin) */
 
@@ -325,7 +342,7 @@ typedef struct {
 #define OW_FEAT_BOSSDOOR  3u  /* 2x2 final-dungeon door (O15/P15/O16/P16) */
 #define OW_FEAT_SIGNPOST  4u  /* 1x1 readable marker (tile B8); step on it to print its label to the chat box */
 #define OW_FEAT_FOUNTAIN  5u  /* 1x1 town-interior heal fountain; step on it to restore full HP */
-#define OW_FEAT_TREE      6u  /* 1x1 town-interior deco pine; the cell itself is carved WALL (blocking) */
+#define OW_FEAT_TREE      6u  /* 1x2 town-interior deco pine (canopy over trunk); BOTH cells carved WALL */
 #define OW_FEAT_BARREL    7u  /* 1x1 town-interior deco barrel (F2); carved WALL (blocking), same as TREE */
 #define OW_FEAT_CHEST     8u  /* 1x1 encounter-interior chest (F1); carved WALL (blocking), bump to open */
 #define OW_FEAT_COUNT     9u
@@ -359,6 +376,10 @@ typedef struct {
    refresh_town_npcs_oam. Wander AI in biome_town.c town_npcs_tick. */
 #define MAX_TOWN_NPCS  8u
 #define TOWN_NPC_ROAM_RADIUS 10u /* Chebyshev tiles from home before a wandering villager warps back */
+/* Deco pines are placed as groves of 3-4 within ±2 cells of a grove anchor (biome_town.c), so a town
+   gets ~8×3.5 trees — the same ballpark as the old 40 single-tree attempts, just clumped. The real
+   cap is the shared MAX_OW_FEATURES budget (signs + barrels + fountain go first). */
+#define TOWN_PINE_GROVES  8u
 #define MAX_TOWN_BARRELS 24u /* bits tracked per town in town_barrels_broken (globals.h), 3 bytes/town */
 
 /* ── Hub '?' encounter markers (biome_encounter.c, bank 23) ────────────────────────────────────

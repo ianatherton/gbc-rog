@@ -595,10 +595,13 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
                 }
             }
         }
-        for (fi = 0u; fi < ow_feature_count; fi++) { // town features are all 1×1: fountain, sign, deco pine/barrel
-            if (ow_features[fi].x != mx || ow_features[fi].y != my) continue;
-            if (ow_features[fi].type == OW_FEAT_TREE) {
-                *pal_out = PAL_OW_FOLIAGE; return TILE_OVERWORLD_WALL_VRAM; // deco pine (cell is blocking wall)
+        for (fi = 0u; fi < ow_feature_count; fi++) { // fountain/sign/barrel are 1×1; the deco pine is 1×2
+            const OwPrefabDef *fd = &ow_prefab_defs[ow_features[fi].type]; // footprint test, like the hub overlay below
+            if (mx != ow_features[fi].x || my < ow_features[fi].y
+                    || my >= (uint8_t)(ow_features[fi].y + fd->h)) continue;
+            if (ow_features[fi].type == OW_FEAT_TREE) { // 2-tall deco pine — both cells are blocking walls
+                *pal_out = PAL_OW_FOLIAGE;
+                return (my == ow_features[fi].y) ? TILE_OW_TREE_TOP_VRAM : TILE_OW_TREE_BOT_VRAM;
             }
             if (ow_features[fi].type == OW_FEAT_BARREL) {
                 *pal_out = PAL_PILLAR_BG; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_BARREL); // deco barrel (cell is blocking wall); sign palette (grass background)
@@ -627,7 +630,12 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
         if (base_tile == TILE_WALL) {
             if (mx == 0u || my == 0u
                     || mx == (uint8_t)(active_map_w - 1u) || my == (uint8_t)(active_map_h - 1u)) {
-                *pal_out = PAL_OW_FOLIAGE; return TILE_OVERWORLD_WALL_VRAM; // border pine ring (ring 0)
+                // Border pine ring (ring 0). The ring is one cell thick, so only its left/right
+                // columns are tall enough for a whole tree — those pair up on the usual even-row
+                // split; the top/bottom runs draw canopies only, reading as a hedge.
+                *pal_out = PAL_OW_FOLIAGE;
+                if (my == 0u || my == (uint8_t)(active_map_h - 1u)) return TILE_OW_TREE_TOP_VRAM;
+                return (my & 1u) ? TILE_OW_TREE_BOT_VRAM : TILE_OW_TREE_TOP_VRAM;
             }
             *pal_out = PAL_WALL_BG; // town wall ring + building walls: uniform dungeon brick on grass
             return (uint8_t)(TILESET_VRAM_OFFSET + wall_tileset_index);
@@ -656,12 +664,13 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
                 *pal_out = PAL_OW_ACCENT;
                 return (uint8_t)(TILESET_VRAM_OFFSET + TILE_COLUMN_6);
             }
-            // Grass AND snow both use the pine (recoloured through PAL_OW_FOLIAGE by the palette
-            // callback). Snow deliberately does NOT reuse the hub's PREFAB_VRAM_MTN_L/R mountains:
-            // those slots are TILE_STUN_ICON_VRAM / TILE_ROOT_ICON_VRAM, and unlike the hub an
-            // encounter has live enemies that can be stunned or rooted mid-fight.
+            // Grass AND snow both use the 2-tall pine (recoloured through PAL_OW_FOLIAGE by the
+            // palette callback; encounter_generate carves even-aligned pairs off the desert region).
+            // Snow deliberately does NOT reuse the hub's PREFAB_VRAM_MTN_L/R mountains: those slots
+            // are TILE_STUN_ICON_VRAM / TILE_ROOT_ICON_VRAM, and unlike the hub an encounter has
+            // live enemies that can be stunned or rooted mid-fight.
             *pal_out = PAL_OW_FOLIAGE;
-            return TILE_OVERWORLD_WALL_VRAM;
+            return (my & 1u) ? TILE_OW_TREE_BOT_VRAM : TILE_OW_TREE_TOP_VRAM;
         }
         return 0u; // open ground — caller draws floor deco through *region_out
     }
@@ -706,7 +715,7 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
             *pal_out = PAL_OW_ACCENT;
             return (uint8_t)(TILESET_VRAM_OFFSET + TILE_COLUMN_6);
         }
-        *pal_out = PAL_OW_FOLIAGE; // grassland → green pine
+        *pal_out = PAL_OW_FOLIAGE; // grassland → green pine (1 tile — the 2-tall tree is town/encounter art)
         return TILE_OVERWORLD_WALL_VRAM;
     }
     if (base_tile == TILE_FLOOR) {

@@ -329,7 +329,21 @@ void encounter_generate(void) BANKED {
         uint8_t dy = (cy > player_spawn_y) ? (uint8_t)(cy - player_spawn_y) : (uint8_t)(player_spawn_y - cy);
         if (dx < 4u && dy < 4u) continue;            // clear landing pad
         if (cx == 0u || cy == 0u || cx >= (uint8_t)(w - 1u) || cy >= (uint8_t)(w - 1u)) continue; // never block the exit ring
-        BIT_CLR(floor_bits, TILE_IDX(cx, cy));
+        if (enc_region != OW_REGION_DESERT) {
+            // Grass/snow cover is the 2-tall pine: canopy on an EVEN row, trunk on the odd row below
+            // (the renderer splits the halves on a bare (my & 1u), like the hub). Both cells must be
+            // free and inside the exit ring, or the clump is skipped rather than half-carved.
+            uint8_t ay = (uint8_t)(cy & 0xFEu);
+            if (ay == 0u || (uint8_t)(ay + 1u) >= (uint8_t)(w - 1u)) continue;
+            if (dx < 4u && ay <= (uint8_t)(player_spawn_y + 3u)
+                    && (uint16_t)(ay + 4u) >= (uint16_t)player_spawn_y) continue; // landing pad, both rows
+            if (!BIT_GET(floor_bits, TILE_IDX(cx, ay))) continue;
+            if (!BIT_GET(floor_bits, TILE_IDX(cx, (uint8_t)(ay + 1u)))) continue;
+            BIT_CLR(floor_bits, TILE_IDX(cx, ay));
+            BIT_CLR(floor_bits, TILE_IDX(cx, (uint8_t)(ay + 1u)));
+            continue;
+        }
+        BIT_CLR(floor_bits, TILE_IDX(cx, cy)); // desert palms stay 1 cell tall
         if ((eg_rand() & 1u) && cx + 1u < (uint8_t)(w - 1u)) BIT_CLR(floor_bits, TILE_IDX((uint8_t)(cx + 1u), cy));
     }
 

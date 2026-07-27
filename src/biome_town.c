@@ -393,26 +393,44 @@ void town_generate_interior(uint8_t town_id) BANKED {
         }
     }
 
-    for (i = 0u; i < 40u && n < MAX_OW_FEATURES; i++) { // deco pines on open grass, off roads/aprons
-        uint8_t px = (uint8_t)(3u + (uint8_t)(tg_rand() % (uint8_t)(w - 6u)));
-        uint8_t py = (uint8_t)(3u + (uint8_t)(tg_rand() % (uint8_t)(h - 6u)));
-        uint16_t idx = TILE_IDX(px, py);
-        uint8_t k, clash = 0u;
-        if (!BIT_GET(floor_bits, idx)) continue; // wall / building
-        if (road_bit(idx)) continue;             // keep every road lane clear
-        for (k = 0u; k < town_state->count; k++) { // 1-cell apron around each building (door approaches)
-            const TownBuilding *b = &town_state->buildings[k];
-            if (px >= (uint8_t)(b->x - 1u) && px <= (uint8_t)(b->x + b->w)
-                    && py >= (uint8_t)(b->y - 1u) && py <= (uint8_t)(b->y + b->h)) { clash = 1u; break; }
+    // Deco pines come in groves of 3-4 rather than scattered singles: pick a grove anchor, then seat
+    // that grove's trees within ±2 cells of it (open grass, off roads/aprons). Anchors sit in
+    // [5, w-6] so the ±2 spread still lands in the [3, w-4] band the old scatter used.
+    for (i = 0u; i < TOWN_PINE_GROVES && n < MAX_OW_FEATURES; i++) {
+        uint8_t want = (uint8_t)(3u + (uint8_t)(tg_rand() & 1u)); // 3 or 4 trees in this grove
+        uint8_t gx = (uint8_t)(5u + (uint8_t)(tg_rand() % (uint8_t)(w - 10u)));
+        uint8_t gy = (uint8_t)(5u + (uint8_t)(tg_rand() % (uint8_t)(h - 10u)));
+        uint8_t tries, placed = 0u;
+        for (tries = 0u; tries < 12u && placed < want && n < MAX_OW_FEATURES; tries++) {
+            uint8_t px = (uint8_t)(gx - 2u + (uint8_t)(tg_rand() % 5u));
+            uint8_t py = (uint8_t)(gy - 2u + (uint8_t)(tg_rand() % 5u));
+            uint16_t idx = TILE_IDX(px, py);                        // canopy cell
+            uint16_t idx2 = TILE_IDX(px, (uint8_t)(py + 1u));       // trunk cell, one row down
+            uint8_t k, clash = 0u;
+            // The pine is 1×2, so every test has to pass for BOTH cells — a half-placed tree would
+            // draw a floating canopy or leave the trunk walkable. py caps at h-4, so py+1 is in bounds.
+            if (!BIT_GET(floor_bits, idx) || !BIT_GET(floor_bits, idx2)) continue; // wall / building
+            if (road_bit(idx) || road_bit(idx2)) continue;          // keep every road lane clear
+            for (k = 0u; k < town_state->count; k++) { // 1-cell apron around each building (door approaches)
+                const TownBuilding *b = &town_state->buildings[k];
+                if (px >= (uint8_t)(b->x - 1u) && px <= (uint8_t)(b->x + b->w)
+                        && (uint8_t)(py + 1u) >= (uint8_t)(b->y - 1u)
+                        && py <= (uint8_t)(b->y + b->h)) { clash = 1u; break; }
+            }
+            if (clash) continue;
+            for (k = 0u; k < n; k++) { // town features are 1 wide; compare row spans (a pine is 2 tall)
+                uint8_t fy = ow_features[k].y;
+                if (ow_features[k].x != px) continue;
+                if ((uint8_t)(py + 1u) >= fy
+                        && py < (uint8_t)(fy + ow_prefab_defs[ow_features[k].type].h)) { clash = 1u; break; }
+            }
+            if (clash) continue;
+            BIT_CLR(floor_bits, idx);  // both pine cells are blocking walls, drawn by the TREE feature
+            BIT_CLR(floor_bits, idx2);
+            ow_features[n].x = px; ow_features[n].y = py;
+            ow_features[n].type = OW_FEAT_TREE; ow_features[n].aux = 0u;
+            n++; placed++;
         }
-        if (clash) continue;
-        for (k = 0u; k < n; k++)
-            if (ow_features[k].x == px && ow_features[k].y == py) { clash = 1u; break; }
-        if (clash) continue;
-        BIT_CLR(floor_bits, idx); // pine is a blocking wall cell, drawn by the TREE feature
-        ow_features[n].x = px; ow_features[n].y = py;
-        ow_features[n].type = OW_FEAT_TREE; ow_features[n].aux = 0u;
-        n++;
     }
 
     for (i = 0u; i < 3u && n < MAX_OW_FEATURES; i++) { // rare stray barrel, fully random open spot

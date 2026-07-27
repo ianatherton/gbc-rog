@@ -111,7 +111,7 @@ const OwPrefabDef ow_prefab_defs[OW_FEAT_COUNT] = {
     { 2u, 2u, 0u, 1u, OW_FEAT_BOSSDOOR }, // BOSSDOOR 2x2, enter from bottom-left
     { 1u, 1u, 0u, 0u, OW_FEAT_SIGNPOST }, // SIGNPOST 1x1, the cell itself is the trigger
     { 1u, 1u, 0u, 0u, OW_FEAT_FOUNTAIN }, // FOUNTAIN 1x1 (town interior), the cell itself is the trigger
-    { 1u, 1u, 0u, 0u, OW_FEAT_TREE },     // TREE     1x1 (town interior deco), blocking wall cell
+    { 1u, 2u, 0u, 0u, OW_FEAT_TREE },     // TREE     1x2 (town interior deco), both cells blocking walls
     { 1u, 1u, 0u, 0u, OW_FEAT_BARREL },   // BARREL   1x1 (town interior deco), blocking wall cell
     { 1u, 1u, 0u, 0u, OW_FEAT_CHEST },    // CHEST    1x1 (encounter interior), blocking wall cell
 };

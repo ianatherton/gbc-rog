@@ -21,6 +21,7 @@ void     ui_draw_bottom_rows(void) BANKED;
 void     ui_draw_seed_words(uint16_t seed, uint8_t win_y) BANKED;
 void     window_ui_show(void) BANKED;
 void     window_ui_hide(void) BANKED;
+void     ui_draw_bkg_frame(void) BANKED;   // 20x18 BKG ring, same rails as the overworld text box (fullscreen menus)
 void     ui_combat_log_clear(void) BANKED;
 void     ui_combat_log_push(const char *line) BANKED;           // window palette PAL_UI
 void     ui_combat_log_push_pal(const char *line, uint8_t pal) BANKED; // CGB BGP palette index (e.g. PAL_XP_UI_BG)

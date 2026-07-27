@@ -17,7 +17,7 @@
 #include <gbdk/platform.h>
 
 #define CLASS_MENU_EMBLEM_X 14u // shifted right by 16px (2 tiles)
-#define CLASS_MENU_EMBLEM_Y  7u
+#define CLASS_MENU_EMBLEM_Y  6u // flanks the top two list rows, inside the BKG frame
 #define CLASS_EMBLEM_VRAM_SCALE2_START 176u
 #define CLASS_EMBLEM_VRAM_SCALE2_COUNT 16u
 #define CLASS_EMBLEM_VRAM_SCALE2_ROM_RESTORE 48u
@@ -108,18 +108,19 @@ void state_char_create_enter(void) BANKED {
     class_palettes_bkg_emblem_init();
     wait_vbl_done();
     lcd_clear_display();
+    ui_draw_bkg_frame(); // BANKED far-call into bank 5 — painted once; the loop only writes cols 2–17 / rows 2–15
     for (;;) {
-        gotoxy(1, 4); printf("CHOOSE CLASS");
-        gotoxy(0, 7); printf(sel == 0 ? ">" : " ");
-        gotoxy(2, 7); printf("KNIGHT");
-        gotoxy(0, 9); printf(sel == 1 ? ">" : " ");
-        gotoxy(2, 9); printf("SCOUNDREL");
-        gotoxy(0, 11); printf(sel == 2 ? ">" : " ");
-        gotoxy(2, 11); printf("WITCH");
-        gotoxy(0, 13); printf(sel == 3 ? ">" : " ");
-        gotoxy(2, 13); printf("ZERKER");
-        gotoxy(0, 16); printf("START=confirm");
-        gotoxy(0, 17); printf("B=back");
+        gotoxy(4, 2); printf("CHOOSE CLASS");
+        gotoxy(2, 6); printf(sel == 0 ? ">" : " ");
+        gotoxy(4, 6); printf("KNIGHT");
+        gotoxy(2, 8); printf(sel == 1 ? ">" : " ");
+        gotoxy(4, 8); printf("SCOUNDREL");
+        gotoxy(2, 10); printf(sel == 2 ? ">" : " ");
+        gotoxy(4, 10); printf("WITCH");
+        gotoxy(2, 12); printf(sel == 3 ? ">" : " ");
+        gotoxy(4, 12); printf("ZERKER");
+        gotoxy(3, 14); printf("START=confirm");
+        gotoxy(3, 15); printf("B=back");
         if (sel != prev_sel) {
             class_emblem_draw(sel);
             prev_sel = sel;

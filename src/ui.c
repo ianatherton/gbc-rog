@@ -744,6 +744,35 @@ static void ui_draw_hub_frame_row(uint8_t win_y) {
     for (x = 0u; x < UI_PANEL_COLS; x++) ui_put_border(x, win_y, TILE_UI_BORDER_H, 0u);
 }
 
+/* Same rails on the BKG plane, for the fullscreen menus (seed picker, char create). BGP 0 is
+   their text and 4-7 are the class emblem ramps, so 3 is the only slot free on both. */
+#define UI_MENU_FRAME_PAL 3u
+
+/* Copy of render_palettes.c pal_ladder — that one is static in bank 22. Uploaded by
+   ui_draw_bkg_frame because boot only does set_default_palette (greyscale): load_palettes()
+   has never run by the time the first seed screen draws. */
+static const palette_color_t ui_menu_frame_pal[] = { RGB(0,0,0), RGB(6,8,12), RGB(31,16,2), RGB(31,26,8) };
+
+static void ui_bkg_border_put(uint8_t x, uint8_t y, uint8_t off, uint8_t flip) {
+    uint8_t v = (uint8_t)(TILESET_VRAM_OFFSET + off);
+    set_bkg_tiles(x, y, 1, 1, &v);
+    set_bkg_attribute_xy(x, y, (uint8_t)(UI_MENU_FRAME_PAL | flip));
+    VBK_REG = VBK_TILES;
+}
+
+void ui_draw_bkg_frame(void) BANKED { // 20x18 ring; corners carry the horizontal tile, as the overworld box does
+    uint8_t x, y;
+    set_bkg_palette(UI_MENU_FRAME_PAL, 1u, ui_menu_frame_pal);
+    for (x = 0u; x < 20u; x++) {
+        ui_bkg_border_put(x, 0u,  TILE_UI_BORDER_H, 0u);
+        ui_bkg_border_put(x, 17u, TILE_UI_BORDER_H, 0u);
+    }
+    for (y = 1u; y < 17u; y++) {
+        ui_bkg_border_put(0u,  y, TILE_UI_BORDER_V, (uint8_t)(S_FLIPX | S_FLIPY));
+        ui_bkg_border_put(19u, y, TILE_UI_BORDER_V, 0u);
+    }
+}
+
 /* 0xFF forces the first call to run the latch branch. window_ui_show() re-arms it, because
    its fill_win_rect wipes rows 0/4 on every modal return (inventory/map/stats/talk). */
 static uint8_t bottom_was_hub = 0xFFu;
@@ -1161,24 +1190,27 @@ static uint16_t input_seed_words_screen(uint16_t initial_seed, uint16_t entropy_
     wait_vbl_done();
     lcd_clear_display();
     BANK_DBG("UI:seed");
-    ui_title_style_begin(1u, (uint8_t)(UI_TITLE_TORCH_PAD_L_TITLE - 16u)); // left brazier −16px vs title
+    ui_title_style_begin(2u, (uint8_t)(UI_TITLE_TORCH_PAD_L_TITLE - 16u)); // left brazier −16px vs title; braziers level with the heading row
+    ui_draw_bkg_frame(); // painted once — the loop below only repaints cols 2–18 / rows 2–12
 
+    /* Word blocks and their caret-erase runs share one stride-6 grid at 2/8/14, all inside
+       the frame (words end at col 18, the last cell before the right rail). */
     while (1) {
-        gotoxy(3, 1); printf("SEED WORDS");
-        put_word5(1,  3, seed_words_desc[d]);
-        gotoxy(6,  3); setchar(' ');
-        put_word5(7,  3, seed_words_noun[n]);
-        gotoxy(12, 3); setchar(' ');
-        put_word5(13, 3, seed_words_place[p]);
-        gotoxy(1,  4); printf("     ");
-        gotoxy(6,  4); printf("     ");
-        gotoxy(11, 4); printf("     ");
-        gotoxy(1 + word_pos * 6, 4); setchar('^'); // caret under active word block
-        gotoxy(1, 6); printf("L/R word");
-        gotoxy(1, 7); printf("U/D scroll");
-        gotoxy(1, 8); printf("New seed: (A)");
-        gotoxy(1, 9); printf("START=play");
-        gotoxy(1, 10); printf("B=back");
+        gotoxy(5, 2); printf("SEED WORDS");
+        put_word5(2,  4, seed_words_desc[d]);
+        gotoxy(7,  4); setchar(' ');
+        put_word5(8,  4, seed_words_noun[n]);
+        gotoxy(13, 4); setchar(' ');
+        put_word5(14, 4, seed_words_place[p]);
+        gotoxy(2,  5); printf("     ");
+        gotoxy(8,  5); printf("     ");
+        gotoxy(14, 5); printf("     ");
+        gotoxy(2 + word_pos * 6, 5); setchar('^'); // caret under active word block
+        gotoxy(3, 8); printf("L/R word");
+        gotoxy(3, 9); printf("U/D scroll");
+        gotoxy(3, 10); printf("New seed: (A)");
+        gotoxy(3, 11); printf("START=play");
+        gotoxy(3, 12); printf("B=back");
         {
             uint8_t j    = joypad();
             uint8_t edge = (uint8_t)(j & (uint8_t)~prev_j); // buttons newly pressed this frame

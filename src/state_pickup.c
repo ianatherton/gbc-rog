@@ -13,6 +13,7 @@ BANKREF_EXTERN(ground_item_kill)
 BANKREF_EXTERN(entity_sprites_inv_cursor_show)
 BANKREF_EXTERN(entity_sprites_inv_cursor_hide)
 #include <gb/gb.h>
+#include <gb/cgb.h> // set_bkg_palette — black-backed modal
 #include <gbdk/console.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -108,10 +109,21 @@ static void draw_phase(void) {
 
 BANKREF(state_pickup_enter)
 void state_pickup_enter(void) BANKED {
+    // Black paper / white ink for BG palette 0. lcd_clear_display zeroes the attribute plane, so
+    // every console text cell rides slot 0 — without this the modal inherits the live field color
+    // and reads as white-on-sand/snow in a desert or snow encounter (and white-on-green on the hub).
+    // No undo needed: gameplay re-entry runs apply_field_palette() (state_gameplay.c), which also
+    // invalidates the wall-palette cache so slot 3 is re-pushed by the next draw_screen().
+    static const palette_color_t pu_bkg0_black[4] = { RGB(0,0,0), RGB(8,8,8), RGB(16,16,16), RGB(31,31,31) };
+    // PAL_WALL_BG carries the metal equipment icons; hub/snow repurposes slot 3 for snow terrain,
+    // so restore a neutral stone ramp here (== wall_palette_table[0]) so the icons aren't icy.
+    static const palette_color_t pu_metal_ramp[4] = { RGB(2,2,6), RGB(8,6,4), RGB(14,12,10), RGB(22,20,18) };
     BANK_DBG("PU_enter");
     pu_prev_j = joypad(); // ignore any button still held from the walk that triggered the modal
     lcd_gameplay_active = 0u;
     window_ui_hide();
+    set_bkg_palette(0u, 1u, pu_bkg0_black);
+    set_bkg_palette(PAL_WALL_BG, 1u, pu_metal_ramp);
     wait_vbl_done();
     if (pending_pickup_slot >= MAX_GROUND_ITEMS
             || ground_item_kind[pending_pickup_slot] == ITEM_KIND_NONE) {

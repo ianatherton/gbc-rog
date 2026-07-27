@@ -86,7 +86,9 @@ static int16_t player_override_wy = -1;
 static int16_t player_override_aura_wx = -1; // glide only — world pos for aura (no walk bob on Y)
 static int16_t player_override_aura_wy = -1;
 static uint8_t player_flip_x;
-static uint8_t player_walk_sub;   // advances each refresh while gliding; drives the k14/k15 walk gait (0 when idle)
+static uint8_t player_walk_vbl_sub; // VBLs elapsed inside the current walk-frame hold window
+static uint8_t player_walk_phase;   // 0..2 — index into player_walk_tiles[]; 0 is the standing pose
+static uint8_t player_walk_ttl;     // >0 = still walking; re-armed every glide frame, lapses when the hero stops
 static uint8_t player_hurt_flash_ttl;
 static uint8_t player_hurt_flash_restore_needed; // 1 after flash until OCP2 restored to gold
 static uint8_t player_cache_tx, player_cache_ty; // last refresh tile — VBL hurt blink repaints without full refresh
@@ -109,6 +111,11 @@ static uint8_t oam_enemy_hide_mark;                 // SP_ENEMY_BASE + num_enemi
 #define ENEMY_POOF_DURATION_VBL 22u // ~370ms @60Hz — overlaps corpse then clears
 #define ENEMY_HIT_FLASH_VBL     8u // two 2-VBL pulses OCP0 vs native — ages 1..8 then clear
 #define PLAYER_AURA_TOGGLE_VBL  15u // ~0.25s @ ~60Hz — M15 ↔ M16 (was every VBL; too fast to read)
+#define PLAYER_WALK_FRAME_VBL   18u // ~300ms @ ~59.7Hz (18 x 16.74ms = 301ms) — one 3-frame walk loop = ~0.9s
+#define PLAYER_WALK_LAPSE_VBL   20u // ~335ms of no glide before the gait settles to standing. Must comfortably
+                                    // exceed the gap between consecutive steps (turn resolution + strip draws)
+                                    // or a held direction would settle mid-walk; overshooting only delays the
+                                    // settle after you actually stop, which is the far cheaper failure.
 #define LEVEL_UP_SMILE_DURATION_VBL 120u // 2s @~60Hz VBL — L10 smile replaces aura toggle while active
 
 static uint8_t lunge_amt_for_frame(uint8_t t) { // 0 .. 4 .. 0 over ENTITY_LUNGE_FRAMES (keep FRAMES >= 4)
@@ -388,7 +395,9 @@ void entity_sprites_init(void) BANKED {
     player_override_aura_wx = -1;
     player_override_aura_wy = -1;
     player_flip_x = 0u;
-    player_walk_sub = 0u;
+    player_walk_vbl_sub = 0u;
+    player_walk_phase = 0u;
+    player_walk_ttl = 0u;
     player_hurt_flash_ttl = 0u;
     player_hurt_flash_restore_needed = 0u;
     oam_enemy_hide_mark = 255u;
@@ -477,12 +486,19 @@ static uint8_t player_head_tile_vram(void) {
     return TILE_PLAYER_HEAD_VRAM;
 }
 
-// Body tile: alternate standing/mid-stride while the hero is gliding (a move step is in flight → override set);
-// hold standing when idle. player_walk_sub advances one per refresh so a single tile step reads stand→stride.
+static const uint8_t player_walk_tiles[3] = {
+    TILE_PLAYER_BODY_STAND_VRAM, TILE_PLAYER_BODY_STRIDE_VRAM, TILE_PLAYER_BODY_STRIDE2_VRAM
+};
+
+// Body tile: pure lookup into the 3-frame loop. There is deliberately no "is a glide in flight" test here —
+// that was the flicker. A glide covers only the ~134ms a tile step is in motion, so keying off it handed K14
+// both its own slot in the loop AND every gap between steps (each glide ends with clear_player_world + a
+// refresh, which repainted it), and frames 2/3 never got their share. Walking vs stopped is instead tracked by
+// player_walk_ttl, which entity_sprites_vbl_tick re-arms per glide frame and lets lapse ~335ms after the hero
+// stops — at which point it parks the phase back on 0 (standing) and repaints. So: steady gait while walking,
+// no animation at all while standing still.
 static uint8_t player_body_tile_vram(void) {
-    if (player_override_wx < 0) { player_walk_sub = 0u; return TILE_PLAYER_BODY_STAND_VRAM; }
-    player_walk_sub++;
-    return ((player_walk_sub >> 2) & 1u) ? TILE_PLAYER_BODY_STRIDE_VRAM : TILE_PLAYER_BODY_STAND_VRAM;
+    return player_walk_tiles[player_walk_phase];
 }
 
 static void refresh_player_oam_from_cache(void) { // player only — same math as entity_sprites_refresh player block
@@ -806,6 +822,18 @@ void entity_sprites_vbl_tick(void) BANKED {
             player_aura_vbl_sub = 0u;
             player_aura_ab_idx ^= 1u;
         }
+        if (player_walk_ttl > 0u) { // walk clock — runs on walking time only, so the 3 frames get equal share
+            player_walk_ttl--;
+            if (++player_walk_vbl_sub >= PLAYER_WALK_FRAME_VBL) {
+                player_walk_vbl_sub = 0u;
+                if (++player_walk_phase >= 3u) player_walk_phase = 0u;
+            }
+            if (player_walk_ttl == 0u) { // hero stopped: park on the standing pose and repaint once, since
+                player_walk_vbl_sub = 0u; // nothing else redraws the body while idle (no turns, no refreshes)
+                player_walk_phase = 0u;
+                refresh_player_oam_from_cache();
+            }
+        }
         refresh_player_aura_oam_vbl();
         if (enemy_effects_count) {
             g_cam_tx     = (uint8_t)(camera_px >> 3);
@@ -869,6 +897,7 @@ void entity_sprites_vbl_tick(void) BANKED {
 
 BANKREF(entity_sprites_set_player_world)
 void entity_sprites_set_player_world(int16_t spr_wx, int16_t spr_wy, int16_t aura_wx, int16_t aura_wy) BANKED {
+    player_walk_ttl = PLAYER_WALK_LAPSE_VBL; // called once per glide frame — re-arms the gait for as long as we move
     player_override_wx = spr_wx;
     player_override_wy = spr_wy;
     player_override_aura_wx = aura_wx;

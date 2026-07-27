@@ -15,7 +15,7 @@ SRAM (battery RAM) is currently unused — free for saves later.
 
 | Bank | Used | % | Contents |
 |------|------|----|----------|
-| 0 (fixed) | 15,819 of 16,368 usable | 97% | main loop, ability_dispatch, ally, biome dispatch + `enemy_defs` HOME cache, enemy_extras, lcd, lighting (incl. SVBK fog/water/road accessors + `wram2_read_byte` batch reader), music driver + SFX, perf, seed_entropy, targeting, tileset_io, title_logo, ui_loading_isr, wall_palettes, SDCC runtime. **562 B free (re-measured 2026-07-26 as _CODE+_HOME+_GSINIT/_GSFINAL/_INITIALIZER; the older "~137 B" figure used a different, unreproducible reckoning) — keep HOME lean.** The 2-tall tree's two half-tile uploads in `main.c` cost 26 B of that. The lit-floor gates in `lighting.c` were rewritten from `floor_biome == BIOME_OVERWORLD \|\| floor_biome == BIOME_TOWN` to the range test `floor_kind == FLOORKIND_HUB \|\| floor_kind >= FLOORKIND_TOWN` — one compare instead of two, and it picks up encounters for free. `dungeon.h` keeps TOWN/ENCOUNTER adjacent specifically so that idiom stays valid; put any future lit outdoor kind at the top of that list. |
+| 0 (fixed) | 15,832 of 16,368 usable | 97% | main loop, ability_dispatch, ally, biome dispatch + `enemy_defs` HOME cache, enemy_extras, lcd, lighting (incl. SVBK fog/water/road accessors + `wram2_read_byte` batch reader), music driver + SFX, perf, seed_entropy, targeting, tileset_io, title_logo, ui_loading_isr, wall_palettes, SDCC runtime. **536 B free (re-measured 2026-07-26 as _CODE+_HOME+_GSINIT/_GSFINAL/_INITIALIZER; the older "~137 B" figure used a different, unreproducible reckoning) — keep HOME lean.** The 2-tall tree's two half-tile uploads in `main.c` cost 26 B of that, and the hero's 3rd walk frame added a 5th `set_sprite_data` to `biome_load_active` for 13 B. The lit-floor gates in `lighting.c` were rewritten from `floor_biome == BIOME_OVERWORLD \|\| floor_biome == BIOME_TOWN` to the range test `floor_kind == FLOORKIND_HUB \|\| floor_kind >= FLOORKIND_TOWN` — one compare instead of two, and it picks up encounters for free. `dungeon.h` keeps TOWN/ENCOUNTER adjacent specifically so that idiom stays valid; put any future lit outdoor kind at the top of that list. |
 | 1 | 4,360 | 27% | tileset (png2asset output) |
 | 2 | 16,116 | 98% | gameplay kernel: state_gameplay, map, render, camera, enemy. **268 B free (2026-07-25)** — recovered by evicting the per-move zone classifiers to bank 30 (`zone_confirm_at` / `zone_bump_at` in `gameplay_cold.c`, −268 B) before adding any encounter hooks; `enemy_stat_scale()` also collapsed to a `zone_stat_scale` byte read. **Still the tightest code bank — treat any addition as requiring an eviction first: do not add to this bank without evicting something first (tried hoisting a shared condition into a local var for the item-palette fix — SDCC generated basically the same size either way, ~36-37 B, so "write it cleverly" is not a lever here). Past eviction examples: axe/mace extras → bank 19 (2026-07-06), belt-description helpers → bank 30 `gameplay_cold.c` (2026-07-18); spell-cooldown reset/tick bodies → bank 27 `spells.c` (2026-07-23, freed ~20 B)** |
 | 3 | 12,332 | 75% | all 10 UI states (title → game_over, incl. talk/trade — state_ability is now the full SPELL training/loadout screen) + class_palettes |
@@ -32,7 +32,7 @@ SRAM (battery RAM) is currently unused — free for saves later.
 | 14 | 5,840 | 36% | story_ui + names (deterministic town/dungeon/NPC name generator, `src/names.c`) |
 | 15 | 157 | 1% | scroll_blast |
 | 16 | 644 | 3% | scroll_root, debuff_icon, bow_shoot |
-| 17 | 13,948 | 85% | entity_sprites (incl. `refresh_town_npcs_oam` — wandering villager OAM, borrows the town's always-empty enemy run), scoundrel_fox |
+| 17 | 13,993 | 85% | entity_sprites (incl. `refresh_town_npcs_oam` — wandering villager OAM, borrows the town's always-empty enemy run; the hero's 3-frame walk loop — phase advanced on a free-running clock in `entity_sprites_vbl_tick`, tile picked from `player_walk_tiles[]`), scoundrel_fox |
 | 18 | 5,460 | 33% | bwv527 music data (moved out of bank 5) |
 | 19 | 1,995 | 12% | combat (moved out of bank 2; per-turn, far-call boundary is cheap) + `combat_player_melee_extras` (axe cleave / mace stun, evicted from bank 2) |
 | 20 | 1,370 | 8% | equipment (`EquipStatDef` table, `items_equip_apply`, `items_equip_slot`, `equipped_kind_in_slot`) |
@@ -154,9 +154,15 @@ Rules for adding banked-WRAM data (the `exp2_*` accessors in `src/lighting.c` ar
   outside `title_logo_bkg_vram_slot[]`; (c) it is outside every multi-tile START+COUNT range — today
   that means **176..191**, the char-create 2x class emblem (`state_char_create.c`), which restores
   those 16 slots from sheet tiles 48..63 on exit. Test (c) is the one that bites: the canopy was
-  first put on 191 (P4) and came back as P4's dither after character creation. That also rules out
-  186 (K4). No verified-free title-safe slot is left after this change — freeing one means evicting
-  boot-copied art (see the per-biome sprite-sheet path below).
+  first put on 191 (P4) and came back as P4's dither after character creation. No verified-free
+  title-safe slot is left after this change — freeing one means evicting boot-copied art (see the
+  per-biome sprite-sheet path below).
+- **Test (c) does NOT apply to art re-uploaded per floor**, only to art boot-copied once. 2026-07-26
+  the hero's 3rd walk frame (K16) took **186 (K4)**, which is inside the 176..191 emblem range:
+  `biome_load_active` re-uploads the whole hero set on every floor entry and always runs after char
+  create, so the emblem restore can't outlive it — the same reason `TILE_PLAYER_HELMET_VRAM` (177)
+  has always worked. If you need another slot and can pay a per-floor `set_sprite_data` (13 B of
+  bank 0), the rest of 176..191 is reachable this way; for boot-copied art it stays off-limits.
 - **Bank 0 (~77%)** grows with every new HOME dispatcher/driver. Candidates to evict if
   needed: lighting reveal logic (keep only the asm accessors HOME), perf, title_logo.
 - **Bank 2 (78%)** is the gameplay kernel. Next eviction candidate: enemy AI behaviors into

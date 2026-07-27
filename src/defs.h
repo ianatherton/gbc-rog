@@ -229,15 +229,17 @@ typedef struct {
 #define TILE_B6              81  /* B6 — unused placeholder (ladder/fence); reused as torch-frame decor on the title screen */
 
 /* ── 2-tile-tall hero sprite (shared by all classes; one fixed grey/dark-blue/gold palette) ──
-   Head (top OAM = SP_PLAYER_HEAD) + body (bottom OAM = SP_PLAYER). Body animates between a
-   standing and a mid-stride frame while walking; the head swaps to a helmet graphic when a
-   HEAD-slot item is worn. ROM sources are column-K rows 13–15 (sheet index > 127, so NOT in the
-   boot bulk upload) — main.c boot-copies each into the now-freed B1–B4 class VRAM slots. */
+   Head (top OAM = SP_PLAYER_HEAD) + body (bottom OAM = SP_PLAYER). Body runs a 3-frame walk loop
+   (stand → stride A → stride B) while walking; the head swaps to a helmet graphic when a
+   HEAD-slot item is worn. ROM sources are column-K rows 13–16 (sheet index > 127, so NOT in the
+   boot bulk upload) — biome_load_active copies each into the now-freed B1–B4 class VRAM slots
+   (plus the borrowed K4 slot for the 3rd body frame) on every floor entry. */
 #define TILE_SHEET_K13     202u /* K13 — bare head        ROM (13-1)*16+10 */
 #define TILE_SHEET_K14     218u /* K14 — body standing    ROM (14-1)*16+10 */
-#define TILE_SHEET_K15     234u /* K15 — body mid-stride  ROM (15-1)*16+10 */
-#define TILE_SHEET_HELMET1 TILE_ITEM_5 /* helmeted head = I5 helmet item art for now; K12 (ROM 186) is
-                                          still blank — repoint here when dedicated head art is drawn */
+#define TILE_SHEET_K15     234u /* K15 — body stride A    ROM (15-1)*16+10 */
+#define TILE_SHEET_K16     250u /* K16 — body stride B    ROM (16-1)*16+10 */
+#define TILE_SHEET_HELMET1 TILE_ITEM_5 /* helmeted head = I5 helmet item art for now; K12 (sheet index 186)
+                                          now has head art drawn — repoint here once it's finished */
 
 /* Witch hat (H6): item icon + worn-head art in one tile. H6's natural VRAM slot (215) is taken by
    the boot-copied ring icon, so the art borrows the unused M6 slot instead (sheet 92, never placed;
@@ -250,6 +252,13 @@ typedef struct {
 #define TILE_PLAYER_BODY_STRIDE_VRAM ((uint8_t)(TILESET_VRAM_OFFSET + TILE_CLASS_BERSERKER)) /* 145 — freed B2 slot */
 #define TILE_PLAYER_HEAD_VRAM        ((uint8_t)(TILESET_VRAM_OFFSET + TILE_CLASS_WITCH))     /* 161 — freed B3 slot */
 #define TILE_PLAYER_HELMET_VRAM      ((uint8_t)(TILESET_VRAM_OFFSET + TILE_CLASS_SCOUNDREL)) /* 177 — freed B4 slot */
+/* 3rd walk frame borrows the unused K4 VRAM slot (186 = sheet cell K4, index 58: no TILE_* constant
+   names 58 — its neighbours TILE_MONSTER_2 57 / TILE_FLOOR_DECO_4 59 do — and no _VRAM constant names
+   186). Beware the number collision: TILE_SHEET_K16's neighbour K12 has *sheet index* 186; this is a
+   *VRAM slot* 186, a different thing. 186 sits inside the char-create 2x emblem range 176..191, which
+   is fine for hero art specifically — biome_load_active re-uploads these every floor entry, always
+   after char create, exactly like TILE_PLAYER_HELMET_VRAM (177) already does. */
+#define TILE_PLAYER_BODY_STRIDE2_VRAM 186u /* borrows unused K4 VRAM slot */
 
 /* Class emblems on sheet: each is 2×2 (row 15–16 1-based). Knight = A15 B15 / A16 B16 → VRAM order TL,TR,BL,BR */
 /* TL index below is A15 for Knight; Scoundrel C15; Witch E15; Zerker G15 (16-wide sheet: BR = TL+17).          */

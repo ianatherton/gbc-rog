@@ -33,6 +33,10 @@
 #define DUNGEON_BASE_FLOOR(d)  (uint8_t)((d) * 4u + 1u)
 #define DUNGEON_BOSS_FLOOR(d)  (uint8_t)((d) * 4u + 4u)
 #define DUNGEON_GUARD_FLOOR(d) (uint8_t)(GUARD_FLOOR_BASE + (d))
+// Monster level of dungeon d — the enemy HP/damage multiplier, flat across all 4 of its floors
+// (see monster_level, globals.h). Dungeons 0-2/3-5/6-8 ring towns 0/1/2 by entrance placement
+// order, and each sits one step above that town's encounters (which are 1 + 2*enc_region).
+#define DUNGEON_MONSTER_LEVEL(d) ((d) >= 6u ? 6u : ((d) >= 3u ? 4u : 2u))
 
 // Floor kinds — orthogonal to floor_biome (which is DUNGEON/CRYPT/CAVERN for a
 // whole dungeon, guardroom through boss). Set by floor_kind_for(floor_num).

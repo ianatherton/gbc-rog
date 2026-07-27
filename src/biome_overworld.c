@@ -485,14 +485,12 @@ void overworld_signpost_read(uint8_t aux) BANKED {
         buf[0] = dirs[num][0]; buf[1] = dirs[num][1];
         for (i = 0u; s[i]; i++) buf[2u + i] = s[i]; buf[2u + i] = 0;
     } else if (kind == SIGN_KIND_DUNGEON) {
-        // "DNG3 F09-12" — fixed depth band of dungeon `num` (dungeon.h); '*' suffix once completed
-        uint8_t fb = (uint8_t)(num * 4u + 1u), fe = (uint8_t)(num * 4u + 4u);
+        // "DNG3 LV4" — monster level of dungeon `num`, flat across its 4 floors (dungeon.h), so the
+        // player can scout how hard it hits from the hub; '*' suffix once completed
         buf[0] = 'D'; buf[1] = 'N'; buf[2] = 'G'; buf[3] = (char)('1' + num);
-        buf[4] = ' '; buf[5] = 'F';
-        buf[6] = (char)('0' + fb / 10u); buf[7] = (char)('0' + fb % 10u);
-        buf[8] = '-';
-        buf[9] = (char)('0' + fe / 10u); buf[10] = (char)('0' + fe % 10u);
-        i = 11u;
+        buf[4] = ' '; buf[5] = 'L'; buf[6] = 'V';
+        buf[7] = (char)('0' + DUNGEON_MONSTER_LEVEL(num));
+        i = 8u;
         if (dungeon_complete_mask & (uint16_t)((uint16_t)1u << num)) buf[i++] = '*';
         buf[i] = 0;
     } else if (kind == SIGN_KIND_NPC) { // villager bump-to-talk (town_npc_blocks, biome_town.c) — num = villager index, canned line by index
@@ -838,7 +836,12 @@ static uint8_t ow_cell_batch(uint8_t mx, uint8_t my, uint8_t t, uint8_t wb) {
             }
         for (i = 0u; i < MAX_GROUND_ITEMS; i++)
             if (ground_item_kind[i] != ITEM_KIND_NONE && ground_item_x[i] == mx && ground_item_y[i] == my) {
-                owb_attr = PAL_ITEM_GOLD_BG;
+                // Gold on the fire/ladder ramp, NOT PAL_ITEM_GOLD_BG. That name is slot 6, which every floor
+                // reaching this function (hub/town/encounter) overwrites with its green tree/cover ramp — a
+                // dropped bag drawn with it reads as ground. Slot 4 is left alone by encounter_palettes_apply
+                // and apply_wall_palette's outdoor branches, so it keeps the static gold. Same trick as
+                // PAL_XP_UI_BG and render.c's dungeon-vs-grass item branch.
+                owb_attr = PAL_LADDER;
                 return (uint8_t)(TILESET_VRAM_OFFSET + TILE_ITEM_4);
             }
         if (wb & OWB_ROAD) { // road: the dungeon-floor A1 texture in the sand ramp (uniform, no scatter)

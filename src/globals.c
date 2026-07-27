@@ -91,14 +91,14 @@ uint8_t pending_talk_npc;
 uint8_t town_barrels_broken[TOWN_COUNT * 3u];
 
 // Hub '?' encounters — see globals.h. All BSS; world_tick is reset by level_init on a fresh run,
-// and zone_stat_scale is written on every floor load before any enemy stat is read.
+// and monster_level is written on every floor load before any enemy stat is read.
 uint8_t world_tick;
 uint8_t enc_marker_count;
 uint8_t enc_template;
 uint8_t enc_region;
 uint8_t enc_return_x;
 uint8_t enc_return_y;
-uint8_t zone_stat_scale;
+uint8_t monster_level;
 
 volatile uint8_t inv_desc_scx; // BSS 0 — see globals.h
 

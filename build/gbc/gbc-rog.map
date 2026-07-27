@@ -186,8 +186,8 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00002E35  l__CODE_2 |    00003000  _rROMB1   |    000030C2  l__CODE_3
-     0000322D  l__CODE   |    000033F0  l__CODE_5 |    0000342D  s__HOME  
+     00002E12  l__CODE_2 |    00003000  _rROMB1   |    000030C2  l__CODE_3
+     0000322D  l__CODE   |    0000336B  l__CODE_5 |    0000342D  s__HOME  
      000036A9  l__CODE_1 |    00003EF4  l__CODE_2 |    00003F9E  s__BASE  
      00003F9E  s__CODE_0 |    00003F9E  s__INITIA |    00003F9E  s__LIT   
      00003FCB  s__GSINIT |    00003FD7  s__GSFINA |    00004000  _rMBC7_SR
@@ -550,7 +550,7 @@ _DATA                  0000C0A0    00001D6F =        7535. bytes (REL,CON)
      0000C2E4  _pending_ |    0000C2E5  _player_t |    0000C2E6  _town_sho
      0000C2E9  _pending_ |    0000C2EA  _town_bar |    0000C2F3  _world_ti
      0000C2F4  _enc_mark |    0000C2F5  _enc_temp |    0000C2F6  _enc_regi
-     0000C2F7  _enc_retu |    0000C2F8  _enc_retu |    0000C2F9  _zone_sta
+     0000C2F7  _enc_retu |    0000C2F8  _enc_retu |    0000C2F9  _monster_
      0000C2FA  _inv_desc |    0000C2FB  _ow_featu |    0000C3AB  _ow_featu
      0000C3AC  _lcd_game |    0000C3AD  _lcd_shak |    0000C3AE  _lcd_shak
      0000C84F  _ui_loadi |    0000C850  _ui_load_ |    0000C851  _enemy_x 
@@ -676,7 +676,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_5                00054000    000033F0 =       13296. bytes (REL,CON)
+_CODE_5                00054000    0000336B =       13163. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -685,11 +685,11 @@ _CODE_5                00054000    000033F0 =       13296. bytes (REL,CON)
      0005526F  _ui_push_ |    000555EB  _ui_push_ |    000557F4  _ui_push_
      000559CB  _ui_push_ |    00055AD0  _ui_comba |    00055B12  _seed_wor
      00055B62  _seed_wor |    00055BB2  _seed_wor |    00056018  _ui_draw_
-     00056BEC  _run_seed |    00056C69  _ui_map_p |    00056CEC  _ui_game_
-     00056D2D  _window_u |    00056D82  _window_u |    00056D89  _ui_loadi
-     00056DEE  _ui_loadi |    00056DFF  _ui_draw_ |    00056E68  _ui_draw_
-     00056EEF  _ui_panel |    00056EF4  _ui_panel |    00056F04  _ui_panel
-     00056F10  _ui_panel |    00057300  _title_sc
+     00056B67  _run_seed |    00056BE4  _ui_map_p |    00056C67  _ui_game_
+     00056CA8  _window_u |    00056CFD  _window_u |    00056D04  _ui_loadi
+     00056D69  _ui_loadi |    00056D7A  _ui_draw_ |    00056DE3  _ui_draw_
+     00056E6A  _ui_panel |    00056E6F  _ui_panel |    00056E7F  _ui_panel
+     00056E8B  _ui_panel |    0005727B  _title_sc
 ASxxxx Linker V03.00/V05.40 + sdld,  page 36.
 Hexadecimal  [32-Bits]
 
@@ -894,7 +894,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_22               00164000    00002E35 =       11829. bytes (REL,CON)
+_CODE_22               00164000    00002E12 =       11794. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -907,14 +907,14 @@ _CODE_22               00164000    00002E35 =       11829. bytes (REL,CON)
      00164E35  ___func_o |    00164E35  _overworl |    00164E8F  ___func_o
      00164E8F  _overworl |    00164F83  ___func_o |    00164F83  _overworl
      0016520B  ___func_o |    0016520B  _overworl |    00165243  ___func_o
-     00165243  _overworl |    0016567B  ___func_o |    0016567B  _overworl
-     0016619E  ___func_o |    0016619E  _overworl |    00166419  ___func_o
-     00166419  _overworl |    001666BC  ___func_r |    001666BC  _render_b
-     00166768  ___func_r |    00166768  _render_b |    00166816  ___func_w
-     00166816  _water_an |    00166826  ___func_w |    00166826  _water_an
-     001668D6  ___func_e |    001668D6  _encounte |    00166A81  ___func_a
-     00166A81  _apply_wa |    00166CC4  ___func_a |    00166CC4  _apply_fi
-     00166D68  ___func_l |    00166D68  _load_pal
+     00165243  _overworl |    00165658  ___func_o |    00165658  _overworl
+     0016617B  ___func_o |    0016617B  _overworl |    001663F6  ___func_o
+     001663F6  _overworl |    00166699  ___func_r |    00166699  _render_b
+     00166745  ___func_r |    00166745  _render_b |    001667F3  ___func_w
+     001667F3  _water_an |    00166803  ___func_w |    00166803  _water_an
+     001668B3  ___func_e |    001668B3  _encounte |    00166A5E  ___func_a
+     00166A5E  _apply_wa |    00166CA1  ___func_a |    00166CA1  _apply_fi
+     00166D45  ___func_l |    00166D45  _load_pal
 ASxxxx Linker V03.00/V05.40 + sdld,  page 53.
 Hexadecimal  [32-Bits]
 

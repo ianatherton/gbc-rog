@@ -162,21 +162,22 @@ void enemy_place_slot_far(uint8_t slot, uint8_t x, uint8_t y) BANKED {
     enemy_place_slot(slot, x, y);
 }
 
-// Difficulty is a single per-floor multiplier, computed once at gen time (map_gen.c) and parked in
-// zone_stat_scale. Dungeons step by town tier — all 3 dungeons around a town share one multiplier
-// (dungeons 0-2 / 3-5 / 6-8 belong to towns 0/1/2, by entrance placement order), x1 / x3 / x5;
-// floors within a dungeon don't raise it. Encounters take the tier of their marker's region, so a
-// snow '?' hits as hard as a snow dungeon. Reading a byte here rather than re-deriving it keeps
-// bank 2 small — this is on the hot path, called per spawn and per hit.
+// Difficulty is a single per-floor multiplier, computed once at gen time (map_gen.c), parked in
+// monster_level and shown behind the HUD's skull. Dungeons step by town tier — all 3 dungeons
+// around a town share one multiplier (dungeons 0-2 / 3-5 / 6-8 belong to towns 0/1/2, by entrance
+// placement order), x2 / x4 / x6; floors within a dungeon don't raise it. Encounters take the tier
+// of their marker's region (x1 / x3 / x5), one step under the dungeons off the same town, so a snow
+// '?' hits as hard as a desert dungeon. Reading a byte here rather than re-deriving it keeps bank 2
+// small — this is on the hot path, called per spawn and per hit.
 uint8_t enemy_effective_max_hp(uint8_t type) BANKED {
     if (type >= NUM_ENEMY_TYPES) return 1u;
-    { uint16_t v = (uint16_t)enemy_defs[type].max_hp * (uint16_t)zone_stat_scale;
+    { uint16_t v = (uint16_t)enemy_defs[type].max_hp * (uint16_t)monster_level;
       return (v > 255u) ? 255u : (uint8_t)v; }
 }
 
 uint8_t enemy_effective_damage(uint8_t type) BANKED {
     if (type >= NUM_ENEMY_TYPES) return 1u;
-    { uint16_t v = (uint16_t)enemy_defs[type].damage * (uint16_t)zone_stat_scale;
+    { uint16_t v = (uint16_t)enemy_defs[type].damage * (uint16_t)monster_level;
       return (v > 255u) ? 255u : (uint8_t)v; }
 }
 

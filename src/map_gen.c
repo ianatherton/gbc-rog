@@ -377,16 +377,19 @@ void generate_level(uint16_t floor_seed) BANKED { // full regen: clears map, wal
             active_map_w = MAP_W; // hub + normal dungeon floors; towns/encounters re-size themselves in their generators
             active_map_h = MAP_H;
         }
-        // One multiplier per floor, read back by enemy_effective_max_hp/damage (bank 2). Dungeons
-        // step by town tier (dungeons 0-2/3-5/6-8 ring towns 0/1/2, by entrance placement order);
-        // an encounter inherits the tier of the region its '?' stood in, so the difficulty curve is
-        // the same whichever way the player leaves a town.
+        // The monster level of this floor: one multiplier, read back by enemy_effective_max_hp/
+        // damage (bank 2) and shown in the HUD. Each town's ring interleaves with its dungeons —
+        // town 1: encounters 1, dungeons 2; town 2: 3 / 4; town 3: 5 / 6 — so leaving a town by
+        // either door is a known step up. An encounter inherits the tier of the region its '?'
+        // stood in. Floors within a dungeon don't raise it.
+        // Towns/hub/guardrooms-of-nothing stay 1 rather than 0: nothing spawns there, and a 0 would
+        // make enemy_effective_* multiply out to zero if anything ever did. The HUD shows towns as
+        // level 0 on the display side (ui.c) instead.
         {
             uint8_t d = FLOOR_DUNGEON_ID(floor_num);
-            zone_stat_scale = (lk == FLOORKIND_ENCOUNTER) ? (uint8_t)(1u + (uint8_t)(enc_region * 2u))
-                            : (d == DUNGEON_NONE)         ? 1u
-                            : (d >= 6u)                   ? 5u
-                            : (d >= 3u)                   ? 3u : 1u;
+            monster_level = (lk == FLOORKIND_ENCOUNTER) ? (uint8_t)(1u + (uint8_t)(enc_region * 2u))
+                          : (d == DUNGEON_NONE)         ? 1u
+                          : DUNGEON_MONSTER_LEVEL(d);
         }
     }
     {

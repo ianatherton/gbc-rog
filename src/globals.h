@@ -108,7 +108,7 @@ extern uint8_t enc_template;     // ENC_DEFS[] row of the encounter being entere
 extern uint8_t enc_region;       // OW_REGION_* under the marker → terrain art, palette AND difficulty tier
 extern uint8_t enc_return_x;     // hub cell the marker stood on — where leaving puts you back
 extern uint8_t enc_return_y;
-extern uint8_t zone_stat_scale;  // enemy HP/damage multiplier for this floor; set once per floor load
+extern uint8_t monster_level;    // enemy HP/damage multiplier for this floor, and the HUD's skull number; set once per floor load
 
 /* story_ui layout constants — scratch overlays floor_bits[] before first generate_level (see story_ui.c) */
 #define G_STORY_BIGBUF_CAP   400u

@@ -16,7 +16,7 @@ BANKREF(ui)
 #include "title_logo.h"  // title_logo_* — tileset ROM read in HOME (not bank 5) to avoid MBC mismatch crashes
 #include "tileset_io.h"  // tileset_read_tiles — true L6/L7/L8 art (their native VRAM slots are borrowed by other icons)
 #include "items.h"       // items_kind_tile/palette — belt right-half mirrors inventory_kind[0..3]
-#include "dungeon.h"     // GUARD_FLOOR_BASE — HUD shows "<k>G" on guardroom floors
+#include "dungeon.h"     // FLOORKIND_TOWN — HUD shows monster level 0 in towns
 #include "ally.h"
 
 BANKREF_EXTERN(load_palettes)
@@ -864,7 +864,7 @@ static void ui_draw_belt_placeholder_row(void) { // trim [SPELL] s0 s1 [ITEM] i0
     while (x < UI_PANEL_COLS) ui_put_border(x++, UI_BELT_WIN_Y, TILE_UI_BORDER_H, 0u);
 }
 
-static void ui_draw_top_hud(void) { // bottom window row: L:♥×5 HP% XP% FLOORdd
+static void ui_draw_top_hud(void) { // bottom window row: L:♥×5 HP% XP% ☠:n
     uint8_t hy = UI_HUD_WIN_Y, tx = 0;
     uint8_t k, pct = (uint8_t)((uint16_t)player_hp * 100u / player_hp_max);
     uint8_t prev_pct = (uint8_t)((uint16_t)player_hp_prev * 100u / player_hp_max);
@@ -907,22 +907,17 @@ static void ui_draw_top_hud(void) { // bottom window row: L:♥×5 HP% XP% FLOOR
     win_putc_pal(tx++, hy, (char)('0' + xp_pct / 10u), PAL_XP_UI_BG);
     win_putc_pal(tx++, hy, (char)('0' + xp_pct % 10u), PAL_XP_UI_BG);
     win_putc_pal(tx++, hy, '%', PAL_XP_UI_BG);
-    vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_FLOOR_L);
+    // Monster level: the multiplier every enemy's base HP/damage is scaled by on this floor
+    // (map_gen.c). Skull icon reuses TILE_LOADING_SKULL — a sub-128 sheet cell, so it rides
+    // main.c's bulk set_bkg_data with no boot copy and no borrowed VRAM slot. Towns read 0
+    // (nothing spawns there); guardrooms need no case of their own, since FLOOR_DUNGEON_ID
+    // resolves 37..45 to their dungeon and so they preview the level waiting down the pit.
+    // The ladder tops out at 6, so one digit always suffices.
+    vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_LOADING_SKULL);
     set_win_tile_xy(tx, hy, vram);
     set_win_attribute_xy(tx++, hy, PAL_UI);
-    vram = (uint8_t)(TILESET_VRAM_OFFSET + TILE_UI_FLOOR_R);
-    set_win_tile_xy(tx, hy, vram);
-    set_win_attribute_xy(tx++, hy, PAL_UI);
-    if (floor_num >= TOWN_FLOOR_BASE) { // town 46..48 → "<town#>T"
-        win_putc_pal(tx++, hy, (char)('1' + (uint8_t)(floor_num - TOWN_FLOOR_BASE)), PAL_UI);
-        win_putc_pal(tx++, hy, 'T', PAL_UI);
-    } else if (floor_num >= GUARD_FLOOR_BASE) { // guardroom key 37..45 → show "<dungeon#>G" instead
-        win_putc_pal(tx++, hy, (char)('1' + (uint8_t)(floor_num - GUARD_FLOOR_BASE)), PAL_UI);
-        win_putc_pal(tx++, hy, 'G', PAL_UI);
-    } else {
-        win_putc_pal(tx++, hy, (char)('0' + floor_num / 10u), PAL_UI);
-        win_putc_pal(tx++, hy, (char)('0' + floor_num % 10u), PAL_UI);
-    }
+    win_putc_pal(tx++, hy, ':', PAL_UI);
+    win_putc_pal(tx++, hy, (char)('0' + ((floor_kind == FLOORKIND_TOWN) ? 0u : monster_level)), PAL_UI);
     while (tx < GRID_W) win_put_space(tx++, hy);
 }
 

@@ -743,8 +743,11 @@ typedef struct {
 #define TILE_FLAG_F2_VRAM 254u   /* free OBJ slot — boot-copied from C7 */
 
 /* ── N+O col — HUD / UI tiles ───────────────────────────────────────────── */
-#define TILE_UI_FLOOR_L     13   /* N1  - left portion of "FLOOR" word     */
-#define TILE_UI_FLOOR_R     14   /* O1  - right portion of "FLOOR" word    */
+/* N1/O1 held the "FLOOR" word until the HUD switched to the skull + monster-level readout
+   (ui.c). Both are FREE sub-128 sheet cells now — no boot copy, no borrowed VRAM slot needed
+   to reuse them; only P2 (31) and P3 (47) are otherwise free down here. Art still in the png. */
+#define TILE_UI_FREE_N1     13   /* N1  - unused, reusable BG tile         */
+#define TILE_UI_FREE_O1     14   /* O1  - unused, reusable BG tile         */
 #define TILE_UI_HEART_FULL  29   /* N2  - full heart                       */
 #define TILE_UI_HEART_HALF  30   /* O2  - half heart                       */
 #define TILE_UI_SPELL_L     61u  /* N4  - "SPELL" label left                 */

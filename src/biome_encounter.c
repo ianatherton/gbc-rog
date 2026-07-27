@@ -35,7 +35,7 @@ BANKREF_EXTERN(town_barrel_try_drop_item)
 
 // ── Encounter templates ──────────────────────────────────────────────────────────────────────
 // Deliberately terrain-free: no row names a region. Adding an encounter is one row here.
-// n_enemies is the pre-tier fodder count; enemy stats are then multiplied by zone_stat_scale.
+// n_enemies is the pre-tier fodder count; enemy stats are then multiplied by monster_level.
 typedef struct {
     uint8_t size;      // map side in tiles, 24..50 (must stay >= GRID_W/GRID_H — asserted below)
     uint8_t n_enemies; // fodder to spawn

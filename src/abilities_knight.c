@@ -83,11 +83,10 @@ static void cast_sanctify(uint8_t rank, uint8_t px, uint8_t py, AbilityResult *o
     out->consumed_turn = 1u;
 }
 
-// Placeholder: heals to full immediately. TODO: heal 25% max HP per turn over 4 turns
-// (a heal-over-time counter) with a sparkle aura.
+// Heal-over-time: 25% max HP per turn for rank+1 turns (rank 3 = full heal; scroll rank 0 = one tick).
+// spells_tick_cooldowns owns the per-turn heal; the first tick lands at the end of the cast turn.
 static void cast_prayer(uint8_t rank, AbilityResult *out) {
-    (void)rank;
-    player_hp = player_hp_max;
+    prayer_hot_turns = (uint8_t)(rank + 1u);
     sfx_shield_sparkle();
     push_short("Prayer!");
     out->consumed_turn = 1u;

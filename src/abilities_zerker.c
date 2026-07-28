@@ -116,10 +116,13 @@ static void cast_throw_axe(uint8_t rank, uint8_t px, uint8_t py, AbilityResult *
     if (killed) { out->did_kill = 1u; out->kill_x = tx; out->kill_y = ty; }
 }
 
-// Placeholder buff: TODO real dmg x3 / dodge-armor -33% while active (needs a buff-turn system).
+// Timed rage buff: 2x basic-melee + axe-cleave damage (combat.c), +1 damage taken per landed
+// enemy hit (enemy_extras.c) while zerk_turns > 0. Deliberately does NOT multiply Whirlwind /
+// Throw Axe — those read player_damage raw (Throw Axe already 2x) and would stack to 4x.
 static void cast_zerk_mode(uint8_t rank, AbilityResult *out) {
-    (void)rank;
-    push_short("Zerk Mode!");
+    static const uint8_t zerk_dur[4] = {3u, 4u, 6u, 8u};
+    zerk_turns = zerk_dur[rank];
+    push_short("ZERK MODE!");
     out->consumed_turn = 1u;
 }
 

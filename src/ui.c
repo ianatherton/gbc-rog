@@ -839,7 +839,12 @@ static void ui_belt_spell_slot(uint8_t s, uint8_t *icon_v, uint8_t *icon_pal) {
         return;
     }
     *icon_v = spells_icon(SPELL_ID(player_class, idx), icon_pal);
-    if (spell_cd[idx] > 0u) *icon_pal = PAL_CORPSE; // recharging → hourglass companion tile
+    /* Timed-buff tints outrank the cooldown grey — these spells sit on cooldown for their whole
+       duration, so a check placed after the spell_cd grey (like the shield's) would never show. */
+    if (idx == 4u && player_class == 0u && prayer_hot_turns)   *icon_pal = PAL_LIFE_UI; // Prayer HoT ticking
+    else if (idx == 5u && player_class == 1u && sniper_turns)  *icon_pal = PAL_LIFE_UI; // Sniper Mode up
+    else if (idx == 5u && player_class == 3u && zerk_turns)    *icon_pal = PAL_LIFE_UI; // Zerk Mode up
+    else if (spell_cd[idx] > 0u) *icon_pal = PAL_CORPSE; // recharging → hourglass companion tile
     else if (idx == 0u && player_class == 0u && knight_shield_active) *icon_pal = PAL_LIFE_UI; // shield buff up (not a cooldown)
     else if (idx == 0u && player_class == 1u && ally_has_type(ALLY_TYPE_FOX)) *icon_pal = PAL_WALL_BG; // fox already out
 }

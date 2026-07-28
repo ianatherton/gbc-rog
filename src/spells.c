@@ -39,7 +39,7 @@ static const SpellDef spell_defs[SPELL_ID_SPAN] = {
     {TILE_KNIGHT_SHIELD_VRAM, PAL_XP_UI_BG, 1u, SPELL_RANK_MAX, 8u, 1u,
      "Sanctify", "Blessed ground"},
     {TILE_KNIGHT_SHIELD_VRAM, PAL_LIFE_UI, 1u, SPELL_RANK_MAX, 15u, 2u,
-     "Prayer", "Restore health"},
+     "Prayer", "Heal 25% x4 turns"},
     {TILE_KNIGHT_SHIELD_VRAM, PAL_LADDER, 1u, SPELL_RANK_MAX, 8u, 1u,
      "Holy Blaze", "Scorch nearby"},
     NOSPELL, NOSPELL,
@@ -55,7 +55,7 @@ static const SpellDef spell_defs[SPELL_ID_SPAN] = {
     {TILE_FOX_J9_VRAM, PAL_LADDER, 1u, SPELL_RANK_MAX, 10u, 1u,
      "Graverob", "Loot the dead"},
     {TILE_WITCH_BOLT_VRAM, PAL_WALL_BG, 1u, SPELL_RANK_MAX, 12u, 1u,
-     "Sniper Mode", "Ranged buff"},
+     "Sniper Mode", "Bow range+dmg buff"},
     NOSPELL, NOSPELL,
     /* ── Witch (16..23) ── */
     {TILE_WITCH_BOLT_VRAM, PAL_WALL_BG, 1u, SPELL_RANK_MAX, 0u, 0u,
@@ -83,7 +83,7 @@ static const SpellDef spell_defs[SPELL_ID_SPAN] = {
     {TILE_ZERKER_WHIRLWIND_VRAM, PAL_WALL_BG, 1u, SPELL_RANK_MAX, 5u, 1u,
      "Throw Axe", "2x ranged (axe)"},
     {TILE_ZERKER_WHIRLWIND_VRAM, PAL_LIFE_UI, 1u, SPELL_RANK_MAX, 15u, 2u,
-     "Zerk Mode", "Rage buff"},
+     "Zerk Mode", "2x dmg, +1 taken"},
     NOSPELL, NOSPELL,
 };
 
@@ -139,6 +139,9 @@ void spells_new_run_reset(void) BANKED {
     // (spells_learned_count — enforced on the SPELL subscreen).
     for (i = 0u; i < SPELLS_PER_CLASS; i++) { spell_rank[i] = 0u; spell_cd[i] = 0u; }
     for (i = 0u; i < BELT_SLOT_COUNT; i++) belt_spell[i] = SPELL_IDX_NONE;
+    prayer_hot_turns = 0u;
+    sniper_turns = 0u;
+    zerk_turns = 0u;
 }
 
 uint8_t spells_learned_count(void) BANKED { // distinct spells with rank > 0 (lock-in gate at 2)
@@ -152,6 +155,17 @@ void spells_floor_reset(void) BANKED {
     uint8_t i;
     for (i = 0u; i < SPELLS_PER_CLASS; i++) spell_cd[i] = 0u;
     book_heal_cooldown_turns = 0u;
+    prayer_hot_turns = 0u;
+    sniper_turns = 0u;
+    zerk_turns = 0u;
+}
+
+static void buff_fade_push(const char *s) { // s is a bank-27 literal — RAM-copy before the banked ui call
+    char buf[16];
+    uint8_t i = 0u;
+    while (s[i] && i < 15u) { buf[i] = s[i]; i++; }
+    buf[i] = 0;
+    ui_combat_log_push(buf);
 }
 
 void spells_tick_cooldowns(void) BANKED {
@@ -159,6 +173,15 @@ void spells_tick_cooldowns(void) BANKED {
     for (i = 0u; i < SPELLS_PER_CLASS; i++)
         if (spell_cd[i] > 0u) spell_cd[i]--;
     if (book_heal_cooldown_turns > 0u) book_heal_cooldown_turns--;
+    if (prayer_hot_turns && player_hp != 0u) { // hp guard: this ticks before the game-over check — must not resurrect
+        uint16_t h = player_hp_max >> 2;
+        if (h == 0u) h = 1u;
+        player_hp += h;
+        if (player_hp > player_hp_max) player_hp = player_hp_max;
+        prayer_hot_turns--;
+    }
+    if (sniper_turns && --sniper_turns == 0u) buff_fade_push("Sniper fades");
+    if (zerk_turns   && --zerk_turns   == 0u) buff_fade_push("Zerk fades");
 }
 
 /* Generic-scroll cast: rank 0 = the weak variant, castable by any class. Routes through

@@ -482,7 +482,7 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
    (ITEM_BOW_STACK_QTY) at pickup. DROP_TABLE_LEN is the single source of the modulus — the
    trade screen's stable stock hashes through items_drop_table_pick, so growing the table
    reshuffles drops AND trader stock for a given seed (expected, keep changes atomic). */
-#define DROP_TABLE_LEN 63u
+#define DROP_TABLE_LEN 62u
 static const uint8_t drop_table[DROP_TABLE_LEN] = {
     ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,
     ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,
@@ -502,7 +502,8 @@ static const uint8_t drop_table[DROP_TABLE_LEN] = {
     (uint8_t)(ITEM_KIND_SPELL_SCROLL_FIRST + 0u),  // Scrl:HolyFire  (knight 0)
     (uint8_t)(ITEM_KIND_SPELL_SCROLL_FIRST + 8u),  // Scrl:CallFox   (scoundrel 0)
     (uint8_t)(ITEM_KIND_SPELL_SCROLL_FIRST + 16u), // Scrl:FetidBolt (witch 0)
-    (uint8_t)(ITEM_KIND_SPELL_SCROLL_FIRST + 17u), // Scrl:SwampRoot (witch 1)
+    /* Scrl:SwampRoot (+17) removed 2026-07-27 — legacy ITEM_KIND_SCROLL_ROOT already drops the same
+       effect at weight 5; the kind's table rows stay so the rank-0 cast core remains reachable. */
     (uint8_t)(ITEM_KIND_SPELL_SCROLL_FIRST + 24u), // Scrl:Whirlwind (zerker 0)
 };
 

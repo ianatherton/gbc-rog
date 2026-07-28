@@ -13,6 +13,14 @@
 BANKREF_EXTERN(enemy_place_slot_far)
 BANKREF_EXTERN(enemy_effective_max_hp)
 
+static void push_lit(const char *s) { // bank-25 ROM literal → RAM before the bank-5 ui call, else it garbles
+    char buf[16];
+    uint8_t i = 0u;
+    while (s[i] && i < 15u) { buf[i] = s[i]; i++; }
+    buf[i] = 0;
+    ui_combat_log_push(buf);
+}
+
 /* Moved out of bank 2 to free space; callers use BANKED mechanism unchanged. */
 BANKREF(enemy_type_short_name_copy)
 void enemy_type_short_name_copy(uint8_t t, char *out, uint8_t cap) BANKED {
@@ -44,6 +52,7 @@ uint8_t enemy_resolve_hit(uint8_t slot) BANKED { // one strike: log line + subtr
         return 1u; // hit fully avoided — no HP change, no panic-flash check
     }
     if (player_armor) hit = (uint8_t)(((uint16_t)hit * (100u - player_armor)) / 100u);
+    if (zerk_turns && hit < 255u) hit++; // Zerk Mode downside — after armor, before formatting so the log matches
 
     p = 0; d = hit;
     logbuf[p++] = 'Y'; logbuf[p++] = 'O'; logbuf[p++] = 'U'; logbuf[p++] = ' '; logbuf[p++] = '-';
@@ -129,7 +138,7 @@ void enemy_slime_split(uint8_t type, uint8_t dx, uint8_t dy, uint8_t px, uint8_t
         if (ni >= num_enemies) num_enemies = (uint8_t)(ni + 1u);
         spawned++;
     }
-    if (spawned > 0u) ui_combat_log_push("SLIME SPLITS!");
+    if (spawned > 0u) push_lit("SLIME SPLITS!");
 }
 
 #define ENEMY_SLIME_BIG_SPAWN_CAP 10u
@@ -216,5 +225,5 @@ void enemy_gorgon_summon(uint8_t slot) BANKED {
         if (ni >= num_enemies) num_enemies = (uint8_t)(ni + 1u);
         spawned++;
     }
-    if (spawned > 0u) ui_combat_log_push("GORGON SUMMONS!");
+    if (spawned > 0u) push_lit("GORGON SUMMONS!");
 }

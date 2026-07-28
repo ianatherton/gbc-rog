@@ -41,6 +41,11 @@ extern uint8_t  spell_rank[SPELLS_PER_CLASS];   // active class, local idx; 0 = 
 extern uint8_t  spell_cd[SPELLS_PER_CLASS];     // per-SPELL cooldown turns (zeroed each floor)
 extern uint8_t  belt_spell[BELT_SLOT_COUNT];    // local spell idx per belt slot, or SPELL_IDX_NONE
 extern uint8_t  knight_shield_active; // holy fire shield buff — set by ability_knight_cast, cleared on floor gen
+/* Timed self-buff counters — spells.c owns the lifecycle (ticked in spells_tick_cooldowns,
+   zeroed in spells_new_run_reset/spells_floor_reset; survive pit/port soft re-entry like spell_cd). */
+extern uint8_t  prayer_hot_turns; // heal 25% max HP per remaining turn (knight Prayer)
+extern uint8_t  sniper_turns;     // bow range 8 + full-damage shots while > 0 (scoundrel Sniper Mode)
+extern uint8_t  zerk_turns;       // 2x melee dmg dealt, +1 dmg taken while > 0 (zerker Zerk Mode)
 extern uint8_t  player_light_bonus;     // candle stack — cleared on floor gen; added to class base light radius
 extern uint8_t  ally_active[MAX_ALLIES];
 extern uint8_t  ally_x[MAX_ALLIES];

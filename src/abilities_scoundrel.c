@@ -85,9 +85,19 @@ static void cast_graverob(uint8_t rank, AbilityResult *out) {
     out->consumed_turn = 1u;
 }
 
-// Placeholder buff: TODO real arrow-save %, +3 light, double-shot % (needs bow_shoot + buff hooks).
+// Timed bow buff: range 4→8 and full-damage shots while sniper_turns > 0 (checked in bow_shoot.c).
+// Fizzles without a bow — no turn, cooldown, or scroll spent. Bow is class-agnostic, so the
+// rank-0 scroll works for anyone carrying one.
 static void cast_sniper_mode(uint8_t rank, AbilityResult *out) {
-    (void)rank;
+    static const uint8_t sniper_dur[4] = {3u, 4u, 6u, 8u};
+    uint8_t i;
+    for (i = 0u; i < INVENTORY_MAX_SLOTS; i++)
+        if (inventory_kind[i] == ITEM_KIND_BOW) break;
+    if (i == INVENTORY_MAX_SLOTS) {
+        push_short("Need Bow");
+        return;
+    }
+    sniper_turns = sniper_dur[rank];
     push_short("Sniper Mode!");
     out->consumed_turn = 1u;
 }

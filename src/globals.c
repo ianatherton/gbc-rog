@@ -55,6 +55,9 @@ uint8_t  spell_rank[SPELLS_PER_CLASS];      // BSS 0 — spells_new_run_reset se
 uint8_t  spell_cd[SPELLS_PER_CLASS];        // BSS 0 — spells_floor_reset zeroes each floor
 uint8_t  belt_spell[BELT_SLOT_COUNT];       // BSS 0 — spells_new_run_reset sets {0, NONE...}
 uint8_t  knight_shield_active;
+uint8_t  prayer_hot_turns;                  // BSS 0 — spells.c resets/ticks
+uint8_t  sniper_turns;                      // BSS 0 — spells.c resets/ticks
+uint8_t  zerk_turns;                        // BSS 0 — spells.c resets/ticks
 uint8_t  player_light_bonus;
 uint8_t  ally_active[MAX_ALLIES];
 uint8_t  ally_x[MAX_ALLIES];

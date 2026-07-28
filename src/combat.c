@@ -141,6 +141,12 @@ uint8_t combat_crit_roll(uint8_t base_damage) BANKED {
     return base_damage;
 }
 
+static uint8_t melee_damage_now(void) { // basic melee + axe cleave only — spell damage stays unbuffed (see cast_zerk_mode)
+    uint8_t d = player_damage;
+    if (zerk_turns) d = (d > 127u) ? 255u : (uint8_t)(d << 1);
+    return d;
+}
+
 BANKREF(combat_player_attacks)
 uint8_t combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, uint8_t ny) BANKED {
     int8_t adx = (nx > px) ? 1 : (nx < px ? -1 : 0);
@@ -156,7 +162,7 @@ uint8_t combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, ui
     }
     entity_sprites_run_player_lunge(px, py, adx, ady, ei); // plays sfx_lunge_hit at the contact frame
     {
-        uint8_t killed = combat_damage_enemy(ei, combat_crit_roll(player_damage), 0u);
+        uint8_t killed = combat_damage_enemy(ei, combat_crit_roll(melee_damage_now()), 0u);
         if (killed) enemy_slime_split(enemy_type[ei], enemy_x[ei], enemy_y[ei], px, py);
         return killed;
     }
@@ -177,7 +183,7 @@ uint8_t combat_player_melee_extras(uint8_t ei) BANKED {
                     dx = (enemy_x[ci] > g_player_x) ? (uint8_t)(enemy_x[ci] - g_player_x) : (uint8_t)(g_player_x - enemy_x[ci]);
                     dy = (enemy_y[ci] > g_player_y) ? (uint8_t)(enemy_y[ci] - g_player_y) : (uint8_t)(g_player_y - enemy_y[ci]);
                     if (dx > 1u || dy > 1u) continue;
-                    if (combat_damage_enemy(ci, combat_crit_roll(player_damage), 0u)) {
+                    if (combat_damage_enemy(ci, combat_crit_roll(melee_damage_now()), 0u)) {
                         cleave_killed = 1u;
                     }
                     hits++;

@@ -6,6 +6,7 @@
 #include "lcd.h"
 #include "ui.h"
 #include "defs.h"
+#include "map.h"        // floor_bits — pre-generate_level scratch for the emblem scale buffers
 #include "tileset.h"
 #include "tileset_io.h"
 #include "class_palettes.h"
@@ -46,15 +47,20 @@ static void class_emblem_draw(uint8_t sel) {
         (uint8_t)TILE_EMBLEM_ZERKER_TL,
     };
     uint8_t base = tl[(unsigned)sel % PLAYER_CLASS_COUNT];
-    uint8_t pack[64]; // 4×16-byte source tiles in map order: TL, TR, BL, BR
-    uint8_t out[256]; // 16×16-byte tiles: true 2× nearest-neighbor scale (16×16 -> 32×32)
+    // pack/out overlay floor_bits[] (1,152 B) instead of living on the stack — same scratch reuse
+    // as story_ui.c: char create always runs before generate_level, which rebuilds floor_bits from
+    // scratch, so nothing leaks. As stack locals these were a ~340 B frame, and fixed-WRAM growth
+    // (enemy_hidden[], 2026-07-27) pushed _DATA's end far enough that the frame + banked-call
+    // trampolines + the music ISR collided with it → garbled emblem tiles and corrupted globals.
+    uint8_t *pack = floor_bits;        // 64 B: 4×16-byte source tiles in map order TL, TR, BL, BR
+    uint8_t *out  = floor_bits + 64u;  // 256 B: 16 tiles — true 2× nearest-neighbor scale (16×16 -> 32×32)
     uint8_t buf[16];
     uint8_t i, j, ox, oy;
     tileset_read_tiles(pack + 0u,  base,                   1u); // HOME shim — bank 3 caller never unmaps itself
     tileset_read_tiles(pack + 16u, (uint8_t)(base + 1u),   1u);
     tileset_read_tiles(pack + 32u, (uint8_t)(base + 16u),  1u);
     tileset_read_tiles(pack + 48u, (uint8_t)(base + 17u),  1u);
-    memset(out, 0, sizeof(out));
+    memset(out, 0, 256u); // NOT sizeof(out) — out is a pointer into floor_bits now
     for (oy = 0u; oy < 32u; oy++) {
         for (ox = 0u; ox < 32u; ox++) {
             uint8_t sx = (uint8_t)(ox >> 1u);

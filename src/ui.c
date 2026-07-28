@@ -1012,7 +1012,7 @@ static void ui_draw_combat_panel(void) {
 static void ui_draw_inspect_panel(void) {
     uint8_t slot = panel_inspect_slot;
     uint8_t t, x;
-    if (slot >= num_enemies || !enemy_alive[slot]) {
+    if (slot >= num_enemies || !enemy_alive[slot] || enemy_hidden[slot]) {
         win_clear_panel_row(UI_PANEL_WIN_Y0);
         win_clear_panel_row(UI_PANEL_WIN_Y1);
         win_clear_panel_row(UI_PANEL_WIN_Y2);

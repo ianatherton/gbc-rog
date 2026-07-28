@@ -535,6 +535,7 @@ uint8_t enemy_try_drop_item(uint8_t dx, uint8_t dy) BANKED {
     uint8_t gi;
     uint8_t kind;
     if (map_tile_is_stairs_or_ladder(dx, dy)) return 0u; // never block stairs/ladders with loot
+    if (!is_walkable(dx, dy)) return 0u;                 // a Ghost can die inside a wall — loot there is unreachable
     if ((rand() % 20u) >= 2u) return 0u;
     for (gi = 0u; gi < MAX_GROUND_ITEMS; gi++) {
         if (ground_item_kind[gi] == ITEM_KIND_NONE) {

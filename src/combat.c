@@ -173,7 +173,7 @@ uint8_t combat_player_melee_extras(uint8_t ei) BANKED {
                 uint8_t ci, hits = 0u;
                 for (ci = 0u; ci < num_enemies && hits < 2u; ci++) {
                     uint8_t dx, dy;
-                    if (!enemy_alive[ci] || ci == ei) continue;
+                    if (!enemy_alive[ci] || enemy_hidden[ci] || ci == ei) continue; // phased-out Ghost isn't cleaved
                     dx = (enemy_x[ci] > g_player_x) ? (uint8_t)(enemy_x[ci] - g_player_x) : (uint8_t)(g_player_x - enemy_x[ci]);
                     dy = (enemy_y[ci] > g_player_y) ? (uint8_t)(enemy_y[ci] - g_player_y) : (uint8_t)(g_player_y - enemy_y[ci]);
                     if (dx > 1u || dy > 1u) continue;

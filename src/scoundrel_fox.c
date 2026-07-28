@@ -91,7 +91,7 @@ static uint8_t fox_pick_aggro_target(uint8_t px, uint8_t py) {
     uint8_t i;
     for (i = 0; i < num_enemies; i++) {
         uint8_t d;
-        if (!enemy_alive[i]) continue;
+        if (!enemy_alive[i] || enemy_hidden[i]) continue; // fox can't see a phased-out Ghost
         d = cheb_dist(enemy_x[i], enemy_y[i], px, py);
         if (d > FOX_AGGRO_CHEB) continue;
         if (d < best_d) { best_d = d; best = i; }
@@ -198,7 +198,7 @@ uint8_t ally_fox_turn_tick(uint8_t slot, uint8_t px, uint8_t py) BANKED {
 
     ei = ally_chase_ei[slot];
     if (ei != ENEMY_DEAD) {
-        if (ei >= num_enemies || !enemy_alive[ei]
+        if (ei >= num_enemies || !enemy_alive[ei] || enemy_hidden[ei]
                 || cheb_dist(enemy_x[ei], enemy_y[ei], px, py) > FOX_AGGRO_CHEB)
             ally_chase_ei[slot] = ENEMY_DEAD;
     }
@@ -207,7 +207,7 @@ uint8_t ally_fox_turn_tick(uint8_t slot, uint8_t px, uint8_t py) BANKED {
         ally_chase_ei[slot] = fox_pick_aggro_target(px, py);
 
     ei = ally_chase_ei[slot];
-    if (ei != ENEMY_DEAD && ei < num_enemies && enemy_alive[ei]) {
+    if (ei != ENEMY_DEAD && ei < num_enemies && enemy_alive[ei] && !enemy_hidden[ei]) {
         uint8_t ex = enemy_x[ei], ey = enemy_y[ei];
         if (cheb_dist(ally_x[slot], ally_y[slot], ex, ey) <= 1u) {
             dmg = player_level ? player_level : 1u;

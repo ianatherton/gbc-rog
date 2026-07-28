@@ -14,7 +14,7 @@ void scroll_blast_use(AbilityResult *out) BANKED {
     uint8_t ei, any = 0u;
     lcd_hp_panic_flash_trigger();
     for (ei = 0u; ei < num_enemies; ei++) {
-        if (!enemy_alive[ei]) continue;
+        if (!enemy_alive[ei] || enemy_hidden[ei]) continue; // phased-out Ghost takes no AoE
         if (enemy_x[ei] >= cam_tx && enemy_x[ei] < (uint8_t)(cam_tx + GRID_W) &&
             enemy_y[ei] >= cam_ty && enemy_y[ei] < (uint8_t)(cam_ty + GRID_H)) {
             if (combat_damage_enemy(ei, 50u, 0u)) any = 1u;

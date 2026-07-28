@@ -10,8 +10,8 @@ typedef struct {
     uint8_t max_hp;       // full health when spawned
     uint8_t damage;       // subtracted from player_hp on collision
     uint8_t palette;      // CGB attribute palette 0..7
-    uint8_t move_style;   // MOVE_CHASE / MOVE_RANDOM / MOVE_WANDER / MOVE_BLINK
-    uint8_t param;        // per-style tunable (e.g. MOVE_BLINK Chebyshev jump cap); unused styles set 0
+    uint8_t move_style;   // MOVE_CHASE / MOVE_RANDOM / MOVE_WANDER / MOVE_BLINK / MOVE_PHASE
+    uint8_t param;        // per-style tunable (MOVE_BLINK Chebyshev jump cap, MOVE_PHASE vanish %); unused styles set 0
 } EnemyDef;
 
 extern EnemyDef enemy_defs[NUM_ENEMY_TYPES];        // HOME-resident; biome_load_active fills from bank 10/11/12
@@ -30,6 +30,10 @@ extern uint16_t enemy_hp[MAX_ENEMIES];
 extern uint8_t enemy_status[MAX_ENEMIES];
 // stun_turns: turns remaining where enemy is fully helpless (no movement, no melee); set by Mace hits; cleared each floor by spawn_enemies
 extern uint8_t enemy_stun[MAX_ENEMIES];
+// hidden_turns: turns remaining phased out (0 = solid). Only MOVE_PHASE types (Ghost) ever set it.
+// While nonzero the enemy is not drawn, not targetable and skipped by every AoE — but it still
+// occupies its tile (enemy_occ), so walking into it still attacks it. Cleared by spawn_enemies.
+extern uint8_t enemy_hidden[MAX_ENEMIES];
 extern uint8_t num_enemies;
 
 /* ── Spatial occupancy ────────────────────────────────────────────────────── */
@@ -58,6 +62,12 @@ uint8_t  enemy_effective_damage(uint8_t type) BANKED; // base damage scaled by m
 void    enemy_slime_split(uint8_t type, uint8_t dx, uint8_t dy, uint8_t px, uint8_t py) BANKED; // 50% melee-kill split, regular Slime only (enemy_extras.c, auto-banked)
 void    enemy_slime_big_death_spawn(uint8_t dx, uint8_t dy) BANKED; // guaranteed ~10-Slime pop on SLIME_BIG death, any kill method (enemy_extras.c)
 void    enemy_gorgon_summon(uint8_t slot) BANKED; // boss attack hook: spawns 1-2 snakes adjacent to Gorgon (enemy_extras.c)
+// MOVE_PHASE turn (Ghost): picks the wall-ignoring step toward the player AND updates enemy_hidden[slot].
+// Lives in enemy_extras.c so bank 2 only pays for the call — same split as the Sphinx's sphinx_ai_decide.
+// Deliberately narrow: the origin tile and the vanish % are re-read from enemy_x/y[] and
+// enemy_defs[] inside the callee rather than passed, because bank 2 has ~40 B left and every
+// argument it has to marshal costs bytes there.
+void    enemy_ghost_step(uint8_t slot, uint8_t px, uint8_t py, uint8_t *nx, uint8_t *ny) BANKED;
 void    enemy_place_slot_far(uint8_t slot, uint8_t x, uint8_t y) BANKED; // BANKED wrapper for cross-bank callers
 void    enemy_grids_init(void); // clear enemy_grid + corpse_grid (call on level load)
 void    enemy_place_slot(uint8_t slot, uint8_t x, uint8_t y); // sync occupancy structures after spawn or move

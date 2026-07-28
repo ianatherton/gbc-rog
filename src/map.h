@@ -15,7 +15,8 @@ extern uint8_t  num_nav_nodes;            // populated after generate_level
 // Town interior state — OVERLAYS nav_nodes[] (288 B): towns have no enemies, set num_nav_nodes=0
 // and never build the graph, and these tables are only read while on a town floor (regenerated on
 // every town entry; the next dungeon's build_nav_graph is free to stomp them). Zero new fixed WRAM:
-// the ~545 B stack headroom is load-bearing — class_emblem_draw alone puts ~336 B on the stack.
+// the stack headroom is load-bearing (442 B as of 2026-07-27 — enemy_hidden[] tipped it over once;
+// class_emblem_draw's ~320 B scale buffers now overlay floor_bits[] instead of the stack).
 typedef struct {
     uint8_t x, y, w, h;      // wall-ring rect, walls included
     uint8_t door_x, door_y;  // wall-ring cell — floor+G1 doorway if open, wall+G2 closed door if closed

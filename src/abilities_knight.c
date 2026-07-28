@@ -36,7 +36,7 @@ static uint8_t knight_hit_onscreen(uint8_t px, uint8_t py, uint8_t dmg, uint8_t 
     uint8_t cam_ty = (uint8_t)(camera_py >> 3);
     for (ei = 0u; ei < num_enemies; ei++) {
         uint8_t killed;
-        if (!enemy_alive[ei]) continue;
+        if (!enemy_alive[ei] || enemy_hidden[ei]) continue; // phased-out Ghost takes no AoE
         if (enemy_x[ei] < cam_tx || enemy_x[ei] >= (uint8_t)(cam_tx + GRID_W)) continue;
         if (enemy_y[ei] < cam_ty || enemy_y[ei] >= (uint8_t)(cam_ty + GRID_H)) continue;
         if (max_hits && hits >= max_hits) break;
@@ -99,7 +99,7 @@ static void cast_holy_blaze(uint8_t rank, uint8_t px, uint8_t py, AbilityResult 
     uint8_t ei, hits = 0u;
     for (ei = 0u; ei < num_enemies; ei++) {
         uint8_t ex, ey, dx, dy, killed;
-        if (!enemy_alive[ei]) continue;
+        if (!enemy_alive[ei] || enemy_hidden[ei]) continue; // phased-out Ghost takes no AoE
         ex = enemy_x[ei]; ey = enemy_y[ei];
         dx = (ex > px) ? (uint8_t)(ex - px) : (uint8_t)(px - ex);
         dy = (ey > py) ? (uint8_t)(ey - py) : (uint8_t)(py - ey);

@@ -98,6 +98,9 @@ uint8_t map_tile_is_stairs_or_ladder(uint8_t x, uint8_t y) BANKED { // stairs-up
 
 BANKREF(map_tile_blocks_gravestone)
 uint8_t map_tile_blocks_gravestone(uint8_t x, uint8_t y) BANKED { // gravestones are low priority: yield to features/items
+    if (!is_walkable(x, y)) return 1u;                 // a Ghost can die inside a wall — classify_cell
+                                                       // draws corpses before terrain, so a gravestone
+                                                       // there would paint a fake gap in solid rock
     if (map_tile_is_stairs_or_ladder(x, y)) return 1u;
     if (brazier_index_at(x, y) != 255u) return 1u;     // torch / brazier
     if (ground_item_index_at(x, y) != 255u) return 1u; // dropped item

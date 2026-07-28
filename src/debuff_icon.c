@@ -11,7 +11,7 @@ static uint8_t debuff_icon_tick;
 static uint8_t debuff_icon_cursor;
 
 static uint8_t is_afflicted(uint8_t i) {
-    return enemy_alive[i] && (enemy_status[i] > 0u || enemy_stun[i] > 0u);
+    return enemy_alive[i] && !enemy_hidden[i] && (enemy_status[i] > 0u || enemy_stun[i] > 0u); // no glyph over a phased-out Ghost
 }
 
 uint8_t debuff_icon_next(uint8_t *out_x, uint8_t *out_y, uint8_t *out_tile) BANKED {

@@ -141,6 +141,9 @@ typedef struct {
 #define MOVE_RANDOM  1   // random walkable neighbour each turn
 #define MOVE_WANDER  2   // 50% chase, 50% random
 #define MOVE_BLINK   3   // teleport to a tile adjacent to player; def->param caps Chebyshev jump range (0 = default 3)
+#define MOVE_PHASE   4   // step straight at the player THROUGH walls; def->param = % chance/turn to go invisible
+#define GHOST_HIDE_TURNS_MIN  2u // a MOVE_PHASE vanish lasts MIN .. MIN+SPAN-1 turns
+#define GHOST_HIDE_TURNS_SPAN 3u
 #define ENEMY_SLEEP_OFFSCREEN 1u // 1: skip AI updates for distant unrevealed enemies to stabilize crowded-floor turn cost
 #define ENEMY_WAKE_MANHATTAN  12u // offscreen enemies inside this player distance still simulate so near-edge threats stay responsive
 
@@ -156,7 +159,9 @@ typedef struct {
 #define ENEMY_SLIME_BIG 8 // 2x-scaled Slime miniboss; reuses Slime AI; 2-tile Gorgon-style footprint;
                           // animated 2-frame; guaranteed ~10-slime spawn on death (enemy_extras.c)
 #define ENEMY_SPHINX    9 // floor-6 boss; 3x2 body + flapping wings, 10 OAM tiles; 2-tile Gorgon-style footprint
-#define NUM_ENEMY_TYPES 10
+#define ENEMY_GHOST    10 // crypt fodder; MOVE_PHASE walks through walls and goes invisible (untargetable)
+                          // whenever it is more than 1 tile from the player — see enemy_hidden[] in enemy.h
+#define NUM_ENEMY_TYPES 11
 
 /* ── Animation ───────────────────────────────────────────────────────────── */
 // DIV_REG runs at 16384 Hz; 1638 ticks ≈ 0.10s between frame flips
@@ -603,6 +608,14 @@ typedef struct {
 #define TILE_RAT_ROM       249u  /* J16 — rat, ROM source                  */
 #define TILE_RAT_VRAM      239u  /* borrows unused P7 VRAM slot (sheet 111) */
 #define TILE_RAT_OFF       111u  /* = TILE_RAT_VRAM - TILESET_VRAM_OFFSET; use in EnemyDef.tile */
+
+/* J15 ghost tile — ROM row 15, past first VRAM pack. Uploaded per crypt floor (biome_crypt.c),
+   NOT at boot: slot 191 is the last cell of char create's 176..191 2x-emblem scratch range, which
+   is only safe for art that gets re-uploaded after char create — same rule that lets the hero's
+   3rd walk frame live on 186. Do not boot-copy anything here. */
+#define TILE_GHOST_ROM     233u  /* J15 — ghost, ROM source                */
+#define TILE_GHOST_VRAM    191u  /* borrows P4 VRAM slot (sheet 63)        */
+#define TILE_GHOST_OFF      63u  /* = TILE_GHOST_VRAM - TILESET_VRAM_OFFSET; use in EnemyDef.tile */
 
 /* Gorgon boss sprite (2×3 tiles). Art lives in bosses.png rows 9-11 cols A-B (bank 24) —
    the _ROM values are bosses_tiles[] indices (16 cols/row), NOT tileset_tiles indices;

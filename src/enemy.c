@@ -22,6 +22,7 @@ uint8_t enemy_type[MAX_ENEMIES];   // index into enemy_defs
 uint16_t enemy_hp[MAX_ENEMIES];    // hits remaining; player reduces before kill (16-bit — see enemy.h)
 uint8_t enemy_status[MAX_ENEMIES]; // root_turns counter: turns remaining skipping movement (0 = free)
 uint8_t enemy_stun[MAX_ENEMIES];   // stun_turns counter: turns remaining fully helpless (0 = free)
+uint8_t enemy_hidden[MAX_ENEMIES]; // hidden_turns counter: turns remaining phased out (0 = solid); Ghost only
 uint8_t num_enemies;               // live count ≤ NUM_ENEMIES after spawn
 
 uint8_t corpse_x[MAX_CORPSES];
@@ -247,7 +248,7 @@ void spawn_enemies(void) { // random placement with collision checks
     uint8_t fodder_cap = NUM_ENEMIES;
     num_enemies = 0;
     boss_alive = 0u;
-    for (i = 0; i < MAX_ENEMIES; i++) { enemy_force_active[i] = 0u; enemy_status[i] = 0u; enemy_stun[i] = 0u; enemy_persistent[i] = 0u; }
+    for (i = 0; i < MAX_ENEMIES; i++) { enemy_force_active[i] = 0u; enemy_status[i] = 0u; enemy_stun[i] = 0u; enemy_hidden[i] = 0u; enemy_persistent[i] = 0u; }
     if (floor_kind == FLOORKIND_HUB || floor_kind == FLOORKIND_GUARD || floor_kind == FLOORKIND_TOWN) return; // hub + guardrooms + towns are safe no-monster zones (empty roster → guard rand() % 0)
     if (floor_kind == FLOORKIND_BOSS) {
         uint8_t btype = floor_boss_type; // Gorgon or Sphinx (biome_apply_floor_kind) — both: 2-tile footprint, 3-high sprite
@@ -426,40 +427,8 @@ static void step_blink(uint8_t sx, uint8_t sy,
     step_random(sx, sy, nx, ny); // no viable landing — shuffle in place
 }
 
-uint8_t enemy_resolve_hit(uint8_t slot) BANKED { // one strike: log line + subtract HP; returns 1 if dodged, 0 if landed
-    uint8_t hit = enemy_effective_damage(enemy_type[slot]);
-    uint16_t hp_before = player_hp;
-    char logbuf[20];
-    uint8_t p, d; // d consumed while formatting digits
-
-    if (player_dodge && (uint8_t)(DIV_REG % 100u) < player_dodge) {
-        // Build in a RAM buffer rather than passing a bank-2 ROM literal: ui_combat_log_push_pal
-        // is BANKED into bank 5, and the cross-bank call switches ROM banks before the callee
-        // dereferences the pointer, so a literal living in bank 2's switchable ROM reads back
-        // as garbage once bank 5 is mapped in.
-        logbuf[0] = 'D'; logbuf[1] = 'O'; logbuf[2] = 'D'; logbuf[3] = 'G'; logbuf[4] = 'E'; logbuf[5] = 0;
-        ui_combat_log_push_pal(logbuf, PAL_UI);
-        return 1u; // hit fully avoided — no HP change, no panic-flash check
-    }
-    if (player_armor) hit = (uint8_t)(((uint16_t)hit * (100u - player_armor)) / 100u);
-
-    p = 0; d = hit;
-    logbuf[p++] = 'Y'; logbuf[p++] = 'O'; logbuf[p++] = 'U'; logbuf[p++] = ' '; logbuf[p++] = '-';
-    if (d >= 100u) { logbuf[p++] = (char)('0' + d / 100u); d %= 100u; logbuf[p++] = (char)('0' + d / 10u); d %= 10u; }
-    else if (d >= 10u) { logbuf[p++] = (char)('0' + d / 10u); d %= 10u; }
-    logbuf[p++] = (char)('0' + d);
-    logbuf[p] = 0;
-    ui_combat_log_push_pal(logbuf, PAL_LIFE_UI);
-    if (player_hp > hit) player_hp -= hit;
-    else                 player_hp  = 0;
-    if (player_hp_max > 0u) {
-        // pct > 30 ⟺ hp*10 > hp_max*3: hp*100 would wrap uint16 above hp 655, and the divide
-        // helper is dear in bank 2 — worst case here is 999*10 = 9,990.
-        uint16_t thresh = player_hp_max * 3u;
-        if (hp_before * 10u > thresh && player_hp * 10u <= thresh) lcd_hp_panic_flash_trigger();
-    }
-    return 0u; // hit landed (armor may have absorbed it, but it connected)
-}
+/* enemy_resolve_hit moved to enemy_extras.c (bank 25) to pay back the bank-2 bytes the
+   Ghost's MOVE_PHASE hook cost. It was already BANKED, so no call site changed. */
 
 uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes — HP applied later in enemy_resolve_hit per hit
     uint8_t perf_stamp = perf_stamp_now();
@@ -489,12 +458,16 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
         }
         uint8_t nx = sx,         ny = sy; // default no move
         const EnemyDef *def = &enemy_defs[enemy_type[i]];
+        uint8_t phasing = (def->move_style == MOVE_PHASE); // Ghost: skips the wall gate below
 #if ENEMY_SLEEP_OFFSCREEN
         if (!enemy_force_active[i]) {
             uint8_t dx = (sx > px) ? (uint8_t)(sx - px) : (uint8_t)(px - sx);
             uint8_t dy = (sy > py) ? (uint8_t)(sy - py) : (uint8_t)(py - sy);
             uint8_t md = (uint8_t)(dx + dy);
-            if (md > ENEMY_WAKE_MANHATTAN || !lighting_is_revealed(sx, sy)) continue;
+            // MOVE_PHASE is exempt from the reveal half: a Ghost mid-wall sits on a tile deep rock
+            // never reveals, so requiring it here would freeze it inside the wall forever. It still
+            // sleeps on distance like everything else.
+            if (md > ENEMY_WAKE_MANHATTAN || (!phasing && !lighting_is_revealed(sx, sy))) continue;
         }
 #endif
 
@@ -526,6 +499,9 @@ uint8_t move_enemies(uint8_t px, uint8_t py) { // resolve moves; record strikes 
                 step_blink(sx, sy, px, py, r, &nx, &ny);
                 break;
             }
+            case MOVE_PHASE: // Ghost: wall-ignoring step + invisibility timer, both in bank 25
+                enemy_ghost_step(i, px, py, &nx, &ny);
+                break;
         }
 
 sphinx_place:
@@ -547,7 +523,7 @@ sphinx_place:
             continue; // do not move onto player tile; main applies HP + UI per hit before lunge
         }
 
-        if (!is_walkable(nx, ny)) continue; // wall blocked proposed step
+        if (!phasing && !is_walkable(nx, ny)) continue; // wall blocked proposed step (MOVE_PHASE drifts through)
         if ((enemy_type[i] == ENEMY_GORGON || enemy_type[i] == ENEMY_SLIME_BIG || enemy_type[i] == ENEMY_SPHINX) && !is_walkable((uint8_t)(nx+1u), ny)) continue;
 
         enemy_clear_slot(sx, sy);

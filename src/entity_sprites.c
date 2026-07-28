@@ -733,7 +733,8 @@ static void refresh_enemy_oam(uint8_t slot) {
         uint8_t tt = (uint8_t)(TILESET_VRAM_OFFSET + off);
         int16_t ewx = (int16_t)enemy_x[slot] * 8 + en_ofs_x[slot];
         int16_t ewy = (int16_t)enemy_y[slot] * 8 + en_ofs_y[slot];
-        if (enemy_x[slot] < g_cam_tx || enemy_x[slot] >= g_cam_tx_end
+        if (enemy_hidden[slot] // Ghost phased out — same treatment as off-camera: simply not drawn
+                || enemy_x[slot] < g_cam_tx || enemy_x[slot] >= g_cam_tx_end
                 || enemy_y[slot] < g_cam_ty || enemy_y[slot] >= g_cam_ty_end
                 || !lighting_is_revealed(enemy_x[slot], enemy_y[slot])) {
             oam_hide(sp);

@@ -8,6 +8,7 @@
 #include "globals.h"
 #include "map.h"
 #include "ui.h"
+#include "lcd.h" // lcd_hp_panic_flash_trigger — enemy_resolve_hit, evicted here from bank 2
 
 BANKREF_EXTERN(enemy_place_slot_far)
 BANKREF_EXTERN(enemy_effective_max_hp)
@@ -16,13 +17,81 @@ BANKREF_EXTERN(enemy_effective_max_hp)
 BANKREF(enemy_type_short_name_copy)
 void enemy_type_short_name_copy(uint8_t t, char *out, uint8_t cap) BANKED {
     static const char *const n[NUM_ENEMY_TYPES] = {
-        "SNAKE", "SLIME", "RAT", "BAT", "BIG SKELL", "IMP", "SKELETON", "GORGON", "BIG SLIME", "SPHINX"
+        "SNAKE", "SLIME", "RAT", "BAT", "BIG SKELL", "IMP", "SKELETON", "GORGON", "BIG SLIME", "SPHINX",
+        "GHOST"
     };
     const char *s = (t < NUM_ENEMY_TYPES) ? n[t] : "?";
     uint8_t i = 0u;
     if (cap == 0u) return;
     while (s[i] && (uint8_t)(i + 1u) < cap) { out[i] = s[i]; i++; }
     out[i] = 0;
+}
+
+/* Moved out of bank 2 (2026-07-27) to pay back the bytes the Ghost's MOVE_PHASE hook cost there.
+   It was already BANKED, so every call site is unchanged. The RAM-buffer trick below is still
+   required — ui_combat_log_push_pal is BANKED into bank 5 and the trampoline remaps ROM before
+   the callee dereferences the pointer, so a ROM literal from this bank would read back garbage. */
+BANKREF(enemy_resolve_hit)
+uint8_t enemy_resolve_hit(uint8_t slot) BANKED { // one strike: log line + subtract HP; returns 1 if dodged, 0 if landed
+    uint8_t hit = enemy_effective_damage(enemy_type[slot]);
+    uint16_t hp_before = player_hp;
+    char logbuf[20];
+    uint8_t p, d; // d consumed while formatting digits
+
+    if (player_dodge && (uint8_t)(DIV_REG % 100u) < player_dodge) {
+        logbuf[0] = 'D'; logbuf[1] = 'O'; logbuf[2] = 'D'; logbuf[3] = 'G'; logbuf[4] = 'E'; logbuf[5] = 0;
+        ui_combat_log_push_pal(logbuf, PAL_UI);
+        return 1u; // hit fully avoided — no HP change, no panic-flash check
+    }
+    if (player_armor) hit = (uint8_t)(((uint16_t)hit * (100u - player_armor)) / 100u);
+
+    p = 0; d = hit;
+    logbuf[p++] = 'Y'; logbuf[p++] = 'O'; logbuf[p++] = 'U'; logbuf[p++] = ' '; logbuf[p++] = '-';
+    if (d >= 100u) { logbuf[p++] = (char)('0' + d / 100u); d %= 100u; logbuf[p++] = (char)('0' + d / 10u); d %= 10u; }
+    else if (d >= 10u) { logbuf[p++] = (char)('0' + d / 10u); d %= 10u; }
+    logbuf[p++] = (char)('0' + d);
+    logbuf[p] = 0;
+    ui_combat_log_push_pal(logbuf, PAL_LIFE_UI);
+    if (player_hp > hit) player_hp -= hit;
+    else                 player_hp  = 0;
+    if (player_hp_max > 0u) {
+        // pct > 30 ⟺ hp*10 > hp_max*3: hp*100 would wrap uint16 above hp 655.
+        uint16_t thresh = player_hp_max * 3u;
+        if (hp_before * 10u > thresh && player_hp * 10u <= thresh) lcd_hp_panic_flash_trigger();
+    }
+    return 0u; // hit landed (armor may have absorbed it, but it connected)
+}
+
+/* MOVE_PHASE turn — the Ghost. Two jobs in one call so bank 2 pays for a single bcall:
+   (1) pick the step, ignoring terrain entirely (the caller skips its is_walkable gate for
+       MOVE_PHASE, so this walks straight through rock);
+   (2) update enemy_hidden[slot].
+   Visibility is decided from the DESTINATION, not the current tile, so a ghost that closes to
+   melee is already solid on the frame the player sees it arrive — and landing on the player's
+   tile (a strike, Chebyshev 0) counts as adjacent, so it can never hit you while invisible. */
+BANKREF(enemy_ghost_step)
+void enemy_ghost_step(uint8_t slot, uint8_t px, uint8_t py, uint8_t *nx, uint8_t *ny) BANKED {
+    uint8_t sx = enemy_x[slot], sy = enemy_y[slot];
+    uint8_t vanish_pct = enemy_defs[enemy_type[slot]].param;
+    uint8_t hdist = (px > sx) ? (uint8_t)(px - sx) : (uint8_t)(sx - px);
+    uint8_t vdist = (py > sy) ? (uint8_t)(py - sy) : (uint8_t)(sy - py);
+    uint8_t dx, dy, cheb;
+
+    /* One king-move toward the player along the dominant axis — mirrors step_direct in enemy.c
+       (a bank-2 static; duplicated rather than exported for a handful of bytes). The player is
+       always in bounds, so stepping toward them can never leave the map. */
+    *nx = sx; *ny = sy;
+    if (hdist >= vdist) { if (px > sx) *nx = (uint8_t)(sx + 1u); else if (px < sx) *nx = (uint8_t)(sx - 1u); }
+    else                { if (py > sy) *ny = (uint8_t)(sy + 1u); else if (py < sy) *ny = (uint8_t)(sy - 1u); }
+
+    dx   = (px > *nx) ? (uint8_t)(px - *nx) : (uint8_t)(*nx - px);
+    dy   = (py > *ny) ? (uint8_t)(py - *ny) : (uint8_t)(*ny - py);
+    cheb = (dx > dy) ? dx : dy;
+
+    if (cheb <= 1u)                 enemy_hidden[slot] = 0u;         // king-adjacent (or striking): always solid
+    else if (enemy_hidden[slot])    enemy_hidden[slot]--;            // still fading back in
+    else if ((uint8_t)(rand() % 100u) < vanish_pct)
+        enemy_hidden[slot] = (uint8_t)(GHOST_HIDE_TURNS_MIN + (uint8_t)(rand() % GHOST_HIDE_TURNS_SPAN));
 }
 
 /* Cardinal offsets: 0xFF == (uint8_t)-1, caught by >= MAP_W/H bounds check. */
@@ -54,7 +123,7 @@ void enemy_slime_split(uint8_t type, uint8_t dx, uint8_t dy, uint8_t px, uint8_t
         enemy_x[ni] = tx; enemy_y[ni] = ty;
         enemy_type[ni] = ENEMY_SLIME;
         enemy_hp[ni] = enemy_effective_max_hp(ENEMY_SLIME);
-        enemy_status[ni] = 0u; enemy_force_active[ni] = 0u; enemy_alive[ni] = 1u;
+        enemy_status[ni] = 0u; enemy_hidden[ni] = 0u; enemy_force_active[ni] = 0u; enemy_alive[ni] = 1u;
         enemy_persistent[ni] = 0u; // transient: vanishes on revisit, no gravestone
         enemy_place_slot_far(ni, tx, ty);
         if (ni >= num_enemies) num_enemies = (uint8_t)(ni + 1u);
@@ -95,7 +164,7 @@ void enemy_slime_big_death_spawn(uint8_t dx, uint8_t dy) BANKED {
                 enemy_x[ni] = tx; enemy_y[ni] = ty;
                 enemy_type[ni] = elite_base_type;
                 enemy_hp[ni] = enemy_effective_max_hp(elite_base_type);
-                enemy_status[ni] = 0u; enemy_force_active[ni] = 0u; enemy_alive[ni] = 1u;
+                enemy_status[ni] = 0u; enemy_hidden[ni] = 0u; enemy_force_active[ni] = 0u; enemy_alive[ni] = 1u;
                 enemy_persistent[ni] = 0u; // transient: vanishes on revisit, no gravestone
                 enemy_place_slot_far(ni, tx, ty);
                 if (ni >= num_enemies) num_enemies = (uint8_t)(ni + 1u);
@@ -141,7 +210,7 @@ void enemy_gorgon_summon(uint8_t slot) BANKED {
         enemy_x[ni] = tx; enemy_y[ni] = ty;
         enemy_type[ni]   = ENEMY_SNAKE;
         enemy_hp[ni]     = enemy_effective_max_hp(ENEMY_SNAKE);
-        enemy_status[ni] = 0u; enemy_force_active[ni] = 0u; enemy_alive[ni] = 1u;
+        enemy_status[ni] = 0u; enemy_hidden[ni] = 0u; enemy_force_active[ni] = 0u; enemy_alive[ni] = 1u;
         enemy_persistent[ni] = 0u; // transient: vanishes on revisit, no gravestone
         enemy_place_slot_far(ni, tx, ty);
         if (ni >= num_enemies) num_enemies = (uint8_t)(ni + 1u);

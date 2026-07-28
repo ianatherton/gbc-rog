@@ -364,7 +364,7 @@ void auto_explore_try_start(void) BANKED {
         uint8_t i;
         ax_ignore_mask[0] = ax_ignore_mask[1] = ax_ignore_mask[2] = 0u;
         for (i = 0u; i < num_enemies; i++) {
-            if (enemy_alive[i] && ax_on_screen(enemy_x[i], enemy_y[i])
+            if (enemy_alive[i] && !enemy_hidden[i] && ax_on_screen(enemy_x[i], enemy_y[i])
                     && lighting_is_revealed(enemy_x[i], enemy_y[i]))
                 ax_ignore_mask[i >> 3] |= ax_bitmask[i & 7u];
         }
@@ -405,7 +405,7 @@ uint8_t auto_explore_step(uint8_t j) BANKED {
     { // DCSS-style stop-on-sight: a non-ignored revealed enemy inside the view rect ends the run
         uint8_t i;
         for (i = 0u; i < num_enemies; i++) {
-            if (!enemy_alive[i]) continue;
+            if (!enemy_alive[i] || enemy_hidden[i]) continue; // a phased-out Ghost doesn't trip stop-on-sight
             if (ax_ignore_mask[i >> 3] & ax_bitmask[i & 7u]) continue;
             if (ax_on_screen(enemy_x[i], enemy_y[i]) && lighting_is_revealed(enemy_x[i], enemy_y[i])) {
                 auto_explore_active = 0u;

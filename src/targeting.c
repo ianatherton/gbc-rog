@@ -16,7 +16,7 @@ uint8_t targeting_find_nearest_visible(uint8_t px, uint8_t py, uint8_t max_range
     *out_too_far = 0u;
     for (i = 0u; i < num_enemies; i++) {
         uint8_t ex, ey, dx, dy, dist;
-        if (!enemy_alive[i]) continue;
+        if (!enemy_alive[i] || enemy_hidden[i]) continue; // phased-out Ghost is untargetable
         ex = enemy_x[i];
         ey = enemy_y[i];
         if (!lighting_is_revealed(ex, ey)) continue;

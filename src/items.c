@@ -9,6 +9,7 @@
 #include "scroll_root.h"
 #include "bow_shoot.h"
 #include "entity_sprites.h"
+#include "combat.h"      // combat_grant_levels — ITEM_KIND_SCROLL_LEVEL test aid
 #include <string.h>
 
 BANKREF_EXTERN(scroll_blast_use)
@@ -53,6 +54,7 @@ static const uint8_t kind_cat[ITEM_KIND_COUNT] = {
     ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE,
     ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, // zerker
     ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE,
+    ITEM_CAT_CONSUMABLE, // SCROLL_LEVEL (test aid)
 };
 
 static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
@@ -92,6 +94,7 @@ static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
     TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF,
     TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, // zerker
     TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF,
+    TILE_SCROLL_BELT_OFF, // SCROLL_LEVEL — reuses the scroll art
 };
 
 static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
@@ -133,6 +136,7 @@ static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
     PAL_ENEMY_SNAKE, PAL_ENEMY_SNAKE, PAL_ENEMY_SNAKE, PAL_ENEMY_SNAKE,
     PAL_LIFE_UI, PAL_LIFE_UI, PAL_LIFE_UI, PAL_LIFE_UI,             // zerker — blood red
     PAL_LIFE_UI, PAL_LIFE_UI, PAL_LIFE_UI, PAL_LIFE_UI,
+    PAL_CORPSE, // SCROLL_LEVEL — grey, reads apart from every real scroll tint
 };
 
 static const char *const kind_name[ITEM_KIND_COUNT] = {
@@ -157,6 +161,7 @@ static const char *const kind_name[ITEM_KIND_COUNT] = {
     "Scrl:CallFox",  "?", "?", "?", "?", "?", "?", "?",             // scoundrel
     "Scrl:FetidBolt", "Scrl:SwampRoot", "?", "?", "?", "?", "?", "?", // witch
     "Scrl:Whirlwind", "?", "?", "?", "?", "?", "?", "?",            // zerker
+    "Scrl:Level10", // SCROLL_LEVEL (test aid)
 };
 
 static const char *const kind_desc[ITEM_KIND_COUNT] = {
@@ -212,6 +217,7 @@ static const char *const kind_desc[ITEM_KIND_COUNT] = {
     "A weak copy. Any class can cast.", "", "", "", "", "", "", "", // scoundrel
     "A weak copy. Any class can cast.", "A weak copy. Any class can cast.", "", "", "", "", "", "", // witch
     "A weak copy. Any class can cast.", "", "", "", "", "", "", "", // zerker
+    "TEST: jumps you to level 10.", // SCROLL_LEVEL
 };
 
 uint8_t items_kind_category(uint8_t kind) BANKED {
@@ -420,9 +426,9 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
         ui_combat_log_push(log);
     }
     if (kind == ITEM_KIND_POTION) {
-        uint16_t heal = (uint16_t)player_hp_max / 2u; // half max HP (integer div)
-        if ((uint16_t)player_hp + heal >= (uint16_t)player_hp_max) player_hp = player_hp_max;
-        else player_hp = (uint8_t)((uint16_t)player_hp + heal);
+        uint16_t heal = player_hp_max / 2u; // half max HP (integer div)
+        if (player_hp + heal >= player_hp_max) player_hp = player_hp_max;
+        else player_hp += heal;
     } else if (kind == ITEM_KIND_SCROLL) {
         scroll_blast_use(out);
     } else if (kind == ITEM_KIND_KEY) {
@@ -434,9 +440,9 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
     } else if (kind == ITEM_KIND_SCROLL_ROOT) {
         scroll_root_use(out);
     } else if (kind == ITEM_KIND_BOOK_HEAL) {
-        uint16_t heal = (uint16_t)player_hp_max / 4u; // quarter max HP
-        if ((uint16_t)player_hp + heal >= (uint16_t)player_hp_max) player_hp = player_hp_max;
-        else player_hp = (uint8_t)((uint16_t)player_hp + heal);
+        uint16_t heal = player_hp_max / 4u; // quarter max HP
+        if (player_hp + heal >= player_hp_max) player_hp = player_hp_max;
+        else player_hp += heal;
         book_heal_cooldown_turns = 5u;
     } else if (kind == ITEM_KIND_SCROLL_PORT6) {
         // Warp to the current dungeon's boss floor. State_gameplay sees pending_transition set after
@@ -453,6 +459,17 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
         }
         pending_port_floor = DUNGEON_BOSS_FLOOR(d);
         pending_transition = TRANS_FLOOR_PORT;
+    } else if (kind == ITEM_KIND_SCROLL_LEVEL) {
+        // TEST AID — jump to PLAYER_LEVEL_SCROLL_TARGET so high monster-level zones are reachable
+        // without grinding. Already there: no-op, scroll kept (same idiom as SCROLL_PORT6 above).
+        if (player_level >= PLAYER_LEVEL_SCROLL_TARGET) {
+            char nbuf[16]; // RAM copy — a bank-13 ROM literal would garble in the bank-5 log push
+            nbuf[0]='N';nbuf[1]='O';nbuf[2]=' ';nbuf[3]='E';nbuf[4]='F';nbuf[5]='F';
+            nbuf[6]='E';nbuf[7]='C';nbuf[8]='T';nbuf[9]=0;
+            ui_combat_log_push(nbuf);
+            return; // not consumed, no turn spent
+        }
+        combat_grant_levels(PLAYER_LEVEL_SCROLL_TARGET); // bank 19 — far call
     }
     entity_sprites_run_item_popout(kind);
     if (items_kind_category(kind) != ITEM_CAT_REUSABLE)

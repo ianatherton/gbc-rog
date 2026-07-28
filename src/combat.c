@@ -28,6 +28,18 @@ BANKREF_EXTERN(enemy_slime_big_death_spawn)
 BANKREF_EXTERN(enemy_gorgon_summon)
 BANKREF_EXTERN(draw_boss_reveal_cells_far)
 
+// One level's worth of stat gains. Shared by the kill path and the test Scroll:Level10 so the
+// two can never drift; the caller owns the log line, the FX and the jingle.
+static void apply_one_level(void) {
+    if (player_level < 255u) player_level++;
+    if (player_damage < 255u) player_damage++;
+    if (player_hp_max <= PLAYER_HP_MAX_CAP - 10u) player_hp_max += 10u;
+    else player_hp_max = PLAYER_HP_MAX_CAP;
+    player_hp = player_hp_max;
+    if (player_stat_points <= 252u) player_stat_points += 3u;
+    if (player_spell_points < 255u) player_spell_points++; // spent on the SPELL subscreen
+}
+
 static void grant_xp_from_kill(uint8_t enemy_damage) {
     uint16_t next_level_xp;
     uint8_t  did_level = 0;
@@ -36,13 +48,7 @@ static void grant_xp_from_kill(uint8_t enemy_damage) {
         next_level_xp = (uint16_t)PLAYER_LEVEL_XP_BASE + (uint16_t)(player_level - 1u) * PLAYER_LEVEL_XP_STEP;
         if (player_xp < next_level_xp) break;
         player_xp = (uint16_t)(player_xp - next_level_xp);
-        if (player_level < 255u) player_level++;
-        if (player_damage < 255u) player_damage++;
-        if (player_hp_max <= 245u) player_hp_max = (uint8_t)(player_hp_max + 10u);
-        else player_hp_max = 255u;
-        player_hp = player_hp_max;
-        if (player_stat_points <= 252u) player_stat_points += 3u;
-        if (player_spell_points < 255u) player_spell_points++; // spent on the SPELL subscreen
+        apply_one_level();
         ui_push_level_up_line(player_level); // bank 5 — far call
         did_level = 1;
         entity_sprites_level_up_fx_trigger(); // L10 smile on aura slot — HOME
@@ -50,12 +56,22 @@ static void grant_xp_from_kill(uint8_t enemy_damage) {
     if (did_level) music_play_levelup_jingle();
 }
 
+BANKREF(combat_grant_levels)
+void combat_grant_levels(uint8_t target_level) BANKED { // TEST AID — see ITEM_KIND_SCROLL_LEVEL
+    if (player_level >= target_level) return;
+    while (player_level < target_level) apply_one_level();
+    player_xp = 0u;                      // land cleanly on the new level, no carried progress
+    ui_push_level_up_line(player_level); // one line for the whole jump, not one per level
+    entity_sprites_level_up_fx_trigger();
+    music_play_levelup_jingle();
+}
+
 static uint8_t s_last_was_crit = 0u;
 
 BANKREF(combat_damage_enemy)
 uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage, uint8_t from_shield_burn) BANKED {
     if (enemy_hp[ei] > damage) {
-        enemy_hp[ei] = (uint8_t)(enemy_hp[ei] - damage);
+        enemy_hp[ei] = (uint16_t)(enemy_hp[ei] - damage);
         if (from_shield_burn) ui_push_combat_log_shield_burn(enemy_type[ei], damage, enemy_hp[ei]);
         else                  ui_push_combat_log(enemy_type[ei], damage, enemy_hp[ei], s_last_was_crit);
         return 0u;

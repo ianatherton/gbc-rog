@@ -8,8 +8,8 @@
 #include "items.h"
 #include "spells.h" // SPELLS_PER_CLASS / SPELL_IDX_NONE (spell_rank / spell_cd / belt_spell)
 
-extern uint8_t  player_hp;
-extern uint8_t  player_hp_max;
+extern uint16_t player_hp;
+extern uint16_t player_hp_max;
 extern uint8_t  player_level;
 extern uint8_t  player_damage;
 extern uint16_t player_xp;
@@ -33,7 +33,7 @@ extern uint16_t g_run_entropy;
 extern uint8_t  look_cx, look_cy;
 extern uint8_t  selected_belt_slot; // gameplay belt: 0..BELT_SLOT_COUNT-1
 extern uint8_t  belt_slot_charges[BELT_SLOT_COUNT]; // uses remaining per slot (0 = hide digit until wired)
-extern uint8_t  player_hp_prev;       // HP snapshot before last enemy-hit phase; drives ghost hearts in HUD
+extern uint16_t player_hp_prev;       // HP snapshot before last enemy-hit phase; drives ghost hearts in HUD
 extern uint8_t  book_heal_cooldown_turns;
 /* ── Spell training (spells.c owns reset/tick; persists across floors within a run) ── */
 extern uint8_t  player_spell_points;            // +1 per level-up; spent on the SPELL subscreen

@@ -22,7 +22,10 @@ extern uint8_t  enemy_active_count;                  // entries in enemy_active_
 extern uint8_t enemy_x[MAX_ENEMIES]; // last tile column while slot used; undefined if !enemy_alive[i]
 extern uint8_t enemy_y[MAX_ENEMIES];
 extern uint8_t enemy_type[MAX_ENEMIES];
-extern uint8_t enemy_hp[MAX_ENEMIES];
+// uint16_t, not uint8_t: base max_hp x monster_level reaches 1530 at the top of the ladder
+// (uint8 base <= 255 x level <= 6). Anything that reads this into a uint8_t, or passes it to a
+// uint8_t parameter, truncates silently — see the note on ui_push_combat_log in ui.h.
+extern uint16_t enemy_hp[MAX_ENEMIES];
 // root_turns: turns remaining where enemy skips movement (0 = free); set by scroll effects; cleared each floor by spawn_enemies
 extern uint8_t enemy_status[MAX_ENEMIES];
 // stun_turns: turns remaining where enemy is fully helpless (no movement, no melee); set by Mace hits; cleared each floor by spawn_enemies
@@ -49,8 +52,8 @@ extern uint8_t enemy_persistent[MAX_ENEMIES];   // 1 = from deterministic initia
 // Use the copy variant from ANY non-bank-2 caller — a returned pointer would land in a
 // non-mapped ROM range after the bcall trampoline restores the caller's bank.
 void enemy_type_short_name_copy(uint8_t t, char *out, uint8_t cap) BANKED;
-uint8_t enemy_effective_max_hp(uint8_t type) BANKED;  // base max_hp scaled by monster_level (cap 255)
-uint8_t enemy_effective_damage(uint8_t type) BANKED;  // base damage scaled by monster_level (cap 255)
+uint16_t enemy_effective_max_hp(uint8_t type) BANKED; // base max_hp scaled by monster_level; unclamped, max 1530
+uint8_t  enemy_effective_damage(uint8_t type) BANKED; // base damage scaled by monster_level (cap 255; base <= 5 so it never binds)
 
 void    enemy_slime_split(uint8_t type, uint8_t dx, uint8_t dy, uint8_t px, uint8_t py) BANKED; // 50% melee-kill split, regular Slime only (enemy_extras.c, auto-banked)
 void    enemy_slime_big_death_spawn(uint8_t dx, uint8_t dy) BANKED; // guaranteed ~10-Slime pop on SLIME_BIG death, any kill method (enemy_extras.c)

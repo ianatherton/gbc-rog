@@ -9,5 +9,6 @@ uint8_t combat_player_attacks(uint8_t ei, uint8_t px, uint8_t py, uint8_t nx, ui
 uint8_t combat_damage_enemy(uint8_t ei, uint8_t damage, uint8_t from_shield_burn) BANKED; // 1 if enemy died; shield_burn: holy fire log line
 uint8_t combat_crit_roll(uint8_t base_damage) BANKED; // rolls player_crit_chance; returns base*2 on crit, base otherwise
 uint8_t combat_player_melee_extras(uint8_t ei) BANKED; // axe cleave + mace stun after a melee hit on ei; 1 if a cleave kill happened
+void    combat_grant_levels(uint8_t target_level) BANKED; // TEST AID (ITEM_KIND_SCROLL_LEVEL): level up to target_level; no-op if already there
 
 #endif // COMBAT_H

@@ -34,7 +34,11 @@
    ids exist as kinds but are never instantiated (spells_exists() guards the cast). */
 #define ITEM_KIND_SPELL_SCROLL_FIRST 46u
 #define ITEM_KIND_SPELL_SCROLL_COUNT 32u // = SPELL_ID_SPAN
-#define ITEM_KIND_COUNT      78u
+/* TEST AID — jumps the player to PLAYER_LEVEL_SCROLL_TARGET (10) so high monster-level zones can
+   be reached without grinding. Witch starting scroll, alongside SCROLL_PORT6. Not in the drop
+   table. Delete this kind (and its 5 table rows + the use branch) to remove the cheat. */
+#define ITEM_KIND_SCROLL_LEVEL 78u
+#define ITEM_KIND_COUNT      79u
 #define ITEM_KIND_NONE      255u
 
 #define ITEM_BOW_STACK_QTY   20u  // arrows granted per bow pickup

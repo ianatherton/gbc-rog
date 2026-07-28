@@ -1,4 +1,8 @@
-/* Auto-banked companion to enemy.c — contains functions that can live in any bank. */
+/* Auto-banked companion to enemy.c — contains functions that can live in any bank.
+   Pinned to bank 25 (2026-07-27): autobank had been parking it in bank 0, and widening
+   enemy_hp[] to uint16_t grew its three spawn-time stores enough to overflow HOME into bank 1.
+   Every function here is BANKED in enemy.h, so callers far-call it either way. */
+#pragma bank 25
 
 #include "enemy.h"
 #include "globals.h"

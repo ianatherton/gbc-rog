@@ -19,7 +19,7 @@ BANKREF_EXTERN(entity_sprites_enemy_poof_begin)
 uint8_t enemy_x[MAX_ENEMIES];      // map column; ENEMY_DEAD means slot unused
 uint8_t enemy_y[MAX_ENEMIES];      // map row
 uint8_t enemy_type[MAX_ENEMIES];   // index into enemy_defs
-uint8_t enemy_hp[MAX_ENEMIES];     // hits remaining; player reduces before kill
+uint16_t enemy_hp[MAX_ENEMIES];    // hits remaining; player reduces before kill (16-bit — see enemy.h)
 uint8_t enemy_status[MAX_ENEMIES]; // root_turns counter: turns remaining skipping movement (0 = free)
 uint8_t enemy_stun[MAX_ENEMIES];   // stun_turns counter: turns remaining fully helpless (0 = free)
 uint8_t num_enemies;               // live count ≤ NUM_ENEMIES after spawn
@@ -169,10 +169,19 @@ void enemy_place_slot_far(uint8_t slot, uint8_t x, uint8_t y) BANKED {
 // of their marker's region (x1 / x3 / x5), one step under the dungeons off the same town, so a snow
 // '?' hits as hard as a desert dungeon. Reading a byte here rather than re-deriving it keeps bank 2
 // small — this is on the hot path, called per spawn and per hit.
-uint8_t enemy_effective_max_hp(uint8_t type) BANKED {
+// Returns 16-bit and does NOT clamp: enemy_hp[] is uint16_t, so the true product stands.
+// Ceiling is 1530 (uint8 base max_hp 255 x monster_level 6), which is why the combat-log
+// percentage math has to avoid a plain hp*100 in 16 bits (ui.c).
+uint16_t enemy_effective_max_hp(uint8_t type) BANKED {
     if (type >= NUM_ENEMY_TYPES) return 1u;
-    { uint16_t v = (uint16_t)enemy_defs[type].max_hp * (uint16_t)monster_level;
-      return (v > 255u) ? 255u : (uint8_t)v; }
+#if BOSS_HP_TEST_BASE
+    // TEMP TEST SCAFFOLD — delete along with BOSS_HP_TEST_BASE in defs.h. Only the HP path is
+    // overridden; enemy_effective_damage still reads the real table, so the boss stays survivable
+    // while you watch a 4-digit HP pool drain.
+    if (type == ENEMY_GORGON || type == ENEMY_SPHINX)
+        return (uint16_t)BOSS_HP_TEST_BASE * (uint16_t)monster_level;
+#endif
+    return (uint16_t)enemy_defs[type].max_hp * (uint16_t)monster_level;
 }
 
 uint8_t enemy_effective_damage(uint8_t type) BANKED {
@@ -419,7 +428,7 @@ static void step_blink(uint8_t sx, uint8_t sy,
 
 uint8_t enemy_resolve_hit(uint8_t slot) BANKED { // one strike: log line + subtract HP; returns 1 if dodged, 0 if landed
     uint8_t hit = enemy_effective_damage(enemy_type[slot]);
-    uint8_t hp_before = player_hp;
+    uint16_t hp_before = player_hp;
     char logbuf[20];
     uint8_t p, d; // d consumed while formatting digits
 
@@ -444,9 +453,10 @@ uint8_t enemy_resolve_hit(uint8_t slot) BANKED { // one strike: log line + subtr
     if (player_hp > hit) player_hp -= hit;
     else                 player_hp  = 0;
     if (player_hp_max > 0u) {
-        uint8_t pct_b = (uint8_t)(((uint16_t)hp_before * 100u) / (uint16_t)player_hp_max);
-        uint8_t pct_a = (uint8_t)(((uint16_t)player_hp * 100u) / (uint16_t)player_hp_max);
-        if (pct_b > 30u && pct_a <= 30u) lcd_hp_panic_flash_trigger();
+        // pct > 30 ⟺ hp*10 > hp_max*3: hp*100 would wrap uint16 above hp 655, and the divide
+        // helper is dear in bank 2 — worst case here is 999*10 = 9,990.
+        uint16_t thresh = player_hp_max * 3u;
+        if (hp_before * 10u > thresh && player_hp * 10u <= thresh) lcd_hp_panic_flash_trigger();
     }
     return 0u; // hit landed (armor may have absorbed it, but it connected)
 }

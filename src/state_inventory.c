@@ -37,7 +37,7 @@ BANKREF_EXTERN(entity_sprites_inv_cursor_hide)
 #define EQUIP_PANEL_X  10u
 #define EQUIP_PANEL_Y   1u
 
-static void put_stat_uint(uint8_t x, uint8_t y, uint8_t v, uint8_t width) {
+static void put_stat_uint(uint8_t x, uint8_t y, uint16_t v, uint8_t width) {
     uint8_t i = 0u, pad;
     char dig[3];
     if (!v) { dig[i++] = '0'; }

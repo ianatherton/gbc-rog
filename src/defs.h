@@ -758,8 +758,21 @@ typedef struct {
 
 /* ── Player stats ────────────────────────────────────────────────────────── */
 #define PLAYER_HP_BASE_MAX 20
+#define PLAYER_HP_MAX_CAP  999u /* 3 digits — every display site keeps its field width */
 #define PLAYER_LEVEL_XP_BASE 45u
 #define PLAYER_LEVEL_XP_STEP 15u
+#define PLAYER_LEVEL_SCROLL_TARGET 10u // TEST AID — level granted by ITEM_KIND_SCROLL_LEVEL
+
+/* TEMP TEST SCAFFOLD — override base HP for BOTH boss types (which one a dungeon gets is hashed
+   from the seed), bypassing the uint8_t EnemyDef.max_hp field so values > 255 are reachable.
+   Set to 0 to remove entirely — the #if in enemy_effective_max_hp compiles out to nothing, so
+   it costs zero bytes of bank 2 when off. Per-level base: bosses only spawn at monster level
+   2/4/6 (DUNGEON_MONSTER_LEVEL), so 250 = 500/1000/1500 HP by tier. */
+#define BOSS_HP_TEST_BASE 250u
+
+/* TEMP TEST SCAFFOLD — HP-cap test aid: Witch Hat grants +400 max HP on equip (the uint8_t
+   EquipStatDef.hp_max field can't hold it). Set to 0 to compile the block in equipment.c out. */
+#define WITCH_HAT_HP_TEST_BONUS 400u
 #define LIFE_BAR_LEN   5
 
 /* ── CGB palette slot assignments (0–7) ─────────────────────────────────── */

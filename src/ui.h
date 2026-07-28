@@ -29,8 +29,11 @@ void     ui_combat_log_push_gold_suffix(const char *line, uint8_t gold_from) BAN
 void     ui_confirm_prompt_push(uint8_t kind, uint8_t aux) BANKED; // zone-confirm prompt line (CONFIRM_* in defs.h); aux = dungeon/town id
 
 // combat-side text formatters — live in bank 5 (UI) to keep HOME small; BANKED so combat.c (HOME) can far-call them
-void     ui_push_combat_log(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_pct, uint8_t is_crit) BANKED;
-void     ui_push_combat_log_shield_burn(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_pct) BANKED; // "NAME burned -N" (+ optional %); lethal hit uses dmg only
+// hp_remaining_for_pct is uint16_t deliberately: enemy_hp[] is 16-bit and 0 is the "it died"
+// signal here, so an 8-bit parameter would truncate a survivor left on exactly 256 HP to 0 and
+// log DIES for an enemy that is still standing.
+void     ui_push_combat_log(uint8_t type_idx, uint8_t dmg, uint16_t hp_remaining_for_pct, uint8_t is_crit) BANKED;
+void     ui_push_combat_log_shield_burn(uint8_t type_idx, uint8_t dmg, uint16_t hp_remaining_for_pct) BANKED; // "NAME burned -N" (+ optional %); lethal hit uses dmg only
 void     ui_push_xp_gain_line(uint8_t amt) BANKED;
 void     ui_push_level_up_line(uint8_t new_level) BANKED;
 uint8_t  ui_combat_log_tick_quiet_turn(void) BANKED; // returns 1 if log was reclaimed (caller should redraw UI)

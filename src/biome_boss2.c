@@ -14,7 +14,7 @@ extern const uint8_t bosses_tiles[]; // 128x128 sheet, 16 cols/row (index = row*
 static const EnemyDef defs[] = {
     /* ENEMY_SPHINX */ { (uint8_t)(TILE_SPHINX_B0_VRAM - TILESET_VRAM_OFFSET),
                          (uint8_t)(TILE_SPHINX_B0_VRAM - TILESET_VRAM_OFFSET), // custom render branch; tile/_alt unused
-                         50, 5, PAL_SPHINX_BODY, MOVE_BLINK, 3 },
+                         100, 5, PAL_SPHINX_BODY, MOVE_BLINK, 3 },
 };
 
 // Colors map 1:1 onto the sheet's 2bpp channels (no load-time swaps) — if a shade lands in

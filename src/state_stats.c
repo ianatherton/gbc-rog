@@ -53,9 +53,9 @@ static void stats_cursor_clear(void) {
 static uint8_t stats_spend_point(uint8_t i) {
     switch (i) {
     case 0u:
-        if (player_hp_max >= 255u) return 0u;
-        player_hp_max = (uint8_t)((player_hp_max <= 245u) ? player_hp_max + 10u : 255u);
-        player_hp     = (uint8_t)((player_hp     <= 245u) ? player_hp     + 10u : 255u);
+        if (player_hp_max >= PLAYER_HP_MAX_CAP) return 0u;
+        player_hp_max = (player_hp_max <= PLAYER_HP_MAX_CAP - 10u) ? player_hp_max + 10u : PLAYER_HP_MAX_CAP;
+        player_hp     = (player_hp     <= PLAYER_HP_MAX_CAP - 10u) ? player_hp     + 10u : PLAYER_HP_MAX_CAP;
         if (player_hp > player_hp_max) player_hp = player_hp_max;
         return 1u;
     case 1u:

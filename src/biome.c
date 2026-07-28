@@ -186,8 +186,14 @@ void biome_apply_floor_kind(void) {
             uint16_t hp6;
             elite_base_type = list[h % n];
             enemy_defs[ENEMY_SLIME_BIG] = enemy_defs[elite_base_type]; // palette et al. inherit from the base
+            // EnemyDef.max_hp stays uint8_t (base HP, pre-monster_level — the widening lives in
+            // enemy_hp[]/enemy_effective_max_hp). So this x6 must fit a byte: elite base types
+            // have to stay <= 42 base HP, and the worst today is the skeleton at 12 -> 72.
             hp6 = (uint16_t)((uint16_t)enemy_defs[elite_base_type].max_hp * 6u);
             enemy_defs[ENEMY_SLIME_BIG].max_hp = (hp6 > 255u) ? 255u : (uint8_t)hp6;
+            // Deliberately unclamped, unlike max_hp above: base damage caps at 5, so x2 cannot
+            // approach 255, and bank 0 is the tightest bank in the ROM (tens of bytes free) —
+            // a defensive clamp here costs real space to guard an unreachable case.
             enemy_defs[ENEMY_SLIME_BIG].damage = (uint8_t)(enemy_defs[elite_base_type].damage * 2u);
             enemy_defs[ENEMY_SLIME_BIG].move_style = MOVE_CHASE;
             dungeon_elite_load_art(); // BANKED (bank 28): 2x-upscaled base sprite into the quadrant slots

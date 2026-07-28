@@ -6,8 +6,8 @@
 #include <gb/cgb.h>
 
 static const EnemyDef defs[] = {
-    /* ENEMY_GORGON */ { TILE_GORGON_HEAD_L_OFF, TILE_GORGON_HEAD_R_OFF, 40, 4, PAL_ENEMY_SNAKE, MOVE_BLINK, 3 },
-    /* ENEMY_SNAKE  */ { TILE_SNAKE_1,        TILE_SNAKE_2,         4, 2, PAL_ENEMY_SNAKE,    MOVE_CHASE, 0 },
+    /* ENEMY_GORGON */ { TILE_GORGON_HEAD_L_OFF, TILE_GORGON_HEAD_R_OFF, 80, 4, PAL_ENEMY_SNAKE, MOVE_BLINK, 3 },
+    /* ENEMY_SNAKE  */ { TILE_SNAKE_1,        TILE_SNAKE_2,         8, 2, PAL_ENEMY_SNAKE,    MOVE_CHASE, 0 },
 };
 
 static const palette_color_t pal_gorgon_body[] = {

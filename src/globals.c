@@ -24,8 +24,8 @@ uint8_t  elite_base_type;       // base fodder type of the 2x elite on FLOORKIND
 uint16_t dungeon_complete_mask; // bit k = dungeon k complete (level_init clears on fresh run)
 uint8_t  hub_landing_dungeon;   // DUNGEON_NONE unless returning from dungeon k
 
-uint8_t  player_hp  = PLAYER_HP_BASE_MAX;
-uint8_t  player_hp_max = PLAYER_HP_BASE_MAX;
+uint16_t player_hp  = PLAYER_HP_BASE_MAX;
+uint16_t player_hp_max = PLAYER_HP_BASE_MAX;
 uint8_t  player_level = 1;
 uint8_t  player_damage = 1; 
 uint16_t player_xp;                            // BSS 0 — level_init zeroes on fresh run
@@ -48,7 +48,7 @@ uint8_t  sphinx_fire_pending;                // set by move_enemies, consumed by
 uint8_t  look_cx, look_cy;
 uint8_t  selected_belt_slot;                 // BSS 0 = slot 0 — gameplay_enter clears belt vars
 uint8_t  belt_slot_charges[BELT_SLOT_COUNT];   // BSS zeroed — digits hidden until wired
-uint8_t  player_hp_prev;
+uint16_t player_hp_prev;
 uint8_t  book_heal_cooldown_turns;
 uint8_t  player_spell_points;               // BSS 0 — spells_new_run_reset zeroes on fresh run
 uint8_t  spell_rank[SPELLS_PER_CLASS];      // BSS 0 — spells_new_run_reset sets {1,0,...}

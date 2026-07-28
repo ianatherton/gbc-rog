@@ -227,8 +227,8 @@ static void ax_log_and_redraw(const char *s) { // log lines pushed outside the n
     draw_gameplay_overlays_profiled_far(g_player_x, g_player_y);
 }
 
-static uint8_t ax_hp_low(void) { // stop threshold: HP at or below 49% of max
-    return (uint16_t)player_hp * 100u <= (uint16_t)player_hp_max * 49u;
+static uint8_t ax_hp_low(void) { // stop threshold: HP at or below ~half max (48% — hp*100 would wrap uint16 above hp 655)
+    return player_hp * 25u <= player_hp_max * 12u;
 }
 
 static void ax_push(uint8_t x, uint8_t y) {

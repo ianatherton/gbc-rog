@@ -122,6 +122,7 @@ void level_init_display(uint8_t from_pit) BANKED {
         if (player_class == 2u) { // WITCH starts with the Port: Boss scroll + her hat (worn)
             uint8_t s;
             inventory_add(ITEM_KIND_SCROLL_PORT6, 0);
+            inventory_add(ITEM_KIND_SCROLL_LEVEL, 0); // TEST AID — pair with Port: Boss to reach a scaled boss fast
             inventory_add(ITEM_KIND_WITCH_HAT, 0);
             for (s = 0u; s < INVENTORY_MAX_SLOTS; s++) { // equip it — same steps as the inventory toggle
                 if (inventory_kind[s] == ITEM_KIND_WITCH_HAT) {

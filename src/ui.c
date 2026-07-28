@@ -551,10 +551,21 @@ void ui_confirm_prompt_push(uint8_t kind, uint8_t aux) BANKED {
     ui_combat_log_push(b);
 }
 
-void ui_push_combat_log(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_pct, uint8_t is_crit) BANKED {
+// HP percentage without overflowing 16 bits: a plain hp*100 wraps once hp >= 656, and enemy HP
+// now reaches 1530. Halving both terms until the numerator is safe costs at most two iterations
+// and keeps the divide 16-bit (32-bit division is dear on SM83, and this runs on every hit).
+static uint8_t ui_hp_pct(uint16_t hp, uint16_t mhp) {
+    while (mhp > 655u) { hp >>= 1; mhp >>= 1; }
+    if (!mhp) return 0u;
+    { uint16_t p = (uint16_t)(hp * 100u) / mhp;
+      return (p > 100u) ? 100u : (uint8_t)p; } // true 100 at full HP — the HUD's 5th heart needs it; 2-digit log sites clamp to 99 themselves
+}
+
+void ui_push_combat_log(uint8_t type_idx, uint8_t dmg, uint16_t hp_remaining_for_pct, uint8_t is_crit) BANKED {
     char logbuf[UI_MSG_LINE];
     char namebuf[12]; // SLIMESKULL + NUL is the longest current name; copy here to stay valid after bcall returns to bank 5
-    uint8_t p = 0, d = dmg, mhp, pct, ni;
+    uint8_t p = 0, d = dmg, pct, ni;
+    uint16_t mhp;
     enemy_type_short_name_copy(type_idx, namebuf, sizeof namebuf);
     for (ni = 0u; namebuf[ni] && p < 8u; ni++) logbuf[p++] = namebuf[ni]; // 8: worst line = name8+' -NNN! NN%' = 18 = UI_PANEL_TEXT_COLS
     logbuf[p++] = ' ';
@@ -566,8 +577,8 @@ void ui_push_combat_log(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_
         if (hp_remaining_for_pct) {
             if (is_crit) logbuf[p++] = '!';
             mhp = enemy_effective_max_hp(type_idx);
-            pct = mhp ? (uint8_t)(((uint16_t)hp_remaining_for_pct * 100u) / (uint16_t)mhp) : 0u;
-            if (pct > 99u) pct = 99u;
+            pct = ui_hp_pct(hp_remaining_for_pct, mhp);
+            if (pct > 99u) pct = 99u; // log renders 2 digits
             logbuf[p++] = ' ';
             if (pct >= 10u) { logbuf[p++] = (char)('0' + pct / 10u); logbuf[p++] = (char)('0' + pct % 10u); }
             else            { logbuf[p++] = (char)('0' + pct); }
@@ -584,10 +595,11 @@ void ui_push_combat_log(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_
     ui_combat_log_push_pal(logbuf, PAL_UI);
 }
 
-void ui_push_combat_log_shield_burn(uint8_t type_idx, uint8_t dmg, uint8_t hp_remaining_for_pct) BANKED {
+void ui_push_combat_log_shield_burn(uint8_t type_idx, uint8_t dmg, uint16_t hp_remaining_for_pct) BANKED {
     char logbuf[UI_MSG_LINE];
     char namebuf[12];
-    uint8_t p = 0, d = dmg, mhp, pct, ni;
+    uint8_t p = 0, d = dmg, pct, ni;
+    uint16_t mhp;
     if (dmg == 0u) return; // only "-N" lines; kills pass lethal damage, not a separate DIES
     enemy_type_short_name_copy(type_idx, namebuf, sizeof namebuf);
     for (ni = 0u; namebuf[ni] && p < 8u; ni++) logbuf[p++] = namebuf[ni]; // 8: worst line = name8+' -NNN! NN%' = 18 = UI_PANEL_TEXT_COLS
@@ -612,8 +624,8 @@ void ui_push_combat_log_shield_burn(uint8_t type_idx, uint8_t dmg, uint8_t hp_re
         logbuf[p++] = (char)('0' + d);
         if (hp_remaining_for_pct > 0u) {
             mhp = enemy_effective_max_hp(type_idx);
-            pct = mhp ? (uint8_t)(((uint16_t)hp_remaining_for_pct * 100u) / (uint16_t)mhp) : 0u;
-            if (pct > 99u) pct = 99u;
+            pct = ui_hp_pct(hp_remaining_for_pct, mhp);
+            if (pct > 99u) pct = 99u; // log renders 2 digits
             if (p + 5u < COMBAT_LOG_LEN) {
                 logbuf[p++] = ' ';
                 if (pct >= 10u) {
@@ -717,6 +729,17 @@ static void win_put_uint8(uint8_t x, uint8_t y, uint8_t v, uint8_t width, uint8_
     uint8_t i = 0, pad;
     if (v == 0) { dig[i++] = '0'; }
     else { while (v) { dig[i++] = (char)('0' + (v % 10u)); v /= 10u; } }
+    for (pad = i; pad < width; pad++) win_putc_pal(x++, y, ' ', pal); // space-pad leading
+    while (i--) win_putc_pal(x++, y, dig[i], pal);
+}
+
+// 16-bit sibling of win_put_uint8 for enemy HP, which now runs to 1530. NOTE the digit buffer is
+// [5], not [3] — a 4- or 5-digit value overruns win_put_uint8's array.
+static void win_put_uint16(uint8_t x, uint8_t y, uint16_t v, uint8_t width, uint8_t pal) { // right-justified decimal
+    char dig[5];
+    uint8_t i = 0, pad;
+    if (v == 0) { dig[i++] = '0'; }
+    else { while (v) { dig[i++] = (char)('0' + (uint8_t)(v % 10u)); v /= 10u; } }
     for (pad = i; pad < width; pad++) win_putc_pal(x++, y, ' ', pal); // space-pad leading
     while (i--) win_putc_pal(x++, y, dig[i], pal);
 }
@@ -866,8 +889,8 @@ static void ui_draw_belt_placeholder_row(void) { // trim [SPELL] s0 s1 [ITEM] i0
 
 static void ui_draw_top_hud(void) { // bottom window row: L:♥×5 HP% XP% ☠:n
     uint8_t hy = UI_HUD_WIN_Y, tx = 0;
-    uint8_t k, pct = (uint8_t)((uint16_t)player_hp * 100u / player_hp_max);
-    uint8_t prev_pct = (uint8_t)((uint16_t)player_hp_prev * 100u / player_hp_max);
+    uint8_t k, pct = ui_hp_pct(player_hp, player_hp_max);
+    uint8_t prev_pct = ui_hp_pct(player_hp_prev, player_hp_max);
     uint8_t pct8 = pct, xp_pct;
     uint8_t vram;
 
@@ -1002,14 +1025,15 @@ static void ui_draw_inspect_panel(void) {
         win_puts_row_pad_cols(UI_PANEL_WIN_Y0, namebuf, PAL_UI, UI_PANEL_TEXT_COLS);
     }
     { // HP N/M — one line under name (panel rows 1–2; HUD on row 4 after ui_draw_bottom_rows)
-        uint8_t hp = enemy_hp[slot], mhp = enemy_effective_max_hp(t);
+        uint16_t hp = enemy_hp[slot], mhp = enemy_effective_max_hp(t);
         x = UI_PANEL_TEXT_X;
         win_putc_pal(x++, UI_PANEL_WIN_Y1, 'H', PAL_UI);
         win_putc_pal(x++, UI_PANEL_WIN_Y1, 'P', PAL_UI);
         win_putc_pal(x++, UI_PANEL_WIN_Y1, ' ', PAL_UI);
-        win_put_uint8(x, UI_PANEL_WIN_Y1, hp, 3, PAL_UI); x = (uint8_t)(x + 3u);
+        // width 4 each: "HP 1530/1530" is 12 of UI_PANEL_TEXT_COLS (18)
+        win_put_uint16(x, UI_PANEL_WIN_Y1, hp, 4, PAL_UI); x = (uint8_t)(x + 4u);
         win_putc_pal(x++, UI_PANEL_WIN_Y1, '/', PAL_UI);
-        win_put_uint8(x, UI_PANEL_WIN_Y1, mhp, 3, PAL_UI); x = (uint8_t)(x + 3u);
+        win_put_uint16(x, UI_PANEL_WIN_Y1, mhp, 4, PAL_UI); x = (uint8_t)(x + 4u);
         while (x < (uint8_t)(UI_PANEL_TEXT_X + UI_PANEL_TEXT_COLS)) win_putc_pal(x++, UI_PANEL_WIN_Y1, ' ', PAL_UI);
         ui_panel_rails(UI_PANEL_WIN_Y1);
     }

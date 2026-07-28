@@ -74,12 +74,12 @@ static const EncounterDef ENC_DEFS[] = {
 // are plain functions in banks 10/11/12 and this bank cannot SWITCH_ROM to reach them (the page
 // carrying the call would vanish mid-call — same constraint that keeps the boss overlay in HOME).
 static const EnemyDef enc_defs_tbl[] = {
-    /* 0 ENEMY_SNAKE    */ { TILE_SNAKE_1,     TILE_SNAKE_2,     4, 3, PAL_ENEMY_SNAKE,    MOVE_CHASE,  0 },
-    /* 1 ENEMY_SLIME    */ { TILE_SLIME_1_OFF, TILE_SLIME_2_OFF, 2, 3, PAL_ENEMY_SNAKE,    MOVE_CHASE,  0 },
-    /* 2 ENEMY_RAT      */ { TILE_RAT_OFF,     TILE_RAT_OFF,     2, 3, PAL_ENEMY_RAT,      MOVE_WANDER, 0 },
-    /* 3 ENEMY_BAT      */ { TILE_BAT_1,       TILE_BAT_2,       2, 3, PAL_ENEMY_BAT,      MOVE_BLINK,  3 },
-    /* 4 ENEMY_IMP      */ { TILE_MONSTER_2,   TILE_MONSTER_2,   4, 4, PAL_ENEMY_GOBLIN,   MOVE_CHASE,  0 },
-    /* 5 ENEMY_SKELETON */ { TILE_SKEL_1_OFF,  TILE_SKEL_2_OFF,  6, 4, 0,                  MOVE_CHASE,  0 }, // OCP0 white/grey ramp
+    /* 0 ENEMY_SNAKE    */ { TILE_SNAKE_1,     TILE_SNAKE_2,     8, 3, PAL_ENEMY_SNAKE,    MOVE_CHASE,  0 },
+    /* 1 ENEMY_SLIME    */ { TILE_SLIME_1_OFF, TILE_SLIME_2_OFF, 4, 3, PAL_ENEMY_SNAKE,    MOVE_CHASE,  0 },
+    /* 2 ENEMY_RAT      */ { TILE_RAT_OFF,     TILE_RAT_OFF,     4, 3, PAL_ENEMY_RAT,      MOVE_WANDER, 0 },
+    /* 3 ENEMY_BAT      */ { TILE_BAT_1,       TILE_BAT_2,       4, 3, PAL_ENEMY_BAT,      MOVE_BLINK,  3 },
+    /* 4 ENEMY_IMP      */ { TILE_MONSTER_2,   TILE_MONSTER_2,   8, 4, PAL_ENEMY_GOBLIN,   MOVE_CHASE,  0 },
+    /* 5 ENEMY_SKELETON */ { TILE_SKEL_1_OFF,  TILE_SKEL_2_OFF, 12, 4, 0,                  MOVE_CHASE,  0 }, // OCP0 white/grey ramp
 };
 static const uint8_t enc_roster_beasts[] = { ENEMY_RAT, ENEMY_BAT, ENEMY_SNAKE, ENEMY_SLIME };
 static const uint8_t enc_roster_undead[] = { ENEMY_SKELETON, ENEMY_IMP };

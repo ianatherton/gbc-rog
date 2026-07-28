@@ -71,11 +71,25 @@ void items_equip_apply(uint8_t kind, uint8_t inv_slot, uint8_t now_equipped) BAN
     d = &equip_stat_defs[kind];
     mod = (inv_slot < INVENTORY_MAX_SLOTS) ? inventory_mod_level[inv_slot] : 0;
 
+#if WITCH_HAT_HP_TEST_BONUS
+    // TEMP TEST SCAFFOLD — delete along with WITCH_HAT_HP_TEST_BONUS in defs.h. Mirrors the
+    // d->hp_max branch below; the table field is uint8_t so 400 can't live there.
+    if (kind == ITEM_KIND_WITCH_HAT) {
+        if (now_equipped) { uint16_t nh = player_hp_max + WITCH_HAT_HP_TEST_BONUS;
+                            player_hp_max = (nh > PLAYER_HP_MAX_CAP) ? PLAYER_HP_MAX_CAP : nh;
+                            player_hp = player_hp_max; } // test-only top-up: fresh Witch starts full (level_init heals before equipping)
+        else {
+            player_hp_max = (player_hp_max > WITCH_HAT_HP_TEST_BONUS) ? (uint16_t)(player_hp_max - WITCH_HAT_HP_TEST_BONUS) : 1u;
+            if (player_hp > player_hp_max) player_hp = player_hp_max;
+        }
+    }
+#endif
     if (d->hp_max) {
         uint8_t applied = mod_clamped(d->hp_max, mod, 255u);
-        if (now_equipped) { player_hp_max = (uint8_t)(player_hp_max + applied); }
+        if (now_equipped) { uint16_t nh = player_hp_max + applied;
+                            player_hp_max = (nh > PLAYER_HP_MAX_CAP) ? PLAYER_HP_MAX_CAP : nh; }
         else {
-            player_hp_max = (player_hp_max > applied) ? (uint8_t)(player_hp_max - applied) : 1u;
+            player_hp_max = (player_hp_max > applied) ? (uint16_t)(player_hp_max - applied) : 1u;
             if (player_hp > player_hp_max) player_hp = player_hp_max;
         }
     }

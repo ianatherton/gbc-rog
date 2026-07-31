@@ -179,7 +179,7 @@ uint16_t enemy_effective_max_hp(uint8_t type) BANKED {
     // TEMP TEST SCAFFOLD — delete along with BOSS_HP_TEST_BASE in defs.h. Only the HP path is
     // overridden; enemy_effective_damage still reads the real table, so the boss stays survivable
     // while you watch a 4-digit HP pool drain.
-    if (type == ENEMY_GORGON || type == ENEMY_SPHINX)
+    if (ENEMY_IS_WIDE(type) && type != ENEMY_SLIME_BIG) // every real boss incl. the bossx prototypes; not the miniboss elite
         return (uint16_t)BOSS_HP_TEST_BASE * (uint16_t)monster_level;
 #endif
     return (uint16_t)enemy_defs[type].max_hp * (uint16_t)monster_level;
@@ -251,7 +251,7 @@ void spawn_enemies(void) { // random placement with collision checks
     for (i = 0; i < MAX_ENEMIES; i++) { enemy_force_active[i] = 0u; enemy_status[i] = 0u; enemy_stun[i] = 0u; enemy_hidden[i] = 0u; enemy_persistent[i] = 0u; }
     if (floor_kind == FLOORKIND_HUB || floor_kind == FLOORKIND_GUARD || floor_kind == FLOORKIND_TOWN) return; // hub + guardrooms + towns are safe no-monster zones (empty roster → guard rand() % 0)
     if (floor_kind == FLOORKIND_BOSS) {
-        uint8_t btype = floor_boss_type; // Gorgon or Sphinx (biome_apply_floor_kind) — both: 2-tile footprint, 3-high sprite
+        uint8_t btype = floor_boss_type; // per-dungeon roster entry (biome_apply_floor_kind) — all: 2-tile footprint
         uint8_t attempts, gx = 1u, gy = 3u; // fallback position
         boss_alive = 1u;
         for (attempts = 0u; attempts < 100u; attempts++) {
@@ -510,7 +510,7 @@ sphinx_place:
             uint8_t occ = enemy_at(nx, ny);
             if (occ != ENEMY_DEAD && occ != (uint8_t)i) continue; // don't stack enemies
         }
-        if (enemy_type[i] == ENEMY_GORGON || enemy_type[i] == ENEMY_SLIME_BIG || enemy_type[i] == ENEMY_SPHINX) { // right tile must also be free
+        if (ENEMY_IS_WIDE(enemy_type[i])) { // right tile must also be free
             uint8_t rocc = enemy_at((uint8_t)(nx+1u), ny);
             if (rocc != ENEMY_DEAD && rocc != (uint8_t)i) continue;
         }
@@ -524,10 +524,10 @@ sphinx_place:
         }
 
         if (!phasing && !is_walkable(nx, ny)) continue; // wall blocked proposed step (MOVE_PHASE drifts through)
-        if ((enemy_type[i] == ENEMY_GORGON || enemy_type[i] == ENEMY_SLIME_BIG || enemy_type[i] == ENEMY_SPHINX) && !is_walkable((uint8_t)(nx+1u), ny)) continue;
+        if ((ENEMY_IS_WIDE(enemy_type[i])) && !is_walkable((uint8_t)(nx+1u), ny)) continue;
 
         enemy_clear_slot(sx, sy);
-        if (enemy_type[i] == ENEMY_GORGON || enemy_type[i] == ENEMY_SLIME_BIG || enemy_type[i] == ENEMY_SPHINX) enemy_clear_slot((uint8_t)(sx+1u), sy);
+        if (ENEMY_IS_WIDE(enemy_type[i])) enemy_clear_slot((uint8_t)(sx+1u), sy);
         enemy_x[i] = nx;
         enemy_y[i] = ny;
         if (tile_at(nx, ny) == TILE_PIT && !boss_alive) {
@@ -539,7 +539,7 @@ sphinx_place:
                 dead_enemy_pool[dead_enemy_pool_count++] = i;
         } else {
             enemy_place_slot(i, nx, ny);
-            if (enemy_type[i] == ENEMY_GORGON || enemy_type[i] == ENEMY_SLIME_BIG || enemy_type[i] == ENEMY_SPHINX) enemy_place_slot(i, (uint8_t)(nx+1u), ny);
+            if (ENEMY_IS_WIDE(enemy_type[i])) enemy_place_slot(i, (uint8_t)(nx+1u), ny);
         }
     }
     perf_record(PERF_ENEMY_MOVE, perf_stamp_elapsed(&perf_stamp));

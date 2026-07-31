@@ -65,6 +65,12 @@ BANKREF_EXTERN(sphinx_anim_tick)
 void sphinx_load_initial(void) BANKED;
 void sphinx_anim_tick(void) BANKED;
 
+// Boss prototypes (bank 24, biome_bossx.c): defs + palette + pool-slot art upload for the 7
+// bosses beyond gorgon/sphinx (ENEMY_HYDRA..ENEMY_MARA). Plain fn — the caller (HOME
+// biome_apply_floor_kind) SWITCH_ROMs to bank 24 first, same contract as the copy_defs family.
+BANKREF_EXTERN(biome_bossx_setup)
+void biome_bossx_setup(uint8_t type);
+
 // sphinx_ai_decide(): per-turn boss AI (bank 24) — advances the 5-grounded / 5-flying cadence,
 // updates g_sphinx_mode + sphinx_fire_pending, and returns the movement verb below.
 // Keeping the body out of bank 2 (move_enemies) avoids overflowing that chronically-full bank.

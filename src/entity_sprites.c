@@ -15,6 +15,34 @@
 #include "items.h"     // items_kind_tile / items_kind_palette — equipped weapon graphic
 #include "music.h"     // sfx_lunge_hit — impact sound fires at the swing's contact frame
 #include "auto_explore.h" // auto_explore_active — glide-finish drains at the fast slide's pace
+#include "bossx_layout.h" // boss-prototype layouts — re-expanded here into rx/ry offsets (biome_bossx.c owns the src side)
+
+/* ── Boss prototypes (ENEMY_HYDRA..ENEMY_MARA): generic pool-slot renderer data ──────────────
+   Tile i of the active boss sits in scratch VRAM slot bossx_pool[i] (uploaded by
+   biome_bossx_setup at floor load) and draws on OAM slot sp+i inside the idle enemy run —
+   the boss is the floor's only enemy, so up to all 18 run slots (4..21) are free. */
+typedef struct { int8_t rx, ry; } BossxOfs; // tile offset from the anchor (bottom-left body tile)
+#define BOSSX_TILE(s, x, y) { x, y },
+static const BossxOfs bossx_ofs_hydra[]    = { BOSSX_HYDRA_TILES };
+static const BossxOfs bossx_ofs_demon[]    = { BOSSX_DEMON_TILES };
+static const BossxOfs bossx_ofs_gspider[]  = { BOSSX_GSPIDER_TILES };
+static const BossxOfs bossx_ofs_maraeye[]  = { BOSSX_MARAEYE_TILES };
+static const BossxOfs bossx_ofs_skelking[] = { BOSSX_SKELKING_TILES };
+static const BossxOfs bossx_ofs_dragon[]   = { BOSSX_DRAGON_TILES };
+static const BossxOfs bossx_ofs_mara[]     = { BOSSX_MARA_TILES };
+#undef BOSSX_TILE
+typedef struct { const BossxOfs *ofs; uint8_t n; } BossxLayout;
+static const BossxLayout bossx_layouts[7] = { // indexed by type - ENEMY_HYDRA
+    { bossx_ofs_hydra,    (uint8_t)(sizeof bossx_ofs_hydra    / sizeof(BossxOfs)) },
+    { bossx_ofs_demon,    (uint8_t)(sizeof bossx_ofs_demon    / sizeof(BossxOfs)) },
+    { bossx_ofs_gspider,  (uint8_t)(sizeof bossx_ofs_gspider  / sizeof(BossxOfs)) },
+    { bossx_ofs_maraeye,  (uint8_t)(sizeof bossx_ofs_maraeye  / sizeof(BossxOfs)) },
+    { bossx_ofs_skelking, (uint8_t)(sizeof bossx_ofs_skelking / sizeof(BossxOfs)) },
+    { bossx_ofs_dragon,   (uint8_t)(sizeof bossx_ofs_dragon   / sizeof(BossxOfs)) },
+    { bossx_ofs_mara,     (uint8_t)(sizeof bossx_ofs_mara     / sizeof(BossxOfs)) },
+};
+static const uint8_t bossx_pool[BOSSX_POOL_MAX] = BOSSX_POOL_INIT;
+#define BOSSX_TILE_COUNT(t) (bossx_layouts[(t) - ENEMY_HYDRA].n)
 #include <gb/cgb.h>
 #include <string.h>
 
@@ -555,6 +583,11 @@ static void refresh_enemy_oam(uint8_t slot) {
             uint8_t k;
             for (k = 1u; k <= 9u; k++) oam_hide((uint8_t)(SP_ENEMY_BASE + k));
         }
+        if (enemy_type[slot] >= ENEMY_HYDRA) {
+            // boss prototypes: hide the extra layout tiles on death/poof; primary slot shows the poof
+            uint8_t k, n = BOSSX_TILE_COUNT(enemy_type[slot]);
+            for (k = 1u; k < n; k++) oam_hide((uint8_t)(SP_ENEMY_BASE + k));
+        }
         if (enemy_poof_ttl[slot] > 0u) {
             uint8_t mx = enemy_x[slot], my = enemy_y[slot];
             if (mx < g_cam_tx || mx >= g_cam_tx_end
@@ -681,6 +714,40 @@ static void refresh_enemy_oam(uint8_t slot) {
             move_entity_oam((uint8_t)(SP_ENEMY_BASE + 1u), (int16_t)(wing_bl_x + 8), (int16_t)(wing_bl_y - 16), TILE_SPHINX_W1_VRAM, wing_pal);
             move_entity_oam((uint8_t)(SP_ENEMY_BASE + 2u), wing_bl_x,                (int16_t)(wing_bl_y - 8),  TILE_SPHINX_W2_VRAM, wing_pal);
             move_entity_oam((uint8_t)(SP_ENEMY_BASE + 3u), (int16_t)(wing_bl_x + 8), (int16_t)(wing_bl_y - 8),  TILE_SPHINX_W3_VRAM, wing_pal);
+        }
+        return;
+    }
+    // Generic render for the boss prototypes (ENEMY_HYDRA..ENEMY_MARA, FLOORKIND_BOSS only).
+    // Tile i draws bossx_pool[i] at the layout's rx/ry tile offset from the anchor, on OAM
+    // slot sp+i — the boss is the only enemy, so the idle run is free (hide sweep bound is
+    // raised to the layout size below). Static frame-1 art: no anim tick, no VRAM re-uploads.
+    if (enemy_type[slot] >= ENEMY_HYDRA) {
+        const BossxLayout *L = &bossx_layouts[enemy_type[slot] - ENEMY_HYDRA];
+        int16_t ewx = (int16_t)enemy_x[slot] * 8 + en_ofs_x[slot];
+        int16_t ewy = (int16_t)enemy_y[slot] * 8 + en_ofs_y[slot];
+        uint8_t k;
+        if (enemy_x[slot] < g_cam_tx || enemy_x[slot] >= g_cam_tx_end
+                || enemy_y[slot] < g_cam_ty || enemy_y[slot] >= g_cam_ty_end
+                || !lighting_is_revealed(enemy_x[slot], enemy_y[slot])) {
+            for (k = 0u; k < L->n; k++) oam_hide((uint8_t)(sp + k));
+            return;
+        }
+        {
+            uint8_t pal = PAL_BOSSX;
+            uint8_t h = en_hit_flash_age[slot];
+            if (h > 0u && h <= ENEMY_HIT_FLASH_VBL) {
+                uint8_t age0 = (uint8_t)(h - 1u);
+                if (((age0 >> 1) & 1u) == 0u) pal = 0u; // OCP0 grey hit pulse
+            }
+            for (k = 0u; k < L->n; k++) {
+                int16_t tx_ = (int16_t)(ewx + (int16_t)L->ofs[k].rx * 8);
+                int16_t ty_ = (int16_t)(ewy + (int16_t)L->ofs[k].ry * 8);
+                // Tall bosses near the map's top edge: negative world-y wraps in move_entity_oam's
+                // uint8 math past -16px and would ghost the tile at the screen bottom — hide instead
+                // (the gorgon's enemy_y>0/1 guards solve the same problem for its fixed 3 rows).
+                if (ty_ < 0) oam_hide((uint8_t)(sp + k));
+                else         move_entity_oam((uint8_t)(sp + k), tx_, ty_, bossx_pool[k], pal);
+            }
         }
         return;
     }
@@ -961,9 +1028,13 @@ void entity_sprites_refresh_oam_only(uint8_t px, uint8_t py) BANKED {
     // Hide unused enemy body slots — guarded so this only runs when num_enemies changes (once per floor)
     {
         uint8_t new_mark = (uint8_t)(SP_ENEMY_BASE + num_enemies);
-        // The Sphinx boss draws into the first 10 idle enemy-run slots; keep the sweep above them.
-        if (floor_kind == FLOORKIND_BOSS && floor_boss_type == ENEMY_SPHINX && new_mark < (uint8_t)(SP_ENEMY_BASE + 10u))
-            new_mark = (uint8_t)(SP_ENEMY_BASE + 10u);
+        // Multi-tile bosses draw into the idle enemy-run slots; keep the sweep above their span
+        // (10 for the sphinx, the layout size for the prototypes — up to all 18 for the dragon).
+        if (floor_kind == FLOORKIND_BOSS) {
+            uint8_t span = (floor_boss_type == ENEMY_SPHINX) ? 10u
+                         : (floor_boss_type >= ENEMY_HYDRA) ? BOSSX_TILE_COUNT(floor_boss_type) : 0u;
+            if (new_mark < (uint8_t)(SP_ENEMY_BASE + span)) new_mark = (uint8_t)(SP_ENEMY_BASE + span);
+        }
         if (oam_enemy_hide_mark != new_mark) {
             // Sweep only the enemy run; slots past it (skell heads etc.) have their own owners.
             for (i = new_mark; i < (uint8_t)(SP_ENEMY_BASE + MAX_ENEMIES); i++) oam_hide(i);

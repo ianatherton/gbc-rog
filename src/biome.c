@@ -160,18 +160,27 @@ void biome_apply_floor_kind(void) {
     uint8_t sb = CURRENT_BANK;
     uint8_t d = FLOOR_DUNGEON_ID(floor_num);
     if (floor_kind == FLOORKIND_BOSS) {
+        // Any boss can hold any boss room: seed-hashed pick over the full roster (same hash the
+        // old gorgon/sphinx coin flip used — never rand(), so a revisit regenerates the same boss).
+        static const uint8_t boss_roster[9] = {
+            ENEMY_GORGON, ENEMY_SPHINX, ENEMY_HYDRA, ENEMY_DEMON, ENEMY_GSPIDER,
+            ENEMY_MARAEYE, ENEMY_SKELKING, ENEMY_DRAGON, ENEMY_MARA,
+        };
         uint16_t h = (uint16_t)(run_seed ^ (uint16_t)((uint16_t)(d + 1u) * 7919u));
         h ^= (uint16_t)(h >> 5);
-        floor_boss_type = (h & 1u) ? ENEMY_SPHINX : ENEMY_GORGON;
+        floor_boss_type = boss_roster[h % 9u];
         if (floor_boss_type == ENEMY_GORGON) {
             SWITCH_ROM(BANK(biome_boss_copy_defs));
             biome_boss_copy_defs(enemy_defs, enemy_active_types, &enemy_active_count);
             biome_boss_load_palettes();
-        } else {
+        } else if (floor_boss_type == ENEMY_SPHINX) {
             SWITCH_ROM(BANK(biome_boss2_copy_defs));
             biome_boss2_copy_defs(enemy_defs, enemy_active_types, &enemy_active_count);
             biome_boss2_load_palettes();
             sphinx_load_initial(); // BANKED (bank 24) — frame-0 art into the 10 borrowed scratch slots
+        } else {
+            SWITCH_ROM(BANK(biome_bossx_setup)); // bank 24 — defs + palette + pool-slot art in one call
+            biome_bossx_setup(floor_boss_type);
         }
     } else if (floor_kind == FLOORKIND_MINIBOSS) {
         // Elite = a random fodder type from this biome's roster, scaled up. ENEMY_BIG_SKELL is

@@ -161,7 +161,19 @@ typedef struct {
 #define ENEMY_SPHINX    9 // floor-6 boss; 3x2 body + flapping wings, 10 OAM tiles; 2-tile Gorgon-style footprint
 #define ENEMY_GHOST    10 // crypt fodder; MOVE_PHASE walks through walls and goes invisible (untargetable)
                           // whenever it is more than 1 tile from the player — see enemy_hidden[] in enemy.h
-#define NUM_ENEMY_TYPES 11
+/* Boss prototypes (biome_bossx.c, bank 24): bat-style MOVE_BLINK AI + static bosses.png art via the
+   shared scratch-slot pool (BOSSX_POOL_*). Rendered by entity_sprites' generic bossx branch. */
+#define ENEMY_HYDRA    11
+#define ENEMY_DEMON    12
+#define ENEMY_GSPIDER  13
+#define ENEMY_MARAEYE  14
+#define ENEMY_SKELKING 15
+#define ENEMY_DRAGON   16
+#define ENEMY_MARA     17
+#define NUM_ENEMY_TYPES 18
+/* Every boss-ish type occupies a 2-tile (right-extended) footprint — gorgon/elite/sphinx plus all
+   bossx prototypes. The ghost (10) sits inside the id range and is the one exception. */
+#define ENEMY_IS_WIDE(t) ((t) >= ENEMY_GORGON && (t) != ENEMY_GHOST)
 
 /* ── Animation ───────────────────────────────────────────────────────────── */
 // DIV_REG runs at 16384 Hz; 1638 ticks ≈ 0.10s between frame flips
@@ -662,6 +674,22 @@ typedef struct {
    wing_up {64,65,80,81} (+32 → wing_down; B6=81 is the blank 4th cell). */
 #define PAL_SPHINX_BODY PAL_GORGON_BODY /* OCP slot 4 — gorgon's slot, free on the sphinx floor */
 #define PAL_SPHINX_WING PAL_ENEMY_RAT   /* OCP slot 5 — no rats on boss floors; white/grey wing ramp */
+/* ── Boss-prototype scratch pool (biome_bossx.c bank 24 ⇄ entity_sprites.c bank 17) ──────────
+   One boss per FLOORKIND_BOSS floor, so all prototypes share ONE ordered pool of OBJ scratch
+   slots: art tile i of the active boss is uploaded into pool[i] at floor load, and the renderer
+   addresses tiles by the same index. Slot provenance (all verified free on boss floors, each
+   with an existing restore path for the floors that DO use them):
+     [0..5]   225,226,228,229,230,231 — gorgon body (restored by biome_load_active else-branch)
+     [6..9]   237,238,239,234         — skeleton-1/2, rat, big-skull body (same restore)
+     [10..13] 194,195,196,198         — C5/D5/E5/G5 dead prop cells (elite frame-1 scratch)
+     [14..16] 206,207,223             — O5/P5/P6 blank cells (hub border art re-ups on hub entry)
+     [17]     191                     — ghost (crypt floors re-upload it per floor)
+   Do NOT add 197 (stun icon), 236 (death poof), 241/242/244+ (UI/belt/aura) — live on boss floors. */
+#define BOSSX_POOL_MAX  18u
+#define BOSSX_POOL_INIT { 225u,226u,228u,229u,230u,231u, 237u,238u,239u,234u, \
+                          194u,195u,196u,198u, 206u,207u,223u, 191u }
+#define PAL_BOSSX PAL_GORGON_BODY /* OCP4 — gorgon's slot, free on every boss floor */
+
 /* Sphinx behavioral states (g_sphinx_mode): grounded chases+melees & is hittable normally;
    flying is melee-immune (ranged-only), repositions toward the player and pelts a stun-glyph bolt. */
 #define SPHINX_GROUNDED     0u

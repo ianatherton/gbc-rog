@@ -364,7 +364,15 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
         }
     }
     pending_pickup_slot = 255u; // fresh floor — no carryover prompt
-    if (entered_from_below && map_pit_position(px, py)) {
+    // Recall return leg — land on the exact tile the anchor was set on. Deliberately writes only
+    // *px/*py and leaves player_spawn_x/y alone: that pair IS the stairs-up cell (render.c draws its
+    // glyph, gameplay_cold.c classifies CONFIRM_UP from it), so moving it would drag the stairs along.
+    // state_transition.c clears both recall flags once this spawn is done (keeps bank 2 lean).
+    if (recall_return_pending) {
+        *px = recall_anchor_x;
+        *py = recall_anchor_y;
+        lighting_reveal_radius(*px, *py, LIGHT_RADIUS_STAIRS_UP);
+    } else if (entered_from_below && map_pit_position(px, py)) {
         lighting_reveal_radius(*px, *py, LIGHT_RADIUS_LADDER_DOWN);
     } else {
         *px = player_spawn_x;

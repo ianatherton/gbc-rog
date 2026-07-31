@@ -46,6 +46,9 @@ extern uint8_t  knight_shield_active; // holy fire shield buff — set by abilit
 extern uint8_t  prayer_hot_turns; // heal 25% max HP per remaining turn (knight Prayer)
 extern uint8_t  sniper_turns;     // bow range 8 + full-damage shots while > 0 (scoundrel Sniper Mode)
 extern uint8_t  zerk_turns;       // 2x melee dmg dealt, +1 dmg taken while > 0 (zerker Zerk Mode)
+extern uint8_t  trap_x, trap_y;   // armed Bear Trap tile (one trap max; recast moves it)
+extern uint8_t  trap_armed;       // 0 = no trap, else rank+1 — trigger scan in spells_tick_cooldowns
+extern uint8_t  corpse_robbed[(MAX_CORPSES + 7u) >> 3]; // Graverob: 1 bit per corpse slot, cleared per floor
 extern uint8_t  player_light_bonus;     // candle stack — cleared on floor gen; added to class base light radius
 extern uint8_t  ally_active[MAX_ALLIES];
 extern uint8_t  ally_x[MAX_ALLIES];
@@ -114,6 +117,16 @@ extern uint8_t enc_region;       // OW_REGION_* under the marker → terrain art
 extern uint8_t enc_return_x;     // hub cell the marker stood on — where leaving puts you back
 extern uint8_t enc_return_y;
 extern uint8_t monster_level;    // enemy HP/damage multiplier for this floor, and the HUD's skull number; set once per floor load
+
+/* ── Recall (map subscreen; state_map.c) ───────────────────────────────────────────────────────
+   Two-phase toggle: A on the map screen with no anchor saves (floor, tile) here and ports to the
+   nearest town; A with an anchor ports back to it. Blocked on miniboss/boss/encounter floors —
+   the encounter block is what lets us skip floor 49's entry-time persistence wipe entirely. */
+extern uint8_t recall_anchor_floor;    // 0xFF = no anchor armed
+extern uint8_t recall_anchor_x;        // hub/dungeon tile the player recalled away from
+extern uint8_t recall_anchor_y;
+extern uint8_t recall_return_pending;  // 1 = the next level_generate_and_spawn spawns on the anchor tile
+#define RECALL_NO_ANCHOR 0xFFu
 
 /* story_ui layout constants — scratch overlays floor_bits[] before first generate_level (see story_ui.c) */
 #define G_STORY_BIGBUF_CAP   400u

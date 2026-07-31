@@ -70,6 +70,16 @@ static uint8_t ax_prev_x, ax_prev_y;   // stuck guard: position after our last s
 static uint8_t ax_prev_walked;         // 1 = a walk was synthesized last step
 static uint8_t ax_ignore_mask[3];      // enemy slots on screen when A was pressed — don't re-stop for them
 
+/* Ghost detour: a phased-out (enemy_hidden) Ghost squatting on the next path tile is an invisible
+   blocker — stopping on it reads as a bug ("Enemy sighted." with an empty screen), and because no
+   turn passes while we're stopped, the ghost never moves and a restart re-floods into the same
+   tile forever. Instead the blocked tile is fed back into one repair flood as a wall.
+   ax_avoid_idx is one-shot (cleared as soon as a path is built — later floods see the real map,
+   the ghost will have drifted by then); the streak cap breaks the zero-turn ping-pong two hidden
+   ghosts astride the only two routes would otherwise sustain. */
+static uint16_t ax_avoid_idx = 0xFFFFu;
+static uint8_t  ax_detour_streak;
+
 static void av_clear(void) __naked { // zero visited bitmap 0xD000..0xD47F in WRAM bank 3 (~2.5 ms at double speed)
 __asm
     di
@@ -270,6 +280,7 @@ static uint8_t ax_visit(uint8_t nx, uint8_t ny, uint8_t d) {
     if (nx >= active_map_w || ny >= active_map_h) return 0u; // uint8 wrap (0-1 => 255) lands here too — keeps idx inside the bitsets
     idx = TILE_IDX(nx, ny);
     if (!(floor_bits[idx >> 3] & ax_bitmask[(uint8_t)idx & 7u])) return 0u; // wall
+    if (idx == ax_avoid_idx) return 0u;                                     // phased Ghost squatting here — detour (see step)
     if (av_test_set(idx)) return 0u;                                        // already visited
     ap_set(idx | ((uint16_t)d << 14));                                      // record entry dir for path extraction
     if (idx == ax_goal_idx) { ax_target_idx = idx; return 1u; }             // ladder run: the pit itself is the destination
@@ -360,12 +371,18 @@ void auto_explore_try_start(void) BANKED {
     auto_explore_active = 2u; // step() waits for the arming A press to release
     ax_prev_walked = 0u;
     ax_path_valid = 0u;
-    { // snapshot enemies already on screen — the player sees them and chose to explore anyway
+    ax_avoid_idx = 0xFFFFu;
+    ax_detour_streak = 0u;
+    { // snapshot enemies already on screen — the player sees them and chose to explore anyway.
+      // A phased-out Ghost is masked too, reveal or not (mid-wall its tile never reveals): it just
+      // interrupted this run, so without the mask each restart-while-hidden buys one more stop the
+      // moment it phases back in. Masking it makes hidden restarts match visible ones — the run
+      // then ends the same way it would for a masked visible ghost, on its strike ("Under attack!").
         uint8_t i;
         ax_ignore_mask[0] = ax_ignore_mask[1] = ax_ignore_mask[2] = 0u;
         for (i = 0u; i < num_enemies; i++) {
-            if (enemy_alive[i] && !enemy_hidden[i] && ax_on_screen(enemy_x[i], enemy_y[i])
-                    && lighting_is_revealed(enemy_x[i], enemy_y[i]))
+            if (enemy_alive[i] && ax_on_screen(enemy_x[i], enemy_y[i])
+                    && (enemy_hidden[i] || lighting_is_revealed(enemy_x[i], enemy_y[i])))
                 ax_ignore_mask[i >> 3] |= ax_bitmask[i & 7u];
         }
     }
@@ -436,7 +453,33 @@ uint8_t auto_explore_step(uint8_t j) BANKED {
     if (ax_path_valid && (ax_path_pos >= ax_path_len || ax_item_cnt != ax_path_item_cnt))
         ax_path_valid = 0u;
     if (!ax_path_valid) { // one flood per target; steps in between just replay ax_path
-        uint8_t ok = ax_bfs();
+        uint8_t ok;
+        if (ax_avoid_idx == 0xFFFFu) {
+            // Pre-avoid a masked/hidden enemy on a neighboring tile. The chasing Ghost rides
+            // adjacent for whole runs, so any fresh path that doubles back would take its tile as
+            // the FIRST step and bounce: flood → blocked → detour → second flood. Feeding the
+            // avoid tile into this flood up front halves the "thinking" pause at target switches.
+            uint8_t nd;
+            for (nd = 0u; nd < 4u; nd++) {
+                uint8_t ax = (uint8_t)(g_player_x + ax_dx[nd]);
+                uint8_t ay = (uint8_t)(g_player_y + ax_dy[nd]);
+                uint8_t ei;
+                if (ax >= active_map_w || ay >= active_map_h) continue;
+                ei = enemy_at(ax, ay);
+                if (ei != ENEMY_DEAD
+                        && (enemy_hidden[ei] || (ax_ignore_mask[ei >> 3] & ax_bitmask[ei & 7u]))) {
+                    ax_avoid_idx = TILE_IDX(ax, ay);
+                    break;
+                }
+            }
+        }
+        ok = ax_bfs();
+        if (!ok && ax_avoid_idx != 0xFFFFu) { // the Ghost detour walled off the only route (1-wide corridor)
+            ax_avoid_idx = 0xFFFFu;
+            auto_explore_active = 0u;
+            ax_log_and_redraw("Stopped."); // NOT "Floor explored." — the flood failed because of the avoid tile
+            return 0u;
+        }
         if (!ok) { // fully explored — walk to the down-ladder instead of just stopping
             uint8_t lx, ly;
             if (!boss_alive && map_pit_position(&lx, &ly)) {
@@ -458,6 +501,7 @@ uint8_t auto_explore_step(uint8_t j) BANKED {
         }
         ax_path_valid = 1u;
         ax_path_item_cnt = ax_item_cnt;
+        ax_avoid_idx = 0xFFFFu; // one-shot: this path already detours; later floods see the real map
     }
     d = ax_path_get(ax_path_pos);
     { // never step INTO an enemy — that would be a bump-attack, and this mode doesn't fight
@@ -465,11 +509,31 @@ uint8_t auto_explore_step(uint8_t j) BANKED {
         uint8_t ny = (uint8_t)(g_player_y + ax_dy[d]);
         uint16_t idx = TILE_IDX(nx, ny); // path tiles are always in bounds
         if (enemy_occ[idx >> 3] & ax_bitmask[(uint8_t)idx & 7u]) {
+            // Detour rather than stop for a blocker that is hidden (phased Ghost — invisible, and
+            // no turn passes while stopped, so it would never move: restart livelock) OR already
+            // ignore-masked (the player chose to explore past it; stopping into it re-floods the
+            // BFS per restart — the chasing Ghost sits adjacent/solid PERMANENTLY, so every
+            // doubled-back path used to buy a stop + full-flood cycle, felt as "thinking" pauses).
+            // An unmasked visible enemy still stops the run — that's stop-on-sight's contract.
+            uint8_t ei = enemy_at(nx, ny);
+            uint8_t dodge = (uint8_t)(ei != ENEMY_DEAD
+                                      && (enemy_hidden[ei]
+                                          || (ax_ignore_mask[ei >> 3] & ax_bitmask[ei & 7u])));
+            if (dodge && ax_detour_streak < 2u) {
+                ax_detour_streak++;    // reset on the next real step — see ax_avoid_idx comment
+                ax_avoid_idx = idx;
+                ax_path_valid = 0u;    // think for a frame; the next tick floods around the enemy
+                ax_prev_walked = 0u;   // no walk synthesized — don't let the stuck guard trip
+                return 0u;
+            }
             auto_explore_active = 0u;
-            ax_log_and_redraw("Enemy sighted.");
+            // Detours exhausted on a masked/hidden blocker: a "sighting" would read as a bug
+            // (nothing new is visible) — the generic stop is the honest line.
+            ax_log_and_redraw(dodge ? "Stopped." : "Enemy sighted.");
             return 0u;
         }
     }
+    ax_detour_streak = 0u;
     ax_path_pos++;
     ax_prev_x = g_player_x;
     ax_prev_y = g_player_y;

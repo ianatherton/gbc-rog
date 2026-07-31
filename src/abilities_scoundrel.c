@@ -18,6 +18,7 @@ BANKREF_EXTERN(ally_summon_fox)
 BANKREF_EXTERN(combat_damage_enemy)
 BANKREF_EXTERN(entity_sprites_run_projectile)
 BANKREF_EXTERN(enemy_try_drop_item)
+BANKREF_EXTERN(encounter_chest_drop_item)
 
 static void push_short(const char *s) {
     char buf[20];
@@ -40,24 +41,31 @@ static void cast_call_fox(uint8_t px, uint8_t py, AbilityResult *out) {
     out->consumed_turn = 1u;
 }
 
-// Placeholder buff: TODO real "every other move is a free turn" (needs a state_gameplay turn hook).
+// Dash: implemented as its dual — instead of the player gaining turns, every enemy loses
+// 1-4 turns via the existing enemy_stun mechanic (no move, no melee, free debuff icons).
+// Zero new systems and zero bank-2 cost; functionally identical to a speed buff.
 static void cast_sprint(uint8_t rank, AbilityResult *out) {
-    (void)rank;
+    static const uint8_t sprint_freeze[4] = {1u, 2u, 3u, 4u};
+    uint8_t i, dur = sprint_freeze[rank];
+    for (i = 0u; i < num_enemies; i++) {
+        if (!enemy_alive[i] || enemy_hidden[i]) continue; // phased Ghost can't be caught flat-footed
+        if (enemy_stun[i] < dur) enemy_stun[i] = dur;
+    }
+    sfx_dodge_woosh();
     push_short("Sprint!");
     out->consumed_turn = 1u;
 }
 
-// Placeholder: snaps the nearest foe now (dmg + long root). TODO: drop a real ground trap
-// that triggers when an enemy steps onto it.
+// Real ground trap: armed at the caster's tile (one trap max — recast moves it). The trigger
+// scan lives in spells_tick_cooldowns (bank 27): first enemy standing on the tile takes
+// player_damage + 2*rank and is rooted 4-7 turns if it survives. Cleared on floor change.
 static void cast_bear_trap(uint8_t rank, uint8_t px, uint8_t py, AbilityResult *out) {
-    uint8_t ei, tx, ty, too_far, killed;
-    if (!targeting_find_nearest_visible(px, py, 4u, &ei, &tx, &ty, &too_far)) { push_short("No Target"); return; }
-    killed = combat_damage_enemy(ei, (uint8_t)(2u + rank), 0u);
-    if (!killed) enemy_status[ei] = (uint8_t)(4u + rank);
-    sfx_lunge_hit();
-    push_short("Bear Trap!");
+    trap_x = px;
+    trap_y = py;
+    trap_armed = (uint8_t)(rank + 1u);
+    sfx_spell_zap();
+    push_short("Trap set...");
     out->consumed_turn = 1u;
-    if (killed) { out->did_kill = 1u; out->kill_x = tx; out->kill_y = ty; }
 }
 
 // Ranged dart that poisons (root stands in for DoT — no damage-over-time system yet).
@@ -76,12 +84,22 @@ static void cast_poison_dart(uint8_t rank, uint8_t px, uint8_t py, AbilityResult
     if (killed) { out->did_kill = 1u; out->kill_x = tx; out->kill_y = ty; }
 }
 
-// Placeholder: rolls the drop table at the player's tile for a chance at loot. TODO: require +
-// consume a nearby headstone/corpse, with rank raising the odds.
+// Requires standing on a corpse; robbing consumes it (1 bit per corpse slot, reset per floor
+// entry — a revisit regrows robbable graves, the ladder trip is the cost). Rank sets the odds;
+// a payout uses the chest roll (guaranteed drop, best-of-two "+N") on the player's tile.
 static void cast_graverob(uint8_t rank, AbilityResult *out) {
-    (void)rank;
-    if (enemy_try_drop_item(g_player_x, g_player_y)) push_short("Graverob: loot!");
-    else push_short("Graverob: dust");
+    static const uint8_t rob_pct[4] = {40u, 60u, 80u, 100u};
+    static const uint8_t rob_bitmask[8] = {1u, 2u, 4u, 8u, 16u, 32u, 64u, 128u}; // LUT — SDCC variable-shift miscompile
+    uint8_t ci;
+    for (ci = 0u; ci < num_corpses; ci++)
+        if (corpse_x[ci] == g_player_x && corpse_y[ci] == g_player_y) break;
+    if (ci >= num_corpses) { push_short("No corpse here"); return; } // fizzle — turn kept
+    if (corpse_robbed[ci >> 3] & rob_bitmask[ci & 7u]) { push_short("Already robbed"); return; }
+    corpse_robbed[ci >> 3] |= rob_bitmask[ci & 7u]; // consumed even on a dust roll
+    if ((uint8_t)(rand() % 100u) < rob_pct[rank] && encounter_chest_drop_item(g_player_x, g_player_y))
+        push_short("Graverob: loot!");
+    else
+        push_short("Graverob: dust");
     out->consumed_turn = 1u;
 }
 

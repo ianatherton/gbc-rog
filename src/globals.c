@@ -58,6 +58,9 @@ uint8_t  knight_shield_active;
 uint8_t  prayer_hot_turns;                  // BSS 0 — spells.c resets/ticks
 uint8_t  sniper_turns;                      // BSS 0 — spells.c resets/ticks
 uint8_t  zerk_turns;                        // BSS 0 — spells.c resets/ticks
+uint8_t  trap_x, trap_y;                    // Bear Trap tile
+uint8_t  trap_armed;                        // BSS 0 — spells.c resets, triggers in tick
+uint8_t  corpse_robbed[(MAX_CORPSES + 7u) >> 3]; // BSS 0 — spells_floor_reset zeroes
 uint8_t  player_light_bonus;
 uint8_t  ally_active[MAX_ALLIES];
 uint8_t  ally_x[MAX_ALLIES];
@@ -102,6 +105,13 @@ uint8_t enc_region;
 uint8_t enc_return_x;
 uint8_t enc_return_y;
 uint8_t monster_level;
+
+// Recall (map subscreen, state_map.c). BSS like everything above — level_init's fresh-run branch
+// arms recall_anchor_floor to 0xFF so a stale anchor can't survive into a new run.
+uint8_t recall_anchor_floor;
+uint8_t recall_anchor_x;
+uint8_t recall_anchor_y;
+uint8_t recall_return_pending;
 
 volatile uint8_t inv_desc_scx; // BSS 0 — see globals.h
 

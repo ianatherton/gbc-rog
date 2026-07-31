@@ -14,6 +14,7 @@
 #include "equipment.h" // equipped_kind_in_slot — head/weapon lookup for the 2-tile hero + weapon pop-out
 #include "items.h"     // items_kind_tile / items_kind_palette — equipped weapon graphic
 #include "music.h"     // sfx_lunge_hit — impact sound fires at the swing's contact frame
+#include "auto_explore.h" // auto_explore_active — glide-finish drains at the fast slide's pace
 #include <gb/cgb.h>
 #include <string.h>
 
@@ -1074,6 +1075,17 @@ void entity_sprites_enemy_glide_begin(const uint8_t *old_ex, const uint8_t *old_
     for (i = 0; i < num_enemies; i++) {
         if (!enemy_alive[i] || !old_alive[i]) {
             en_ofs_x[i] = 0; en_ofs_y[i] = 0;
+        } else if (enemy_hidden[i]
+                   || (uint8_t)(enemy_x[i] + 1u) < g_cam_tx || enemy_x[i] > g_cam_tx_end
+                   || (uint8_t)(enemy_y[i] + 1u) < g_cam_ty || enemy_y[i] > g_cam_ty_end
+                   || !lighting_is_revealed(enemy_x[i], enemy_y[i])) {
+            // Won't be drawn this turn (phased Ghost / off-camera / unrevealed destination) —
+            // refresh_enemy_oam hides the sprite in all three cases, so a glide offset here is
+            // pure invisible frame cost: run_enemy_glide_finish would block a wait_vbl loop
+            // draining it. The never-sleeping Ghost made this the EVERY-step case on crypt
+            // floors and dragged the 2-frame auto-explore slide out to 8 frames. Snap instead.
+            // Camera bounds padded a tile: the pan that follows can pull an edge enemy into view.
+            en_ofs_x[i] = 0; en_ofs_y[i] = 0;
         } else {
             en_ofs_x[i] = (int8_t)(((int16_t)old_ex[i] - (int16_t)enemy_x[i]) * 8);
             en_ofs_y[i] = (int8_t)(((int16_t)old_ey[i] - (int16_t)enemy_y[i]) * 8);
@@ -1192,6 +1204,11 @@ void entity_sprites_run_enemy_glide_finish(const uint8_t *old_alive) BANKED {
     // Also handles enemies that died during the AI turn (offset=0, alive state changed).
     uint8_t i, any = 0, dirty_count = 0;
     uint8_t dirty_slots[MAX_ENEMIES];
+    // This loop BLOCKS a wait_vbl per pixel of leftover offset. During auto-explore the camera
+    // pan only lasts 2 frames (AUTO_SCROLL_SPEED), so a fresh 8px glide would strand 6px here —
+    // +6 blocked frames per step while anything on screen moved. Drain at the slide's own pace
+    // instead; manual play keeps the smooth 1 px/frame.
+    uint8_t spd = auto_explore_active ? (uint8_t)AUTO_SCROLL_SPEED : (uint8_t)ENEMY_GLIDE_SPEED;
     for (i = 0; i < num_enemies; i++) {
         if (en_ofs_x[i] || en_ofs_y[i]) {
             dirty_slots[dirty_count++] = i;
@@ -1205,10 +1222,10 @@ void entity_sprites_run_enemy_glide_finish(const uint8_t *old_alive) BANKED {
         any = 0;
         for (i = 0; i < dirty_count; i++) {
             uint8_t s = dirty_slots[i];
-            if (en_ofs_x[s] > 0) en_ofs_x[s] = (en_ofs_x[s] > (int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_x[s] - ENEMY_GLIDE_SPEED) : 0;
-            else if (en_ofs_x[s] < 0) en_ofs_x[s] = (en_ofs_x[s] < -(int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_x[s] + ENEMY_GLIDE_SPEED) : 0;
-            if (en_ofs_y[s] > 0) en_ofs_y[s] = (en_ofs_y[s] > (int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_y[s] - ENEMY_GLIDE_SPEED) : 0;
-            else if (en_ofs_y[s] < 0) en_ofs_y[s] = (en_ofs_y[s] < -(int8_t)ENEMY_GLIDE_SPEED) ? (int8_t)(en_ofs_y[s] + ENEMY_GLIDE_SPEED) : 0;
+            if (en_ofs_x[s] > 0) en_ofs_x[s] = (en_ofs_x[s] > (int8_t)spd) ? (int8_t)(en_ofs_x[s] - spd) : 0;
+            else if (en_ofs_x[s] < 0) en_ofs_x[s] = (en_ofs_x[s] < -(int8_t)spd) ? (int8_t)(en_ofs_x[s] + spd) : 0;
+            if (en_ofs_y[s] > 0) en_ofs_y[s] = (en_ofs_y[s] > (int8_t)spd) ? (int8_t)(en_ofs_y[s] - spd) : 0;
+            else if (en_ofs_y[s] < 0) en_ofs_y[s] = (en_ofs_y[s] < -(int8_t)spd) ? (int8_t)(en_ofs_y[s] + spd) : 0;
             if (en_ofs_x[s] || en_ofs_y[s]) any = 1;
         }
         for (i = 0; i < dirty_count; i++) refresh_enemy_oam(dirty_slots[i]);

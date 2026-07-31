@@ -92,6 +92,8 @@ void level_init_display(uint8_t from_pit) BANKED {
         hub_landing_dungeon   = DUNGEON_NONE;
         floor_kind            = FLOORKIND_HUB;
         world_tick            = 0u; // fresh run: the tail below bumps it to 1 for the first hub layout
+        recall_anchor_floor   = RECALL_NO_ANCHOR; // BSS (see globals.c) — a previous run's anchor must not survive
+        recall_return_pending = 0u;
         {
             uint8_t vi;
             for (vi = 0u; vi < 7u; vi++) floor_visited[vi] = 0u;

@@ -49,6 +49,12 @@ void state_transition_enter(void) BANKED {
         load_palettes();
         level_init_display(3); // sets floor_num = pending_port_floor
         level_generate_and_spawn(&g_player_x, &g_player_y);
+        // Recall's anchor is one-shot and consumed by the spawn above (map.c). Cleared here rather
+        // than inside that branch so bank 2 carries only the two position writes.
+        if (recall_return_pending) {
+            recall_return_pending = 0u;
+            recall_anchor_floor   = RECALL_NO_ANCHOR; // next A on the map screen recalls out again
+        }
         gameplay_soft_reenter = 1u;
         current_state = STATE_NONE;
         next_state    = STATE_GAMEPLAY;

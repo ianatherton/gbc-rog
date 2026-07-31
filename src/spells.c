@@ -11,6 +11,11 @@
 #include "globals.h"
 #include "ui.h"
 #include "defs.h"
+#include "enemy.h"  // Bear Trap trigger scan — enemy_x/y/alive/hidden/status WRAM arrays
+#include "combat.h" // combat_damage_enemy for the trap snap
+#include "music.h"
+
+BANKREF_EXTERN(combat_damage_enemy)
 #include <gbdk/platform.h>
 
 typedef struct {
@@ -47,9 +52,9 @@ static const SpellDef spell_defs[SPELL_ID_SPAN] = {
     {TILE_FOX_J9_VRAM, PAL_XP_UI_BG, 1u, SPELL_RANK_MAX, 0u, 0u,
      "Call Fox", "Summon a fox ally"},
     {TILE_FOX_J9_VRAM, PAL_WALL_BG, 1u, SPELL_RANK_MAX, 8u, 1u,
-     "Sprint", "Dash speed buff"},
+     "Sprint", "Dash: foes freeze"},
     {TILE_ROOT_ICON_VRAM, PAL_WALL_BG, 1u, SPELL_RANK_MAX, 6u, 1u,
-     "Bear Trap", "Snap + root a foe"},
+     "Bear Trap", "Set a ground trap"},
     {TILE_WITCH_BOLT_VRAM, PAL_XP_UI_BG, 1u, SPELL_RANK_MAX, 4u, 1u,
      "Poison Dart", "Ranged + poison"},
     {TILE_FOX_J9_VRAM, PAL_LADDER, 1u, SPELL_RANK_MAX, 10u, 1u,
@@ -142,6 +147,7 @@ void spells_new_run_reset(void) BANKED {
     prayer_hot_turns = 0u;
     sniper_turns = 0u;
     zerk_turns = 0u;
+    trap_armed = 0u;
 }
 
 uint8_t spells_learned_count(void) BANKED { // distinct spells with rank > 0 (lock-in gate at 2)
@@ -158,6 +164,8 @@ void spells_floor_reset(void) BANKED {
     prayer_hot_turns = 0u;
     sniper_turns = 0u;
     zerk_turns = 0u;
+    trap_armed = 0u;
+    { uint8_t j; for (j = 0u; j < (uint8_t)((MAX_CORPSES + 7u) >> 3); j++) corpse_robbed[j] = 0u; }
 }
 
 static void buff_fade_push(const char *s) { // s is a bank-27 literal — RAM-copy before the banked ui call
@@ -182,6 +190,21 @@ void spells_tick_cooldowns(void) BANKED {
     }
     if (sniper_turns && --sniper_turns == 0u) buff_fade_push("Sniper fades");
     if (zerk_turns   && --zerk_turns   == 0u) buff_fade_push("Zerk fades");
+    if (trap_armed) { // Bear Trap: snap the first enemy standing on the trap tile (enemies moved before this tick)
+        for (i = 0u; i < num_enemies; i++) {
+            if (!enemy_alive[i] || enemy_hidden[i]) continue; // phased Ghost drifts over it
+            if (enemy_x[i] == trap_x && enemy_y[i] == trap_y) {
+                uint16_t dm = (uint16_t)player_damage + (uint16_t)((uint8_t)(trap_armed - 1u) << 1);
+                if (dm > 255u) dm = 255u;
+                if (!combat_damage_enemy(i, (uint8_t)dm, 0u))
+                    enemy_status[i] = (uint8_t)(3u + trap_armed); // survivor is rooted 4-7 turns
+                trap_armed = 0u; // one-shot — corpse/loot BG redraw catches up on the next overlay pass
+                sfx_lunge_hit();
+                buff_fade_push("SNAP! Bear Trap");
+                break;
+            }
+        }
+    }
 }
 
 /* Generic-scroll cast: rank 0 = the weak variant, castable by any class. Routes through

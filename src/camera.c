@@ -122,7 +122,6 @@ void camera_scroll_to(uint8_t target_tx, uint8_t target_ty,
                     render_blit_strip_col((uint8_t)(col & 31u), (uint8_t)(CAM_TY & 31u), (uint8_t)(GRID_H + 1u));
                     prep_kind = 0u;
                 } else draw_col_strip(col);
-                drew_strip = 1u;
             }
             if (new_cty != old_cty) {
                 uint8_t row = new_cty > old_cty ? (uint8_t)(new_cty + GRID_H) : new_cty;
@@ -130,9 +129,14 @@ void camera_scroll_to(uint8_t target_tx, uint8_t target_ty,
                     render_blit_strip_row((uint8_t)(row & 31u), (uint8_t)(CAM_TX & 31u), (uint8_t)(GRID_W + 1u));
                     prep_kind = 0u;
                 } else draw_row_strip(row);
-                drew_strip = 1u;
             }
-            if (drew_strip) draw_ui_rows();
+            // No draw_ui_rows() here. It dates from when the bottom band lived in BKG rows (the
+            // "legacy BKG text row aliases" in defs.h); the band is a WINDOW layer now, mapped at
+            // 0x9C00 (LCDCF_WIN9C00, main.c) while these strips write the BG map at 0x9800, so a
+            // BG scroll cannot disturb it. Repainting it here cost ~200 set_win_tile/attr calls on
+            // the ONE glide frame that also blits a strip — the frame most likely to overrun VBlank
+            // and stretch the pan. The end-of-turn draw_gameplay_overlays repaints the band anyway,
+            // and nothing in it (HP, log, belt, counts) can change mid-glide.
         }
     }
     entity_sprites_clear_player_world();

@@ -479,7 +479,12 @@ void state_gameplay_tick(void) BANKED {
         }
     }
 
-    if (enemy_anim_update()) {
+    // The idle glyph flip costs a WHOLE frame (wait + OAM sweep) and fires on a ~50 ms wall clock,
+    // i.e. about once per auto-explore step — a ~25% tax on the run for an animation that is almost
+    // never visible: stop-on-sight ends the run the moment an unmasked enemy appears, so the only
+    // enemies on screen are ones the player already chose to skip. Keep the clock ticking (so the
+    // phase is right when manual control resumes), just don't spend the frame drawing it.
+    if (enemy_anim_update() && !auto_explore_active) {
         wait_vbl_done();
         draw_enemy_cells(g_player_x, g_player_y);
     }

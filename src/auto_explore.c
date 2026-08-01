@@ -57,8 +57,11 @@ static const uint16_t ax_didx[4]  = {0xFFFFu, 1u, 0xFFA0u, 96u}; // tile-index d
 static uint8_t ax_item_tx[MAX_GROUND_ITEMS]; // revealed ground items, pre-copied for the target test
 static uint8_t ax_item_ty[MAX_GROUND_ITEMS];
 static uint8_t ax_item_cnt;
+static uint8_t ax_item_occ;        // ground-item slot occupancy last seen; a change re-runs the revealed rescan
+static uint8_t ax_target_was_item; // 1 = the cached path aims at an item, 0 = at a frontier tile
+static uint8_t ax_floor_explored;  // exploration flood already came up empty — go straight to the ladder
 
-static uint16_t ax_start_idx, ax_target_idx, ax_frontier_idx;
+static uint16_t ax_start_idx, ax_target_idx;
 static uint16_t ax_goal_idx = 0xFFFFu; // explicit BFS destination (the down-ladder pit) — 0xFFFF outside the ladder flood
 
 static uint8_t ax_path[AX_PATH_MAX / 4u]; // 2-bit dirs, replayed across steps
@@ -80,23 +83,54 @@ static uint8_t ax_ignore_mask[3];      // enemy slots on screen when A was press
 static uint16_t ax_avoid_idx = 0xFFFFu;
 static uint8_t  ax_detour_streak;
 
-static void av_clear(void) __naked { // zero visited bitmap 0xD000..0xD47F in WRAM bank 3 (~2.5 ms at double speed)
+/* Zero the visited bitmap for the ACTIVE map only, one row per critical section.
+   TILE_IDX is y*MAP_W + x with MAP_W = 96, so row y owns exactly bytes y*12..y*12+11 and the live
+   columns of that row are the first ceil(active_map_w/8) of them. A 20x20 arena therefore needs
+   20 x 3 = 60 bytes, not the flat 1,152 this used to wipe every flood — and bits outside the
+   active bounds are never read (ax_visit rejects nx >= active_map_w / ny >= active_map_h before
+   touching the bitmap), so leaving them stale is safe.
+   `di` is also released between rows now: the old version held interrupts off for the entire
+   1,152-byte wipe (~5.5 ms at double speed), long enough to make the VBL ISR miss a frame
+   outright — music and lcd.c's SCX/SCY writes both live there.
+   NOTHING may touch the stack while SVBK != 1 (the stack itself is at 0xDFxx, i.e. banked), so
+   the inner loop uses only registers — no push/pop inside the critical section. */
+static void av_clear(void) __naked {
 __asm
+    ld   a, (#_active_map_w)
+    add  a, #7
+    srl  a
+    srl  a
+    srl  a
+    ld   c, a          ; c = live bytes per row (>= 3; active_map_w is never below 20)
+    ld   a, #12
+    sub  c
+    ld   e, a          ; e = unused tail of the row, to skip
+    ld   a, (#_active_map_h)
+    or   a
+    ret  Z
+    ld   b, a          ; b = rows remaining
+    ld   hl, #0xD000
+40$:
     di
     ld   a, #0x03
     ldh  (_SVBK_REG + 0), a
-    ld   hl, #0xD000
-    ld   bc, #1152
-40$:
+    ld   d, c          ; d = inner byte counter
     xor  a
+41$:
     ld   (hl+), a
-    dec  bc
-    ld   a, b
-    or   c
-    jr   NZ, 40$
+    dec  d
+    jr   NZ, 41$
     ld   a, #0x01
     ldh  (_SVBK_REG + 0), a
     ei
+    ld   a, l          ; hl += tail — outside the critical section, and register-only
+    add  a, e
+    ld   l, a
+    jr   NC, 42$
+    inc  h
+42$:
+    dec  b
+    jr   NZ, 40$
     ret
 __endasm;
 }
@@ -270,10 +304,15 @@ static uint8_t ax_path_get(uint8_t i) {
     return (uint8_t)(b & 3u);
 }
 
-/* Examine one BFS neighbor. Target = nearest revealed item (early exit), with the
-   nearest frontier recorded as fallback in the same flood; when no items are
-   revealed the nearest frontier IS the target (early exit — the common exploring
-   case). Returns 1 when (nx,ny) is the target (ax_target_idx set). */
+/* Examine one BFS neighbor. Target = whichever comes first in breadth-first order, a revealed
+   item or an unrevealed frontier tile — so the flood always stops at the NEAREST of the two and
+   costs O(distance to it), never O(reachable floor).
+   This used to early-exit on a frontier only when no items were revealed; with any item revealed
+   it kept hunting and ran the flood to exhaustion over the whole revealed region before falling
+   back to the frontier it had already found. That was the multi-frame "thinking" pause. Exiting
+   on the first hit of either is both cheaper and better: BFS reaches nearer tiles first, so an
+   item closer than the frontier still wins — it is simply found on an earlier layer.
+   Returns 1 when (nx,ny) is the target (ax_target_idx set). */
 static uint8_t ax_visit(uint8_t nx, uint8_t ny, uint8_t d) {
     uint16_t idx;
     uint8_t revealed;
@@ -286,15 +325,15 @@ static uint8_t ax_visit(uint8_t nx, uint8_t ny, uint8_t d) {
     if (idx == ax_goal_idx) { ax_target_idx = idx; return 1u; }             // ladder run: the pit itself is the destination
     if (pit_bits[idx >> 3] & ax_bitmask[(uint8_t)idx & 7u]) return 0u;      // otherwise never path onto pits/ladders
     revealed = lighting_is_revealed(nx, ny);
-    if (!revealed) { // frontier tile — never expanded
-        if (ax_item_cnt == 0u) { ax_target_idx = idx; return 1u; }
-        if (ax_frontier_idx == 0xFFFFu) ax_frontier_idx = idx; // remember nearest; keep hunting for an item
-        return 0u;
-    }
+    if (!revealed) { ax_target_idx = idx; ax_target_was_item = 0u; return 1u; } // frontier — never expanded, always a target
     {
         uint8_t i;
         for (i = 0u; i < ax_item_cnt; i++)
-            if (ax_item_tx[i] == nx && ax_item_ty[i] == ny) { ax_target_idx = idx; return 1u; }
+            if (ax_item_tx[i] == nx && ax_item_ty[i] == ny) {
+                ax_target_idx = idx;
+                ax_target_was_item = 1u;
+                return 1u;
+            }
     }
     ax_push(nx, ny); // only expand seen terrain — don't path through tiles the player hasn't revealed
     return 0u;
@@ -305,7 +344,6 @@ static uint8_t ax_bfs(void) { // flood from the player; 1 = ax_target_idx set
     av_clear();
     ax_qhead = ax_qtail = 0u;
     ax_qcount = 0u;
-    ax_frontier_idx = 0xFFFFu;
     ax_start_idx = TILE_IDX(g_player_x, g_player_y);
     av_test_set(ax_start_idx);
     for (d = 0u; d < 4u; d++) {
@@ -323,11 +361,7 @@ static uint8_t ax_bfs(void) { // flood from the player; 1 = ax_target_idx set
                 return 1u;
         }
     }
-    if (ax_frontier_idx != 0xFFFFu) { // no reachable item — fall back to the nearest frontier from the same flood
-        ax_target_idx = ax_frontier_idx;
-        return 1u;
-    }
-    return 0u;
+    return 0u; // queue drained with no frontier and no item reached — this floor is fully explored
 }
 
 static uint8_t ax_on_screen(uint8_t ex, uint8_t ey) { // within the camera view rect around the player
@@ -373,6 +407,9 @@ void auto_explore_try_start(void) BANKED {
     ax_path_valid = 0u;
     ax_avoid_idx = 0xFFFFu;
     ax_detour_streak = 0u;
+    ax_floor_explored = 0u;  // a floor change always passes through here before the next run
+    ax_target_was_item = 0u;
+    ax_item_occ = 0xFFu;     // force one full revealed-item rescan on the first step
     { // snapshot enemies already on screen — the player sees them and chose to explore anyway.
       // A phased-out Ghost is masked too, reveal or not (mid-wall its tile never reveals): it just
       // interrupted this run, so without the mask each restart-while-hidden buys one more stop the
@@ -438,19 +475,32 @@ uint8_t auto_explore_step(uint8_t j) BANKED {
         return 0u;
     }
 
-    { // refresh the revealed-item list; a changed set invalidates the cached path
-        uint8_t i;
-        ax_item_cnt = 0u;
-        for (i = 0u; i < MAX_GROUND_ITEMS; i++) {
-            if (ground_item_kind[i] != ITEM_KIND_NONE
-                    && lighting_is_revealed(ground_item_x[i], ground_item_y[i])) {
-                ax_item_tx[ax_item_cnt] = ground_item_x[i];
-                ax_item_ty[ax_item_cnt] = ground_item_y[i];
-                ax_item_cnt++;
+    { // refresh the revealed-item list, but only when the ground-item set actually changed
+        uint8_t i, occ = 0u;
+        for (i = 0u; i < MAX_GROUND_ITEMS; i++)
+            if (ground_item_kind[i] != ITEM_KIND_NONE) occ |= ax_bitmask[i];
+        // The occupancy mask is 8 plain array reads; the full rescan below costs a banked-WRAM
+        // round trip per live item (lighting_is_revealed), which is why it is gated on a change.
+        // Caveat by design: an item that becomes REVEALED without the slot set changing is not
+        // noticed until the next re-plan, so it is collected on the following leg rather than this
+        // one. The path always ends at a frontier and re-plans there, so nothing is ever stranded.
+        if (occ != ax_item_occ || !ax_path_valid) {
+            ax_item_occ = occ;
+            ax_item_cnt = 0u;
+            for (i = 0u; i < MAX_GROUND_ITEMS; i++) {
+                if ((occ & ax_bitmask[i])
+                        && lighting_is_revealed(ground_item_x[i], ground_item_y[i])) {
+                    ax_item_tx[ax_item_cnt] = ground_item_x[i];
+                    ax_item_ty[ax_item_cnt] = ground_item_y[i];
+                    ax_item_cnt++;
+                }
             }
         }
     }
-    if (ax_path_valid && (ax_path_pos >= ax_path_len || ax_item_cnt != ax_path_item_cnt))
+    // Only an item TARGET cares that the item set changed. Invalidating on every count change made
+    // each auto-pickup force a fresh flood even though the rest of the path was still walkable.
+    if (ax_path_valid && (ax_path_pos >= ax_path_len
+                          || (ax_target_was_item && ax_item_cnt != ax_path_item_cnt)))
         ax_path_valid = 0u;
     if (!ax_path_valid) { // one flood per target; steps in between just replay ax_path
         uint8_t ok;
@@ -473,7 +523,10 @@ uint8_t auto_explore_step(uint8_t j) BANKED {
                 }
             }
         }
-        ok = ax_bfs();
+        // Once the exploration flood has come up empty the floor stays explored (reveal only ever
+        // grows), so skip straight to the ladder flood on later re-plans. This used to run BOTH
+        // floods — two full av_clears and two exhaustive sweeps — on every single re-plan.
+        ok = ax_floor_explored ? 0u : ax_bfs();
         if (!ok && ax_avoid_idx != 0xFFFFu) { // the Ghost detour walled off the only route (1-wide corridor)
             ax_avoid_idx = 0xFFFFu;
             auto_explore_active = 0u;
@@ -482,6 +535,8 @@ uint8_t auto_explore_step(uint8_t j) BANKED {
         }
         if (!ok) { // fully explored — walk to the down-ladder instead of just stopping
             uint8_t lx, ly;
+            uint8_t first = (uint8_t)!ax_floor_explored; // announce the switch once, not on every re-plan
+            ax_floor_explored = 1u;
             if (!boss_alive && map_pit_position(&lx, &ly)) {
                 uint16_t pidx = TILE_IDX(lx, ly);
                 if (TILE_IDX(g_player_x, g_player_y) == pidx) { // arrived — the walk armed the descend confirm; A drops
@@ -491,7 +546,8 @@ uint8_t auto_explore_step(uint8_t j) BANKED {
                 ax_goal_idx = pidx;
                 ok = ax_bfs();
                 ax_goal_idx = 0xFFFFu;
-                if (ok) ax_log_and_redraw("Heading down.");
+                ax_target_was_item = 0u; // the ladder is the target; item churn must not invalidate this path
+                if (ok && first) ax_log_and_redraw("Heading down.");
             }
         }
         if (!ok || !ax_build_path()) {

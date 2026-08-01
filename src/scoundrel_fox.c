@@ -166,8 +166,7 @@ uint8_t ally_fox_turn_tick(uint8_t slot, uint8_t px, uint8_t py) BANKED {
     uint8_t nx, ny;
     uint8_t ei;
     uint8_t dmg;
-    if (slot >= MAX_ALLIES || !ally_active[slot] || ally_type[slot] != ALLY_TYPE_FOX
-            || player_class != 1u)
+    if (slot >= MAX_ALLIES || !ally_active[slot] || ally_type[slot] != ALLY_TYPE_FOX)
         return 0u;
 
     // Teleport back next to player if fox has wandered off-screen

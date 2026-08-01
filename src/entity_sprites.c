@@ -249,7 +249,7 @@ static void refresh_allies_oam(void) {
         }
         switch (ally_type[i]) {
         case ALLY_TYPE_FOX:
-            if (!lcd_gameplay_active || player_class != 1u) {
+            if (!lcd_gameplay_active) {
                 oam_hide((uint8_t)(SP_ALLY_BASE + i));
                 continue;
             }

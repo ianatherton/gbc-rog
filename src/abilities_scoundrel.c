@@ -36,8 +36,8 @@ void abilities_scoundrel_new_run_init(void) BANKED {
 
 // rank currently unused — fox stats are fixed; scroll (rank 0) summons the same fox.
 static void cast_call_fox(uint8_t px, uint8_t py, AbilityResult *out) {
+    if (!ally_summon_fox(px, py)) { push_short("Fox already out"); return; } // fizzle — turn/scroll kept
     push_short("Call Fox");
-    ally_summon_fox(px, py);
     out->consumed_turn = 1u;
 }
 

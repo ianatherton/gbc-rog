@@ -9,7 +9,7 @@ void    ally_clear_all(void);
 void    ally_clear_slot(uint8_t slot);
 uint8_t ally_find_free_slot(void); // 255 = no free slot
 uint8_t ally_has_type(uint8_t type);
-void    ally_summon_fox(uint8_t px, uint8_t py); // picks a free slot; no-op if full
+uint8_t ally_summon_fox(uint8_t px, uint8_t py); // 1 = summoned; 0 = fox already out / no free slot
 uint8_t ally_walk_tick_and_snap(uint8_t px, uint8_t py, uint8_t *snap_x, uint8_t *snap_y, uint8_t *snap_a); // 1 if any ally killed
 
 void    ally_fox_summon(uint8_t slot, uint8_t px, uint8_t py) BANKED;

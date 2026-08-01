@@ -60,10 +60,11 @@ uint8_t ally_walk_tick_and_snap(uint8_t px, uint8_t py,
 
 
 BANKREF(ally_summon_fox)
-void ally_summon_fox(uint8_t px, uint8_t py) {
+uint8_t ally_summon_fox(uint8_t px, uint8_t py) {
     uint8_t s;
-    if (ally_has_type(ALLY_TYPE_FOX)) return; // only one fox at a time
+    if (ally_has_type(ALLY_TYPE_FOX)) return 0u; // only one fox at a time
     s = ally_find_free_slot();
-    if (s == 255u) return;
+    if (s == 255u) return 0u;
     ally_fox_summon(s, px, py);
+    return 1u;
 }

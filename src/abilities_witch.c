@@ -60,7 +60,7 @@ static uint8_t witch_hit_onscreen(uint8_t px, uint8_t py, uint8_t dmg, uint8_t m
 // lifespan system yet, and only one fox may exist at a time). TODO: temp-TTL toad ally type.
 static void cast_toad_plague(uint8_t rank, uint8_t px, uint8_t py, AbilityResult *out) {
     (void)rank;
-    ally_summon_fox(px, py);
+    if (!ally_summon_fox(px, py)) { push_short("Pet already out"); return; } // fizzle — turn/scroll kept
     sfx_fox_yip();
     push_short("Toad Plague!");
     out->consumed_turn = 1u;

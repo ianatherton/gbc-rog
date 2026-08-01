@@ -125,6 +125,7 @@ void level_init_display(uint8_t from_pit) BANKED {
             uint8_t s;
             inventory_add(ITEM_KIND_SCROLL_PORT6, 0);
             inventory_add(ITEM_KIND_SCROLL_LEVEL, 0); // TEST AID — pair with Port: Boss to reach a scaled boss fast
+            inventory_add((uint8_t)(ITEM_KIND_SPELL_SCROLL_FIRST + 8u), 0); // TEST AID — Scrl:CallFox, cross-class summon check
             inventory_add(ITEM_KIND_WITCH_HAT, 0);
             for (s = 0u; s < INVENTORY_MAX_SLOTS; s++) { // equip it — same steps as the inventory toggle
                 if (inventory_kind[s] == ITEM_KIND_WITCH_HAT) {

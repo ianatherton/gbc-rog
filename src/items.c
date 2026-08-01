@@ -477,33 +477,40 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
     out->consumed_turn = 1u;
 }
 
-/* Weighted drop table: consumables weight 5, equipment/reusables weight 4, bow/axe/shield/mace
-   weight 3-4, generic spell scrolls weight 1 each. The bow lands as a full quiver
-   (ITEM_BOW_STACK_QTY) at pickup. DROP_TABLE_LEN is the single source of the modulus — the
-   trade screen's stable stock hashes through items_drop_table_pick, so growing the table
-   reshuffles drops AND trader stock for a given seed (expected, keep changes atomic). */
-#define DROP_TABLE_LEN 62u
+/* Weighted drop table: consumables weight 7, equipment/reusables weight 3-4, bow weight 5,
+   generic spell scrolls weight 1 each. The bow lands as a full quiver (ITEM_BOW_STACK_QTY) at
+   pickup. The five consumable rows are deliberately pinned at 35 = 1.2 * 29, the total gear
+   weight — the design rule is "consumables drop 20% more often than all gear combined", so if
+   you retune a gear row, re-derive the consumable weight rather than leaving it at 7.
+   DROP_TABLE_LEN is the single source of the modulus — the trade screen's stable stock hashes
+   through items_drop_table_pick, so growing the table reshuffles drops AND trader stock for a
+   given seed (expected, keep changes atomic). Per-row "xN" comments are the count of record:
+   a short initializer silently zero-fills to ITEM_KIND_POTION, so keep them honest. */
+#define DROP_TABLE_LEN 73u
 static const uint8_t drop_table[DROP_TABLE_LEN] = {
-    ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,      ITEM_KIND_POTION,
-    ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,      ITEM_KIND_SCROLL,
-    ITEM_KIND_KEY,         ITEM_KIND_KEY,         ITEM_KIND_KEY,         ITEM_KIND_KEY,         ITEM_KIND_KEY,
-    ITEM_KIND_CANDLE,      ITEM_KIND_CANDLE,      ITEM_KIND_CANDLE,      ITEM_KIND_CANDLE,      ITEM_KIND_CANDLE,
-    ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT,
-    ITEM_KIND_RUSTY_SWORD, ITEM_KIND_RUSTY_SWORD, ITEM_KIND_RUSTY_SWORD, ITEM_KIND_RUSTY_SWORD,
-    ITEM_KIND_BOOK_HEAL,   ITEM_KIND_BOOK_HEAL,   ITEM_KIND_BOOK_HEAL,   ITEM_KIND_BOOK_HEAL,
-    ITEM_KIND_HELMET,      ITEM_KIND_HELMET,      ITEM_KIND_HELMET,      ITEM_KIND_HELMET,
-    ITEM_KIND_TUNIC,       ITEM_KIND_TUNIC,       ITEM_KIND_TUNIC,       ITEM_KIND_TUNIC,
-    ITEM_KIND_BOOTS,       ITEM_KIND_BOOTS,       ITEM_KIND_BOOTS,       ITEM_KIND_BOOTS,
-    ITEM_KIND_BOW,         ITEM_KIND_BOW,         ITEM_KIND_BOW,         ITEM_KIND_BOW,
-    ITEM_KIND_AXE,         ITEM_KIND_AXE,         ITEM_KIND_AXE,
-    ITEM_KIND_SHIELD,      ITEM_KIND_SHIELD,      ITEM_KIND_SHIELD,
-    ITEM_KIND_MACE,        ITEM_KIND_MACE,        ITEM_KIND_MACE,
+    /* consumables — 35 total (= 1.2 * the 29 gear weight below) */
+    ITEM_KIND_POTION, ITEM_KIND_POTION, ITEM_KIND_POTION, ITEM_KIND_POTION, ITEM_KIND_POTION, ITEM_KIND_POTION, ITEM_KIND_POTION, // x7
+    ITEM_KIND_SCROLL, ITEM_KIND_SCROLL, ITEM_KIND_SCROLL, ITEM_KIND_SCROLL, ITEM_KIND_SCROLL, ITEM_KIND_SCROLL, ITEM_KIND_SCROLL, // x7
+    ITEM_KIND_KEY, ITEM_KIND_KEY, ITEM_KIND_KEY, ITEM_KIND_KEY, ITEM_KIND_KEY, ITEM_KIND_KEY, ITEM_KIND_KEY, // x7
+    ITEM_KIND_CANDLE, ITEM_KIND_CANDLE, ITEM_KIND_CANDLE, ITEM_KIND_CANDLE, ITEM_KIND_CANDLE, ITEM_KIND_CANDLE, ITEM_KIND_CANDLE, // x7
+    ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT, // x7
+    /* bow — a depleting quiver, so it scales with the consumables, not the gear */
+    ITEM_KIND_BOW, ITEM_KIND_BOW, ITEM_KIND_BOW, ITEM_KIND_BOW, ITEM_KIND_BOW, // x5
+    /* gear (equipment + the reusable book) — 29 total */
+    ITEM_KIND_RUSTY_SWORD, ITEM_KIND_RUSTY_SWORD, ITEM_KIND_RUSTY_SWORD, ITEM_KIND_RUSTY_SWORD, // x4
+    ITEM_KIND_BOOK_HEAL,   ITEM_KIND_BOOK_HEAL,   ITEM_KIND_BOOK_HEAL,   ITEM_KIND_BOOK_HEAL,   // x4
+    ITEM_KIND_HELMET,      ITEM_KIND_HELMET,      ITEM_KIND_HELMET,      ITEM_KIND_HELMET,      // x4
+    ITEM_KIND_TUNIC,       ITEM_KIND_TUNIC,       ITEM_KIND_TUNIC,       ITEM_KIND_TUNIC,       // x4
+    ITEM_KIND_BOOTS,       ITEM_KIND_BOOTS,       ITEM_KIND_BOOTS,       ITEM_KIND_BOOTS,       // x4
+    ITEM_KIND_AXE,         ITEM_KIND_AXE,         ITEM_KIND_AXE,      // x3
+    ITEM_KIND_SHIELD,      ITEM_KIND_SHIELD,      ITEM_KIND_SHIELD,   // x3
+    ITEM_KIND_MACE,        ITEM_KIND_MACE,        ITEM_KIND_MACE,     // x3
     /* generic spell scrolls — rare (weight 1); kind = SPELL_SCROLL_FIRST + spell_id */
     (uint8_t)(ITEM_KIND_SPELL_SCROLL_FIRST + 0u),  // Scrl:HolyFire  (knight 0)
     (uint8_t)(ITEM_KIND_SPELL_SCROLL_FIRST + 8u),  // Scrl:CallFox   (scoundrel 0)
     (uint8_t)(ITEM_KIND_SPELL_SCROLL_FIRST + 16u), // Scrl:FetidBolt (witch 0)
     /* Scrl:SwampRoot (+17) removed 2026-07-27 — legacy ITEM_KIND_SCROLL_ROOT already drops the same
-       effect at weight 5; the kind's table rows stay so the rank-0 cast core remains reachable. */
+       effect at consumable weight; the kind's table rows stay so the rank-0 cast core remains reachable. */
     (uint8_t)(ITEM_KIND_SPELL_SCROLL_FIRST + 24u), // Scrl:Whirlwind (zerker 0)
 };
 
@@ -512,6 +519,19 @@ static const uint8_t drop_table[DROP_TABLE_LEN] = {
    RNG from a shop would desync floor generation. */
 uint8_t items_drop_table_pick(uint8_t idx) BANKED {
     return drop_table[idx % DROP_TABLE_LEN];
+}
+
+/* The one weighted roll. Only the table pick is shared — each drop source keeps its own bail-out
+   odds and ring/"+N" handling below, so their generosity stays independently tunable. */
+static uint8_t roll_drop_kind(void) {
+    return drop_table[rand() % DROP_TABLE_LEN];
+}
+
+/* Same roll for callers outside this bank (floor-item placement in map.c). Do NOT reach for
+   items_drop_table_pick((uint8_t)rand()) instead: 256 % DROP_TABLE_LEN is 37, so the first 37
+   slots — the consumable rows — would take a 33% modulo advantage on top of their weight. */
+uint8_t items_roll_drop_kind(void) BANKED {
+    return roll_drop_kind();
 }
 
 /* "+N" modifier roll: weighted toward 0, with a rare (~1%) reroll across the full -1..+10
@@ -540,7 +560,7 @@ uint8_t enemy_try_drop_item(uint8_t dx, uint8_t dy) BANKED {
     if ((rand() % 20u) >= 2u) return 0u;
     for (gi = 0u; gi < MAX_GROUND_ITEMS; gi++) {
         if (ground_item_kind[gi] == ITEM_KIND_NONE) {
-            kind = drop_table[rand() % DROP_TABLE_LEN];
+            kind = roll_drop_kind();
             if ((rand() % 100u) < RING_DROP_PCT) kind = ring_roll_kind();
             ground_item_kind[gi] = kind;
             ground_item_x[gi] = dx;
@@ -560,7 +580,7 @@ uint8_t encounter_chest_drop_item(uint8_t dx, uint8_t dy) BANKED {
     uint8_t kind;
     for (gi = 0u; gi < MAX_GROUND_ITEMS; gi++) {
         if (ground_item_kind[gi] == ITEM_KIND_NONE) {
-            kind = drop_table[rand() % DROP_TABLE_LEN];
+            kind = roll_drop_kind();
             if ((rand() % 100u) < (uint8_t)(RING_DROP_PCT * 2u)) kind = ring_roll_kind();
             ground_item_kind[gi] = kind;
             ground_item_x[gi] = dx;
@@ -586,7 +606,7 @@ uint8_t town_barrel_try_drop_item(uint8_t dx, uint8_t dy) BANKED {
     if ((rand() % 100u) >= 30u) return 0u; // 30%
     for (gi = 0u; gi < MAX_GROUND_ITEMS; gi++) {
         if (ground_item_kind[gi] == ITEM_KIND_NONE) {
-            kind = drop_table[rand() % DROP_TABLE_LEN];
+            kind = roll_drop_kind();
             if ((rand() % 100u) < RING_DROP_PCT) kind = ring_roll_kind();
             ground_item_kind[gi] = kind;
             ground_item_x[gi] = dx;

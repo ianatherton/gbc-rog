@@ -324,8 +324,9 @@ void level_generate_and_spawn(uint8_t *px, uint8_t *py) BANKED {
                     || ground_item_index_at(tx, ty) != 255u) continue;
             ground_item_x[placed] = tx;
             ground_item_y[placed] = ty;
-            /* Uniform over the non-ring kinds; a RING_DROP_PCT slice becomes a (tier-weighted) ring. */
-            ground_item_kind[placed] = (uint8_t)(rand() % ITEM_KIND_RING_FIRST);
+            /* Same consumable-biased table the kill/barrel/chest drops roll on (was uniform over
+               kinds 0..13); a RING_DROP_PCT slice becomes a (tier-weighted) ring. */
+            ground_item_kind[placed] = items_roll_drop_kind();
             if ((rand() % 100u) < RING_DROP_PCT) ground_item_kind[placed] = ring_roll_kind();
             ground_item_mod_level[placed] = (items_kind_category(ground_item_kind[placed]) == ITEM_CAT_EQUIPMENT)
                 ? item_roll_mod_level() : 0;

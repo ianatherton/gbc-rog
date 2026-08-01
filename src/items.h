@@ -60,6 +60,7 @@ void    items_kind_display_name_copy(uint8_t kind, int8_t mod_level, char *out, 
 int8_t  item_roll_mod_level(void) BANKED; // -1..+10 "+N" modifier roll, weighted toward 0; call only for ITEM_CAT_EQUIPMENT kinds
 uint8_t ring_roll_kind(void) BANKED;      // random ring kind: uniform type, tier weighted toward T1
 uint8_t items_drop_table_pick(uint8_t idx) BANKED; // drop_table[idx % DROP_TABLE_LEN] — deterministic, no rand(); trade stock uses this
+uint8_t items_roll_drop_kind(void) BANKED;         // one weighted roll off the same table (consumable-biased); floor-item placement uses this
 
 uint8_t inventory_first_empty(void) BANKED; // 0..INVENTORY_MAX_SLOTS-1, else 255
 uint8_t inventory_count_used(void) BANKED;
@@ -69,7 +70,7 @@ void    inventory_remove(uint8_t slot) BANKED; // compact upper slots down so be
 
 void    items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED; // belt slots 4..7 → inventory_kind[0..3]
 uint8_t enemy_try_drop_item(uint8_t dx, uint8_t dy) BANKED; // 10% chance to place a weighted-random item on ground; returns 1 if dropped
-uint8_t town_barrel_try_drop_item(uint8_t dx, uint8_t dy) BANKED; // 20% chance, same table — separate from enemy_try_drop_item so enemy odds never change
+uint8_t town_barrel_try_drop_item(uint8_t dx, uint8_t dy) BANKED; // 30% chance, same table — separate from enemy_try_drop_item so enemy odds never change
 uint8_t encounter_chest_drop_item(uint8_t dx, uint8_t dy) BANKED; // always drops; best-of-two "+N" roll and double ring odds
 
 #endif

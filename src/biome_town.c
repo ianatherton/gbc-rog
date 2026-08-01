@@ -185,7 +185,7 @@ void town_npcs_tick(uint8_t px, uint8_t py) BANKED {
 }
 
 // Barrels always break in one hit: no HP, just remove the feature (cell becomes floor again), roll
-// loot at 20% (town_barrel_try_drop_item — a separate roll from the enemy-kill 10%, same table), and
+// loot at 30% (town_barrel_try_drop_item — a separate roll from the enemy-kill 10%, same table), and
 // play the same grey death-poof art. Order matters: the feature must be gone and the tile walkable
 // BEFORE the poof's ~370ms busy-wait, so a repaint mid-animation (e.g. a VBL-driven HUD update) never
 // draws the broken barrel's ghost. Removal is swap-with-last — feature order is never meaningful
@@ -210,7 +210,7 @@ uint8_t town_barrel_try_break(uint8_t x, uint8_t y) BANKED {
         }
         ow_feature_count--;
         ow_features[i] = ow_features[ow_feature_count];
-        town_barrel_try_drop_item(x, y); // 20% — separate roll from an enemy kill's 10%, same weighted table
+        town_barrel_try_drop_item(x, y); // 30% — separate roll from an enemy kill's 10%, same weighted table
         entity_sprites_run_barrel_poof(x, y);
         return 1u;
     }

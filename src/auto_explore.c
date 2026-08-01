@@ -481,10 +481,15 @@ uint8_t auto_explore_step(uint8_t j) BANKED {
             if (ground_item_kind[i] != ITEM_KIND_NONE) occ |= ax_bitmask[i];
         // The occupancy mask is 8 plain array reads; the full rescan below costs a banked-WRAM
         // round trip per live item (lighting_is_revealed), which is why it is gated on a change.
-        // Caveat by design: an item that becomes REVEALED without the slot set changing is not
-        // noticed until the next re-plan, so it is collected on the following leg rather than this
-        // one. The path always ends at a frontier and re-plans there, so nothing is ever stranded.
-        if (occ != ax_item_occ || !ax_path_valid) {
+        // The `ax_path_pos >= ax_path_len` term is what makes the gate SAFE, and it is not optional:
+        // an item that becomes revealed without the slot set changing does not move `occ`, so
+        // without it the list stays stale — and because `ax_path_valid` is not cleared until the
+        // check below, the very step that re-plans would flood against that stale list and never
+        // see the item. If the floor finished exploring meanwhile, the run headed for the ladder
+        // and the item was missed outright rather than merely deferred. Testing the exhaustion
+        // condition HERE (rather than reading ax_path_valid, which is still 1 at this point) means
+        // every flood is guaranteed a freshly scanned list.
+        if (occ != ax_item_occ || !ax_path_valid || ax_path_pos >= ax_path_len) {
             ax_item_occ = occ;
             ax_item_cnt = 0u;
             for (i = 0u; i < MAX_GROUND_ITEMS; i++) {

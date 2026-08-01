@@ -176,7 +176,7 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      0000050C  l__CODE_8 |    00000536  l__CODE_9 |    00000621  l__CODE_2
      000007F8  l__CODE_2 |    0000086B  l__CODE_1 |    00000A97  l__CODE_2
      00000B71  l__HOME   |    00000B9B  l__CODE_4 |    00000E29  l__CODE_2
-     00000F88  l__CODE_3 |    00001108  l__CODE_1 |    0000140B  l__CODE_2
+     00000F91  l__CODE_3 |    00001108  l__CODE_1 |    0000140B  l__CODE_2
 ASxxxx Linker V03.00/V05.40 + sdld,  page 4.
 Hexadecimal  [32-Bits]
 
@@ -1004,15 +1004,15 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_30               001E4000    00000F88 =        3976. bytes (REL,CON)
+_CODE_30               001E4000    00000F91 =        3985. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
      001E4539  ___func_a |    001E4539  _auto_exp |    001E464E  ___func_a
-     001E464E  _auto_exp |    001E4B78  ___func_a |    001E4B78  _auto_exp
-     001E4C53  ___func_z |    001E4C53  _zone_bum |    001E4CB0  ___func_z
-     001E4CB0  _zone_con |    001E4E11  ___func_b |    001E4E11  _belt_sel
-     001E4E50  ___func_p |    001E4E50  _push_sel
+     001E464E  _auto_exp |    001E4B81  ___func_a |    001E4B81  _auto_exp
+     001E4C5C  ___func_z |    001E4C5C  _zone_bum |    001E4CB9  ___func_z
+     001E4CB9  _zone_con |    001E4E1A  ___func_b |    001E4E1A  _belt_sel
+     001E4E59  ___func_p |    001E4E59  _push_sel
 ASxxxx Linker V03.00/V05.40 + sdld,  page 60.
 Hexadecimal  [32-Bits]
 

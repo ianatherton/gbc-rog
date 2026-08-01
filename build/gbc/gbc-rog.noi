@@ -451,7 +451,7 @@ DEF l__CODE_25 0xA97
 DEF l__HOME 0xB71
 DEF l__CODE_4 0xB9B
 DEF l__CODE_23 0xE29
-DEF l__CODE_30 0xF88
+DEF l__CODE_30 0xF91
 DEF l__CODE_1 0x1108
 DEF l__CODE_24 0x140B
 DEF l__CODE_18 0x1554
@@ -1389,14 +1389,14 @@ DEF ___func_auto_explore_try_start 0x1E4539
 DEF _auto_explore_try_start 0x1E4539
 DEF ___func_auto_explore_step 0x1E464E
 DEF _auto_explore_step 0x1E464E
-DEF ___func_auto_explore_take_pending 0x1E4B78
-DEF _auto_explore_take_pending 0x1E4B78
-DEF ___func_zone_bump_at 0x1E4C53
-DEF _zone_bump_at 0x1E4C53
-DEF ___func_zone_confirm_at 0x1E4CB0
-DEF _zone_confirm_at 0x1E4CB0
-DEF ___func_belt_select_advance_skip_empty 0x1E4E11
-DEF _belt_select_advance_skip_empty 0x1E4E11
-DEF ___func_push_selected_belt_description 0x1E4E50
-DEF _push_selected_belt_description 0x1E4E50
+DEF ___func_auto_explore_take_pending 0x1E4B81
+DEF _auto_explore_take_pending 0x1E4B81
+DEF ___func_zone_bump_at 0x1E4C5C
+DEF _zone_bump_at 0x1E4C5C
+DEF ___func_zone_confirm_at 0x1E4CB9
+DEF _zone_confirm_at 0x1E4CB9
+DEF ___func_belt_select_advance_skip_empty 0x1E4E1A
+DEF _belt_select_advance_skip_empty 0x1E4E1A
+DEF ___func_push_selected_belt_description 0x1E4E59
+DEF _push_selected_belt_description 0x1E4E59
 LOAD build/gbc/gbc-rog.ihx

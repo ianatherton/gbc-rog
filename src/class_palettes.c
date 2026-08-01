@@ -54,11 +54,14 @@ static const palette_color_t s_ocp_player_witch[] = {
     RGB(31, 30, 20),  // beige (was 29,24,16; R clamped)
     RGB(8, 22, 10),   // green
 };
+/* Zerker: hand-authored ramp from res/pal/zerker character pal.png (used verbatim — no contrast
+   push). Index order matches the other three ramps above: 1 = shadow tone, 2 = mid/body tone,
+   3 = the small accent run (belt / eye pixels). */
 static const palette_color_t s_ocp_player_zerker[] = {
     RGB(0, 0, 0),
-    RGB(31, 31, 31),  // white — already max, can't go 25% brighter
-    RGB(7, 7, 7),     // grey (was 14,14,14)
-    RGB(30, 4, 4),    // red
+    RGB(10, 2, 9),    // #54104C dark purple — shadow
+    RGB(25, 7, 7),    // #CD3F3F red — body
+    RGB(31, 31, 0),   // #FFFB00 yellow — belt/trim accent
 };
 
 static const palette_color_t *sprite_player_pal_ptr(uint8_t c) {

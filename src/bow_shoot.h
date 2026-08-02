@@ -9,4 +9,8 @@
 // stack item only when consumed_turn is set, so a wasted shot keeps the arrow.
 void bow_shoot_use(AbilityResult *out) BANKED;
 
+// Wand: same contract as the bow, but launches the witch's fetid-bolt tile and never
+// benefits from Sniper Mode. A fizzle keeps the charge and the turn.
+void wand_shoot_use(AbilityResult *out) BANKED;
+
 #endif // BOW_SHOOT_H

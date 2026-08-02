@@ -87,6 +87,8 @@ int main(void) {
             tileset_tiles + (uint16_t)TILE_SHEET_M12 * 16u);
         set_bkg_data(TILE_BOW_VRAM, 1u, // I15 bow & arrow belt/inventory icon — ROM past first VRAM pack; borrows L7 slot
             tileset_tiles + (uint16_t)TILE_SHEET_I15 * 16u);
+        set_bkg_data(TILE_WAND_VRAM, 1u, // H5 wand belt/inventory icon — H5's own slot 199 is the book's; borrows L5
+            tileset_tiles + (uint16_t)TILE_SHEET_H5 * 16u);
         set_bkg_data(TILE_RING_VRAM, 1u, // I16 ring belt/inventory icon — ROM past first VRAM pack; borrows H6 slot (shared by all 30 ring kinds)
             tileset_tiles + (uint16_t)TILE_SHEET_I16 * 16u);
         set_bkg_data(TILE_WITCH_HAT_VRAM, 1u, // H6 witch hat — icon (BG) + worn head (OBJ); H6's own slot 215 is the ring's, borrows M6

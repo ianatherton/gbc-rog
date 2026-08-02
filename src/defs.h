@@ -545,8 +545,18 @@ typedef struct {
 #define TILE_STAIRS_UP_2    39   /* H3  */
 #define TILE_PIT_TILE       55   /* H4  - visual for pit hazard             */
 #define TILE_H11           167u  /* H11 - book item; ROM row 11 → needs boot copy */
-#define TILE_BOOK_H11_VRAM 199u  /* borrows H5 VRAM slot (ROM tile 71, not placed by map) */
+#define TILE_BOOK_H11_VRAM 199u  /* borrows H5 VRAM slot (ROM tile 71, not placed by map). NOTE: H5 is no
+                                    longer dead art — it is the wand icon, boot-copied to TILE_WAND_VRAM
+                                    because this slot (its natural one) is the book's. */
 #define TILE_BOOK_BELT_OFF ((uint8_t)(TILE_BOOK_H11_VRAM - TILESET_VRAM_OFFSET)) // items_kind_tile(BOOK_*)
+#define TILE_SHEET_H5       71u  /* H5 - wand item art; ROM (5-1)*16+7. Rides the bulk boot upload into
+                                    VRAM 199, but the H11 book immediately stomps that slot, so the wand
+                                    needs its own copy into a borrowed slot (below). */
+#define TILE_WAND_VRAM     203u  /* wand belt/pickup/ground icon — borrows unused L5 (TILE_FLOOR_DECO_5,
+                                    sheet 75) VRAM slot: never placed by any map code, ≥182 so the title
+                                    restore can't blank it, outside the 176..191 emblem range. Same borrow
+                                    family as the arrow (L6→219) and the bow (L7→235). */
+#define TILE_WAND_BELT_OFF ((uint8_t)(TILE_WAND_VRAM - TILESET_VRAM_OFFSET)) // items_kind_tile(WAND)
 #define TILE_SHEET_H12     183u  /* H12 - arrow projectile art; ROM (12-1)*16+7, sheet >127 → boot copy */
 #define TILE_ARROW_VRAM    219u  /* arrow projectile sprite — borrows unused L6 (FLOOR_DECO_6) VRAM slot */
 
@@ -730,7 +740,7 @@ typedef struct {
 #define TILE_FLOOR_DECO_2   27   /* L2  */
 #define TILE_FLOOR_DECO_3   43   /* L3  */
 #define TILE_FLOOR_DECO_4   59   /* L4  */
-#define TILE_FLOOR_DECO_5   75   /* L5  */
+#define TILE_FLOOR_DECO_5   75   /* L5  — never placed; VRAM 203 = TILE_WAND_VRAM (wand icon) */
 #define TILE_FLOOR_DECO_6   91   /* L6  */
 #define TILE_FLOOR_DECO_7  107   /* L7  */
 #define TILE_FLOOR_DECO_8  123   /* L8  */

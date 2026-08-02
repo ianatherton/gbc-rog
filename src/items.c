@@ -55,6 +55,7 @@ static const uint8_t kind_cat[ITEM_KIND_COUNT] = {
     ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, // zerker
     ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE, ITEM_CAT_CONSUMABLE,
     ITEM_CAT_CONSUMABLE, // SCROLL_LEVEL (test aid)
+    ITEM_CAT_CONSUMABLE, // WAND — stack item, one charge spent per shot (bow model)
 };
 
 static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
@@ -95,6 +96,7 @@ static const uint8_t kind_tile[ITEM_KIND_COUNT] = {
     TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, // zerker
     TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF, TILE_SCROLL_BELT_OFF,
     TILE_SCROLL_BELT_OFF, // SCROLL_LEVEL — reuses the scroll art
+    TILE_WAND_BELT_OFF,   // WAND — H5 art at TILE_WAND_VRAM
 };
 
 static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
@@ -137,6 +139,7 @@ static const uint8_t kind_pal[ITEM_KIND_COUNT] = {
     PAL_LIFE_UI, PAL_LIFE_UI, PAL_LIFE_UI, PAL_LIFE_UI,             // zerker — blood red
     PAL_LIFE_UI, PAL_LIFE_UI, PAL_LIFE_UI, PAL_LIFE_UI,
     PAL_CORPSE, // SCROLL_LEVEL — grey, reads apart from every real scroll tint
+    PAL_LADDER, // WAND — torch ramp, same as the bow
 };
 
 static const char *const kind_name[ITEM_KIND_COUNT] = {
@@ -162,6 +165,7 @@ static const char *const kind_name[ITEM_KIND_COUNT] = {
     "Scrl:FetidBolt", "Scrl:SwampRoot", "?", "?", "?", "?", "?", "?", // witch
     "Scrl:Whirlwind", "?", "?", "?", "?", "?", "?", "?",            // zerker
     "Scrl:Level10", // SCROLL_LEVEL (test aid)
+    "Wand",         // WAND
 };
 
 static const char *const kind_desc[ITEM_KIND_COUNT] = {
@@ -218,6 +222,7 @@ static const char *const kind_desc[ITEM_KIND_COUNT] = {
     "A weak copy. Any class can cast.", "A weak copy. Any class can cast.", "", "", "", "", "", "", // witch
     "A weak copy. Any class can cast.", "", "", "", "", "", "", "", // zerker
     "TEST: jumps you to level 10.", // SCROLL_LEVEL
+    "Looses a fetid bolt at the nearest foe.", // WAND
 };
 
 uint8_t items_kind_category(uint8_t kind) BANKED {
@@ -300,8 +305,10 @@ void inventory_clear_all(void) BANKED {
 uint8_t inventory_add(uint8_t kind, int8_t mod_level) BANKED {
     uint8_t s;
     uint8_t start = (items_kind_category(kind) == ITEM_CAT_EQUIPMENT) ? BELT_ITEM_SLOT_COUNT : 0u;
-    /* bow picks up a full quiver; everything else is a single unit */
-    uint8_t qty = (kind == ITEM_KIND_BOW) ? ITEM_BOW_STACK_QTY : 1u;
+    /* bow picks up a full quiver, wand a full charge bar; everything else is a single unit */
+    uint8_t qty = (kind == ITEM_KIND_BOW)  ? ITEM_BOW_STACK_QTY
+                : (kind == ITEM_KIND_WAND) ? ITEM_WAND_STACK_QTY
+                                           : 1u;
     /* consumables stack — merge into existing slot of same kind first */
     if (items_kind_category(kind) == ITEM_CAT_CONSUMABLE) {
         for (s = 0u; s < INVENTORY_MAX_SLOTS; s++) {
@@ -403,6 +410,12 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
         if (out->consumed_turn) inventory_remove(item_idx);
         return;
     }
+    if (kind == ITEM_KIND_WAND) {
+        /* same contract as the bow — a fizzled shot keeps the charge and the turn */
+        wand_shoot_use(out);
+        if (out->consumed_turn) inventory_remove(item_idx);
+        return;
+    }
     if (kind >= ITEM_KIND_SPELL_SCROLL_FIRST &&
         kind < (uint8_t)(ITEM_KIND_SPELL_SCROLL_FIRST + ITEM_KIND_SPELL_SCROLL_COUNT)) {
         /* generic spell scroll — rank-0 cast of the class-bank spell core (bow pattern:
@@ -486,7 +499,7 @@ void items_use_belt(uint8_t item_idx, AbilityResult *out) BANKED {
    through items_drop_table_pick, so growing the table reshuffles drops AND trader stock for a
    given seed (expected, keep changes atomic). Per-row "xN" comments are the count of record:
    a short initializer silently zero-fills to ITEM_KIND_POTION, so keep them honest. */
-#define DROP_TABLE_LEN 73u
+#define DROP_TABLE_LEN 78u
 static const uint8_t drop_table[DROP_TABLE_LEN] = {
     /* consumables — 35 total (= 1.2 * the 29 gear weight below) */
     ITEM_KIND_POTION, ITEM_KIND_POTION, ITEM_KIND_POTION, ITEM_KIND_POTION, ITEM_KIND_POTION, ITEM_KIND_POTION, ITEM_KIND_POTION, // x7
@@ -494,8 +507,9 @@ static const uint8_t drop_table[DROP_TABLE_LEN] = {
     ITEM_KIND_KEY, ITEM_KIND_KEY, ITEM_KIND_KEY, ITEM_KIND_KEY, ITEM_KIND_KEY, ITEM_KIND_KEY, ITEM_KIND_KEY, // x7
     ITEM_KIND_CANDLE, ITEM_KIND_CANDLE, ITEM_KIND_CANDLE, ITEM_KIND_CANDLE, ITEM_KIND_CANDLE, ITEM_KIND_CANDLE, ITEM_KIND_CANDLE, // x7
     ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT, ITEM_KIND_SCROLL_ROOT, // x7
-    /* bow — a depleting quiver, so it scales with the consumables, not the gear */
+    /* bow + wand — depleting charge stacks, so they scale with the consumables, not the gear */
     ITEM_KIND_BOW, ITEM_KIND_BOW, ITEM_KIND_BOW, ITEM_KIND_BOW, ITEM_KIND_BOW, // x5
+    ITEM_KIND_WAND, ITEM_KIND_WAND, ITEM_KIND_WAND, ITEM_KIND_WAND, ITEM_KIND_WAND, // x5
     /* gear (equipment + the reusable book) — 29 total */
     ITEM_KIND_RUSTY_SWORD, ITEM_KIND_RUSTY_SWORD, ITEM_KIND_RUSTY_SWORD, ITEM_KIND_RUSTY_SWORD, // x4
     ITEM_KIND_BOOK_HEAL,   ITEM_KIND_BOOK_HEAL,   ITEM_KIND_BOOK_HEAL,   ITEM_KIND_BOOK_HEAL,   // x4

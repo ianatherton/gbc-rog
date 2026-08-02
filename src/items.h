@@ -38,10 +38,12 @@
    be reached without grinding. Witch starting scroll, alongside SCROLL_PORT6. Not in the drop
    table. Delete this kind (and its 5 table rows + the use branch) to remove the cheat. */
 #define ITEM_KIND_SCROLL_LEVEL 78u
-#define ITEM_KIND_COUNT      79u
+#define ITEM_KIND_WAND       79u  // Wand — usable; fires one fetid bolt, depletes stack by 1; drops in stacks of 20
+#define ITEM_KIND_COUNT      80u
 #define ITEM_KIND_NONE      255u
 
 #define ITEM_BOW_STACK_QTY   20u  // arrows granted per bow pickup
+#define ITEM_WAND_STACK_QTY  20u  // charges granted per wand pickup
 
 #define ITEM_CAT_CONSUMABLE   0u  // used and removed from inventory
 #define ITEM_CAT_REUSABLE     1u  // used but kept in inventory; caller manages cooldown

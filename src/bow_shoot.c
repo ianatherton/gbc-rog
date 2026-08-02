@@ -18,6 +18,8 @@ BANKREF_EXTERN(entity_sprites_run_item_popout)
 
 #define BOW_RANGE_TILES 4u        // same reach as the witch bolt
 #define BOW_SNIPER_RANGE_TILES 8u // while sniper_turns > 0 (Sniper Mode buff)
+#define WAND_RANGE_TILES 4u       // wand matches the bow's base reach (no Sniper Mode — that stays bow-only)
+#define WAND_BOLT_OFF ((uint8_t)(TILE_WITCH_BOLT_VRAM - TILESET_VRAM_OFFSET)) // M12 fetid-bolt art
 
 static void push_short(const char *s) { // log lines are short — inline copy into a small buffer
     char buf[20];
@@ -27,21 +29,23 @@ static void push_short(const char *s) { // log lines are short — inline copy i
     ui_combat_log_push(buf);
 }
 
-void bow_shoot_use(AbilityResult *out) BANKED {
+/* Shared core for every "belt stack item that shoots the nearest visible enemy". The bow and the
+   wand differ only in reach, the icon that pops out, the projectile tile+palette, and whether the
+   shot lands at full player damage. */
+static void shoot_nearest(uint8_t range, uint8_t icon_kind, uint8_t tile_off,
+                          uint8_t pal, uint8_t full_dmg, AbilityResult *out) {
     uint8_t ei, tx, ty, too_far, killed, dmg;
     uint8_t px = g_player_x, py = g_player_y;
-    if (!targeting_find_nearest_visible(px, py,
-            sniper_turns ? BOW_SNIPER_RANGE_TILES : BOW_RANGE_TILES, &ei, &tx, &ty, &too_far)) {
+    if (!targeting_find_nearest_visible(px, py, range, &ei, &tx, &ty, &too_far)) {
         push_short(too_far ? "too far" : "no los");
-        return; // no consumed_turn → arrow not spent, player keeps the turn
+        return; // no consumed_turn → charge not spent, player keeps the turn
     }
-    entity_sprites_run_item_popout(ITEM_KIND_BOW); // bow icon holds beside the hero, then the arrow flies
+    entity_sprites_run_item_popout(icon_kind); // item icon holds beside the hero, then the shot flies
     sfx_spell_zap();
-    entity_sprites_run_projectile(px, py, tx, ty,
-        (uint8_t)(TILE_ARROW_VRAM - TILESET_VRAM_OFFSET), PAL_ENEMY_BAT); // H12 arrow, bat ramp
+    entity_sprites_run_projectile(px, py, tx, ty, tile_off, pal);
     sfx_lunge_hit();
-    dmg = sniper_turns ? (uint8_t)player_damage
-                       : (uint8_t)((player_damage + 1u) >> 1); // half damage, rounded up — mirrors the witch bolt
+    dmg = full_dmg ? (uint8_t)player_damage
+                   : (uint8_t)((player_damage + 1u) >> 1); // half damage, rounded up — mirrors the witch bolt
     dmg = combat_crit_roll(dmg);
     killed = combat_damage_enemy(ei, dmg, 0u);
     out->consumed_turn = 1u;
@@ -50,4 +54,18 @@ void bow_shoot_use(AbilityResult *out) BANKED {
         out->kill_x = tx;
         out->kill_y = ty;
     }
+}
+
+void bow_shoot_use(AbilityResult *out) BANKED {
+    shoot_nearest(sniper_turns ? BOW_SNIPER_RANGE_TILES : BOW_RANGE_TILES,
+                  ITEM_KIND_BOW,
+                  (uint8_t)(TILE_ARROW_VRAM - TILESET_VRAM_OFFSET), // H12 arrow, bat ramp
+                  PAL_ENEMY_BAT,
+                  sniper_turns ? 1u : 0u, out);
+}
+
+void wand_shoot_use(AbilityResult *out) BANKED {
+    shoot_nearest(WAND_RANGE_TILES, ITEM_KIND_WAND,
+                  WAND_BOLT_OFF, PAL_XP_UI, // M12 fetid bolt, same tile+palette the witch spell uses
+                  0u, out);
 }

@@ -28,10 +28,10 @@ SRAM (battery RAM) is currently unused — free for saves later.
 | 10 | 8,361 | 51% | level_init, map_gen, biome_dungeon |
 | 11 | 132 | 1% | biome_crypt |
 | 12 | 132 | 1% | biome_cavern |
-| 13 | 5,596 | 34% | items (kinds + affixes; incl. the 32 generic spell-scroll kinds 46..77 — `spell_id = kind - ITEM_KIND_SPELL_SCROLL_FIRST`) — incl. `town_barrel_try_drop_item` (30% loot roll, separate function from `enemy_try_drop_item`'s 10% so the two can never accidentally cross-tune) |
+| 13 | 5,861 | 36% | items (kinds + affixes; incl. the 32 generic spell-scroll kinds 46..77 — `spell_id = kind - ITEM_KIND_SPELL_SCROLL_FIRST`; kind 79 = WAND, the bow's charge-stack twin) — incl. `town_barrel_try_drop_item` (30% loot roll, separate function from `enemy_try_drop_item`'s 10% so the two can never accidentally cross-tune) |
 | 14 | 5,840 | 36% | story_ui + names (deterministic town/dungeon/NPC name generator, `src/names.c`) |
 | 15 | 157 | 1% | scroll_blast |
-| 16 | 644 | 3% | scroll_root, debuff_icon, bow_shoot |
+| 16 | 751 | 5% | scroll_root, debuff_icon, bow_shoot (bow **and** wand — both are thin wrappers over one `shoot_nearest` core parameterised on reach / popout icon / projectile tile+palette / full-vs-half damage; a third "belt item that shoots the nearest foe" is one more wrapper) |
 | 17 | 13,993 | 85% | entity_sprites (incl. `refresh_town_npcs_oam` — wandering villager OAM, borrows the town's always-empty enemy run; the hero's 3-frame walk loop — phase advanced on a free-running clock in `entity_sprites_vbl_tick`, tile picked from `player_walk_tiles[]`), scoundrel_fox |
 | 18 | 5,460 | 33% | bwv527 music data (moved out of bank 5) |
 | 19 | 1,995 | 12% | combat (moved out of bank 2; per-turn, far-call boundary is cheap) + `combat_player_melee_extras` (axe cleave / mace stun, evicted from bank 2) |
@@ -176,6 +176,14 @@ Rules for adding banked-WRAM data (the `exp2_*` accessors in `src/lighting.c` ar
   A full re-scan of every `*VRAM*` define in `defs.h` (not just `TILE_*_VRAM` — `PREFAB_VRAM_*`,
   `BORDER_VRAM_*`, `COAST_VRAM_*` count too) left exactly two unclaimed slots ≥182; with 191 taken,
   **255 (P8) is the last one**, and it is also per-floor-only (inside `CLASS_EMBLEM_VRAM_START` 252..255).
+  **2026-08-01 correction — that scan was too pessimistic.** It only looked for slots whose *number*
+  was unclaimed; the real test is whether the slot's **natural sheet cell** (`slot − 128`) is ever
+  placed. `TILE_FLOOR_DECO_5` (L5, sheet 75 → slot **203**) had a `TILE_*` name but zero references
+  outside its own `#define`, so the slot was free all along — the wand icon took it
+  (`TILE_WAND_VRAM`). The L-column deco row is the productive seam here: L6 (91→219) is the arrow,
+  L7 (107→235) the bow, L5 (75→203) the wand. When hunting a slot, grep each candidate's `TILE_*`
+  name for *uses*, don't just check that the number is unspoken for — several named-but-dead cells
+  remain (the `TILE_LIGHT_*` / `TILE_COLUMN_*` / `TILE_FLOOR_DECO_*` families are worth re-checking).
 - **Bank 0 (~77%)** grows with every new HOME dispatcher/driver. Candidates to evict if
   needed: lighting reveal logic (keep only the asm accessors HOME), perf, title_logo.
 - **Bank 2 (97%)** is the gameplay kernel. The eviction pattern that works: pick a function that is

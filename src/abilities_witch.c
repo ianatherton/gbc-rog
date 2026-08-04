@@ -149,7 +149,9 @@ void abilities_witch_new_run_init(void) BANKED {
        inventory swap before it can be fired — the wand is the thing you want under SELECT, so it
        takes the last belt slot and the potions spill instead. Drop the TEST AID scrolls in
        level_init.c and both fit again. */
-    inventory_add(ITEM_KIND_WAND, 0); // one wand, ITEM_WAND_STACK_QTY (20) charges
+    inventory_add(ITEM_KIND_WAND, 0);
+    inventory_add(ITEM_KIND_WAND, 0);
+    inventory_add(ITEM_KIND_WAND, 0); // stacks → 60 charges total (3 × ITEM_WAND_STACK_QTY)
     inventory_add(ITEM_KIND_KEY, 0);
     inventory_add(ITEM_KIND_KEY, 0);  // 2× BigHeal Potion
 }

@@ -31,7 +31,8 @@ static void push_short(const char *s) {
 BANKREF(abilities_scoundrel_new_run_init)
 void abilities_scoundrel_new_run_init(void) BANKED {
     inventory_add(ITEM_KIND_BOW, 0);
-    inventory_add(ITEM_KIND_BOW, 0); // stacks → 40 arrows total
+    inventory_add(ITEM_KIND_BOW, 0);
+    inventory_add(ITEM_KIND_BOW, 0); // stacks → 60 arrows total (3 × ITEM_BOW_STACK_QTY)
 }
 
 // rank currently unused — fox stats are fixed; scroll (rank 0) summons the same fox.

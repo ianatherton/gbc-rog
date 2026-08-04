@@ -30,10 +30,11 @@ static void push_short(const char *s) { // log lines are short — inline copy i
 }
 
 /* Shared core for every "belt stack item that shoots the nearest visible enemy". The bow and the
-   wand differ only in reach, the icon that pops out, the projectile tile+palette, and whether the
-   shot lands at full player damage. */
+   wand differ only in reach, the icon that pops out, the projectile tile+palette, whether the shot
+   lands at full player damage, and which secondary stat adds its flat bonus. */
 static void shoot_nearest(uint8_t range, uint8_t icon_kind, uint8_t tile_off,
-                          uint8_t pal, uint8_t full_dmg, AbilityResult *out) {
+                          uint8_t pal, uint8_t full_dmg, uint8_t flat_bonus,
+                          AbilityResult *out) {
     uint8_t ei, tx, ty, too_far, killed, dmg;
     uint8_t px = g_player_x, py = g_player_y;
     if (!targeting_find_nearest_visible(px, py, range, &ei, &tx, &ty, &too_far)) {
@@ -44,9 +45,17 @@ static void shoot_nearest(uint8_t range, uint8_t icon_kind, uint8_t tile_off,
     sfx_spell_zap();
     entity_sprites_run_projectile(px, py, tx, ty, tile_off, pal);
     sfx_lunge_hit();
-    dmg = full_dmg ? (uint8_t)player_damage
-                   : (uint8_t)((player_damage + 1u) >> 1); // half damage, rounded up — mirrors the witch bolt
-    dmg = combat_crit_roll(dmg);
+    /* Half damage rounded up (full while Sniper Mode is up), plus the weapon's secondary stat as a
+       flat integer — the bow scales off CRIT%, the wand off MAGDEF%. uint16 intermediate:
+       player_damage reaches 255 and the bonus 100, so the sum overflows uint8 before the crit roll
+       ever sees it. */
+    {
+        uint16_t d = full_dmg ? (uint16_t)player_damage
+                              : (uint16_t)((player_damage + 1u) >> 1);
+        d += (uint16_t)flat_bonus;
+        dmg = (d > 255u) ? 255u : (uint8_t)d;
+    }
+    dmg = combat_crit_roll(dmg); // crit doubles the whole sum and clamps at 255
     killed = combat_damage_enemy(ei, dmg, 0u);
     out->consumed_turn = 1u;
     if (killed) {
@@ -61,11 +70,12 @@ void bow_shoot_use(AbilityResult *out) BANKED {
                   ITEM_KIND_BOW,
                   (uint8_t)(TILE_ARROW_VRAM - TILESET_VRAM_OFFSET), // H12 arrow, bat ramp
                   PAL_ENEMY_BAT,
-                  sniper_turns ? 1u : 0u, out);
+                  sniper_turns ? 1u : 0u,
+                  player_crit_chance, out); // bow scales off CRIT%
 }
 
 void wand_shoot_use(AbilityResult *out) BANKED {
     shoot_nearest(WAND_RANGE_TILES, ITEM_KIND_WAND,
                   WAND_BOLT_OFF, PAL_XP_UI, // M12 fetid bolt, same tile+palette the witch spell uses
-                  0u, out);
+                  0u, player_magdef, out);  // wand scales off MAGDEF%
 }

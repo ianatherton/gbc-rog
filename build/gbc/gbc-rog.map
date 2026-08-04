@@ -172,8 +172,8 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
      00000030  l__HEADER |    00000031  l__INITIA |    00000031  l__INITIA
      00000052  l__CODE_2 |    00000060  l__HEADER |    00000084  l__CODE_1
      000000A7  l__CODE_1 |    000000AB  l__HEADER |    000000DB  l__CODE_1
-     000001CB  l__CODE_2 |    00000200  s__CODE   |    000002EF  l__CODE_1
-     000003CC  l__CODE_7 |    000004BD  l__CODE_6 |    00000519  l__CODE_8
+     000001CB  l__CODE_2 |    00000200  s__CODE   |    00000313  l__CODE_1
+     000003D9  l__CODE_7 |    000004BD  l__CODE_6 |    00000533  l__CODE_8
      00000536  l__CODE_9 |    00000629  l__CODE_2 |    000007F8  l__CODE_2
      0000086B  l__CODE_1 |    00000A97  l__CODE_2 |    00000B71  l__HOME  
      00000B9B  l__CODE_4 |    00000E29  l__CODE_2 |    00000F91  l__CODE_3
@@ -709,23 +709,23 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_7                00074000    000003CC =         972. bytes (REL,CON)
+_CODE_7                00074000    000003D9 =         985. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00074033  ___func_a |    00074033  _abilitie |    00074359  ___func_a
-     00074359  _ability_
+     00074033  ___func_a |    00074033  _abilitie |    00074366  ___func_a
+     00074366  _ability_
 ASxxxx Linker V03.00/V05.40 + sdld,  page 38.
 Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_8                00084000    00000519 =        1305. bytes (REL,CON)
+_CODE_8                00084000    00000533 =        1331. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     0008446D  ___func_a |    0008446D  _abilitie |    00084495  ___func_a
-     00084495  _ability_
+     0008446D  ___func_a |    0008446D  _abilitie |    000844AF  ___func_a
+     000844AF  _ability_
 ASxxxx Linker V03.00/V05.40 + sdld,  page 39.
 Hexadecimal  [32-Bits]
 
@@ -811,12 +811,12 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_16               00104000    000002EF =         751. bytes (REL,CON)
+_CODE_16               00104000    00000313 =         787. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00104116  _bow_shoo |    00104142  _wand_sho |    00104187  _debuff_i
-     0010426F  _scroll_r
+     0010412F  _bow_shoo |    00104161  _wand_sho |    001041AB  _debuff_i
+     00104293  _scroll_r
 ASxxxx Linker V03.00/V05.40 + sdld,  page 47.
 Hexadecimal  [32-Bits]
 

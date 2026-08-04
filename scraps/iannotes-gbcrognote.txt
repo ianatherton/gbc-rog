@@ -1,0 +1,244 @@
+gbc rog notes
+------------------------------------------
+bridges when road would go over water
+
+town portal scroll - when player tries to exit town through exit, asks if player wishes to recall
+
+put '+' on stats or spell submenu when pts to spend
+
+market building - trade consumables or anything for consumables
+
+ow biomes:
+	grass: varying amount of trees - high variance
+	sand: fewer - dead trees
+	snow: maze like mtns
+dungeon biomes:
+	dungeon (brick pillars)
+	forest (trees bushes)
+	caves (stalagmite)
+other:
+	ow encounter - not fogged - sometimes combat sometimes chest sometimes trap
+
+renown/reputation rep allows taking items that the player meets rep requirement for
+
+seed name denotes name of Abyssal Tendril (final dungeon of each quest) 9 floors
+	generate other names of things from the seed as well, towns, lesser dungeons, greater dungeons
+	outdoor areas that lead into greater dungeons.
+
+make ui sprite index above other sprite indexes (monsters)
+pillars: make sure always at least 1 verticle transparent stripe for pillar appearance
+
+
+------------------------------------------
+
+how to convey entering a boss room, foyer in boss room level with big door like on ow. opens, flips sprites
+	approach and:
+	boss room 2 tile tall walls, 2 tile tall boss door, slides open (crunchy fight sound repeats during)
+
+when using item: scroll, potion, bow: show it next to player 500ms
+
+char creation allow 5 letter name - random by default, press select for new random name, (b) to backspace or go back (a) to choose
+
+our gbc roguelike uses 3 digits of base 26 for its seed giving it 17.5k possible different permutations/worlds, how many would adding 1 more digit get us
+
+
+add seed-based modifiers to items, monsters, bosses, floors?
+
+
+all equip is lvl 1-10 chance of higher from harder things, can go up with scroll or spell+
+equip slots: body,head,feet, mainhand, offhand (inv auto organizes inv so equip to top row)
+	when picking up equip - show the current slot (even if empty) and stats like stat screen
+	not necessary when picking up consumable/usable: just show stack if possible
+
+for greater dungeons: abyssal tears + tendrils allow respawning of abyssal enemies until destroyed
+	greater dungeons - more traps, harder enemies (casters ranged, etc) fewer floors, big reward +
+	benefits in nearest town (each town has 3 nearby dungeons, 1 is a greater recommended to defeat before attempting final tendril)
+
+for abyssal dungeons/tears/tendrils/palaces-
+	features like: player doesn't naturally heal,
+	high number of floors 10 minimum
+	final big dungeon doors: tendrels or abyss coming through
+--------
+move smiley on level up up 1 tile ( we added heads)
+----------
+
+
+
+town elder random-name talks of dungeon 1 random name - in a vision, i saw something, some figure came to me
+random version of description of mara - write down list of possible descriptions
+seguay into explaining the shards of mara malicite
+	choice like
+		1 malicite: malicite Shim
+		2 malicite: magic armor
+		3 malicite: magic weapon
+
+Nearby in random_dungeon there are reports of a dangerous creature. If you would do it- go forth and return to me any clue of this creature's origin, as word from the other lands indeed share our concerns- sanguine powers are growing.
+
+------------------------------------------
+
+loading screen: print name of zone you are traveling to /entering, or tips
+
+uses for (a)? wait autoexplore?
+press (a) to confirm transitioning up/down/into area (doesn't matter if ladder blocks something then) asks Travel? (a):confirm -only works when standing on the tile, text only appears when on the tile - usable objects like signs should work the same way - npcs in town or elsewhere will interact by being bumped into (doesn't hurt them)
+
+normal dungeon
+foyer-anteroom-guardroom
+normal floor
+miniboss
+normal floor
+BOSS
+
+allow player enter city from any tile with city graphics
+------------------------------------------
+
+sword-
+axe- hits adjacent targets
+spear- 
+mace- 1 in 3 hits stuns or roots for 2 turns
+
+
+cool item generation
+higher tiers chance of not just +1 but *2 ^2
+
+
+bug: if gorgon spawns snake onto player it won't attack player square
+--
+lavalands - second continent beneath main continent, all encounters are skulls with traps - one random tile in desert will drop u
+--
+keep the current natural style generation for forests and caves - add room by room + hallways style biomes for dungeons jails tombs crypts etc
+
+bug: npcs appear before roof is revealed
+
+bug: if you take off an item with hp and put it back on you heal for the new amount - can be abused
+bug: when you discard item/armor you are wearing the stats don't 0
+
+boss room: put exit in room in top locked then unlocked
+
+draw bow/arrow on gorgon or other archer enemies
+
+item pots: change items (use(equip)in inventory men)
+
+add sound on item get
+and item equip
+make item icon x2 (4 tiles) like the class emblems
+set the top row of the gui to the grey blue color in torch/brazier palette
+
+looting second book of same kind merges and raises its rank
+
+
+tutorial duck Ferdinand- wanders overworld, and begins a tutorial if interacted with
+The duck deftly dodges as you enter its space. *Quaaack!*
+These are dangerous lands, Hero. Visit me, and I will reveal hints.
+[Random Hint] Visit towns to learn of quests. There is one source of evil in each world, tis MARA'S aspect, a sliver of her heart. *Quaaack!*
+Hold select to select your first spell! *QUAAACK*
+wild duck that quacks - upon interfacing with it, it appears to you to reveal hints about the game in starting areas. *QUAACK* 
+
+make fox pet warp back to you or runaway if it gets too far
+
+overworld 2 continents (1 hidden)
+traps - invisible things that cause damage or fx, can be revealed with spell as red'T' or trap
+	symbol - only triggers once - 
+can probably be disarmed with a scroll or book
+shrines - visible things that grant buffs for that floor (or whole dungeon)
+
+crown sprite on elites or bosses
+
+
+ranged attacks select item/abil (b) fire at nearest enemy in LOS 
+else 'No Enemy'n Sight
+
+need a way to swap from inv to belt
+
+main quest goto area x - find holy item x to reveal the protector of the seal to enter the abyss
+	the abyss is the final area, 20 or more floors without light, and progressively
+	darker (subtracts from player's stat) the deeper they get
+
+bug: when use (b) to leave menu back to gameplay, it casts spell
+
+thy name? arrows left right up down choose letters, (b back) (a confirm)
+start confirms, (select random name)
+
+item stacks and items w charges / same update probably
+
+[x] liz idea: root scroll
+[ ] liz idea: blindness/darkness status from items/enemies special dungeons
+[ ] scroll: new item (get random item) *requires empty space next to player to drop new item
+[ ] scroll: new ability get new abil random one you don't have
+
+bug: when take damage or smiley on screen when entering get item screen, player character stuck on screen
+	fix level up sound
+
+scroll: upgrades equipped weapons +1, upgrades an equipped armor +1
+scroll: warp: exit (teleport close to exit stairs up) scroll: warp: down (teleport close to stairs down) scroll: warp: Town (warps player to town nearest to player's current location)
+
+draw helmet, or weapon next to player sprite w sprite
+choose thy class!
+flaming skull selector always
+horror-roguelike: runlike
+
+don't place stairs/ladders next to each other or walls
+
+enemy list:
+here are needed corrections: 
+serpent- rename Snake, tiles: j5 k5
+
+
+
+--
+on the inventory start subscreen
+1 row down from the top, on the right side of the screen. Row by row this should fit to represent item slots.
+Head[](item slot sprite)Body[]
+Feet[]Ring[]
+Primary__[]
+Secondary[]
+
+despawn or dont spawn graves on items ladders torches
+always show items on top in tiles
+remove sound/screenshake hit when player dodges (keep enemy lunge, player lunge opposite?)
+investigate global cooldowns - witch/others
+
+item bag should always be on top of grave stone etc- and not on stairs
+
+blink or alternate a + with the lvl tile every second, not obnox
+
+berserker can wield 2 weapons
+-------
+The idea now for how we're doing our stats is clearer to me now, instead of vague names like strength, dexterity, which end up relating to key primary stats for a class/build but includes benefits/utility for all classes to some extent- we're doing this too but just putting the substat first and simplifying a little bit where relevant: magdef as the only resist stat for non-physical damage (spells from bosses or enemies or elemental attacks) 
+-------
+The Quick Brown Fox Jumps Over The Lazy Dog
+the quick brown fox jumps over the lazy dog
+
+--
+
+make shop item list alphabetical
+
+fix sound on level up
+fix smiley on level up (needs to be higher now)
+
+for floor level: do little stairs icon like ergheiz, saves 1 tile, and when in overworld can put little world icon () blue green instead of #
+
+pigman boss: possibly 2 tiles wide, eats enemies around it to heal/buff
+	reuse later as normal enemy
+
+boss rooms - use 2x versions of original enemies - 
+
+(heart symbol)❤️	:		x	x	x	/	x	x	x
+M	e	l	D	m	g	:	x	x	x
+M	a	g	D	m	g	:	x	x	x
+R	n	g	D	m	g	:	x	x	x
+D	o	d	g	e	%	:	x	x	%
+R	e	s	P	h	ys	:	x	x	%
+R	e	s	M	a	g	:	x	x	%
+L	i	g	h	t		:		x	x
+
+plan when player arrives on new floor, print class level, seed, and then monsters: # items: #
+if arriving on floor with no monsters - fully revealed
+
+hate is the source of Mara's power, hate for anything in a universe that blesses
+
+-
+scoundrel: sprint(buff, while active, every other movement step is a free turn(enemies don't get a turn)). bear trap (places thing on the ground which damages/roots enemies which walk into it)poison dart (ranged dmg +dot) graverob (consume headstones for x chance at more loot) Sniper Mode (buff: ranged weapons 50%+ chance to not use an arrow, +3 light, 10%+ chance to shoot twice)
+
+berserker: whirlwind(weapon damage in 1/2/3 tile range around berserker in every direction) charge (bat blink to nearest enemy and stun it 5+ turns) thunder wave, damage and stun in 3 tile range around berserker. shout fear (enemies on screen switch to rat ai) throw axe (ranged attack that hits 2x melee damage, requires axe) Zerk Mode (buff: damage x3 dodge/armor -33 (can't go negative just goes to zero))
+
+

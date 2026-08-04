@@ -70,7 +70,7 @@ static uint8_t classify_cell(uint8_t mx, uint8_t my, uint8_t *attr_out) {
             // Palette is deterministic from offset — no second brazier/item scan needed
             if      (off == TILE_STAIRS_UP_1)  *attr_out = 0u;
             else if ((off & 15u) == 2u)        *attr_out = PAL_LADDER;       // TILE_LIGHT_1..4 (col C rows 1-4: 2,18,34,50)
-            else if (off == TILE_ITEM_4)       *attr_out = (floor_biome == BIOME_TOWN || floor_biome == BIOME_OVERWORLD) ? PAL_LADDER : PAL_ITEM_GOLD_BG; // slot 6 is hijacked for tree-green in grass biomes (apply_wall_palette) — ride the ladder fire ramp instead, same trick as PAL_XP_UI_BG
+            else if (off == TILE_ITEM_4)       *attr_out = (floor_kind >= FLOORKIND_TOWN) ? PAL_PILLAR_BG : PAL_ITEM_GOLD_BG; // town + encounter: the brown-on-green prop ramp (barrels/signs/roofs/mat). Its idx0 is the field colour and I4's colour-0 pixels are only the icon's surround, so loot reads brown-on-grass instead of the near-invisible green-on-green slot 6 gives here. One compare covers both because dungeon.h keeps TOWN/ENCOUNTER adjacent; FLOORKIND_HUB is excluded on purpose — its slot 1 is the water ramp, and nothing can drop loot there anyway (no enemies → no corpses → no graverob). Dungeons keep the true gold ramp.
             else if (off == TILE_TEST)         *attr_out = desert ? PAL_OW_ACCENT : PAL_LADDER; // dungeon floor deco torch-tinted; hub roads (region desert) sand-tinted
             else                               *attr_out = ground_pal;       // snow / sand / grey ground deco by region
             return (uint8_t)(TILESET_VRAM_OFFSET + off);

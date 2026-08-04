@@ -73,15 +73,25 @@ static uint8_t tg_rand(void) {
     return (uint8_t)(tg_rng >> 8);
 }
 
-// One building rectangle: brick wall ring with a hollow floor interior.
+// One building: brick wall ring with a hollow floor interior, and the four rect corners cut back
+// to open grass. The cut is what the roof's F4 chamfer tiles sit on — the silhouette reads as an
+// octagon rather than a hard rectangle (overworld_cell_render picks the corner art from the same
+// dx/dy the cut is derived from here, so collision and art can't drift apart). Movement is
+// 4-directional, so a diagonal gap is not a passage: a cut corner's orthogonal neighbours are both
+// still wall.
 static void tg_building_rect(uint8_t x0, uint8_t y0, uint8_t bw, uint8_t bh) {
     uint8_t x, y;
+    uint8_t x1 = (uint8_t)(x0 + bw - 1u), y1 = (uint8_t)(y0 + bh - 1u);
     for (y = y0; y < (uint8_t)(y0 + bh); y++)
         for (x = x0; x < (uint8_t)(x0 + bw); x++)
             BIT_CLR(floor_bits, TILE_IDX(x, y));
-    for (y = (uint8_t)(y0 + 1u); y < (uint8_t)(y0 + bh - 1u); y++)
-        for (x = (uint8_t)(x0 + 1u); x < (uint8_t)(x0 + bw - 1u); x++)
+    for (y = (uint8_t)(y0 + 1u); y < y1; y++)
+        for (x = (uint8_t)(x0 + 1u); x < x1; x++)
             BIT_SET(floor_bits, TILE_IDX(x, y));
+    BIT_SET(floor_bits, TILE_IDX(x0, y0)); // the four cut corners: open grass, walkable
+    BIT_SET(floor_bits, TILE_IDX(x1, y0));
+    BIT_SET(floor_bits, TILE_IDX(x0, y1));
+    BIT_SET(floor_bits, TILE_IDX(x1, y1));
 }
 
 // 1 if a candidate rect (inflated so buildings keep a ≥2-cell gap) touches a placed building.
@@ -275,9 +285,12 @@ void town_generate_interior(uint8_t town_id) BANKED {
 
     { // Rejection-sample the building rects; landing short of `target` on a crowded roll is fine.
         uint16_t tries;
-        for (tries = 0u; tries < 250u && town_state->count < target; tries++) {
-            uint8_t bw = (uint8_t)(5u + (uint8_t)(tg_rand() % 3u)); // 5..7
-            uint8_t bh = (uint8_t)(5u + (uint8_t)(tg_rand() % 3u));
+        // 6 is the floor, not 5: the roof's two-step F4 chamfer eats the top two rows at each end,
+        // and a door midpoint has to stay clear of the cut corners. Bigger rects also land less
+        // often against tg_rects_clash's ≥2-cell gap, hence the raised try budget.
+        for (tries = 0u; tries < 400u && town_state->count < target; tries++) {
+            uint8_t bw = (uint8_t)(6u + (uint8_t)(tg_rand() % 4u)); // 6..9
+            uint8_t bh = (uint8_t)(6u + (uint8_t)(tg_rand() % 3u)); // 6..8
             uint8_t x0 = (uint8_t)(3u + (uint8_t)(tg_rand() % (uint8_t)(w - 6u - bw)));
             uint8_t y0 = (uint8_t)(3u + (uint8_t)(tg_rand() % (uint8_t)(h - 6u - bh)));
             uint8_t xlo = (uint8_t)(x0 - 1u), xhi = (uint8_t)(x0 + bw); // keep 1 clear cell off the
@@ -308,32 +321,47 @@ void town_generate_interior(uint8_t town_id) BANKED {
         uint8_t door_x, door_y;
         uint8_t closed = (i >= MAX_TOWN_NPCS); // beyond the villager cap: decorative, closed door, no entry
         int8_t sx = 0, sy = 0; // door's outward direction (toward the facing road axis)
-        if (adx <= ady) { // column road is nearer → door on the E or W wall
+        // S / E / W faces only — never N. A north door would sit on the roof's far edge, where the
+        // building's own roof hides both it and its signpost from a player approaching from below.
+        // So: take the S face when the row road is the nearer axis AND it lies south of us;
+        // everything else falls back to the E/W face nearest the column road.
+        if (adx <= ady || cy <= bcy) { // door on the E or W wall
             door_y = bcy;
             if (cx > bcx) { door_x = (uint8_t)(b->x + b->w - 1u); sx = 1; }
             else          { door_x = b->x;                        sx = -1; }
-        } else {          // row road is nearer → door on the N or S wall
+        } else {          // row road is nearer and lies south → door on the S wall
             door_x = bcx;
-            if (cy > bcy) { door_y = (uint8_t)(b->y + b->h - 1u); sy = 1; }
-            else          { door_y = b->y;                        sy = -1; }
+            door_y = (uint8_t)(b->y + b->h - 1u); sy = 1;
         }
         b->door_x = door_x; b->door_y = door_y; b->closed = closed;
+        b->mat_x = closed ? 255u : (uint8_t)((int8_t)door_x + sx); // 255 = no mat: a closed building
+        b->mat_y = closed ? 255u : (uint8_t)((int8_t)door_y + sy); // has nothing to welcome you into
         if (!closed) BIT_SET(floor_bits, TILE_IDX(door_x, door_y)); // carve the gap; closed stays wall → G2 renders there
 
-        { // roof bits over the interior — the wall ring (and its door cell) stays visible. Applied
-          // even to closed buildings: harmless (nobody can ever reach in to matter) and one less branch.
+        { // Roof bits over the whole octagon EXCEPT the south facade row, which stays brick so the
+          // building has a visible front. The top row is inset one cell at each end (that inset,
+          // plus the full-width row under it, is the two-step F4 chamfer); every row below is full
+          // width, so the E/W walls sit under the roof and a side door has to punch back through it
+          // — see the door test in overworld_cell_render, which resolves before this mask.
+          // Applied even to closed buildings: harmless (nobody can ever reach in) and one less branch.
             uint8_t rx, ry;
-            for (ry = (uint8_t)(b->y + 1u); ry < (uint8_t)(b->y + b->h - 1u); ry++)
-                for (rx = (uint8_t)(b->x + 1u); rx < (uint8_t)(b->x + b->w - 1u); rx++)
-                    townroof_set(TILE_IDX(rx, ry));
+            uint8_t facade = (uint8_t)(b->y + b->h - 1u);
+            for (rx = (uint8_t)(b->x + 1u); rx < (uint8_t)(b->x + b->w - 1u); rx++)
+                townroof_set(TILE_IDX(rx, b->y));            // inset top row
+            for (ry = (uint8_t)(b->y + 1u); ry < facade; ry++)
+                for (rx = b->x; rx < (uint8_t)(b->x + b->w); rx++)
+                    townroof_set(TILE_IDX(rx, ry));          // full-width body
         }
 
         if (!closed) { // cosmetic side road: straight run from outside the door toward the facing
           // axis; stops at the first wall (another building/pine placed later can't cut it — pines
           // skip roads) or on meeting an existing road cell. Roads are visual only — movement ignores
           // them. A closed building's door is never walked to, so it gets no approach road.
-            uint8_t rx = (uint8_t)((int8_t)door_x + sx);
-            uint8_t ry = (uint8_t)((int8_t)door_y + sy);
+            // Starts two cells out, not one: door+outward is the welcome-mat cell (drawn by
+            // overworld_cell_render straight off the door position), and a sand road cell under it
+            // would clash with the mat art's grass background.
+            uint8_t rx = (uint8_t)((int8_t)door_x + sx + sx);
+            uint8_t ry = (uint8_t)((int8_t)door_y + sy + sy);
             while (rx > 0u && ry > 0u && rx < (uint8_t)(w - 1u) && ry < (uint8_t)(h - 1u)) {
                 uint16_t idx = TILE_IDX(rx, ry);
                 if (!BIT_GET(floor_bits, idx)) break;
@@ -344,17 +372,25 @@ void town_generate_interior(uint8_t town_id) BANKED {
             }
         }
 
-        if (n < MAX_OW_FEATURES) { // signpost in front of the door, shifted perpendicular so it
-            uint8_t sgx = (uint8_t)((int8_t)door_x + sx + ((sy != 0) ? 1 : 0)); // doesn't sit in the walk path
-            uint8_t sgy = (uint8_t)((int8_t)door_y + sy + ((sx != 0) ? 1 : 0));
-            if (!BIT_GET(floor_bits, TILE_IDX(sgx, sgy))) { // shifted spot is a wall — fall back onto the path cell
-                sgx = (uint8_t)((int8_t)door_x + sx);
-                sgy = (uint8_t)((int8_t)door_y + sy);
+        if (n < MAX_OW_FEATURES) { // signpost beside the welcome mat, one cell perpendicular to the
+          // walk path. Side doors get the sign ABOVE the mat (the mat is at door+outward and the
+          // road runs on past it), which is the arrangement the design mock uses; a south door has
+          // no "above" free, so it takes the cell to the mat's east. Falls back to the opposite
+          // perpendicular, then gives up — the mat still marks the entrance on its own.
+            int8_t px = (sy != 0) ? (int8_t)1 : (int8_t)0;  // perpendicular offset from the mat cell
+            int8_t py = (sx != 0) ? (int8_t)-1 : (int8_t)0;
+            uint8_t sgx = (uint8_t)((int8_t)door_x + sx + px);
+            uint8_t sgy = (uint8_t)((int8_t)door_y + sy + py);
+            if (!BIT_GET(floor_bits, TILE_IDX(sgx, sgy))) { // blocked — try the other side of the path
+                sgx = (uint8_t)((int8_t)door_x + sx - px);
+                sgy = (uint8_t)((int8_t)door_y + sy - py);
             }
-            ow_features[n].x = sgx; ow_features[n].y = sgy;
-            ow_features[n].type = OW_FEAT_SIGNPOST;
-            ow_features[n].aux = (uint8_t)(SIGN_KIND_BUILDING | (uint8_t)(tg_rand() & 7u));
-            n++;
+            if (BIT_GET(floor_bits, TILE_IDX(sgx, sgy))) {
+                ow_features[n].x = sgx; ow_features[n].y = sgy;
+                ow_features[n].type = OW_FEAT_SIGNPOST;
+                ow_features[n].aux = (uint8_t)(SIGN_KIND_BUILDING | (uint8_t)(tg_rand() & 7u));
+                n++;
+            }
         }
 
         if (!closed) { // villager sprite, home = building centre (entity_sprites.c draws it) — closed
@@ -374,8 +410,10 @@ void town_generate_interior(uint8_t town_id) BANKED {
                 bry = (uint8_t)(b->y + 1u + (uint8_t)(tg_rand() % (uint8_t)(b->h - 2u)));
                 brx = (edge == 2u) ? (uint8_t)(b->x - 1u) : (uint8_t)(b->x + b->w);
             }
+            // Keep off the welcome mat at door+outward — for an E/W door that cell is on this very
+            // edge run, and a barrel there would block the only way in.
             if (BIT_GET(floor_bits, TILE_IDX(brx, bry)) && !road_bit(TILE_IDX(brx, bry))
-                    && !(brx == door_x && bry == door_y)) {
+                    && !(brx == (uint8_t)((int8_t)door_x + sx) && bry == (uint8_t)((int8_t)door_y + sy))) {
                 uint8_t k, clash = 0u;
                 for (k = 0u; k < n; k++)
                     if (ow_features[k].x == brx && ow_features[k].y == bry) { clash = 1u; break; }
@@ -440,6 +478,13 @@ void town_generate_interior(uint8_t town_id) BANKED {
         uint8_t k, clash = 0u, ord;
         if (tg_rand() >= 32u) continue; // ~1/8 odds per attempt — genuinely rare, not a guaranteed 3rd/4th/5th barrel
         if (!BIT_GET(floor_bits, idx) || road_bit(idx)) continue;
+        for (k = 0u; k < town_state->count; k++) { // same 1-cell apron the pines respect: a stray
+          // barrel on a door or its welcome mat would wall off that building's only entrance
+            const TownBuilding *b = &town_state->buildings[k];
+            if (px >= (uint8_t)(b->x - 1u) && px <= (uint8_t)(b->x + b->w)
+                    && py >= (uint8_t)(b->y - 1u) && py <= (uint8_t)(b->y + b->h)) { clash = 1u; break; }
+        }
+        if (clash) continue;
         for (k = 0u; k < n; k++)
             if (ow_features[k].x == px && ow_features[k].y == py) { clash = 1u; break; }
         if (clash) continue;

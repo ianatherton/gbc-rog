@@ -20,6 +20,10 @@ extern uint8_t  num_nav_nodes;            // populated after generate_level
 typedef struct {
     uint8_t x, y, w, h;      // wall-ring rect, walls included
     uint8_t door_x, door_y;  // wall-ring cell — floor+G1 doorway if open, wall+G2 closed door if closed
+    uint8_t mat_x, mat_y;    // welcome-mat cell = door + outward, precomputed at gen; 255 = none (closed
+                             // building). Stored rather than derived because overworld_cell_render tests
+                             // it once per building for every open cell on screen — deriving it there
+                             // cost a call + ~5 compares × 20 buildings × ~21 cells per camera strip.
     uint8_t closed;          // 1 = decorative building: no door carved, never enterable, no villager
 } TownBuilding;
 typedef struct {

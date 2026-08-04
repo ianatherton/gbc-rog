@@ -555,6 +555,15 @@ static uint8_t ow_prefab_vram(uint8_t type, uint8_t lx, uint8_t ly, uint8_t w, u
 // found by the in-ROM parity sweep). The table is also faster on SM83 (no shift loop).
 static const uint8_t ow_bitmask[8] = { 1u, 2u, 4u, 8u, 16u, 32u, 64u, 128u };
 
+// Town building doorway: G1 open (walkable, grass shows through — palette 0, the ambient field
+// ramp) or G2 closed (decorative building, never carved — stays a wall cell, brick palette so it
+// reads as part of the wall it's set into). Shared by the roofed path, which a side door has to
+// punch back through, and the unroofed facade path.
+static uint8_t town_door_tile(const TownBuilding *b, uint8_t *pal_out) {
+    if (b->closed) { *pal_out = PAL_WALL_BG; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_DOOR_CLOSED); }
+    *pal_out = 0u; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_DOOR_OPEN);
+}
+
 // Single per-cell classifier consumed by render.c (bank 2). Folds the desert/snow region test, the
 // water/tree split for WALL cells, and the coast lookup for FLOOR cells into one banked trampoline.
 // Returns the finished VRAM tile (0 = interior ground — render.c draws floor-deco using *region_out).
@@ -565,64 +574,103 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
                               uint8_t *pal_out, uint8_t *region_out) BANKED {
     uint8_t region;
     if (floor_biome == BIOME_TOWN) {
-        // Town interior: grass field like the hub. Roofs resolve FIRST (a covered cell hides
+        // Town interior: grass field like the hub. Resolve order is roofs (a covered cell hides
         // whatever's under it — deco, and the villager sprite entity_sprites.c hides separately —
-        // and skips the feature scan); then features (fountain / sign / deco pine); wall cells
-        // split into the map-edge pine border vs dungeon brick (uniform bulk art — the thin
-        // building walls would otherwise hit render.c's pillar heuristic); road-mask floor cells
-        // report OW_REGION_DESERT so they render as the hub's open-sand roads. Villagers are OAM
-        // sprites (entity_sprites.c refresh_town_npcs_oam), not BG features — nothing to draw here.
-        // Every tile used is title-stomp-safe: 161 re-uploads per floor, shrine/brick/roofs are
-        // main-sheet, 205/213 are permanent boot copies.
+        // and skips the feature scan), then features (fountain / sign / deco pine), then the
+        // facade doorway + welcome mat, then wall cells, which split into the map-edge pine border
+        // vs dungeon brick (uniform bulk art — the thin building walls would otherwise hit
+        // render.c's pillar heuristic); road-mask floor cells report OW_REGION_DESERT so they
+        // render as the hub's open-sand roads. A SIDE door is the one thing that outranks the
+        // roof, and it is handled inside the roof block rather than here, because its cell is
+        // roofed. Villagers are OAM sprites (entity_sprites.c refresh_town_npcs_oam), not BG
+        // features — nothing to draw here. Every tile used is title-stomp-safe: 161 re-uploads per
+        // floor, shrine/brick/roofs are main-sheet, 205/213/255 are permanent boot copies.
         uint8_t fi;
+        const OwFeature *f;
+        const TownBuilding *b;
         *region_out = OW_REGION_GRASS;
-        if (base_tile != TILE_WALL) { // roof bits only exist on building-interior floor cells
+        { // The roof mask now covers the whole octagon bar the south facade row — the wall ring
+          // included — so it is read for wall cells too. The map-edge pine ring and the town wall
+          // carry no roof bits and fall straight through. One pass over the buildings resolves the
+          // owner, its door and the inside-lift, so a roofed cell still costs a single scan.
             uint16_t idx = TILE_IDX(mx, my);
             if (wram2_read_byte((uint16_t)(idx >> 3)) & ow_bitmask[(uint8_t)idx & 7u]) {
-                const TownBuilding *in = (town_state->inside_idx == 255u) ? 0 : &town_state->buildings[town_state->inside_idx];
-                if (!in || mx <= in->x || mx >= (uint8_t)(in->x + in->w - 1u)
-                        || my <= in->y || my >= (uint8_t)(in->y + in->h - 1u)) { // not the one open building
-                    uint8_t bi;
-                    for (bi = 0u; bi < town_state->count; bi++) { // owner picks the art variant
-                        const TownBuilding *b = &town_state->buildings[bi];
-                        if (mx > b->x && mx < (uint8_t)(b->x + b->w - 1u)
-                                && my > b->y && my < (uint8_t)(b->y + b->h - 1u)) break;
+                uint8_t bi;
+                for (bi = 0u; bi < town_state->count; bi++) { // indexed on purpose — see the note
+                    b = &town_state->buildings[bi];           // on the feature loop below
+                    if (mx < b->x || mx >= (uint8_t)(b->x + b->w)
+                            || my < b->y || my >= (uint8_t)(b->y + b->h)) continue;
+                    // An E/W door sits on a roofed row, so it has to punch back through its own
+                    // roof — otherwise the entrance is invisible from outside.
+                    if (b->door_x == mx && b->door_y == my) return town_door_tile(b, pal_out);
+                    if (bi == town_state->inside_idx) break; // player is in here: the whole roof lifts
+                    { // F4 chamfers both top corners as a two-step stair (inset top row, then the
+                      // full-width row beneath it); S_FLIPX mirrors the same tile for the right side.
+                        uint8_t dx = (uint8_t)(mx - b->x), dy = (uint8_t)(my - b->y);
+                        *pal_out = PAL_PILLAR_BG;
+                        if (dy == 0u) {
+                            if (dx == 1u) return (uint8_t)(TILESET_VRAM_OFFSET + TILE_ROOF_B);
+                            if (dx == (uint8_t)(b->w - 2u)) { *pal_out |= S_FLIPX; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_ROOF_B); }
+                        } else if (dy == 1u) {
+                            if (dx == 0u) return (uint8_t)(TILESET_VRAM_OFFSET + TILE_ROOF_B);
+                            if (dx == (uint8_t)(b->w - 1u)) { *pal_out |= S_FLIPX; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_ROOF_B); }
+                        }
+                        return (uint8_t)(TILESET_VRAM_OFFSET + TILE_ROOF_A);
                     }
-                    if (bi & 1u) { *pal_out = PAL_PILLAR_BG; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_ROOF_B); }
-                    *pal_out = PAL_OW_ACCENT; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_ROOF_A);
                 }
             }
         }
-        for (fi = 0u; fi < ow_feature_count; fi++) { // fountain/sign/barrel are 1×1; the deco pine is 1×2
-            const OwPrefabDef *fd = &ow_prefab_defs[ow_features[fi].type]; // footprint test, like the hub overlay below
-            if (mx != ow_features[fi].x || my < ow_features[fi].y
-                    || my >= (uint8_t)(ow_features[fi].y + fd->h)) continue;
-            if (ow_features[fi].type == OW_FEAT_TREE) { // 2-tall deco pine — both cells are blocking walls
+        // Hot loop: runs for every cell that isn't roofed, ~21 cells per camera strip, against up to
+        // MAX_OW_FEATURES entries. Three things keep it cheap, all three verified by reading the
+        // generated asm (`lcc -S`), and the first one is worth 79 → 21 instructions on the common
+        // reject path:
+        //   1. **Walk a pointer here, but NOT in the building loops.** `&ow_features[fi]` makes SDCC
+        //      compute fi*4 as a 16-bit value it keeps on the stack, so every iteration re-runs a
+        //      `sla (hl) / rl (hl)` shift LOOP through memory plus ~15 instructions of stack
+        //      shuffling. `f++` removes all of it. The building loops look identical but compile
+        //      completely differently: sizeof(TownBuilding) is 9, which SDCC does as an 8-bit
+        //      `add a,a / add a,a / add a,a / add a,c` chain entirely in registers — cheaper than a
+        //      pointer, which spills to the stack there and measured *worse*. Do not "fix" them to
+        //      match this loop; check the asm before assuming either form is faster.
+        //   2. Reject on x FIRST — every town feature is exactly 1 cell wide, so one compare kills
+        //      ~43 of 44 entries.
+        //   3. Never touch ow_prefab_defs[]: its 5-byte stride costs a real multiply per feature per
+        //      cell. The pine is the only 2-tall town feature, so its height is tested inline.
+        for (fi = 0u, f = ow_features; fi < ow_feature_count; fi++, f++) {
+            if (mx != f->x || my < f->y) continue;
+            if (f->type == OW_FEAT_TREE) { // 2-tall deco pine — both cells are blocking walls
+                if (my > (uint8_t)(f->y + 1u)) continue;
                 *pal_out = PAL_OW_FOLIAGE;
-                return (my == ow_features[fi].y) ? TILE_OW_TREE_TOP_VRAM : TILE_OW_TREE_BOT_VRAM;
+                return (my == f->y) ? TILE_OW_TREE_TOP_VRAM : TILE_OW_TREE_BOT_VRAM;
             }
-            if (ow_features[fi].type == OW_FEAT_BARREL) {
+            if (my != f->y) continue; // everything else in a town is 1×1
+            if (f->type == OW_FEAT_BARREL) {
                 *pal_out = PAL_PILLAR_BG; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_BARREL); // deco barrel (cell is blocking wall); sign palette (grass background)
             }
-            if (ow_features[fi].type == OW_FEAT_FOUNTAIN) {
-                *pal_out = PAL_PILLAR_BG; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_SHRINE_ON_1); // stone well
+            if (f->type == OW_FEAT_FOUNTAIN) {
+                // PAL_WALL_BG, not PAL_PILLAR_BG: slot 1 is now the roof/wood tan ramp, which would
+                // read as a barrel. The brick ramp's idx0 is the same grass green, so the well still
+                // sits seamlessly on the field and keeps a stone tone.
+                *pal_out = PAL_WALL_BG; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_SHRINE_ON_1); // stone well
             }
-            if (ow_features[fi].type == OW_FEAT_SIGNPOST) {
+            if (f->type == OW_FEAT_SIGNPOST) {
                 // PAL_PILLAR_BG, not PAL_OW_ACCENT: apply_wall_palette's town branch (render_palettes.c)
                 // sets this slot's idx0 to the same green as the field ("any pillar art" — fountain,
                 // now signs too), so the sign's transparent background reads as grass instead of sand.
                 *pal_out = PAL_PILLAR_BG; return PREFAB_VRAM_SIGNPOST;
             }
         }
-        { // building doorway: G1 open (walkable, grass shows through — palette 0, the ambient field
-          // ramp) or G2 closed (decorative building, never carved — stays a wall cell, brick palette
-          // so it reads as part of the wall it's set into).
+        { // Facade-row doorway (a S door's row is never roofed, so the roof block above never saw
+          // it) and the welcome mat on the open cell one step outside any door. Also a hot loop —
+          // it runs for every open cell on screen, so it walks a pointer (see the feature loop) and
+          // both tests are a bare pair of compares against cells precomputed at gen time (b->mat_x
+          // is 255 on a closed building, which no real coordinate can match, so "does this building
+          // have a mat" needs no branch).
             uint8_t bi;
-            for (bi = 0u; bi < town_state->count; bi++) {
-                const TownBuilding *b = &town_state->buildings[bi];
-                if (b->door_x != mx || b->door_y != my) continue;
-                if (b->closed) { *pal_out = PAL_WALL_BG; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_DOOR_CLOSED); }
-                *pal_out = 0u; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_DOOR_OPEN);
+            for (bi = 0u; bi < town_state->count; bi++) { // indexed on purpose — see the feature loop
+                b = &town_state->buildings[bi];
+                if (b->door_x == mx && b->door_y == my) return town_door_tile(b, pal_out);
+                if (b->mat_x == mx && b->mat_y == my) { *pal_out = PAL_PILLAR_BG; return PREFAB_VRAM_MAT; }
             }
         }
         if (base_tile == TILE_WALL) {

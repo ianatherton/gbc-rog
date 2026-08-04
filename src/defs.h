@@ -322,10 +322,16 @@ typedef struct {
 #define TILE_F5              69u  /* F5  — dead variant, never placed; VRAM 197 borrowed by TILE_STUN_ICON_VRAM */
 #define TILE_CHEST           5   /* F1  */
 #define TILE_BARREL         21   /* F2  */
-#define TILE_ROOF_A         37   /* F3 — town building roof variant 1 (was the never-placed mushroom) */
-#define TILE_ROOF_B         53   /* F4 — town building roof variant 2. VRAM 165/181 are title-logo
-                                    stomp slots, but the restore re-uploads every slot from the sheet
-                                    at (VRAM-128) = exactly F3/F4 — safe with no boot copy. */
+#define TILE_ROOF_A         37   /* F3 — town building bulk roof shingle (was the never-placed mushroom) */
+#define TILE_ROOF_B         53   /* F4 — town roof TOP-CORNER chamfer: F3 with a 4×3 colour-0 block
+                                    cut out of its top-left, so the roof palette's idx0 (grass) shows
+                                    through and the silhouette reads as a diagonal. S_FLIPX mirrors it
+                                    for the right-hand corner. Both tiles' remaining colour-0 pixels
+                                    were repainted to idx3 in res/tileset.png — on this palette idx0
+                                    is grass, so a stray one would speckle the roof green.
+                                    VRAM 165/181 are title-logo stomp slots, but the restore
+                                    re-uploads every slot from the sheet at (VRAM-128) = exactly
+                                    F3/F4 — safe with no boot copy. */
 /* Overworld terrain art (hub only). Both ROM sources live past the first-128 VRAM upload, so they
    are boot-copied into title-safe VRAM slots — the title logo (title_logo.c) patches+restores
    128..181, so the wall/water slots must sit ≥182 and outside that table or they get blanked. */
@@ -375,6 +381,15 @@ typedef struct {
 #define MAX_OW_FEATURES   44u /* 17 structures (3 towns + 9 entrances + 4 waypoints + 1 boss) + a signpost beside each */
 #define TILE_SHEET_B8        113u /* B8 signpost art (row 8, col B; directly below flag tile B7=97) */
 #define PREFAB_VRAM_SIGNPOST 205u /* dedicated free slot (blank sheet cell N5, ≥182 so title restore won't blank it); B8 boot-copied here in main.c */
+#define TILE_SHEET_B5        65u  /* B5 welcome-mat art, laid on the cell outside every town door.
+                                     Its own VRAM slot 193 belongs to TILE_OW_TREE_TOP_VRAM, so it
+                                     is boot-copied into 255 in main.c. 255 was the last unclaimed
+                                     slot ≥182: no TILE_* uses sheet 127, no *_VRAM names 255, and
+                                     the CLASS_EMBLEM_VRAM_START 252 range that docs/BANKS.md
+                                     credited it to is dead — state_char_create.c actually scratches
+                                     176..191 (CLASS_EMBLEM_VRAM_SCALE2_START), and slots 253/254
+                                     are already permanent flag art. So this copy is permanent. */
+#define PREFAB_VRAM_MAT      255u
 
 /* Signpost label code packed into OwFeature.aux: high nibble = kind, low nibble = index/direction. */
 #define SIGN_KIND_TOWN     0x00u /* low = town index 0..2 */

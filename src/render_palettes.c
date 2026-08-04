@@ -104,10 +104,13 @@ void apply_wall_palette(void) BANKED { // PAL_WALL_BG bulk walls + PAL_PILLAR_BG
     }
     if (floor_biome == BIOME_TOWN) {
         // Town interior: same grass field as the hub. Slot 6 = the hub's pine ramp (deco trees);
-        // slot 3 = this floor's wall-table ramp on a green field (brick buildings sit on grass);
-        // slot 1 = fixed stone ramp on green (fountain well, NPC "statues", any pillar art).
+        // slot 3 = this floor's wall-table ramp on a green field (brick buildings sit on grass,
+        // and the stone well rides it too); slot 1 = the same tan-on-green wood ramp the encounter
+        // props use (see prop[] in encounter_palettes_apply), shared by roofs, barrels, signposts
+        // and the welcome mat. idx0 MUST stay the field green — it is what shows through the F4
+        // roof chamfer and every prop's transparent background.
         palette_color_t tree_pal[4]  = { RGB(12, 23, 5), RGB(6, 18, 4), RGB(10, 7, 2), RGB(12, 26, 6) };
-        palette_color_t stone_pal[4] = { RGB(12, 23, 5), RGB(9, 9, 11), RGB(17, 17, 19), RGB(27, 27, 29) };
+        palette_color_t stone_pal[4] = { RGB(12, 23, 5), RGB(9, 6, 3), RGB(18, 13, 6), RGB(27, 21, 12) };
         wall_pal[0] = RGB(12, 23, 5); // grass shows through the brick art's index-0 "paper"
         wall_pal[1] = wall_palette_table[iw][1];
         wall_pal[2] = wall_palette_table[iw][2];

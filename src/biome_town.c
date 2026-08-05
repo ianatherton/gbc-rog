@@ -13,6 +13,7 @@
 #include "tileset_io.h"   // tileset_load_bkg_tiles — HOME shim; this bank can't SWITCH_ROM to the tileset itself
 #include "game_state.h"   // next_state — a villager bump opens STATE_CONVERSATION straight from this bank
 #include <gb/cgb.h>
+#include <gb/gb.h> // set_sprite_data — the shop-sign icons are OBJ-only art
 #include <gbdk/platform.h>
 
 BANKREF_EXTERN(town_barrel_try_drop_item)
@@ -52,6 +53,16 @@ static const palette_color_t pal_town_floor_deco[] = {
 static const palette_color_t pal_town_accent[] = {
     RGB(29, 24, 13), RGB(20, 15, 7), RGB(26, 21, 11), RGB(31, 29, 20),
 };
+// Big-sign icon ramp — deliberately DARK, and deliberately not OCP0. The sheet's white maps to
+// index 0 and its black to index 3, and the sign board's face is the art's black, which on the
+// props' PAL_PILLAR_BG ramp comes out as its LIGHTEST tan. So an icon drawn on pal_default (whose
+// index 3 is white) would be invisible on it; this ramp runs the other way, dark glyph on light
+// board. It rides OCP5 (PAL_ENEMY_RAT), idle in town because towns have no enemies — the same
+// borrow the hub makes for the town flag — and load_palettes restores the real rat ramp on the
+// next floor load.
+static const palette_color_t pal_shop_icon[] = {
+    RGB(0, 0, 0), RGB(26, 22, 12), RGB(12, 8, 3), RGB(4, 3, 1),
+};
 
 BANKREF(biome_town_load_palettes)
 void biome_town_load_palettes(void) {
@@ -68,6 +79,22 @@ void biome_town_load_palettes(void) {
     tileset_load_bkg_tiles(TILE_WELL_TL_VRAM, 2u, TILE_WELL_TL); // 194,195 <- O8,P8
     tileset_load_bkg_tiles(TILE_WELL_BL_VRAM, 1u, TILE_WELL_BL); // 196     <- O9
     tileset_load_bkg_tiles(TILE_WELL_BR_VRAM, 1u, TILE_WELL_BR); // 198     <- P9
+    // 2x2 big signpost art (F5:G6) into the dead font tail 96..99 — see TILE_BIGSIGN_VRAM. Both
+    // rows are contiguous in the sheet AND in the destination, so two calls cover four tiles.
+    // Nothing has to restore these: font_load owns 0..127 and only ever writes 0..95, so no other
+    // floor kind can stomp them and no other floor kind draws them.
+    tileset_load_bkg_tiles(TILE_BIGSIGN_VRAM,             2u, TILE_SHEET_SIGN_TOP); // 96,97 <- F5,G5
+    tileset_load_bkg_tiles((uint8_t)(TILE_BIGSIGN_VRAM + 2u), 2u, TILE_SHEET_SIGN_BOT); // 98,99 <- F6,G6
+    { // the two shop icons, into OBJ-only tiles — those are a separate 2 KB from the BG art above
+      // (OBJ is unsigned from $8000, BG signed from $9000), so neither range can collide with the
+      // other. Sheet cells are not adjacent, so one read each.
+        uint8_t buf[16];
+        tileset_read_tiles(buf, TILE_SHEET_SHOP_ICON_0, 1u);
+        set_sprite_data(TILE_SHOP_ICON_VRAM, 1u, buf);
+        tileset_read_tiles(buf, TILE_SHEET_SHOP_ICON_1, 1u);
+        set_sprite_data((uint8_t)(TILE_SHOP_ICON_VRAM + 1u), 1u, buf);
+    }
+    set_sprite_palette(PAL_ENEMY_RAT, 1u, pal_shop_icon); // OCP5 — idle in town, see pal_shop_icon
 }
 
 static uint8_t tg_hash(uint8_t town_id, uint8_t salt) {
@@ -116,6 +143,67 @@ static uint8_t tg_rects_clash(uint8_t x0, uint8_t y0, uint8_t bw, uint8_t bh) {
         return 1u;
     }
     return 0u;
+}
+
+// Try to plant shop sign `k`'s 2x2 board beside a building's door, flanking the walk path without
+// standing on it. Returns 1 having carved all four cells blocking (same as the well/barrel/pine) and
+// recorded the top-left in town_state->shop_*. Two anchors are tried, the preferred one first:
+//   E/W door — above the mat and its approach road, then below it;
+//   S  door — east of the mat, then west (a S door has nothing "above" to use).
+// No building-overlap test is needed: tg_rects_clash keeps a ≥3-cell gap between buildings and the
+// board never reaches further than 2 cells past its own wall, so it cannot land on a neighbour's
+// rect (nor under its roof) — and the walkability test already rejects this building's own walls,
+// the well, and both border rings.
+static uint8_t tg_try_bigsign(uint8_t k, uint8_t door_x, uint8_t door_y, int8_t sx, int8_t sy) {
+    uint8_t a;
+    for (a = 0u; a < 2u; a++) {
+        int8_t ax, ay;
+        uint8_t px, py, c;
+        if (sy != 0) { ax = a ? (int8_t)-2 : (int8_t)1; ay = 1; }        // S door: east, then west
+        else { ax = (sx > 0) ? (int8_t)1 : (int8_t)-2;                   // E/W door: above, then below
+               ay = a ? (int8_t)1 : (int8_t)-2; }
+        px = (uint8_t)((int8_t)door_x + ax);
+        py = (uint8_t)((int8_t)door_y + ay);
+        if (px < 2u || py < 2u
+                || (uint8_t)(px + 1u) >= (uint8_t)(active_map_w - 2u)
+                || (uint8_t)(py + 1u) >= (uint8_t)(active_map_h - 2u)) continue;
+        for (c = 0u; c < 4u; c++) { // all four cells open grass, none of them a road lane
+            uint16_t idx = TILE_IDX((uint8_t)(px + (uint8_t)(c & 1u)), (uint8_t)(py + (uint8_t)(c >> 1)));
+            if (!BIT_GET(floor_bits, idx) || road_bit(idx)) break;
+        }
+        if (c < 4u) continue;
+        for (c = 0u; c < 4u; c++)
+            BIT_CLR(floor_bits, TILE_IDX((uint8_t)(px + (uint8_t)(c & 1u)), (uint8_t)(py + (uint8_t)(c >> 1))));
+        town_state->shop_x[k] = px;
+        town_state->shop_y[k] = py;
+        return 1u;
+    }
+    return 0u;
+}
+
+// 1 if (x,y) is inside either big sign's 2x2 footprint; *slot gets its index. Unplaced signs hold
+// 255, which no real coordinate can bring under 2 through the unsigned subtraction.
+static uint8_t tg_bigsign_slot_at(uint8_t x, uint8_t y, uint8_t *slot) {
+    uint8_t k;
+    for (k = 0u; k < TOWN_SHOP_SIGNS; k++) {
+        if ((uint8_t)(x - town_state->shop_x[k]) < 2u && (uint8_t)(y - town_state->shop_y[k]) < 2u) {
+            *slot = k;
+            return 1u;
+        }
+    }
+    return 0u;
+}
+
+// Bumping a big sign reads it — see zone_bump_at (gameplay_cold.c), which turns a 1 into "blocked,
+// no turn spent". The label itself goes through overworld_signpost_read (bank 22) like every other
+// sign, so the cross-bank string handling lives in exactly one place.
+BANKREF(town_bigsign_read)
+uint8_t town_bigsign_read(uint8_t x, uint8_t y) BANKED {
+    uint8_t k;
+    if (floor_kind != FLOORKIND_TOWN) return 0u;
+    if (!tg_bigsign_slot_at(x, y, &k)) return 0u;
+    overworld_signpost_read((uint8_t)(SIGN_KIND_SHOP | k));
+    return 1u;
 }
 
 BANKREF(town_exit_at)
@@ -322,6 +410,9 @@ void town_generate_interior(uint8_t town_id) BANKED {
     last_greet_npc = 255u; // slot indices mean a different villager in a different town — re-arm
     last_bump_npc  = 255u;
     uint8_t barrel_ord = 0u; // stable per-barrel id (placement order) — town_barrels_broken persistence keys off this
+    uint8_t shops_placed = 0u; // big signs planted so far: 0 = apothecary next, 1 = blacksmith next
+    uint8_t shop_bidx0 = 255u; // building that took the first board — the retry pass must not reuse it
+    for (i = 0u; i < TOWN_SHOP_SIGNS; i++) { town_state->shop_x[i] = 255u; town_state->shop_y[i] = 255u; }
 
     { // Rejection-sample the building rects; landing short of `target` on a crowded roll is fine.
         uint16_t tries;
@@ -374,6 +465,7 @@ void town_generate_interior(uint8_t town_id) BANKED {
         uint8_t ady = (cy > bcy) ? (uint8_t)(cy - bcy) : (uint8_t)(bcy - cy);
         uint8_t door_x, door_y;
         uint8_t closed = (i >= MAX_TOWN_NPCS); // beyond the villager cap: decorative, closed door, no entry
+        uint8_t big = 0u; // this building got a 2x2 merchant board instead of a 1x1 signpost
         int8_t sx = 0, sy = 0; // door's outward direction (toward the facing road axis)
         // S / E / W faces only — never N. A north door would sit on the roof's far edge, where the
         // building's own roof hides both it and its signpost from a player approaching from below.
@@ -426,7 +518,24 @@ void town_generate_interior(uint8_t town_id) BANKED {
             }
         }
 
-        if (n < MAX_OW_FEATURES) { // signpost beside the welcome mat, one cell perpendicular to the
+        { // The two merchant landmarks: one apothecary, then one blacksmith, on the first two open
+          // buildings whose door has room for a 2x2 board. Restricted to buildings near the centre
+          // (Chebyshev 30 of the well ≈ 3 screens of walking) so a player who spawns at the south
+          // mouth and heads for the junction cannot miss them. Buildings are laid out by seeded
+          // rejection sampling, so "the first two" is effectively arbitrary per town yet identical
+          // on every re-entry, like everything else here. A building that gets a big sign does NOT
+          // also get the 1x1 signpost below — one door, one label.
+            uint8_t wdx = (bcx > TOWN_WELL_X) ? (uint8_t)(bcx - TOWN_WELL_X) : (uint8_t)(TOWN_WELL_X - bcx);
+            uint8_t wdy = (bcy > TOWN_WELL_Y) ? (uint8_t)(bcy - TOWN_WELL_Y) : (uint8_t)(TOWN_WELL_Y - bcy);
+            if (!closed && shops_placed < TOWN_SHOP_SIGNS && wdx <= 30u && wdy <= 30u
+                    && tg_try_bigsign(shops_placed, door_x, door_y, sx, sy)) {
+                if (shops_placed == 0u) shop_bidx0 = i;
+                shops_placed++;
+                big = 1u;
+            }
+        }
+
+        if (!big && n < MAX_OW_FEATURES) { // signpost beside the welcome mat, one cell perpendicular to the
           // walk path. Side doors get the sign ABOVE the mat (the mat is at door+outward and the
           // road runs on past it), which is the arrangement the design mock uses; a south door has
           // no "above" free, so it takes the cell to the mat's east. Falls back to the opposite
@@ -481,6 +590,40 @@ void town_generate_interior(uint8_t town_id) BANKED {
                         n++;
                     }
                 }
+            }
+        }
+    }
+
+    // Second chance for any merchant board the pass above could not seat: same geometry, but the
+    // near-the-well restriction is dropped. The preferred anchors can legitimately fail — the road
+    // test rejects a board whose far column would land on a main road lane, and a barrel already
+    // placed against that wall blocks it too — so a large town could otherwise finish with only one
+    // sign, or none. Runs before the pine/stray-barrel passes so those still steer around the
+    // carved cells on their own walkability tests. sx/sy are re-derived from the stored door cell
+    // rather than kept around: doors are S/E/W only, so the face is unambiguous.
+    for (i = 0u; i < town_state->count && shops_placed < TOWN_SHOP_SIGNS; i++) {
+        TownBuilding *b = &town_state->buildings[i];
+        int8_t sx = 0, sy = 0;
+        if (i >= MAX_TOWN_NPCS) break; // closed buildings start here and never carry a sign
+        if (i == shop_bidx0) continue; // pass 1 already gave this door a board — one each
+        if (b->door_y == (uint8_t)(b->y + b->h - 1u) && b->door_x != b->x
+                && b->door_x != (uint8_t)(b->x + b->w - 1u)) sy = 1;      // S face
+        else if (b->door_x == (uint8_t)(b->x + b->w - 1u)) sx = 1;        // E face
+        else sx = -1;                                                     // W face
+        if (!tg_try_bigsign(shops_placed, b->door_x, b->door_y, sx, sy)) continue;
+        shops_placed++;
+        { // Drop the 1x1 signpost this door already got in pass 1 — otherwise the same doorway
+          // carries both a board reading APOTHECARY and a post reading some unrelated canned name.
+          // It is the only signpost within 2 cells of this door (buildings sit ≥3 apart), and the
+          // array holds nothing but signposts and barrels yet, so a swap with the last entry is
+          // safe: barrel identity rides in .aux, never in the index.
+            uint8_t k;
+            for (k = 0u; k < n; k++) {
+                if (ow_features[k].type != OW_FEAT_SIGNPOST) continue;
+                if ((uint8_t)(ow_features[k].x - b->door_x + 2u) > 4u) continue;
+                if ((uint8_t)(ow_features[k].y - b->door_y + 2u) > 4u) continue;
+                ow_features[k] = ow_features[--n];
+                break;
             }
         }
     }

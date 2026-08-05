@@ -81,6 +81,15 @@ BANKREF_EXTERN(map_pit_position)
 // slots (still inside 4..26, nowhere near the equip-mark menu range 4..11 by the time this fires:
 // barrels only break during gameplay, never while STATE_INVENTORY is on screen).
 #define SP_TOWN_BARREL_POOF (uint8_t)(SP_TOWN_NPC_BASE + MAX_TOWN_NPCS * 2u)
+// And two more for the icons that sit on the 2x2 merchant boards — apothecary potion, blacksmith
+// hammer. TOWN_SHOP_SIGNS slots, one per board, so both can be on screen at once. Still the same
+// idle town enemy run (21, 22 of 4..26). The tiles are OBJ-only art uploaded per town entry by
+// biome_town_load_palettes; the palette is OCP5, which that same call re-points at a dark ramp
+// because the board face renders as the props' LIGHTEST tan (see pal_shop_icon).
+#define SP_TOWN_SHOP_ICON (uint8_t)(SP_TOWN_BARREL_POOF + 1u)
+#define SHOP_ICON_PAL     PAL_ENEMY_RAT
+typedef char shop_icons_fit_enemy_run[
+    ((SP_TOWN_SHOP_ICON + TOWN_SHOP_SIGNS) <= (SP_ENEMY_BASE + MAX_ENEMIES)) ? 1 : -1];
 
 // Hub '?' encounter markers: a third borrow of the idle enemy run, gated on FLOORKIND_HUB. 1 OAM
 // slot each, and they must clear SP_WAYPOINT_FX_BASE's 2 slots — the waypoint aura shares the hub
@@ -326,11 +335,33 @@ static void refresh_town_npcs_oam(void) {
                 oam_hide((uint8_t)(SP_TOWN_NPC_BASE + i * 2u));
                 oam_hide((uint8_t)(SP_TOWN_NPC_BASE + i * 2u + 1u));
             }
+            for (i = 0u; i < TOWN_SHOP_SIGNS; i++) oam_hide((uint8_t)(SP_TOWN_SHOP_ICON + i));
             town_npc_oam_owned = 0u;
         }
         return;
     }
     town_npc_oam_owned = 1u;
+    // Merchant board icons — pinned to a fixed BG feature, so no glide and no roof test (the boards
+    // are carved on open grass, never under a roof) and no fog gate (towns are fully lit). Drawn
+    // from here rather than its own refresh_* because this function already runs LAST, after the
+    // enemy hide-sweep that would otherwise blank these two slots, and already owns the latch that
+    // cleans the range up on the way out of town.
+    for (i = 0u; i < TOWN_SHOP_SIGNS; i++) {
+        uint8_t sx = town_state->shop_x[i], sy = town_state->shop_y[i];
+        // One tile of slack on the low edges, unlike the villager cull above: the icon is inset 6/5
+        // px into a 2-cell-wide block, so with the block's left/top column just off-camera it still
+        // lands at a small positive OAM coordinate and the hardware clips it correctly. Two columns
+        // out is where move_entity_oam's uint8 truncation would wrap it to the far side instead.
+        if (sx == 255u || (uint8_t)(sx + 1u) < g_cam_tx || sx >= g_cam_tx_end
+                || (uint8_t)(sy + 1u) < g_cam_ty || sy >= g_cam_ty_end) {
+            oam_hide((uint8_t)(SP_TOWN_SHOP_ICON + i));
+            continue;
+        }
+        move_entity_oam((uint8_t)(SP_TOWN_SHOP_ICON + i),
+                        (int16_t)((int16_t)sx * 8 + BIGSIGN_ICON_DX),
+                        (int16_t)((int16_t)sy * 8 + BIGSIGN_ICON_DY),
+                        (uint8_t)(TILE_SHOP_ICON_VRAM + i), SHOP_ICON_PAL);
+    }
     for (i = 0u; i < MAX_TOWN_NPCS; i++) {
         uint8_t hsp = (uint8_t)(SP_TOWN_NPC_BASE + i * 2u);
         uint8_t bsp = (uint8_t)(hsp + 1u);

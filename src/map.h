@@ -35,6 +35,11 @@ typedef struct {
     uint8_t npc_count;
     uint8_t npc_home_x[MAX_TOWN_NPCS], npc_home_y[MAX_TOWN_NPCS]; // wander anchor (building centre)
     uint8_t npc_x[MAX_TOWN_NPCS],      npc_y[MAX_TOWN_NPCS];      // current tile — also the OAM/collision position
+    // Big 2x2 merchant signposts: top-left cell, 255 = not placed this town. Index 0 = apothecary,
+    // 1 = blacksmith (TOWN_SHOP_SIGNS). Deliberately NOT ow_features[] entries: overworld_cell_render's
+    // town feature loop is built on every feature being exactly 1 cell wide, so these resolve before
+    // it the way the well does, and the tight MAX_OW_FEATURES budget stays untouched.
+    uint8_t shop_x[TOWN_SHOP_SIGNS], shop_y[TOWN_SHOP_SIGNS];
 } TownState;
 #define town_state ((TownState *)nav_nodes)
 typedef char town_state_fits_nav_nodes[(sizeof(TownState) <= sizeof(NavNode) * MAX_NAV_NODES) ? 1 : -1];

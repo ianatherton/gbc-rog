@@ -521,6 +521,11 @@ void overworld_signpost_read(uint8_t aux) BANKED {
         const char *s = bld_names[num & 7u];
         for (i = 0u; s[i]; i++) buf[i] = s[i];
         buf[i] = 0;
+    } else if (kind == SIGN_KIND_SHOP) { // the town's two 2x2 merchant boards (biome_town.c)
+        static const char *const shop_names[TOWN_SHOP_SIGNS] = { "APOTHECARY", "BLACKSMITH" };
+        const char *s = shop_names[num & 1u];
+        for (i = 0u; s[i]; i++) buf[i] = s[i];
+        buf[i] = 0;
     } else { // SIGN_KIND_BOSS
         const char *s = "FINAL DUNGEON"; for (i = 0u; s[i]; i++) buf[i] = s[i]; buf[i] = 0;
     }
@@ -657,6 +662,27 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
             if (lx < 2u && ly < 2u) {
                 *pal_out = 0u; // town field ramp — grass idx0, grey idx1..3
                 return well_vram[(uint8_t)((uint8_t)(ly + ly) + lx)];
+            }
+        }
+        { // The two 2x2 merchant boards (apothecary / blacksmith). Here for the same reason the well
+          // is: the feature loop below rejects on x alone because every ow_features[] town entry is
+          // exactly 1 cell wide, and these are not. They live in town_state rather than the feature
+          // array precisely so that stays true. An unplaced sign holds 255, and no real coordinate
+          // minus 255 lands under 2, so "is this town missing a sign" needs no branch of its own.
+          // PAL_PILLAR_BG like every other town prop: its idx0 is the field green, so the board's
+          // transparent frame reads as the grass it stands on.
+            static const uint8_t sign_vram[4] = {
+                TILE_BIGSIGN_VRAM, (uint8_t)(TILE_BIGSIGN_VRAM + 1u),
+                (uint8_t)(TILE_BIGSIGN_VRAM + 2u), (uint8_t)(TILE_BIGSIGN_VRAM + 3u),
+            };
+            uint8_t k;
+            for (k = 0u; k < TOWN_SHOP_SIGNS; k++) {
+                uint8_t lx = (uint8_t)(mx - town_state->shop_x[k]);
+                uint8_t ly = (uint8_t)(my - town_state->shop_y[k]);
+                if (lx < 2u && ly < 2u) {
+                    *pal_out = PAL_PILLAR_BG;
+                    return sign_vram[(uint8_t)((uint8_t)(ly + ly) + lx)];
+                }
             }
         }
         // Hot loop: runs for every cell that isn't roofed, ~21 cells per camera strip, against up to

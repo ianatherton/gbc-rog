@@ -427,6 +427,33 @@ typedef struct {
 #define SIGN_KIND_BOSS     0x30u /* final dungeon */
 #define SIGN_KIND_NPC      0x40u /* town-interior NPC; low = villager slot (line = low & 3) */
 #define SIGN_KIND_BUILDING 0x50u /* town building sign; low = type 0..7 (INN/SMITH/... in overworld_signpost_read) */
+#define SIGN_KIND_SHOP     0x60u /* town 2x2 big sign; low = 0 apothecary, 1 blacksmith (TOWN_SHOP_SIGNS) */
+
+/* ── Town big signposts (2x2, one apothecary + one blacksmith per town) ──────────────────────
+   Art is the F5:G6 block of the sheet — a post with a plank-framed board, drawn 2026-07-23 and
+   never wired up until now. Note that the four "borrows" of those cells' natural VRAM slots
+   (TILE_F5/197, TILE_SHRINE_OFF/198, TILE_OVERWORLD_WALL_OFF/213, TILE_OVERWORLD_WATER_OFF/214)
+   only ever claimed the SLOTS — nothing draws the pixels — so the art is free to use as long as
+   it goes somewhere else, which it does: the dead font tail. Every title-safe slot >=182 is spoken
+   for (docs/BANKS.md), but BG 96..103 cost nothing (only CONV_PORTRAIT_VRAM's 104..127 are taken
+   out of the 96..127 tail), and BG-only is exactly what a sign body needs.
+   The icons that sit on top are OBJs, so they live in the wide-open OBJ-only range instead. */
+#define TILE_SHEET_SIGN_TOP  69u  /* F5,G5 — contiguous in both sheet and VRAM, so one upload */
+#define TILE_SHEET_SIGN_BOT  85u  /* F6,G6 — likewise */
+#define TILE_BIGSIGN_VRAM    96u  /* 96..99 = F5,G5,F6,G6 (dead font tail; see CONV_PORTRAIT_VRAM) */
+#define TOWN_SHOP_SIGNS      2u   /* index 0 = apothecary (potion icon), 1 = blacksmith (hammer) */
+/* Icon art, uploaded per town entry into OBJ-only tiles (see OBJ_ONLY_VRAM_FIRST): the potion is
+   the existing I3 item glyph, the hammer is H7 — whose pixels no code has ever drawn (only its
+   VRAM slot 231 is borrowed, by TILE_GORGON_FEET_R_VRAM, and BG slot 231 at $8870 is different
+   memory from OBJ tile 3 at $8030). */
+#define TILE_SHEET_SHOP_ICON_0  40u  /* I3 potion  */
+#define TILE_SHEET_SHOP_ICON_1  103u /* H7 hammer  */
+#define TILE_SHOP_ICON_VRAM     2u   /* OBJ 2,3 — only OBJ tile 1 (ENC_MARKER_TILE) was claimed */
+/* Where the 8x8 icon sits inside the 2x2 block, in pixels from its top-left. The board's blank
+   face spans block px x 6..13, y 6..11, so this centres the icon on the board — which reads as
+   slightly right of the block's own centre, because the left columns are the post. */
+#define BIGSIGN_ICON_DX      6u
+#define BIGSIGN_ICON_DY      5u
 
 /* A waypoint must sit "within 1 screen" of the town/entrance it serves. Use a conservative co-visibility
    box (smaller than the GRID_W×GRID_H viewport) so the waypoint and its feature can share the screen. */

@@ -29,6 +29,9 @@ uint8_t zone_bump_at(uint8_t nx, uint8_t ny, uint8_t t) BANKED {
     if (t == TILE_WALL) {
         // Barrels are blocking wall cells in both towns and encounters (FLOORKIND_ENCOUNTER > TOWN).
         if (floor_kind >= FLOORKIND_TOWN && town_barrel_try_break(nx, ny)) return 2u;
+        // A 2x2 merchant board is a wall you can read: prints its label and stays solid, and unlike
+        // the 1x1 signposts (which you step onto) it costs no turn.
+        if (floor_kind == FLOORKIND_TOWN && town_bigsign_read(nx, ny)) return 1u;
         if (floor_kind == FLOORKIND_ENCOUNTER && encounter_chest_open(nx, ny)) return 2u;
         return 1u;
     }

@@ -143,6 +143,13 @@ void apply_field_palette(void) BANKED { // slot 0 (blank field) + floor-deco, pe
         // ow_border; idx3 stays pure white for the loading screen's attr-0 pen-3 text)
         palette_color_t f[4]  = { RGB(12, 23, 5), RGB(29, 24, 13), RGB(15, 19, 27), RGB(31, 31, 31) };
         palette_color_t fd[4] = { RGB(12, 23, 5), RGB(5, 5, 5), RGB(11, 11, 11), RGB(17, 17, 17) };
+        if (floor_biome == BIOME_TOWN) {
+            // A town has no biome borders, so idx1/2 are not the blend stroke here — they are the
+            // grey stone ramp, and they MUST match biome_town.c's pal_town_field, which is what
+            // floor entry pushes. Anything drawn on palette 0 with real pen-1/2 pixels (the well,
+            // the open-door tile) would otherwise change colour the first time a menu closes.
+            f[1] = RGB(8, 8, 8); f[2] = RGB(16, 16, 16);
+        }
         set_bkg_palette(0, 1, f);
         set_bkg_palette(PAL_FLOOR_BG, 1, fd);
         lcd_note_bkg0(f);

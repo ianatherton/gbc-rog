@@ -45,6 +45,14 @@ extern uint8_t pillar_palette_index; // wall_palette_table index → PAL_PILLAR_
 extern uint8_t floor_column_off; // D1..D4 sheet offset; pillars use this, bulk uses wall_tileset_index
 extern uint8_t active_map_w; // runtime floor bounds within MAP_W storage
 extern uint8_t active_map_h;
+/* Top-left cell of the town's 2x2 well (TILE_WELL_* art). Single source of truth for the three
+   places that need it — town_generate_interior carves the footprint blocking and keeps buildings
+   off it, overworld_cell_render draws it, overworld_step_feature heals off the ring around it —
+   so none of them stores a coordinate. It sits two cells NW of the road cross's 2x2 junction
+   (active_map_w/h >> 1), which is the nearest grass: the roads are two FULL columns and two FULL
+   rows, so clearing the sand needs an offset on both axes, not just x. */
+#define TOWN_WELL_X ((uint8_t)((uint8_t)(active_map_w >> 1) - 2u))
+#define TOWN_WELL_Y ((uint8_t)((uint8_t)(active_map_h >> 1) - 2u))
 extern uint8_t player_spawn_x;    // set per floor in generate_level — seed-based, walkable
 extern uint8_t player_spawn_y;
 extern uint8_t brazier_count; // number of active floor light sources

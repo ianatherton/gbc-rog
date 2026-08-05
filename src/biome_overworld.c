@@ -383,25 +383,43 @@ uint8_t overworld_town_id_at(uint8_t x, uint8_t y) BANKED {
     return 255u;
 }
 
-// Walked onto (x,y): handle any 1×1 step feature there — signpost/NPC prints its line, a town
-// fountain restores full HP. One banked call replaces the old signpost aux_at+read pair.
+// Walked onto (x,y): handle any 1×1 step feature there — signpost/NPC prints its line — plus the
+// town well, which is not a feature. One banked call replaces the old signpost aux_at+read pair.
 BANKREF(overworld_step_feature)
 void overworld_step_feature(uint8_t x, uint8_t y) BANKED {
     uint8_t i;
+    // Town well: standing anywhere in the 12-cell ring around the 2x2 body restores full HP. The
+    // test is the 4x4 box centred on it — the well's own cells are carved blocking, so (x,y) can
+    // never be one of them, and diagonals count. FLOORKIND_TOWN exactly, not >=, which would catch
+    // encounters too.
+    if (floor_kind == FLOORKIND_TOWN) {
+        uint8_t bx = (uint8_t)(TOWN_WELL_X - 1u), by = (uint8_t)(TOWN_WELL_Y - 1u);
+        uint8_t rx = (uint8_t)(x - bx), ry = (uint8_t)(y - by);
+        if (rx < 4u && ry < 4u) {
+            // The sign only reads on ARRIVAL — state_gameplay calls us before the position update,
+            // so g_player_x/y still holds the cell being left and the edge test costs no state.
+            // Without it both lines would repeat on every step taken beside the well.
+            if ((uint8_t)(g_player_x - bx) >= 4u || (uint8_t)(g_player_y - by) >= 4u) {
+                char buf[18]; // RAM copy — a bank-22 ROM literal garbles in the bank-5 log push
+                const char *s = "HEALING WELL";
+                uint8_t k;
+                for (k = 0u; s[k]; k++) buf[k] = s[k];
+                buf[k] = 0;
+                ui_combat_log_push(buf);
+                s = "HEALS YOU IF HURT";
+                for (k = 0u; s[k]; k++) buf[k] = s[k];
+                buf[k] = 0;
+                ui_combat_log_push(buf);
+            }
+            player_hp = player_hp_max; // no-op at full HP; announced either way, so the well reads
+        }
+        // deliberately no early return: a building's signpost can legally sit in the ring, and it
+        // still has to be readable from the feature scan below.
+    }
     for (i = 0u; i < ow_feature_count; i++) {
         if (ow_features[i].x != x || ow_features[i].y != y) continue;
         if (ow_features[i].type == OW_FEAT_SIGNPOST) {
             overworld_signpost_read(ow_features[i].aux);
-            return;
-        }
-        if (ow_features[i].type == OW_FEAT_FOUNTAIN) {
-            char buf[8]; // RAM copy — bank-22 ROM literal would garble in the bank-5 log push
-            const char *s = "RESTED";
-            uint8_t k;
-            for (k = 0u; s[k]; k++) buf[k] = s[k];
-            buf[k] = 0;
-            player_hp = player_hp_max;
-            ui_combat_log_push(buf);
             return;
         }
     }
@@ -576,7 +594,7 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
     if (floor_biome == BIOME_TOWN) {
         // Town interior: grass field like the hub. Resolve order is roofs (a covered cell hides
         // whatever's under it — deco, and the villager sprite entity_sprites.c hides separately —
-        // and skips the feature scan), then features (fountain / sign / deco pine), then the
+        // and skips the feature scan), then the centre well, then features (sign / deco pine), then the
         // facade doorway + welcome mat, then wall cells, which split into the map-edge pine border
         // vs dungeon brick (uniform bulk art — the thin building walls would otherwise hit
         // render.c's pillar heuristic); road-mask floor cells report OW_REGION_DESERT so they
@@ -584,7 +602,8 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
         // roof, and it is handled inside the roof block rather than here, because its cell is
         // roofed. Villagers are OAM sprites (entity_sprites.c refresh_town_npcs_oam), not BG
         // features — nothing to draw here. Every tile used is title-stomp-safe: 161 re-uploads per
-        // floor, shrine/brick/roofs are main-sheet, 205/213/255 are permanent boot copies.
+        // floor, brick/roofs are main-sheet, 205/213/255 are permanent boot copies, and the well's
+        // four slots are re-uploaded on every town entry by biome_town_load_palettes.
         uint8_t fi;
         const OwFeature *f;
         const TownBuilding *b;
@@ -620,6 +639,26 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
                 }
             }
         }
+        { // 2x2 stone well on the grass beside the road junction — TOWN_WELL_X/Y (map.h) is the same
+          // expression town_generate_interior carves from, so it needs no feature entry and no
+          // storage. It is resolved BEFORE the feature loop on purpose: that loop's fast reject
+          // assumes every town feature is exactly 1 cell wide (see the note below), and this is the
+          // one 2-wide thing in a town. Two unsigned range compares, so non-well cells pay almost
+          // nothing. Palette 0 is the town's own field ramp: idx0 is the grass the well stands on,
+          // so the art's transparent frame disappears into it, and idx1..3 are dark grey / mid grey
+          // / white — the one grey ramp a town has (slot 1 is the props' tan, slot 3 the walls'
+          // random hue, slot 4 the menus' gold). No S_FLIPX mirror: O8/P8 are close to symmetric but
+          // not exactly, so a flipped half would not match the drawn art.
+            static const uint8_t well_vram[4] = {
+                TILE_WELL_TL_VRAM, TILE_WELL_TR_VRAM, TILE_WELL_BL_VRAM, TILE_WELL_BR_VRAM,
+            };
+            uint8_t lx = (uint8_t)(mx - TOWN_WELL_X);
+            uint8_t ly = (uint8_t)(my - TOWN_WELL_Y);
+            if (lx < 2u && ly < 2u) {
+                *pal_out = 0u; // town field ramp — grass idx0, grey idx1..3
+                return well_vram[(uint8_t)((uint8_t)(ly + ly) + lx)];
+            }
+        }
         // Hot loop: runs for every cell that isn't roofed, ~21 cells per camera strip, against up to
         // MAX_OW_FEATURES entries. Three things keep it cheap, all three verified by reading the
         // generated asm (`lcc -S`), and the first one is worth 79 → 21 instructions on the common
@@ -646,12 +685,6 @@ uint8_t overworld_cell_render(uint8_t mx, uint8_t my, uint8_t base_tile,
             if (my != f->y) continue; // everything else in a town is 1×1
             if (f->type == OW_FEAT_BARREL) {
                 *pal_out = PAL_PILLAR_BG; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_BARREL); // deco barrel (cell is blocking wall); sign palette (grass background)
-            }
-            if (f->type == OW_FEAT_FOUNTAIN) {
-                // PAL_WALL_BG, not PAL_PILLAR_BG: slot 1 is now the roof/wood tan ramp, which would
-                // read as a barrel. The brick ramp's idx0 is the same grass green, so the well still
-                // sits seamlessly on the field and keeps a stone tone.
-                *pal_out = PAL_WALL_BG; return (uint8_t)(TILESET_VRAM_OFFSET + TILE_SHRINE_ON_1); // stone well
             }
             if (f->type == OW_FEAT_SIGNPOST) {
                 // PAL_PILLAR_BG, not PAL_OW_ACCENT: apply_wall_palette's town branch (render_palettes.c)

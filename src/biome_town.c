@@ -10,6 +10,7 @@
 #include "entity_sprites.h" // entity_sprites_town_npc_glide_set — villager wander slide
 #include "items.h" // town_barrel_try_drop_item — barrel loot roll (20%, same table an enemy kill uses)
 #include "auto_explore.h" // auto_explore_active — never pop a modal it can't drive
+#include "tileset_io.h"   // tileset_load_bkg_tiles — HOME shim; this bank can't SWITCH_ROM to the tileset itself
 #include "game_state.h"   // next_state — the trader bump opens STATE_TALK straight from this bank
 #include <gb/cgb.h>
 #include <gbdk/platform.h>
@@ -20,7 +21,9 @@ BANKREF_EXTERN(town_barrel_try_drop_item)
 // door, sized 59..96 square by its building count (5..20). The map border is a pine ring with a
 // brick town wall just inside it; a 2-tile-wide sand road cross runs through the centre and out
 // through gaps at N/S/E/W (town_exit_at tests border+road, no stored table) — the south mouth
-// doubles as the spawn (drawn as the stairs-up glyph via the player_spawn path). Buildings are
+// doubles as the spawn (drawn as the stairs-up glyph via the player_spawn path). A 2x2 stone well
+// (O8:P9 art) sits on the road junction: solid on all four cells, and standing on any of the 12
+// cells ringing it restores full HP (overworld_step_feature). Buildings are
 // brick rects spread between the roads, each with a signpost by its door (SIGN_KIND_BUILDING) and
 // a roof that hides the interior until the player steps in: roof bits live in the fog buffer
 // (SVBK2 0xD000, townroof_* in map.h — towns never read fog), town_state->inside_idx picks the one
@@ -56,6 +59,15 @@ void biome_town_load_palettes(void) {
     lcd_note_bkg0(pal_town_field);
     set_bkg_palette(PAL_FLOOR_BG, 1u, pal_town_floor_deco);
     set_bkg_palette(PAL_OW_ACCENT, 1u, pal_town_accent);
+    // 2x2 well art (O8:P9) into the shared quadrant scratch — see TILE_WELL_* in defs.h. This bank
+    // can't SWITCH_ROM to the tileset itself, so it goes through the HOME shim, which pages the
+    // tileset bank and restores ours. biome_load_active calls us and THEN takes its non-hub else
+    // branch, which only restores sprite slots — none of 194/195/196/198. The top pair is contiguous
+    // in both the sheet and VRAM so it rides a single call; the bottom pair straddles slot 197 (the
+    // stun icon, live on combat floors and deliberately not borrowed), so it goes one at a time.
+    tileset_load_bkg_tiles(TILE_WELL_TL_VRAM, 2u, TILE_WELL_TL); // 194,195 <- O8,P8
+    tileset_load_bkg_tiles(TILE_WELL_BL_VRAM, 1u, TILE_WELL_BL); // 196     <- O9
+    tileset_load_bkg_tiles(TILE_WELL_BR_VRAM, 1u, TILE_WELL_BR); // 198     <- P9
 }
 
 static uint8_t tg_hash(uint8_t town_id, uint8_t salt) {
@@ -297,6 +309,13 @@ void town_generate_interior(uint8_t town_id) BANKED {
             uint8_t ylo = (uint8_t)(y0 - 1u), yhi = (uint8_t)(y0 + bh); // 2-wide main road bands
             if (rx1 >= xlo && rx0 <= xhi) continue;
             if (ry1 >= ylo && ry0 <= yhi) continue;
+            // Keep off the well too. The road tests above are single-axis (a road column spans every
+            // row, so overlapping it in x is enough to reject); the well is a bounded rect, so this
+            // one needs BOTH axes to overlap. Its bounds are widened a further cell beyond the
+            // already-margined xlo/xhi, which buys 2 clear cells — enough that a door's welcome mat
+            // (1 cell outside the wall) can never land on the stonework.
+            if ((uint8_t)(TOWN_WELL_X + 2u) >= xlo && (uint8_t)(TOWN_WELL_X - 1u) <= xhi
+                    && (uint8_t)(TOWN_WELL_Y + 2u) >= ylo && (uint8_t)(TOWN_WELL_Y - 1u) <= yhi) continue;
             if (tg_rects_clash(x0, y0, bw, bh)) continue;
             tg_building_rect(x0, y0, bw, bh);
             town_state->buildings[town_state->count].x = x0;
@@ -307,10 +326,17 @@ void town_generate_interior(uint8_t town_id) BANKED {
         }
     }
 
+    // The 2x2 stone well sits on the grass just NW of the road junction (TOWN_WELL_X/Y, map.h) — it
+    // is NOT an ow_features entry, because the render hot loop's fast reject assumes every town
+    // feature is 1 cell wide. All four cells are carved blocking, like a barrel or a pine, and this
+    // runs BEFORE the signpost/barrel/pine passes so their `is this cell walkable` tests keep them
+    // off it for free. Nothing is disconnected: the whole yard is open grass.
+    BIT_CLR(floor_bits, TILE_IDX(TOWN_WELL_X,                 TOWN_WELL_Y));
+    BIT_CLR(floor_bits, TILE_IDX((uint8_t)(TOWN_WELL_X + 1u), TOWN_WELL_Y));
+    BIT_CLR(floor_bits, TILE_IDX(TOWN_WELL_X,                 (uint8_t)(TOWN_WELL_Y + 1u)));
+    BIT_CLR(floor_bits, TILE_IDX((uint8_t)(TOWN_WELL_X + 1u), (uint8_t)(TOWN_WELL_Y + 1u)));
+
     n = 0u; // features (generate_level zeroed ow_feature_count)
-    ow_features[n].x = rx0; ow_features[n].y = ry0; // stone well at the road junction
-    ow_features[n].type = OW_FEAT_FOUNTAIN; ow_features[n].aux = 0u;
-    n++;
 
     for (i = 0u; i < town_state->count; i++) {
         TownBuilding *b = &town_state->buildings[i];

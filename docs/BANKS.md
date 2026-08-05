@@ -190,6 +190,18 @@ Rules for adding banked-WRAM data (the `exp2_*` accessors in `src/lighting.c` ar
   L7 (107→235) the bow, L5 (75→203) the wand. When hunting a slot, grep each candidate's `TILE_*`
   name for *uses*, don't just check that the number is unspoken for — several named-but-dead cells
   remain (the `TILE_LIGHT_*` / `TILE_COLUMN_*` / `TILE_FLOOR_DECO_*` families are worth re-checking).
+  **2026-08-04 — the other seam is the shared per-floor scratch, not a free slot at all.** The 2x2
+  town well (O8:P9) needed 4 title-safe slots when none were free, and took **194/195/196/198** as a
+  *third* co-owner: the hub uploads its prefab town-wall/corner/entrance art there
+  (`biome.c`), miniboss floors upload the pixel-doubled elite frame-1 there
+  (`dungeon_floors.c`), and towns now upload the well there (`biome_town_load_palettes`). That works
+  because each owner re-uploads on its own floor entry and no two are ever on screen together, so
+  nobody restores anything. **When you need BG art that only one floor kind draws, look for a slot
+  set whose existing owners are all other floor kinds** — it is cheaper than evicting a permanent
+  boot copy. Slot 197 sits inside that run and is deliberately NOT part of it (stun icon, live on
+  combat floors), which is why the well's bottom row is uploaded as two single-tile calls.
+  Use the `tileset_load_bkg_tiles` shim (`tileset_io.h`) from a banked file — it pages the tileset
+  bank and restores yours, so the upload costs zero bank 0.
 - **Bank 0 (~77%)** grows with every new HOME dispatcher/driver. Candidates to evict if
   needed: lighting reveal logic (keep only the asm accessors HOME), perf, title_logo.
 - **Bank 2 (97%)** is the gameplay kernel. The eviction pattern that works: pick a function that is

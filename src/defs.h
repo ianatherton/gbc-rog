@@ -373,7 +373,11 @@ typedef struct {
 #define OW_FEAT_ENTRANCE  2u  /* 1x1 cave/dungeon mouth */
 #define OW_FEAT_BOSSDOOR  3u  /* 2x2 final-dungeon door (O15/P15/O16/P16) */
 #define OW_FEAT_SIGNPOST  4u  /* 1x1 readable marker (tile B8); step on it to print its label to the chat box */
-#define OW_FEAT_FOUNTAIN  5u  /* 1x1 town-interior heal fountain; step on it to restore full HP */
+#define OW_FEAT_FOUNTAIN  5u  /* RETIRED — the town well is no longer a feature. It is a 2x2 structure
+                                 derived from the map centre (TILE_WELL_* below): town_generate_interior
+                                 carves its 4 cells blocking, overworld_cell_render draws it before the
+                                 feature loop, and overworld_step_feature heals off an adjacency test.
+                                 The id + its ow_prefab_defs row stay for index stability only. */
 #define OW_FEAT_TREE      6u  /* 1x2 town-interior deco pine (canopy over trunk); BOTH cells carved WALL */
 #define OW_FEAT_BARREL    7u  /* 1x1 town-interior deco barrel (F2); carved WALL (blocking), same as TREE */
 #define OW_FEAT_CHEST     8u  /* 1x1 encounter-interior chest (F1); carved WALL (blocking), bump to open */
@@ -390,6 +394,20 @@ typedef struct {
                                      176..191 (CLASS_EMBLEM_VRAM_SCALE2_START), and slots 253/254
                                      are already permanent flag art. So this copy is permanent. */
 #define PREFAB_VRAM_MAT      255u
+/* Town well — a 2x2 structure at the centre of the road cross (O8:P9 on the sheet). Sheet indices
+   follow the usual (row-1)*16 + col rule: O=14, P=15. O8/P8 are under 128 so they ride main.c's bulk
+   upload, but into 254/255, which flag/mat art overwrites — and O9/P9 are past it entirely. So all
+   four are uploaded explicitly by biome_town_load_palettes into the shared C5/D5/E5/G5 quadrant
+   scratch (see the borrowed-hub-slot note above): the hub's prefab icons and the elite's 2x sprite
+   are the other two owners, and neither is ever drawn inside a town. */
+#define TILE_WELL_TL         126u /* O8 */
+#define TILE_WELL_TR         127u /* P8 */
+#define TILE_WELL_BL         142u /* O9 */
+#define TILE_WELL_BR         143u /* P9 */
+#define TILE_WELL_TL_VRAM    194u /* = PREFAB_VRAM_TOWN_CORNER  / elite frame-1 TL */
+#define TILE_WELL_TR_VRAM    195u /* = PREFAB_VRAM_TOWN_WALL_EW / elite frame-1 TR */
+#define TILE_WELL_BL_VRAM    196u /* = PREFAB_VRAM_TOWN_WALL_NS / elite frame-1 BL */
+#define TILE_WELL_BR_VRAM    198u /* = PREFAB_VRAM_ENTRANCE     / elite frame-1 BR */
 
 /* Signpost label code packed into OwFeature.aux: high nibble = kind, low nibble = index/direction. */
 #define SIGN_KIND_TOWN     0x00u /* low = town index 0..2 */
@@ -477,7 +495,9 @@ typedef struct {
 #define TILE_PREFAB_MTN_R         130u /* C9 — snow mountain, right half */
 
 /* Borrowed hub VRAM slots (all idle on the enemy-less hub):
-   194/195/196/198 = C5/D5/E5/G5 dead cells (miniboss re-uploads its big-slime there; no restore needed);
+   194/195/196/198 = C5/D5/E5/G5 dead cells (miniboss re-uploads its big-slime there, and the town well
+     re-uploads its 2x2 over them — see TILE_WELL_*_VRAM; three owners, each uploading on its own floor
+     entry, so no restore is needed in any direction);
    230/231 = gorgon feet (boss-only → restored in the dungeon branch, which the boss floor also takes);
    217/218 = small-slime (restored in BOTH the dungeon and miniboss branches — both draw small slimes). */
 #define PREFAB_VRAM_ENTRANCE      198u

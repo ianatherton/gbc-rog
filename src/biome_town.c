@@ -11,7 +11,7 @@
 #include "items.h" // town_barrel_try_drop_item — barrel loot roll (20%, same table an enemy kill uses)
 #include "auto_explore.h" // auto_explore_active — never pop a modal it can't drive
 #include "tileset_io.h"   // tileset_load_bkg_tiles — HOME shim; this bank can't SWITCH_ROM to the tileset itself
-#include "game_state.h"   // next_state — the trader bump opens STATE_TALK straight from this bank
+#include "game_state.h"   // next_state — a villager bump opens STATE_CONVERSATION straight from this bank
 #include <gb/cgb.h>
 #include <gbdk/platform.h>
 
@@ -130,6 +130,11 @@ uint8_t town_exit_at(uint8_t x, uint8_t y) BANKED { // 1 if (x,y) is a road mout
 // greets again.
 static uint8_t last_bump_npc = 255u;
 
+// Villager whose greeting is currently "spent"; 255 = nobody in range, so the next one to come
+// within TOWN_NPC_GREET_RADIUS greets. Chebyshev, matching the roam-radius test below.
+#define TOWN_NPC_GREET_RADIUS 4u
+static uint8_t last_greet_npc = 255u;
+
 BANKREF(town_npc_blocks)
 uint8_t town_npc_blocks(uint8_t x, uint8_t y) BANKED { // 1 if a villager's tile (its only collision — no head hitbox) sits at (x,y); bumping one starts a conversation instead of just blocking
     uint8_t i;
@@ -137,15 +142,15 @@ uint8_t town_npc_blocks(uint8_t x, uint8_t y) BANKED { // 1 if a villager's tile
         if (town_state->npc_x[i] == x && town_state->npc_y[i] == y) {
             if (last_bump_npc != i) {
                 last_bump_npc = i;
-                // The trader opens a modal; everyone else just says their line. next_state is set
-                // from here (bank 29) rather than queued for state_gameplay to dispatch, because
-                // bank 2 has no room left — this branch is a dead end (no move, no turn) and
-                // nothing in the turn tail writes next_state after it, so it lands safely.
-                if (i == TOWN_TRADER_NPC && !auto_explore_active) {
+                // Walking into a villager opens the conversation screen, the same gesture that
+                // opens a melee turn against an enemy. next_state is set from here (bank 29)
+                // rather than queued for state_gameplay to dispatch, because bank 2 has no room
+                // left — this branch is a dead end (no move, no turn) and nothing in the turn tail
+                // writes next_state after it, so it lands safely. Auto-explore just gets a wall:
+                // it must never be interrupted by a modal.
+                if (!auto_explore_active) {
                     pending_talk_npc = i;
-                    next_state = STATE_TALK;
-                } else {
-                    overworld_signpost_read((uint8_t)(SIGN_KIND_NPC | i));
+                    next_state = STATE_CONVERSATION;
                 }
             }
             return 1u;
@@ -202,6 +207,27 @@ void town_npcs_tick(uint8_t px, uint8_t py) BANKED {
             int16_t ddy = (int16_t)old_y - (int16_t)town_state->npc_y[i];
             if ((ddx || ddy) && ddx >= -1 && ddx <= 1 && ddy >= -1 && ddy <= 1)
                 entity_sprites_town_npc_glide_set(i, old_x, old_y);
+        }
+    }
+
+    // Proximity greeting. Bumping a villager now opens the conversation screen, so the canned line
+    // they used to say on the bump moved here: walk within TOWN_NPC_GREET_RADIUS and they call out
+    // in the chat box. Same call the bump used to make (overworld_signpost_read, bank 22), so the
+    // line text and the generated name come along unchanged. The latch is the last_bump_npc idiom:
+    // greet once on entering range, re-arm when the player walks out of it or a different villager
+    // becomes the one in range.
+    {
+        uint8_t near = 255u;
+        for (i = 0u; i < town_state->npc_count; i++) {
+            uint8_t gdx = (town_state->npc_x[i] > px) ? (uint8_t)(town_state->npc_x[i] - px)
+                                                      : (uint8_t)(px - town_state->npc_x[i]);
+            uint8_t gdy = (town_state->npc_y[i] > py) ? (uint8_t)(town_state->npc_y[i] - py)
+                                                      : (uint8_t)(py - town_state->npc_y[i]);
+            if (gdx <= TOWN_NPC_GREET_RADIUS && gdy <= TOWN_NPC_GREET_RADIUS) { near = i; break; }
+        }
+        if (near != last_greet_npc) {
+            last_greet_npc = near;
+            if (near != 255u) overworld_signpost_read((uint8_t)(SIGN_KIND_NPC | near));
         }
     }
 }
@@ -293,6 +319,8 @@ void town_generate_interior(uint8_t town_id) BANKED {
     town_state->inside_idx = 255u;
     town_state->count = 0u;
     town_state->npc_count = 0u;
+    last_greet_npc = 255u; // slot indices mean a different villager in a different town — re-arm
+    last_bump_npc  = 255u;
     uint8_t barrel_ord = 0u; // stable per-barrel id (placement order) — town_barrels_broken persistence keys off this
 
     { // Rejection-sample the building rects; landing short of `target` on a crowded roll is fine.

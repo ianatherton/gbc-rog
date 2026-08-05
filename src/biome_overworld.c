@@ -511,7 +511,7 @@ void overworld_signpost_read(uint8_t aux) BANKED {
         i = 8u;
         if (dungeon_complete_mask & (uint16_t)((uint16_t)1u << num)) buf[i++] = '*';
         buf[i] = 0;
-    } else if (kind == SIGN_KIND_NPC) { // villager bump-to-talk (town_npc_blocks, biome_town.c) — num = villager index, canned line by index
+    } else if (kind == SIGN_KIND_NPC) { // villager proximity greeting (town_npcs_tick, biome_town.c) — num = villager index, canned line by index; a BUMP opens STATE_CONVERSATION instead
         static const char *const npc_lines[4] = { "WELCOME, HERO", "REST AT THE WELL", "SAFE INSIDE WALLS", "FINE DAY, NO?" };
         const char *s = npc_lines[num & 3u];
         for (i = 0u; s[i] && i < 15u; i++) buf[i] = s[i];

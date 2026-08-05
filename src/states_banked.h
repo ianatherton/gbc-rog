@@ -20,6 +20,8 @@ void state_pickup_enter(void) BANKED;
 void state_pickup_tick(void) BANKED;
 void state_talk_enter(void) BANKED;
 void state_talk_tick(void) BANKED;
+void state_conversation_enter(void) BANKED;
+void state_conversation_tick(void) BANKED;
 void state_transition_enter(void) BANKED;
 
 #endif // STATES_BANKED_H

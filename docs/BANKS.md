@@ -45,7 +45,8 @@ SRAM (battery RAM) is currently unused — free for saves later.
 | 27 | 1,638 | 9% | spells.c — spell system core: `SpellDef` metadata table (names/icons/gating/cooldown curves, copy-out string API), cooldown engine (`spells_floor_reset/tick_cooldowns`), `spells_cast_scroll` (rank-0 generic cast for any class, routes through HOME `ability_dispatch_cast` into banks 6-9) |
 | 23 | 3,625 | 22% | biome_encounter — hub '?' encounters. Two halves: (a) MARKERS on floor 0, a set that is a pure hash of (run_seed, `world_tick`, region) with positions parked in the hub's always-empty enemy arrays (`num_enemies` stays 0 so nothing else sees them) — `world_tick` bumps on every hub arrival (`level_init.c`), which both consumes the marker just entered and reshuffles the rest, so the whole system stores 7 bytes and no arrays; (b) INTERIORS on `ENCOUNTER_FLOOR` (49 — the one index `MAX_FLOORS` left free, reused by every encounter, persistence keys wiped on entry). `ENC_DEFS[]` templates are terrain-free (size/enemies/barrels/chest/clutter/roster); terrain art, palette AND difficulty tier all come from `enc_region`, the hub region the '?' stood in — the two axes are independent so any template works in any region. Adding an encounter is one table row. |
 | 25 | 2,595 | 16% | enemy_extras (`enemy_type_short_name_copy`, `enemy_resolve_hit`, `enemy_ghost_step`, slime split / SLIME_BIG death pop, gorgon snake summon). **Evicted from bank 0 on 2026-07-27** — autobank had been parking this no-`#pragma bank` module in HOME, and widening `enemy_hp[]` to `uint16_t` grew its three spawn-time stores enough to overflow bank 0 into bank 1. Now pinned with `#pragma bank 25`; every function is BANKED in `enemy.h`, so callers far-call it either way. Recovered ~1.77 KB of HOME. |
-| 26, 31 | 0 | 0% | empty — 32 KB free |
+| 26 | 2,081 | 13% | state_conversation — the NPC conversation screen (2026-08-04). Self-contained on purpose: the `DlgNode` dialogue tables live in this bank next to the code that prints them, so no dialogue string ever crosses a bank boundary. Entered from 29 (`town_npc_blocks` sets `next_state` directly — the same zero-bank-2-cost dead-end-branch trick `STATE_TALK` used). The 2x cloaked portrait (sheet O10:P12, `TILE_NPC_CLOAK`) scales into **BG tiles 104..127** — see the dead-font-tail note under "Known caps to watch" |
+| 31 | 0 | 0% | empty — 16 KB free |
 
 Total ROM used ≈ 133 KB of 512 KB (~26%). ROM is not the constraint. If it ever is,
 MBC5 goes to 8 MB: bump `-Wl-yo32` in the Makefile (64/128/…), nothing else changes.
@@ -71,7 +72,7 @@ ROM around a plain call). The linker will NOT catch a near call into the wrong b
 
 ## Game states → banks
 
-Flow: `Boot → TITLE → CHAR_CREATE → GAMEPLAY ⇄ modals(STATS↔ABILITY, INVENTORY, MAP, PICKUP, TALK) → TRANSITION → (next floor | GAME_OVER → TITLE)`
+Flow: `Boot → TITLE → CHAR_CREATE → GAMEPLAY ⇄ modals(STATS↔ABILITY, INVENTORY, MAP, PICKUP, CONVERSATION→TALK) → TRANSITION → (next floor | GAME_OVER → TITLE)`
 
 | State | Primary bank | Far-calls into |
 |-------|--------------|----------------|
@@ -82,16 +83,21 @@ Flow: `Boot → TITLE → CHAR_CREATE → GAMEPLAY ⇄ modals(STATS↔ABILITY, I
 | GAMEPLAY tick | 2 | 19 (combat), 0→6/7/8/9 (abilities by class), 27 (spell cooldowns/metadata), 13 (items), 15/16 (scrolls), 5 (ui/log), 17 (sprites), 0 (ally/lighting/targeting) |
 | STATS / ABILITY | 3 | 5 (ui); ABILITY (SPELL screen) also 27 (spell names/descs/training data) |
 | INVENTORY / PICKUP | 3 | 5 (ui), 13 (items), 20 (equipment), 17 (cursor) |
-| TALK (trade) | 3 | 5 (ui/log), 13 (items + drop table), 17 (cursor); entered from 29 (`town_npc_blocks` sets `next_state` — bank 2 is full) |
+| CONVERSATION | 26 | 5 (`ui_draw_bkg_frame` + log), 14 (`npc_name_copy`), 17 (cursor), 0 (`tileset_read_tiles` for the portrait); entered from 29 (`town_npc_blocks` sets `next_state` — bank 2 is full) |
+| TALK (trade) | 3 | 5 (ui/log), 13 (items + drop table), 17 (cursor); entered from 26 via a `DLG_ACT_TRADE` option, no longer from the bump itself |
 | MAP | 3 | 5 (ui), fog via lighting.c (bank 0) |
 | TRANSITION | 3 | pit → 10/11/12 regen |
 | GAME_OVER | 3 | 5 (ui) |
 
 ## WRAM budget
 
-Fixed WRAM (0xC000–0xDFFF): `_DATA` = 7,590 B + `_INITIALIZED` 47 B, ending 0xDE75 (re-measured
-2026-07-27, after the Ghost's `enemy_hidden[]`: +23 B) → **395 B stack headroom — this is
-load-bearing, treat it as a floor**. The historic worst stack frame is gone: adding ~90 B of town
+Fixed WRAM (0xC000–0xDFFF): `_DATA` = 7,666 B + `_INITIALIZED` 50 B, ending 0xDEC4 (**re-measured
+2026-08-04**, after the conversation screen's 6 B of latches) → **316 B stack headroom**. ⚠️ This
+is now well under the 395 B this doc used to call a floor; the drift happened before the
+conversation screen (the bossx work already logged 323 B) and it has NOT been re-audited against a
+real worst-case frame. Re-measure from the `.map` before adding any fixed WRAM, and prefer an
+idle-resource overlay to new globals. Measure it as `0xE000 − (end of the last `_DATA`/`_INITIALIZED`
+area)`. The historic worst stack frame is gone: adding ~90 B of town
 tables once overran the stack during `class_emblem_draw` (~336 B of locals) → garbled tiles from
 the class symbols onward, and `enemy_hidden[]`'s 23 B reproduced the same failure on 2026-07-27.
 Fixed for good by moving `class_emblem_draw`'s `pack`/`out` scale buffers into the `floor_bits[]`
@@ -202,6 +208,17 @@ Rules for adding banked-WRAM data (the `exp2_*` accessors in `src/lighting.c` ar
   combat floors), which is why the well's bottom row is uploaded as two single-tile calls.
   Use the `tileset_load_bkg_tiles` shim (`tileset_io.h`) from a banked file — it pages the tileset
   bank and restores yours, so the upload costs zero bank 0.
+- **BG tiles 96..127 — the dead font tail — are 32 free BG tiles that cost nothing** (found
+  2026-08-04; the conversation portrait took 104..127). This is a *different pool* from the
+  contended `>= 182` slots above and none of the three tests apply to it. Why it is safe: BG runs
+  in **signed** addressing (`defs.h`), so tiles 0..127 live at `$9000-$97FF` — a region OBJ tile
+  space never reaches, unlike 128..255 at `$8800+`. `font_load(font_ibm)` in `main.c` is the only
+  writer of 0..127 in the whole project (grep every `set_bkg_data`: every other call targets
+  `>= 128`), and printing maps ASCII `0x20..0x7F` to tiles 0..95 via `tile = c - ' '`, so 96..127
+  are never *displayed* by anything. Consequences: no restore on exit, no per-floor re-upload, and
+  no risk of stomping borrowed art (the hero walk frame on 186, the wand on 203, the Ghost on 191).
+  **Reach for this first** for any fullscreen-menu art before spending a scarce `>= 182` slot —
+  the one restriction is that it is BG-only (an OBJ pointed at a font tile index draws blank).
 - **Bank 0 (~77%)** grows with every new HOME dispatcher/driver. Candidates to evict if
   needed: lighting reveal logic (keep only the asm accessors HOME), perf, title_logo.
 - **Bank 2 (97%)** is the gameplay kernel. The eviction pattern that works: pick a function that is

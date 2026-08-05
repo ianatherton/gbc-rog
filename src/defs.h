@@ -409,6 +409,17 @@ typedef struct {
 #define TILE_WELL_BL_VRAM    196u /* = PREFAB_VRAM_TOWN_WALL_NS / elite frame-1 BL */
 #define TILE_WELL_BR_VRAM    198u /* = PREFAB_VRAM_ENTRANCE     / elite frame-1 BR */
 
+/* Conversation-screen NPC portrait (state_conversation.c) — a cloaked figure drawn 2x3 on the
+   sheet at O10:P12, directly under the well, and blown up 2x to 4x6 tiles on screen. Same
+   (row-1)*16 + col rule; walk the 6 source cells as base + {0,1, 16,17, 32,33}.
+   The 24 scaled tiles do NOT go into the contended >=182 BG pool (docs/BANKS.md "Known caps"):
+   they go into the dead tail of the FONT region. BG is in signed addressing mode, so tiles
+   0..127 live at $9000-$97FF where OBJ tile space never reaches; font_load(font_ibm) in main.c
+   is the only writer of that range, and printing maps ASCII 0x20..0x7F to tiles 0..95
+   (tile = c - ' '), so 96..127 are never displayed by anything. Nothing to restore on exit. */
+#define TILE_NPC_CLOAK       158u /* O10 — top-left of the 2x3 portrait art */
+#define CONV_PORTRAIT_VRAM   104u /* 24 scaled tiles, 104..127 (dead font tail) */
+
 /* Signpost label code packed into OwFeature.aux: high nibble = kind, low nibble = index/direction. */
 #define SIGN_KIND_TOWN     0x00u /* low = town index 0..2 */
 #define SIGN_KIND_WAYPOINT 0x10u /* low = quadrant 0=NE 1=NW 2=SE 3=SW */

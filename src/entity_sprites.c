@@ -389,8 +389,19 @@ static void refresh_town_npcs_oam(void) {
         // frame exactly like a real enemy's.
         {
             int16_t wx = (int16_t)nx * 8 + en_ofs_x[i], wy = (int16_t)ny * 8 + en_ofs_y[i];
+            // Head art: the elder keeps the hooded hero head (their opening line turns on the
+            // player wearing "the hood as well"), while every door villager gets K3 or K4 by a
+            // parity hash of run_seed + town + slot — no rand(), so it is stable across re-entry
+            // and cannot desync floor generation, same rule as the shop stock and dialogue roots.
+            uint8_t head = TILE_PLAYER_HEAD_VRAM;
+            if (i != town_state->elder_idx) {
+                uint16_t hh = (uint16_t)(run_seed ^ (uint16_t)((uint16_t)(floor_num + 1u) * 0x2F1Bu));
+                hh = (uint16_t)(hh * 25173u + 13849u);
+                hh = (uint16_t)(hh + (uint16_t)i * 0x4E35u);
+                head = (uint8_t)(TILE_NPC_HEAD_VRAM + (uint8_t)((hh >> 9) & 1u));
+            }
             move_entity_oam(bsp, wx, wy, TILE_PLAYER_BODY_STAND_VRAM, PAL_PLAYER);
-            move_entity_oam(hsp, wx, (int16_t)(wy - 8), TILE_PLAYER_HEAD_VRAM, PAL_PLAYER);
+            move_entity_oam(hsp, wx, (int16_t)(wy - 8), head, PAL_PLAYER);
         }
     }
 }

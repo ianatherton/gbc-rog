@@ -513,7 +513,9 @@ void overworld_signpost_read(uint8_t aux) BANKED {
         buf[i] = 0;
     } else if (kind == SIGN_KIND_NPC) { // villager proximity greeting (town_npcs_tick, biome_town.c) — num = villager index, canned line by index; a BUMP opens STATE_CONVERSATION instead
         static const char *const npc_lines[4] = { "WELCOME, HERO", "REST AT THE WELL", "SAFE INSIDE WALLS", "FINE DAY, NO?" };
-        const char *s = npc_lines[num & 3u];
+        // The elder gets their own call-out rather than one of the four canned ones — they are the
+        // quest source, so the greeting has to read as an invitation to talk, not as town flavour.
+        const char *s = (num == town_state->elder_idx) ? "YOU. HOODED ONE." : npc_lines[num & 3u];
         for (i = 0u; s[i] && i < 15u; i++) buf[i] = s[i];
         buf[i] = 0;
     } else if (kind == SIGN_KIND_BUILDING) { // town building sign — canned type name by index
@@ -541,7 +543,15 @@ void overworld_signpost_read(uint8_t aux) BANKED {
         } else {
             // aux's low nibble is only the villager slot (0..7, biome_town.c); this signpost
             // only exists inside a town interior, so the town id is floor_num - TOWN_FLOOR_BASE.
-            npc_name_copy((uint8_t)(floor_num - TOWN_FLOOR_BASE), num, nbuf, sizeof nbuf);
+            // The elder is titled instead of named, matching the conversation screen — otherwise
+            // the chat box would call them one thing and the modal another.
+            if (num == town_state->elder_idx) {
+                const char *t = "THE ELDER"; // copied, not passed: bank-22 literal into bank-5 call
+                for (i = 0u; t[i]; i++) nbuf[i] = t[i];
+                nbuf[i] = 0;
+            } else {
+                npc_name_copy((uint8_t)(floor_num - TOWN_FLOOR_BASE), num, nbuf, sizeof nbuf);
+            }
         }
         ui_combat_log_push(nbuf);
     }

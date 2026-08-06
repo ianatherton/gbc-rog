@@ -449,6 +449,16 @@ typedef struct {
 #define TILE_SHEET_SHOP_ICON_0  40u  /* I3 potion  */
 #define TILE_SHEET_SHOP_ICON_1  103u /* H7 hammer  */
 #define TILE_SHOP_ICON_VRAM     2u   /* OBJ 2,3 — only OBJ tile 1 (ENC_MARKER_TILE) was claimed */
+/* Townsfolk heads. Every villager used to wear the hero's own head (K13); now the door villagers
+   get one of these two at random (hashed per town+slot, stable across re-entry) and only the elder
+   keeps the hooded hero head — which is the point of their opening line about the player wearing
+   the hood "as well". K3/K4 are sheet indices < 128 so their art already rides main.c's bulk BG
+   upload, but that is BG memory: an OBJ needs its own copy, and K4's natural BG slot 186 is in any
+   case already taken by TILE_PLAYER_BODY_STRIDE2_VRAM. Uploaded per town entry, like the shop
+   icons, into the same OBJ-only pool. */
+#define TILE_SHEET_NPC_HEAD_A   42u  /* K3 */
+#define TILE_SHEET_NPC_HEAD_B   58u  /* K4 */
+#define TILE_NPC_HEAD_VRAM      4u   /* OBJ 4,5 */
 /* Where the 8x8 icon sits inside the 2x2 block, in pixels from its top-left. The board's blank
    face spans block px x 6..13, y 6..11, so this centres the icon on the board — which reads as
    slightly right of the block's own centre, because the left columns are the post. */
@@ -473,6 +483,14 @@ typedef struct {
    refresh_town_npcs_oam. Wander AI in biome_town.c town_npcs_tick. */
 #define MAX_TOWN_NPCS  8u
 #define TOWN_NPC_ROAM_RADIUS 10u /* Chebyshev tiles from home before a wandering villager warps back */
+/* One villager slot is reserved for the elder, who is homed at the well rather than in a building,
+   so buildings can only fill the slots below that. A town therefore has at most 7 door villagers
+   plus the elder — still MAX_TOWN_NPCS sprites, no extra OAM. The elder's own index is NOT a
+   constant: it is `town_state->elder_idx` (= npc_count at the moment it is appended), because a
+   5-building town has no villager in slots 5 or 6 and the elder must still be contiguous with the
+   rest for the tick/OAM/collision loops that all run 0..npc_count. */
+#define TOWN_OPEN_BUILDINGS  ((uint8_t)(MAX_TOWN_NPCS - 1u))
+#define TOWN_ELDER_ROAM_RADIUS 4u /* the elder keeps close to the well, unlike the wandering townsfolk */
 /* Deco pines are placed as groves of 3-4 within ±2 cells of a grove anchor (biome_town.c), so a town
    gets ~8×3.5 trees — the same ballpark as the old 40 single-tree attempts, just clumped. The real
    cap is the shared MAX_OW_FEATURES budget (signs + barrels + fountain go first). */

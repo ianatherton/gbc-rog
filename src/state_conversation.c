@@ -15,12 +15,23 @@
 // options, and every option either jumps to another node (DLG_ACT_GOTO) or fires an action. Adding
 // dialogue is only ever new DlgNode rows — the whole table lives in this bank alongside the code
 // that prints it, so no string ever crosses a bank boundary (project_cross_bank_string_literal_gotcha).
+//
+// THE ELDER (N_ELDER_*) is the main quest's only source. One per town, homed at the well rather
+// than in a building (biome_town.c places them last, index in town_state->elder_idx), so the player
+// can always find one. Their tree frames the run: Mara sleeps, her aspects wake in the nine deeps,
+// kill one and it sheds *petrified hate* — a dark shard that burns to the touch — and bring it back.
+// **Only the telling of that quest exists today.** Petrified hate is not yet a real item: no boss
+// drops it, there is no inventory kind for it, and there is nothing to hand in. N_ELDER_TALLY's live
+// count is a proxy off dungeon_complete_mask (bosses beaten), not shards held. Finishing the loop
+// means an item kind + a boss drop + a turn-in action here, and DLG_ACT_* is the seam for the last
+// of those — it already carries DLG_ACT_TRADE as the precedent for "an option that does a thing".
 
 #include "debug_bank.h"
 #include "game_state.h"
 #include "globals.h"
 #include "defs.h"
-#include "dungeon.h" // TOWN_FLOOR_BASE — floor_num back to a town id
+#include "dungeon.h" // TOWN_FLOOR_BASE — floor_num back to a town id; DUNGEON_COUNT for the quest tally
+#include "map.h"     // town_state->elder_idx — which villager slot talks from the elder tree
 #include "lcd.h"
 #include "names.h"
 #include "tileset_io.h"
@@ -85,13 +96,22 @@ typedef struct {
 
 #define N_TRADER_ROOT   0u
 #define N_TRADER_TOWN   1u
+/* The elder's tree — the main quest lives here. Reached by slot (town_state->elder_idx), never by
+   the persona hash: there is exactly one elder per town and they are always at the well. */
 #define N_ELDER_ROOT    2u
-#define N_ELDER_DEEP    3u
-#define N_ELDER_ADVICE  4u
-#define N_WATCH_ROOT    5u
-#define N_WATCH_WALLS   6u
-#define N_CHILD_ROOT    7u
-#define N_CHILD_GAME    8u
+#define N_ELDER_DARK    3u
+#define N_ELDER_QUEST   4u
+#define N_ELDER_HATE    5u
+#define N_ELDER_SHARD   6u
+#define N_ELDER_TALLY   7u
+#define N_ELDER_DEEP    8u
+#define N_ELDER_ADVICE  9u
+#define N_WATCH_ROOT   10u
+#define N_WATCH_WALLS  11u
+#define N_CHILD_ROOT   12u
+#define N_CHILD_GAME   13u
+#define N_HAND_ROOT    14u
+#define N_HAND_WORK    15u
 
 // Rows are positional and MUST stay in N_* order — SDCC has no designated-initializer support to
 // lean on here, so the #defines above are just indices into this array.
@@ -111,11 +131,46 @@ static const DlgNode dlg_nodes[] = {
         3u,
     },
     { /* N_ELDER_ROOT */
-        { "You have the look", "of one bound for", "the deep places." },
-        { "Ask of the deep", "Ask for advice", "Leave", 0 },
+        { "You wear the hood", "as well. Witness", "to the Unraveling." },
+        { "Then?", "Ask of the deep", "Ask for advice", "Leave" },
+        { DLG_ACT_GOTO, DLG_ACT_GOTO, DLG_ACT_GOTO, DLG_ACT_END },
+        { N_ELDER_DARK, N_ELDER_DEEP, N_ELDER_ADVICE, 0u },
+        4u,
+    },
+    { /* N_ELDER_DARK */
+        { "Then you know", "times are dark.", 0 },
+        { "What must I do?", "Back", "Leave", 0 },
         { DLG_ACT_GOTO, DLG_ACT_GOTO, DLG_ACT_END, 0u },
-        { N_ELDER_DEEP, N_ELDER_ADVICE, 0u, 0u },
+        { N_ELDER_QUEST, N_ELDER_ROOT, 0u, 0u },
         3u,
+    },
+    { /* N_ELDER_QUEST */
+        { "Mara sleeps. Her", "aspects do not.", "Nine deeps, nine." },
+        { "How do I end it", "How many remain", "Back", "Leave" },
+        { DLG_ACT_GOTO, DLG_ACT_GOTO, DLG_ACT_GOTO, DLG_ACT_END },
+        { N_ELDER_HATE, N_ELDER_TALLY, N_ELDER_DARK, 0u },
+        4u,
+    },
+    { /* N_ELDER_HATE */
+        { "Slay one and it", "sheds petrified", "hate. Bring it." },
+        { "What is that?", "Back", "Leave", 0 },
+        { DLG_ACT_GOTO, DLG_ACT_GOTO, DLG_ACT_END, 0u },
+        { N_ELDER_SHARD, N_ELDER_QUEST, 0u, 0u },
+        3u,
+    },
+    { /* N_ELDER_SHARD */
+        { "A shard of her", "hate. Dark, and", "burns to touch." },
+        { "Back", "Leave", 0, 0 },
+        { DLG_ACT_GOTO, DLG_ACT_END, 0u, 0u },
+        { N_ELDER_HATE, 0u, 0u, 0u },
+        2u,
+    },
+    { /* N_ELDER_TALLY — draw_node appends a live count line under these two */
+        { "Her aspects fall", "one by one.", 0 },
+        { "Back", "Leave", 0, 0 },
+        { DLG_ACT_GOTO, DLG_ACT_END, 0u, 0u },
+        { N_ELDER_QUEST, 0u, 0u, 0u },
+        2u,
     },
     { /* N_ELDER_DEEP */
         { "Nine ways down.", "Each one deeper", "than the last." },
@@ -159,11 +214,27 @@ static const DlgNode dlg_nodes[] = {
         { N_CHILD_ROOT, 0u, 0u, 0u },
         2u,
     },
+    { /* N_HAND_ROOT */
+        { "Work don't stop", "for dark times.", "Nor for heroes." },
+        { "Ask of the work", "Leave", 0, 0 },
+        { DLG_ACT_GOTO, DLG_ACT_END, 0u, 0u },
+        { N_HAND_WORK, 0u, 0u, 0u },
+        2u,
+    },
+    { /* N_HAND_WORK */
+        { "Roofs, barrels,", "the well. Ask the", "elder, not me." },
+        { "Back", "Leave", 0, 0 },
+        { DLG_ACT_GOTO, DLG_ACT_END, 0u, 0u },
+        { N_HAND_ROOT, 0u, 0u, 0u },
+        2u,
+    },
 };
 
-// Root node per villager persona. Slot TOWN_TRADER_NPC always gets the trader tree; everyone else
-// hashes into this table.
-static const uint8_t dlg_persona_root[] = { N_ELDER_ROOT, N_WATCH_ROOT, N_CHILD_ROOT };
+// Root node per villager persona. Two slots are assigned rather than hashed — TOWN_TRADER_NPC is
+// always the trader and town_state->elder_idx is always the elder — so the elder tree is NO LONGER
+// in this table: it would otherwise turn up on a random door villager as well, and the main quest
+// should have exactly one source per town. N_HAND_ROOT replaces it to keep three personas.
+static const uint8_t dlg_persona_root[] = { N_WATCH_ROOT, N_CHILD_ROOT, N_HAND_ROOT };
 #define DLG_PERSONA_COUNT 3u
 
 static uint8_t cv_prev_j;
@@ -178,6 +249,7 @@ static uint8_t cv_npc;   // villager slot this conversation belongs to
 static uint8_t dlg_root_for_npc(uint8_t slot) {
     uint16_t h;
     if (slot == TOWN_TRADER_NPC) return N_TRADER_ROOT;
+    if (slot == town_state->elder_idx) return N_ELDER_ROOT; // the well-side elder, quest source
     h = (uint16_t)(run_seed ^ (uint16_t)(0x5B27u + (uint16_t)cv_town * 0x3A1Fu));
     h = (uint16_t)(h * 25173u + 13849u);
     h = (uint16_t)(h + (uint16_t)slot * 0x6D2Bu);
@@ -274,11 +346,30 @@ static void draw_node(void) {
     lcd_clear_display();
     ui_draw_bkg_frame(); // bank 5 — the seed-screen ring; also pushes its gold ramp into PAL_WALL_BG
     portrait_stamp();
-    npc_name_copy(cv_town, cv_npc, nm, sizeof nm); // bank 14, copies into this RAM buffer
-    gotoxy(CV_NAME_COL, CV_NAME_ROW); printf("%s", nm);
+    // The elder is titled, not named: they are the one villager the player needs to be able to
+    // recognise and come back to, and a generated name would read as just another townsfolk.
+    // Literal is safe here — this bank owns its own strings (see the header note).
+    if (cv_npc == town_state->elder_idx) {
+        gotoxy(CV_NAME_COL, CV_NAME_ROW); printf("THE ELDER");
+    } else {
+        npc_name_copy(cv_town, cv_npc, nm, sizeof nm); // bank 14, copies into this RAM buffer
+        gotoxy(CV_NAME_COL, CV_NAME_ROW); printf("%s", nm);
+    }
     for (i = 0u; i < CV_BODY_LINES; i++) {
         if (!n->line[i]) break;
         gotoxy(CV_BODY_COL, (uint8_t)(CV_BODY_ROW + i)); printf("%s", n->line[i]);
+    }
+    if (cv_node == N_ELDER_TALLY) {
+        // Live quest progress, printed into the body line the node left blank. Counted straight off
+        // dungeon_complete_mask (bit k = dungeon k's boss beaten and exited) rather than a second
+        // stored tally — one source of truth, and it is already persisted across the run. NOTE this
+        // is currently a proxy: an aspect's *petrified hate* is not yet a real dropped item, so
+        // "stilled" means "boss beaten", not "shard in hand". See the elder note in this file.
+        uint8_t k, cnt = 0u;
+        for (k = 0u; k < DUNGEON_COUNT; k++)
+            if (dungeon_complete_mask & (uint16_t)((uint16_t)1u << k)) cnt++;
+        gotoxy(CV_BODY_COL, (uint8_t)(CV_BODY_ROW + i));
+        printf("%u of %u stilled.", (unsigned)cnt, (unsigned)DUNGEON_COUNT);
     }
     for (i = 0u; i < n->opt_count; i++) {
         gotoxy(CV_OPT_COL, (uint8_t)(CV_OPT_ROW + i)); printf("%s", n->opt_label[i]);

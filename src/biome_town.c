@@ -93,6 +93,12 @@ void biome_town_load_palettes(void) {
         set_sprite_data(TILE_SHOP_ICON_VRAM, 1u, buf);
         tileset_read_tiles(buf, TILE_SHEET_SHOP_ICON_1, 1u);
         set_sprite_data((uint8_t)(TILE_SHOP_ICON_VRAM + 1u), 1u, buf);
+        // Townsfolk heads K3/K4 — same OBJ-only pool. Their sheet art rides the bulk BG upload
+        // already, but BG and OBJ tile space are different memory here, so an OBJ needs its own.
+        tileset_read_tiles(buf, TILE_SHEET_NPC_HEAD_A, 1u);
+        set_sprite_data(TILE_NPC_HEAD_VRAM, 1u, buf);
+        tileset_read_tiles(buf, TILE_SHEET_NPC_HEAD_B, 1u);
+        set_sprite_data((uint8_t)(TILE_NPC_HEAD_VRAM + 1u), 1u, buf);
     }
     set_sprite_palette(PAL_ENEMY_RAT, 1u, pal_shop_icon); // OCP5 — idle in town, see pal_shop_icon
 }
@@ -285,7 +291,10 @@ void town_npcs_tick(uint8_t px, uint8_t py) BANKED {
                 ? (uint8_t)(town_state->npc_y[i] - town_state->npc_home_y[i])
                 : (uint8_t)(town_state->npc_home_y[i] - town_state->npc_y[i]);
             uint8_t dist = (adx > ady) ? adx : ady; // Chebyshev, matches the 4-directional step shape
-            if (dist > TOWN_NPC_ROAM_RADIUS) {
+            // The elder is on a short leash: their whole role is "the one you can always find at
+            // the well", which a 10-tile wander would undermine in a 96-square town.
+            uint8_t leash = (i == town_state->elder_idx) ? TOWN_ELDER_ROAM_RADIUS : TOWN_NPC_ROAM_RADIUS;
+            if (dist > leash) {
                 town_state->npc_x[i] = town_state->npc_home_x[i]; // simple snap-home — no pathing back either
                 town_state->npc_y[i] = town_state->npc_home_y[i];
             }
@@ -464,7 +473,7 @@ void town_generate_interior(uint8_t town_id) BANKED {
         uint8_t adx = (cx > bcx) ? (uint8_t)(cx - bcx) : (uint8_t)(bcx - cx);
         uint8_t ady = (cy > bcy) ? (uint8_t)(cy - bcy) : (uint8_t)(bcy - cy);
         uint8_t door_x, door_y;
-        uint8_t closed = (i >= MAX_TOWN_NPCS); // beyond the villager cap: decorative, closed door, no entry
+        uint8_t closed = (i >= TOWN_OPEN_BUILDINGS); // beyond the villager cap: decorative, closed door, no entry
         uint8_t big = 0u; // this building got a 2x2 merchant board instead of a 1x1 signpost
         int8_t sx = 0, sy = 0; // door's outward direction (toward the facing road axis)
         // S / E / W faces only — never N. A north door would sit on the roof's far edge, where the
@@ -604,7 +613,7 @@ void town_generate_interior(uint8_t town_id) BANKED {
     for (i = 0u; i < town_state->count && shops_placed < TOWN_SHOP_SIGNS; i++) {
         TownBuilding *b = &town_state->buildings[i];
         int8_t sx = 0, sy = 0;
-        if (i >= MAX_TOWN_NPCS) break; // closed buildings start here and never carry a sign
+        if (i >= TOWN_OPEN_BUILDINGS) break; // closed buildings start here and never carry a sign
         if (i == shop_bidx0) continue; // pass 1 already gave this door a board — one each
         if (b->door_y == (uint8_t)(b->y + b->h - 1u) && b->door_x != b->x
                 && b->door_x != (uint8_t)(b->x + b->w - 1u)) sy = 1;      // S face
@@ -693,5 +702,31 @@ void town_generate_interior(uint8_t town_id) BANKED {
         ow_features[n].type = OW_FEAT_BARREL; ow_features[n].aux = ord;
         n++;
     }
+    { // The elder: appended after the door villagers, so their index is whatever npc_count reached
+      // (never >= MAX_TOWN_NPCS, because TOWN_OPEN_BUILDINGS caps the loop above one short). Homed
+      // at the well rather than in a building — they have no door, no sign and no shop, and they
+      // are the only villager the player can count on finding, which is what makes them the right
+      // place to hang the main quest. Candidates walk outward from the well's south-west corner so
+      // the elder starts on open plaza grass whatever the road/building layout did; if every one is
+      // blocked (a barrel or a merchant board took them all), the elder simply isn't placed and
+      // elder_idx stays 255 — every consumer already tests for that.
+        static const int8_t ex[6] = { 0, 1, -1, 2, 0, 1 };
+        static const int8_t ey[6] = { 2, 2,  1, 1, -1, -1 };
+        uint8_t k;
+        town_state->elder_idx = 255u;
+        for (k = 0u; k < 6u; k++) {
+            uint8_t px = (uint8_t)((int8_t)TOWN_WELL_X + ex[k]);
+            uint8_t py = (uint8_t)((int8_t)TOWN_WELL_Y + ey[k]);
+            if (!BIT_GET(floor_bits, TILE_IDX(px, py))) continue;
+            town_state->npc_home_x[town_state->npc_count] = px;
+            town_state->npc_home_y[town_state->npc_count] = py;
+            town_state->npc_x[town_state->npc_count]      = px;
+            town_state->npc_y[town_state->npc_count]      = py;
+            town_state->elder_idx = town_state->npc_count;
+            town_state->npc_count++;
+            break;
+        }
+    }
+
     ow_feature_count = n;
 }

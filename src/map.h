@@ -35,6 +35,7 @@ typedef struct {
     uint8_t npc_count;
     uint8_t npc_home_x[MAX_TOWN_NPCS], npc_home_y[MAX_TOWN_NPCS]; // wander anchor (building centre)
     uint8_t npc_x[MAX_TOWN_NPCS],      npc_y[MAX_TOWN_NPCS];      // current tile — also the OAM/collision position
+    uint8_t elder_idx;            // villager slot holding the elder (homed at the well); 255 = none placed
     // Big 2x2 merchant signposts: top-left cell, 255 = not placed this town. Index 0 = apothecary,
     // 1 = blacksmith (TOWN_SHOP_SIGNS). Deliberately NOT ow_features[] entries: overworld_cell_render's
     // town feature loop is built on every feature being exactly 1 cell wide, so these resolve before

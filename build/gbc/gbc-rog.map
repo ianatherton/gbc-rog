@@ -186,16 +186,16 @@ Area                       Addr        Size        Decimal Bytes (Attributes)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     00000821  l__CODE_2 |    0000086B  l__CODE_1 |    00000A97  l__CODE_2
+     0000086B  l__CODE_1 |    00000A97  l__CODE_2 |    00000AC1  l__CODE_2
      00000B71  l__HOME   |    00000B9B  l__CODE_4 |    00000E29  l__CODE_2
      00000FAD  l__CODE_3 |    00001108  l__CODE_1 |    0000140B  l__CODE_2
      00001554  l__CODE_1 |    000016D0  l__CODE_1 |    000016E5  l__CODE_1
-     00001DF2  l__DATA   |    00001F14  l__CODE_2 |    00002000  _rROMB0  
+     00001DF2  l__DATA   |    00002000  _rROMB0   |    0000206B  l__CODE_2
      000020D5  l__CODE_1 |    00002B6C  l__CODE   |    00002D6C  s__HOME  
-     00003000  _rROMB1   |    00003067  l__CODE_2 |    0000329A  l__CODE_3
+     00003000  _rROMB1   |    000030AD  l__CODE_2 |    0000329A  l__CODE_3
      000034B2  l__CODE_5 |    000038DD  s__BASE   |    000038DD  s__CODE_0
      000038DD  s__INITIA |    000038DD  s__LIT    |    0000390F  s__GSINIT
-     0000391B  s__GSFINA |    00003BA0  l__CODE_1 |    00003E2A  l__CODE_2
+     0000391B  s__GSFINA |    00003C6C  l__CODE_1 |    00003E2A  l__CODE_2
      00004000  _rMBC7_SR |    00004000  _rRAMB    |    00008000  __VRAM   
      00008000  __VRAM800 |    00008800  __VRAM880 |    00009000  __VRAM900
      00009800  __SCRN0   |    00009C00  __SCRN1   |    0000A000  __SRAM   
@@ -825,32 +825,32 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_17               00114000    00003BA0 =       15264. bytes (REL,CON)
+_CODE_17               00114000    00003C6C =       15468. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     001147AF  ___func_e |    001147AF  _entity_s |    001147F8  ___func_e
-     001147F8  _entity_s |    00114813  ___func_e |    00114813  _entity_s
-     001148CB  ___func_e |    001148CB  _entity_s |    001148F3  ___func_e
-     001148F3  _entity_s |    001148F9  ___func_e |    001148F9  _entity_s
-     001156AE  ___func_e |    001156AE  _entity_s |    00115AAA  ___func_e
-     00115AAA  _entity_s |    00115AE0  ___func_e |    00115AE0  _entity_s
-     00115B01  ___func_e |    00115B01  _entity_s |    00115B10  ___func_e
-     00115B10  _entity_s |    00115B52  ___func_e |    00115B52  _entity_s
-     00115C69  ___func_e |    00115C69  _entity_s |    00115C8E  ___func_e
-     00115C8E  _entity_s |    00115CB6  ___func_e |    00115CB6  _entity_s
-     00115EE0  ___func_e |    00115EE0  _entity_s |    00115F85  ___func_e
-     00115F85  _entity_s |    0011608F  ___func_e |    0011608F  _entity_s
-     0011636C  ___func_e |    0011636C  _entity_s |    00116585  ___func_e
-     00116585  _entity_s |    001165C6  ___func_e |    001165C6  _entity_s
-     0011660D  ___func_e |    0011660D  _entity_s |    00116904  ___func_e
-     00116904  _entity_s |    00116BC8  ___func_e |    00116BC8  _entity_s
-     00116CE4  ___func_e |    00116CE4  _entity_s |    00116ECE  ___func_e
-     00116ECE  _entity_s |    0011700C  ___func_e |    0011700C  _entity_s
-     00117038  ___func_e |    00117038  _entity_s |    00117041  ___func_e
-     00117041  _entity_s |    00117055  ___func_e |    00117055  _entity_s
-     00117477  ___func_a |    00117477  _ally_fox |    001175ED  ___func_a
-     001175ED  _ally_fox |    001177BB  ___func_a |    001177BB  _ally_fox
+     0011487B  ___func_e |    0011487B  _entity_s |    001148C4  ___func_e
+     001148C4  _entity_s |    001148DF  ___func_e |    001148DF  _entity_s
+     00114997  ___func_e |    00114997  _entity_s |    001149BF  ___func_e
+     001149BF  _entity_s |    001149C5  ___func_e |    001149C5  _entity_s
+     0011577A  ___func_e |    0011577A  _entity_s |    00115B76  ___func_e
+     00115B76  _entity_s |    00115BAC  ___func_e |    00115BAC  _entity_s
+     00115BCD  ___func_e |    00115BCD  _entity_s |    00115BDC  ___func_e
+     00115BDC  _entity_s |    00115C1E  ___func_e |    00115C1E  _entity_s
+     00115D35  ___func_e |    00115D35  _entity_s |    00115D5A  ___func_e
+     00115D5A  _entity_s |    00115D82  ___func_e |    00115D82  _entity_s
+     00115FAC  ___func_e |    00115FAC  _entity_s |    00116051  ___func_e
+     00116051  _entity_s |    0011615B  ___func_e |    0011615B  _entity_s
+     00116438  ___func_e |    00116438  _entity_s |    00116651  ___func_e
+     00116651  _entity_s |    00116692  ___func_e |    00116692  _entity_s
+     001166D9  ___func_e |    001166D9  _entity_s |    001169D0  ___func_e
+     001169D0  _entity_s |    00116C94  ___func_e |    00116C94  _entity_s
+     00116DB0  ___func_e |    00116DB0  _entity_s |    00116F9A  ___func_e
+     00116F9A  _entity_s |    001170D8  ___func_e |    001170D8  _entity_s
+     00117104  ___func_e |    00117104  _entity_s |    0011710D  ___func_e
+     0011710D  _entity_s |    00117121  ___func_e |    00117121  _entity_s
+     00117543  ___func_a |    00117543  _ally_fox |    001176B9  ___func_a
+     001176B9  _ally_fox |    00117887  ___func_a |    00117887  _ally_fox
 ASxxxx Linker V03.00/V05.40 + sdld,  page 48.
 Hexadecimal  [32-Bits]
 
@@ -902,7 +902,7 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_22               00164000    00003067 =       12391. bytes (REL,CON)
+_CODE_22               00164000    000030AD =       12461. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
@@ -915,14 +915,14 @@ _CODE_22               00164000    00003067 =       12391. bytes (REL,CON)
      00164E35  ___func_o |    00164E35  _overworl |    00164E8F  ___func_o
      00164E8F  _overworl |    00165036  ___func_o |    00165036  _overworl
      001652BE  ___func_o |    001652BE  _overworl |    001652F6  ___func_o
-     001652F6  _overworl |    00165774  ___func_o |    00165774  _overworl
-     001663BC  ___func_o |    001663BC  _overworl |    00166637  ___func_o
-     00166637  _overworl |    001668DA  ___func_r |    001668DA  _render_b
-     00166986  ___func_r |    00166986  _render_b |    00166A34  ___func_w
-     00166A34  _water_an |    00166A44  ___func_w |    00166A44  _water_an
-     00166AF4  ___func_e |    00166AF4  _encounte |    00166C9F  ___func_a
-     00166C9F  _apply_wa |    00166EE2  ___func_a |    00166EE2  _apply_fi
-     00166F9A  ___func_l |    00166F9A  _load_pal
+     001652F6  _overworl |    001657BA  ___func_o |    001657BA  _overworl
+     00166402  ___func_o |    00166402  _overworl |    0016667D  ___func_o
+     0016667D  _overworl |    00166920  ___func_r |    00166920  _render_b
+     001669CC  ___func_r |    001669CC  _render_b |    00166A7A  ___func_w
+     00166A7A  _water_an |    00166A8A  ___func_w |    00166A8A  _water_an
+     00166B3A  ___func_e |    00166B3A  _encounte |    00166CE5  ___func_a
+     00166CE5  _apply_wa |    00166F28  ___func_a |    00166F28  _apply_fi
+     00166FE0  ___func_l |    00166FE0  _load_pal
 ASxxxx Linker V03.00/V05.40 + sdld,  page 53.
 Hexadecimal  [32-Bits]
 
@@ -971,12 +971,12 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_26               001A4000    00000821 =        2081. bytes (REL,CON)
+_CODE_26               001A4000    00000AC1 =        2753. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
-     001A4716  ___func_s |    001A4716  _state_co |    001A4771  ___func_s
-     001A4771  _state_co
+     001A49B6  ___func_s |    001A49B6  _state_co |    001A4A11  ___func_s
+     001A4A11  _state_co
 ASxxxx Linker V03.00/V05.40 + sdld,  page 57.
 Hexadecimal  [32-Bits]
 
@@ -1006,16 +1006,16 @@ Hexadecimal  [32-Bits]
 
 Area                       Addr        Size        Decimal Bytes (Attributes)
 --------------------       ----        ----        ------- ----- ------------
-_CODE_29               001D4000    00001F14 =        7956. bytes (REL,CON)
+_CODE_29               001D4000    0000206B =        8299. bytes (REL,CON)
 
         Value  Global            Value  Global            Value  Global    
         -----  ------            -----  ------            -----  ------    
      001D4000  ___func_b |    001D4000  _biome_to |    001D400A  ___func_b
-     001D400A  _biome_to |    001D463A  ___func_t |    001D463A  _town_big
-     001D4669  ___func_t |    001D4669  _town_exi |    001D46A7  ___func_t
-     001D46A7  _town_npc |    001D46F4  ___func_t |    001D46F4  _town_npc
-     001D4A88  ___func_t |    001D4A88  _town_bar |    001D4BC2  ___func_t
-     001D4BC2  _town_roo |    001D4C3A  ___func_t |    001D4C3A  _town_gen
+     001D400A  _biome_to |    001D466A  ___func_t |    001D466A  _town_big
+     001D4699  ___func_t |    001D4699  _town_exi |    001D46D7  ___func_t
+     001D46D7  _town_npc |    001D4724  ___func_t |    001D4724  _town_npc
+     001D4AC6  ___func_t |    001D4AC6  _town_bar |    001D4C00  ___func_t
+     001D4C00  _town_roo |    001D4C78  ___func_t |    001D4C78  _town_gen
 ASxxxx Linker V03.00/V05.40 + sdld,  page 60.
 Hexadecimal  [32-Bits]
 
